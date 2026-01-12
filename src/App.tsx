@@ -12,7 +12,6 @@ import SideBar from "./components/layout/SideBar";
 import { Home } from "@mui/icons-material";
 import GlobalBackdrop from "./components/common/GlobalBackdrop";
 import AppRoutes from "./routes/AppRoutes";
-// import GlobalLoader from "./components/common/GlobalLoader";
 import { PublicRoute } from "./routes/PublicRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
 import { useAppSelector } from "./app/hooks";

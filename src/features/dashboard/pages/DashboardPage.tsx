@@ -3,11 +3,6 @@ import React, { type JSX, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { Home } from "@mui/icons-material";
-import {
-  tabBoxOneStyle,
-  tabBoxTwoStyle,
-  tabCursorStyle,
-} from "../../../style/tabStyle/TabCursorStyle";
 import { useAppSelector } from "../../../app/hooks";
 
 interface DashboardViewProps {
@@ -22,14 +17,14 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
 
-  // ✅ GET USER FROM REDUX
+  //  GET USER FROM REDUX
   const user = useAppSelector((s) => s.auth.user);
 
   if (!user) return null;
 
   const roles = user.roles;
 
-  // ✅ BACKEND-ALIGNED ROLES
+  //  BACKEND-ALIGNED ROLES
   const showDashboardTab =
     roles.includes("SUPER_ADMIN") || roles.includes("TEAM_LEAD");
 
@@ -41,7 +36,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     return 0;
   });
 
-  // ✅ SYNC TAB ← URL
+  //  SYNC TAB ← URL
   useEffect(() => {
     if (location.pathname.startsWith("/dashboard") && showDashboardTab) {
       setActiveTab(1);
@@ -50,7 +45,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [location.pathname, showDashboardTab]);
 
-  // ✅ SYNC HEADER
+  //  SYNC HEADER
   useEffect(() => {
     if (activeTab === 0) {
       setDynamicHeaderText("Home");
@@ -61,7 +56,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
     }
   }, [activeTab, setDynamicHeaderIcon, setDynamicHeaderText, showDashboardTab]);
 
-  // ✅ TAB → ROUTE
+  //  TAB → ROUTE
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
 
@@ -73,14 +68,68 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   };
 
   return (
-    <Box sx={tabBoxOneStyle}>
-      <Box sx={tabBoxTwoStyle}>
+    <Box
+      sx={{
+        backgroundColor: "auto",
+        maxWidth: "100%",
+        margin: "50px auto",
+        height: "auto",
+        pl: 8,
+        overflow: "hidden",
+        "&::-webkit-scrollbar": {
+          height: "8px",
+        },
+        "&::-webkit-scrollbar-track": {
+          backgroundColor: "#f1f1f1",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "#888",
+          borderRadius: "4px",
+        },
+        "&::-webkit-scrollbar-thumb:hover": {
+          backgroundColor: "grey",
+        },
+      }}
+    >
+      <Box
+        sx={{
+          backgroundColor: "auto",
+          display: "flex",
+          height: "20px",
+          alignItems: "center",
+          alignContent: "center",
+          justifyContent: "center",
+        }}
+      >
         <Tabs
           value={activeTab}
           onChange={handleTabChange}
           textColor="inherit"
           indicatorColor="secondary"
-          sx={tabCursorStyle}
+          sx={{
+            "& .MuiTabs-indicator": {
+              display: "flex",
+              justifyContent: "center",
+              backgroundColor: "transparent",
+              "&::after": {
+                content: '""',
+                width: 0,
+                height: 0,
+                borderRight: "8px solid transparent",
+                borderLeft: "8px solid transparent",
+                borderBottom: "10px solid pink",
+                position: "absolute",
+                bottom: 0,
+              },
+            },
+            "&.Mui-focusVisible": {
+              backgroundColor: "red",
+            },
+            width: "100%",
+            backgroundColor: "auto",
+            boxShadow: 2,
+            mt: 1,
+          }}
         >
           <Tab label="Home" />
           {showDashboardTab && <Tab label="Dashboard" />}

@@ -65,7 +65,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           />
         </Route>
         <Route
-          path="skillsetview"
+          path="team"
           element={
             <PrivateRoute
               element={
@@ -79,10 +79,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route
             index
-            element={<Navigate to="SkillSetTeamViewMain" replace />}
+            element={<Navigate to="teammanagement" replace />}
           />
           <Route
-            path="SkillSetTeamViewMain"
+            path="teammanagement"
             element={<SkillSetTeamViewMain />}
           />
           <Route

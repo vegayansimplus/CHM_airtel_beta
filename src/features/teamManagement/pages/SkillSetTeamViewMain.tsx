@@ -1,7 +1,8 @@
-import CommonContainer from "../../../components/common/CommonContainer"
+import { Box } from "@mui/material"
+// import CommonContainer from "../../../components/common/CommonContainer"
 
 export const SkillSetTeamViewMain = () => {
   return (
-    <CommonContainer>SkillSetTeamViewMain</CommonContainer>
+    <Box>SkillSetTeamViewMain</Box>
   )
 }

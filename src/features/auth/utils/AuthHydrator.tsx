@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useAppDispatch } from "../../../app/hooks";
 import { authStorage } from "../../../app/store/auth.storage";
 import { finishHydration, logout, setToken, setUser } from "../slices/auth.slice";
-
 const AuthHydrator = () => {
   const dispatch = useAppDispatch();
 

@@ -1,19 +1,19 @@
 import type { JSX } from "react";
 import { useAppSelector } from "../app/hooks";
 import { Navigate, useLocation } from "react-router";
-import GlobalBackdrop from "../components/common/GlobalBackdrop";
+// import GlobalBackdrop from "../components/common/GlobalBackdrop";
 
 export const PrivateRoute = ({ element }: { element: JSX.Element }) => {
   const { isAuthenticated, hydrated } = useAppSelector((s) => s.auth);
   const location = useLocation();
 
   if (!hydrated) {
-    // return null;
-    return (
-      <>
-        <GlobalBackdrop />
-      </>
-    );
+    return null;
+    // return (
+    //   <>
+    //     <GlobalBackdrop />
+    //   </>
+    // );
   }
 
   if (!isAuthenticated) {
