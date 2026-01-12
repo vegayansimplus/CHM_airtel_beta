@@ -92,7 +92,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           />
         </Route>
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        {/* <Route path="*" element={<Navigate to="/home" replace />} /> */}
+        <Route index element={<Navigate to="/home" replace />} />
       </Routes>
     </Suspense>
   );
