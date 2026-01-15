@@ -62,10 +62,7 @@ const Header: React.FC<HeaderProps> = ({
   const colorMode = useContext(ColorModeContext);
 
   const user = useAppSelector((s) => s.auth.user);
-  if (!user) return null;
 
-  const username = user.username;
- const userRole = user.roles.join(", ");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
 
@@ -79,7 +76,11 @@ const Header: React.FC<HeaderProps> = ({
   const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
 
   const [logoutApi] = useLogoutMutation();
-  
+  if (!user) return null;
+
+  const username = user.username;
+  const userRole = user.roles.join(", ");
+
   const handleLogout = async () => {
     try {
       setLoading(true);
@@ -188,13 +189,13 @@ const Header: React.FC<HeaderProps> = ({
               <LockResetIcon sx={{ mr: 1 }} />
               Change Password
             </MenuItem>
-              <MenuItem>
-                <PersonIcon sx={{ mr: 1 }} /> {username}
-              </MenuItem>
+            <MenuItem>
+              <PersonIcon sx={{ mr: 1 }} /> {username}
+            </MenuItem>
 
-              <MenuItem>
-                <BadgeIcon sx={{ mr: 1 }} /> Role: {userRole}
-              </MenuItem>
+            <MenuItem>
+              <BadgeIcon sx={{ mr: 1 }} /> Role: {userRole}
+            </MenuItem>
 
             <MenuItem onClick={handleLogout} disabled={loading}>
               <LogoutIcon sx={{ mr: 1 }} />
@@ -451,13 +452,13 @@ export default Header;
 //                 },
 //               }}
 //             >
-              // <MenuItem>
-              //   <PersonIcon sx={{ mr: 1 }} /> {username}
-              // </MenuItem>
+// <MenuItem>
+//   <PersonIcon sx={{ mr: 1 }} /> {username}
+// </MenuItem>
 
-              // <MenuItem>
-              //   <BadgeIcon sx={{ mr: 1 }} /> Role: {userRole}
-              // </MenuItem>
+// <MenuItem>
+//   <BadgeIcon sx={{ mr: 1 }} /> Role: {userRole}
+// </MenuItem>
 
 //               <MenuItem onClick={() => setIsChangePasswordOpen(true)}>
 //                 <LockResetIcon sx={{ mr: 1 }} /> Change Password

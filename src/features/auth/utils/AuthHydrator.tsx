@@ -1,17 +1,39 @@
 import { useEffect } from "react";
 import { useAppDispatch } from "../../../app/hooks";
 import { authStorage } from "../../../app/store/auth.storage";
-import { finishHydration, logout, setToken, setUser } from "../slices/auth.slice";
+import {
+  finishHydration,
+  logout,
+  setToken,
+  setUser,
+} from "../slices/auth.slice";
 const AuthHydrator = () => {
   const dispatch = useAppDispatch();
+
+  // useEffect(() => {
+  //   const token = authStorage.getToken();
+  //   const user = authStorage.getUser();
+
+  //   if (token && user) {
+  //     dispatch(setToken(token));
+  //     dispatch(setUser({ ...user, authenticated: true }));
+  //   } else {
+  //     dispatch(logout());
+  //   }
+
+  //   dispatch(finishHydration());
+  // }, [dispatch]);
 
   useEffect(() => {
     const token = authStorage.getToken();
     const user = authStorage.getUser();
 
-    if (token && user) {
-      dispatch(setToken(token));
-      dispatch(setUser({ ...user, authenticated: true }));
+    if (token) {
+      dispatch(setToken(token)); // token decides auth
+
+      if (user) {
+        dispatch(setUser({ ...user, authenticated: true }));
+      }
     } else {
       dispatch(logout());
     }
@@ -23,7 +45,6 @@ const AuthHydrator = () => {
 };
 
 export default AuthHydrator;
-
 
 // // features/auth/utils/AuthHydrator.tsx
 // import { useEffect, useState } from "react";
@@ -54,4 +75,3 @@ export default AuthHydrator;
 // };
 
 // export default AuthHydrator;
-

@@ -9,8 +9,9 @@ import {
 import { PrivateRoute } from "./PrivateRoute";
 import DashboardView from "../features/dashboard/pages/DashboardPage";
 import CommonContainer from "../components/common/CommonContainer";
-import TeamManagementView from "../features/teamManagement/pages/TeamManagementView";
-import { SkillSetTeamViewMain } from "../features/teamManagement/pages/SkillSetTeamViewMain";
+// import { SkillSetTeamViewMain } from "../features/teamManagement/pages/TeamManagementMain";
+import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
+import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -69,7 +70,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={
             <PrivateRoute
               element={
-                <TeamManagementView
+                <TeamManagementPage
                   setDynamicHeaderText={setDynamicHeaderText}
                   setDynamicHeaderIcon={setDynamicHeaderIcon}
                 />
@@ -83,7 +84,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           />
           <Route
             path="teammanagement"
-            element={<SkillSetTeamViewMain />}
+            element={<TeamManagementMain />}
           />
           <Route
             path="taskconfiguration"

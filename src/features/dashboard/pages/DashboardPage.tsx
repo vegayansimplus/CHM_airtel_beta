@@ -20,9 +20,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({
   //  GET USER FROM REDUX
   const user = useAppSelector((s) => s.auth.user);
 
-  if (!user) return null;
 
-  const roles = user.roles;
+
+ const roles = user?.roles ?? [];
 
   //  BACKEND-ALIGNED ROLES
   const showDashboardTab =
@@ -55,7 +55,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
       setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
     }
   }, [activeTab, setDynamicHeaderIcon, setDynamicHeaderText, showDashboardTab]);
-
+  if (!user) return null;
   //  TAB → ROUTE
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);

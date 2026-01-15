@@ -31,7 +31,7 @@ const TAB_TO_PATH: Record<number, string> = {
 
 /* ===================== COMPONENT ===================== */
 
-const TeamManagementView: React.FC<TeamManagementViewTabProps> = ({
+const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
 }) => {
@@ -170,7 +170,7 @@ const TeamManagementView: React.FC<TeamManagementViewTabProps> = ({
   );
 };
 
-export default TeamManagementView;
+export default TeamManagementPage;
 
 // import { Box, Tabs, Tab, CircularProgress } from "@mui/material";
 // import React, { type JSX, useEffect, useState, Suspense } from "react";
