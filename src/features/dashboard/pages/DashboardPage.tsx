@@ -1,71 +1,74 @@
 import { Box, Tabs, Tab, CircularProgress } from "@mui/material";
-import React, { type JSX, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import React, { type JSX, useEffect, useState, Suspense } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import { Home } from "@mui/icons-material";
 import { useAppSelector } from "../../../app/hooks";
 
-interface DashboardViewProps {
+interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
-const DashboardView: React.FC<DashboardViewProps> = ({
+const TAB_PATHS = {
+  OVERVIEW: `/home`,
+  TASK_CONFIG: `/homedashboard`,
+} as const;
+
+const PATH_TO_TAB: Record<string, number> = {
+  [TAB_PATHS.OVERVIEW]: 0,
+  [TAB_PATHS.TASK_CONFIG]: 1,
+};
+
+const TAB_TO_PATH: Record<number, string> = {
+  0: TAB_PATHS.OVERVIEW,
+  1: TAB_PATHS.TASK_CONFIG,
+};
+
+/* ===================== COMPONENT ===================== */
+
+const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  //  GET USER FROM REDUX
   const user = useAppSelector((s) => s.auth.user);
 
-
-
- const roles = user?.roles ?? [];
-
-  //  BACKEND-ALIGNED ROLES
-  const showDashboardTab =
-    roles.includes("SUPER_ADMIN") || roles.includes("TEAM_LEAD");
-
-  // 0 = Home, 1 = Dashboard
+  /* -------- Active Tab (derived from URL) -------- */
   const [activeTab, setActiveTab] = useState<number>(() => {
-    if (location.pathname.startsWith("/dashboard") && showDashboardTab) {
-      return 1;
-    }
-    return 0;
+    return PATH_TO_TAB[location.pathname] ?? 0;
   });
 
-  //  SYNC TAB ← URL
+  /* -------- URL → TAB SYNC (NO navigation here) -------- */
   useEffect(() => {
-    if (location.pathname.startsWith("/dashboard") && showDashboardTab) {
-      setActiveTab(1);
-    } else {
-      setActiveTab(0);
+    const tabFromUrl = PATH_TO_TAB[location.pathname];
+    if (tabFromUrl !== undefined && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
     }
-  }, [location.pathname, showDashboardTab]);
+  }, [location.pathname, activeTab]);
 
-  //  SYNC HEADER
+  /* -------- HEADER SYNC -------- */
   useEffect(() => {
     if (activeTab === 0) {
       setDynamicHeaderText("Home");
-      setDynamicHeaderIcon(<Home sx={{ color: "white" }} />);
-    } else if (activeTab === 1 && showDashboardTab) {
+    } else {
       setDynamicHeaderText("Dashboard");
-      setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
     }
-  }, [activeTab, setDynamicHeaderIcon, setDynamicHeaderText, showDashboardTab]);
-  if (!user) return null;
-  //  TAB → ROUTE
-  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    setActiveTab(newValue);
 
-    if (newValue === 0) {
-      navigate("/home");
-    } else if (newValue === 1 && showDashboardTab) {
-      navigate("/dashboard");
+    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
+  }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
+  if (!user) return null;
+
+  /* -------- TAB → ROUTE (ONLY place we navigate) -------- */
+  const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
+    if (newValue !== activeTab) {
+      setActiveTab(newValue);
+      navigate(TAB_TO_PATH[newValue]);
     }
   };
+
+  /* ===================== RENDER ===================== */
 
   return (
     <Box
@@ -91,6 +94,7 @@ const DashboardView: React.FC<DashboardViewProps> = ({
         },
       }}
     >
+      {/* -------- Tabs Header -------- */}
       <Box
         sx={{
           backgroundColor: "auto",
@@ -105,7 +109,6 @@ const DashboardView: React.FC<DashboardViewProps> = ({
           value={activeTab}
           onChange={handleTabChange}
           textColor="inherit"
-          indicatorColor="secondary"
           sx={{
             "& .MuiTabs-indicator": {
               display: "flex",
@@ -123,40 +126,43 @@ const DashboardView: React.FC<DashboardViewProps> = ({
               },
             },
             "&.Mui-focusVisible": {
-              backgroundColor: "red",
+              backgroundColor: "auto",
             },
             width: "100%",
             backgroundColor: "auto",
             boxShadow: 2,
             mt: 1,
           }}
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
         >
           <Tab label="Home" />
-          {showDashboardTab && <Tab label="Dashboard" />}
+          <Tab label="Dashboard" />
         </Tabs>
       </Box>
 
-      {/* CONTENT IS RENDERED BY ROUTES, NOT OUTLET */}
-      <Box sx={{ p: 2 }}>
-        <React.Suspense
+      {/* -------- Content Area -------- */}
+      <Box sx={{ p: 3, minHeight: "60vh" }}>
+        <Suspense
           fallback={
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                height: "60vh",
+                height: "50vh",
               }}
             >
               <CircularProgress />
             </Box>
           }
         >
-          {/* routed components render outside */}
-        </React.Suspense>
+          <Outlet />
+        </Suspense>
       </Box>
     </Box>
   );
 };
 
-export default DashboardView;
+export default DashboardViewPage;

@@ -5,7 +5,7 @@ export const authApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     login: builder.mutation<LoginResponse, void>({
       query: (body) => ({
-        url: '/usermanagement/v2/signin',
+        url: '/auth/v1/signin',
         method: 'POST',
         body
       })
@@ -13,7 +13,7 @@ export const authApi = baseApi.injectEndpoints({
 
     logout: builder.mutation<LogoutResponse, void>({
       query: (body) => ({
-        url: `/usermanagement/v1/logout`,
+        url: `/auth/v1/logout`,
         method: 'POST',
         body
       })

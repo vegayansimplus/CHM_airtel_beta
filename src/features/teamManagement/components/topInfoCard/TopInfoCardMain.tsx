@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Card, Typography, Grid, Avatar, useTheme } from "@mui/material";
+import { Box, Card, Typography, Grid, useTheme } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import { tokens } from "../../../../style/theme";
 import type { TeamDataEntryType } from "../../types/TeamDataEntryType";

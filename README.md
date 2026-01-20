@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# CHM_airtel_beta
-Scalable version of Airtel CHM Project
-=======
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
@@ -166,4 +162,3 @@ src
 ├── index.tsx
 └── App.tsx
 ```
->>>>>>> 64e9c22 (Initial commit)

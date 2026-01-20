@@ -7,11 +7,13 @@ import {
   Navigate,
 } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
-import DashboardView from "../features/dashboard/pages/DashboardPage";
+// import DashboardView from "../features/dashboard/pages/DashboardPage";
 import CommonContainer from "../components/common/CommonContainer";
 // import { SkillSetTeamViewMain } from "../features/teamManagement/pages/TeamManagementMain";
 import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
 import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
+import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
+import { HomeDashboard } from "../features/dashboard/pages/HomeDashboard";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -48,7 +50,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={
             <PrivateRoute
               element={
-                <DashboardView
+                <DashboardViewPage
                   setDynamicHeaderIcon={setDynamicHeaderIcon}
                   setDynamicHeaderText={setDynamicHeaderText}
                 />
@@ -56,13 +58,14 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route
-            path="/dashboard"
-            element={<CommonContainer>Hello</CommonContainer>}
-          />
+          
           <Route
             path="/home"
-            element={<CommonContainer>Hello Home page </CommonContainer>}
+            element={<HomeDashboard />}
+          />
+          <Route
+            path="/homedashboard"
+            element={<CommonContainer>Hello</CommonContainer>}
           />
         </Route>
         <Route

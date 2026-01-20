@@ -6,7 +6,7 @@ export const authApi = api.injectEndpoints({
     login: builder.mutation<LoginResponse, { olmId: string; password: string }>(
       {
         query: (body) => ({
-          url: "/usermanagement/v2/signin",
+          url: "/auth/v1/signin",
           method: "POST",
           body,
         }),
@@ -14,12 +14,12 @@ export const authApi = api.injectEndpoints({
     ),
 
     getLoggedUser: builder.query<LoggedUserApiResponse[], void>({
-      query: () => "/usermanagement/v2/getloggeduserdetails",
+      query: () => "/users/v1/getloggeduserdetails",
     }),
 
     forceLogout: builder.mutation<void, { olmId: string }>({
       query: (body) => ({
-        url: `/usermanagement/v1/logout`,
+        url: `/auth/v1/logout`,
         method: "POST",
         body,
       }),
@@ -27,7 +27,7 @@ export const authApi = api.injectEndpoints({
 
     logout: builder.mutation<void, { olmId: string }>({
       query: (body) => ({
-        url: "/usermanagement/v1/logout",
+        url: "/auth/v1/logout",
         method: "POST",
         body,
       }),
