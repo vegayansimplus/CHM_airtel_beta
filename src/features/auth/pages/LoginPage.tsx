@@ -59,7 +59,7 @@ const LoginPage: React.FC = () => {
     const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
     return Array.from(
       { length: 6 },
-      () => chars[Math.floor(Math.random() * chars.length)]
+      () => chars[Math.floor(Math.random() * chars.length)],
     ).join("");
   }
 
@@ -110,26 +110,35 @@ const LoginPage: React.FC = () => {
     const apiUser = userRes[0];
 
     const user: AuthUser = {
-      username: apiUser.username,
+      olmId: apiUser.olmId,
       employeeName: apiUser.employeeName,
-      teamFunction: apiUser.teamFunction,
-      roles: apiUser.roles.split(","),
-      modules: apiUser.modules.split(","),
-      permissions: apiUser.permissions.split(","),
+      roleName: apiUser.roleName,
+      moduleName: [apiUser.moduleName], // convert string → string[]
+      permissions: apiUser.permissions, // already string[]
       authenticated: true,
+      userId: apiUser.userId,
     };
+
+    // const user: AuthUser = {
+    //   olmId: apiUser.olmId,
+    //   employeeName: apiUser.employeeName,
+    //   roleName: apiUser.roleName,
+    //   moduleName: apiUser.moduleName.split(","),
+    //   permissions: apiUser.permissions.split(","),
+    //   authenticated: true,
+    // };
 
     dispatch(setUser(user));
 
     authStorage.setToken(res.accessToken);
 
     authStorage.setUser({
-      username: user.username,
+      olmId: user.olmId,
       employeeName: user.employeeName,
-      teamFunction: user.teamFunction,
-      roles: user.roles,
-      modules: user.modules,
+      roleName: user.roleName,
+      moduleName: user.moduleName,
       permissions: user.permissions,
+      userId: user.userId,
     });
 
     navigate("/home", { replace: true });

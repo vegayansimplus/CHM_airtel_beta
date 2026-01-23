@@ -78,13 +78,13 @@ const Header: React.FC<HeaderProps> = ({
   const [logoutApi] = useLogoutMutation();
   if (!user) return null;
 
-  const username = user.username;
-  const userRole = user.roles.join(", ");
+  const olmId = user.olmId;
+  const userRole = user.roleName;
 
   const handleLogout = async () => {
     try {
       setLoading(true);
-      await logoutApi({ olmId: user.username }).unwrap();
+      await logoutApi({ olmId: user.olmId }).unwrap();
     } catch {
       console.warn("Logout API failed, continuing local logout");
     } finally {
@@ -157,7 +157,7 @@ const Header: React.FC<HeaderProps> = ({
             }}
           >
             <AccountCircleIcon sx={{ fontSize: 30, color: "white" }} />
-            <Typography>{username}</Typography>
+            <Typography>{olmId}</Typography>
           </Box>
 
           {/* PROFILE MENU */}
@@ -182,7 +182,7 @@ const Header: React.FC<HeaderProps> = ({
           >
             <MenuItem>
               <PersonIcon sx={{ mr: 1 }} />
-              View profile
+              {user.employeeName}
             </MenuItem>
 
             <MenuItem onClick={() => setIsChangePasswordOpen(true)}>
@@ -190,7 +190,7 @@ const Header: React.FC<HeaderProps> = ({
               Change Password
             </MenuItem>
             <MenuItem>
-              <PersonIcon sx={{ mr: 1 }} /> {username}
+              <PersonIcon sx={{ mr: 1 }} /> {olmId}
             </MenuItem>
 
             <MenuItem>

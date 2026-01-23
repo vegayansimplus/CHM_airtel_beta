@@ -29,32 +29,3 @@ export const authStorage = {
     localStorage.removeItem(TOKEN_KEY);
   },
 };
-
-
-
-
-// const USER_KEY = "auth_user";
-// const TOKEN_KEY = "access_token";
-// export const authStorage = {
-//   setUser(user: StoredUser) {
-//     localStorage.setItem(USER_KEY, JSON.stringify(user));
-//   },
-
-//   getUser(): StoredUser | null {
-//     const raw = localStorage.getItem(USER_KEY);
-//     return raw ? JSON.parse(raw) : null;
-//   },
-
-//   setToken(token: string) {
-//     sessionStorage.setItem(TOKEN_KEY, token);
-//   },
-
-//   getToken(): string | null {
-//     return sessionStorage.getItem(TOKEN_KEY);
-//   },
-
-//   clear() {
-//     localStorage.removeItem(USER_KEY);
-//     sessionStorage.removeItem(TOKEN_KEY);
-//   },
-// };

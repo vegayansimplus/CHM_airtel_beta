@@ -1,38 +1,39 @@
-// features/auth/types/auth.types.ts
 
 export interface LoggedUserApiResponse {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string;
-  modules: string;
-  permissions: string;
-  authenticated: boolean;
+  roleName: string;
+  permissions: string[];
+  moduleName: string;
+  isAuthenticated: boolean;
+  userId: string;
 }
 
 export interface AuthUser {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string[];
-  modules: string[];
+  roleName: string;
+  moduleName: string[];
   permissions: string[];
   authenticated: boolean;
+  userId: string;
 }
 
 export interface StoredUser {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string[];
-  modules: string[];
+  roleName: string;
+  moduleName: string[];
   permissions: string[];
+  userId: string;
+  // authenticated: boolean;
 }
 
 export interface LoginResponse {
   status: string;
   message: string;
   accessToken?: string;
+
 }
 
 
@@ -40,32 +41,33 @@ export interface LogoutResponse { olmId: string }
 // features/auth/types/auth.types.ts
 
 export interface LoggedUserApiResponse {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string;
-  modules: string;
-  permissions: string;
-  authenticated: boolean;
+  roleName: string;
+  moduleName: string;
+  permissions: string[];
+  isAuthenticated: boolean;
+  userId: string;
 }
 
 export interface AuthUser {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string[];
-  modules: string[];
+  roleName: string;
+  moduleName: string[];
   permissions: string[];
   authenticated: boolean;
+  userId: string;
 }
 
 export interface StoredUser {
-  username: string;
+  olmId: string;
   employeeName: string;
-  teamFunction: string;
-  roles: string[];
-  modules: string[];
+  roleName: string;
+  moduleName: string[];
   permissions: string[];
+  userId: string;
+  // authenticated: boolean;
 }
 
 export interface LoginResponse {
