@@ -1,6 +1,4 @@
 import { useEffect, useState } from "react";
-import type { FilterValues } from "../../../../components/common/filters/filters.types";
-import TeamFilters from "../../../../components/common/filters/TeamFilters";
 import Stack from "@mui/material/Stack";
 import {
   Box,
@@ -15,218 +13,119 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import UploadIcon from "@mui/icons-material/Upload";
 import DownloadIcon from "@mui/icons-material/Download";
-// import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
 import { authStorage } from "../../../../app/store/auth.storage";
+import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFilters";
+import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 
-export const TeamManagementFilter = () => {
-  // const user = JSON.parse(localStorage.getItem("user") || "{}");
-  // const role = user?.role ?? "user";
-  const getUserRole = authStorage.getUser();
-  // const user = getUserRole.roles[0]; //TEAM_LEAD , TEAM_MEMBER, DOMAIN_HEAD, SUPER_ADMIN
-  const user =  "admin";
+interface Props {
+  filters: OrgFilterValues;
+  setFilters: React.Dispatch<React.SetStateAction<OrgFilterValues>>;
+}
+export const TeamManagementFilter = ({ filters, setFilters }: Props) => {
+  const loggedUser = authStorage.getUser();
+  const userId = loggedUser?.userId ?? 0;
+  const roleName = loggedUser?.roleName ?? "TEAM_MEMBER";
 
-
-  const [filters, setFilters] = useState<FilterValues>({});
+  // const [filters, setFilters] = useState<OrgFilterValues>({});
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  useEffect(() => {
-    console.log("Filters:", filters, "Status:", status);
+  const { options, isLoading } = useOrgHierarchyFilters(
+    userId,
+    roleName,
+    filters,
+  );
 
-    console.log("user.role:", user );
-    
-  }, [filters, status]);
+  const handleFilterChange = (key: keyof OrgFilterValues, value?: number) => {
+    setFilters((prev) => {
+      const next = { ...prev, [key]: value };
+
+      if (key === "vertical") {
+        delete next.teamFunction;
+        delete next.domain;
+        delete next.subDomain;
+      }
+      if (key === "teamFunction") {
+        delete next.domain;
+        delete next.subDomain;
+      }
+      if (key === "domain") {
+        delete next.subDomain;
+      }
+
+      return next;
+    });
+  };
+
+  useEffect(() => {
+    console.log("Filters:", filters);
+    console.log("Status:", status);
+    console.log("Role:", roleName);
+  }, [filters, status, roleName]);
+
+  if (isLoading) return null;
 
   return (
-    <>
-      <TeamFilters
-        role={user}
-        values={filters}
-        status={status}
-        onStatusChange={setStatus}
-        onChange={(key, value) =>
-          setFilters((prev) => ({ ...prev, [key]: value }))
-        }
+    <OrgHierarchyFilters
+      role={roleName}
+      values={filters}
+      options={options}
+      onChange={handleFilterChange}
+    >
+      <Box
+        sx={{ display: "flex", justifyContent: "space-between", width: "100%" }}
       >
-        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Stack direction="row" spacing={5} alignItems="center">
-            {/* <Stack direction="row" spacing={1} alignItems="center">
-                <FilterAltOutlinedIcon color="primary" />
-                <Typography fontWeight={700}>Filters</Typography>
-              </Stack> */}
-
-            {/* STATUS */}
-            <Stack direction="row" spacing={0.5} sx={{pr:2}}>
-              <Chip
-                icon={<CheckCircleIcon />}
-                label="Active"
-                color={status === "active" ? "success" : "default"}
-                variant={status === "active" ? "filled" : "outlined"}
-                // onClick={() => onStatusChange("active")}
-                sx={{ fontWeight: 600 }}
-              />
-              <Chip
-                icon={<RadioButtonUncheckedIcon />}
-                label="Inactive"
-                color={status === "inactive" ? "warning" : "default"}
-                variant={status === "inactive" ? "filled" : "outlined"}
-                // onClick={() => onStatusChange("inactive")}
-                sx={{ fontWeight: 600  }}
-              />
-            </Stack>
+        <Stack direction="row" spacing={5} alignItems="center">
+          <Stack direction="row" spacing={0.5} sx={{ pr: 2 }}>
+            <Chip
+              icon={<CheckCircleIcon />}
+              label="Active"
+              color={status === "active" ? "success" : "default"}
+              variant={status === "active" ? "filled" : "outlined"}
+              onClick={() => setStatus("active")}
+            />
+            <Chip
+              icon={<RadioButtonUncheckedIcon />}
+              label="Inactive"
+              color={status === "inactive" ? "warning" : "default"}
+              variant={status === "inactive" ? "filled" : "outlined"}
+              onClick={() => setStatus("inactive")}
+            />
           </Stack>
+        </Stack>
 
-          {/* RIGHT */}
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: 2,
-                fontWeight: 700,
-                px: 2.5,
-              }}
-            >
-              Add Member
-            </Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Button variant="outlined" startIcon={<AddIcon />}>
+            Add Member
+          </Button>
 
-            <Divider orientation="vertical" flexItem />
+          <Divider orientation="vertical" flexItem />
 
-            <Tooltip title="Import members">
-              <IconButton sx={{ border: "1px solid", borderColor: "divider" }}>
-                <UploadIcon />
-              </IconButton>
-            </Tooltip>
+          <Tooltip title="Import members">
+            <IconButton>
+              <UploadIcon />
+            </IconButton>
+          </Tooltip>
 
-            <Tooltip title="Export">
-              <IconButton
-                // onClick={(e) => setAnchorEl(e.currentTarget)}
-                sx={{ border: "1px solid", borderColor: "divider" }}
-              >
-                <DownloadIcon />
-              </IconButton>
-            </Tooltip>
+          <Tooltip title="Export">
+            <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+              <DownloadIcon />
+            </IconButton>
+          </Tooltip>
 
-            <Menu
-              anchorEl={anchorEl}
-              open={Boolean(anchorEl)}
-              onClose={() => setAnchorEl(null)}
-            >
-              <MenuItem>Export CSV</MenuItem>
-              <MenuItem>Export Excel</MenuItem>
-            </Menu>
-          </Stack>
-        </Box>
-      </TeamFilters>
-    </>
+          <Menu
+            anchorEl={anchorEl}
+            open={Boolean(anchorEl)}
+            onClose={() => setAnchorEl(null)}
+          >
+            <MenuItem>Export CSV</MenuItem>
+            <MenuItem>Export Excel</MenuItem>
+          </Menu>
+        </Stack>
+      </Box>
+    </OrgHierarchyFilters>
   );
 };
-
-// import { useEffect, useState } from "react";
-// import type { FilterValues } from "../../../../components/common/filters/filters.types";
-// import TeamFilters from "../../../../components/common/filters/TeamFilters";
-// import Stack from "@mui/material/Stack";
-// import { Button, Chip, Divider, IconButton, Menu, MenuItem, Tooltip } from "@mui/material";
-// import AddIcon from "@mui/icons-material/Add";
-// import UploadIcon from "@mui/icons-material/Upload";
-// import DownloadIcon from "@mui/icons-material/Download";
-// // import FilterAltOutlinedIcon from "@mui/icons-material/FilterAltOutlined";
-// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-// import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-
-// export const TeamManagementFilter = () => {
-//   const user = JSON.parse(localStorage.getItem("user") || "{}");
-//   const role = user?.role ?? "admin";
-
-//   const [filters, setFilters] = useState<FilterValues>({});
-//   const [status, setStatus] = useState<"active" | "inactive">("active");
-//   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-//   useEffect(() => {
-//     console.log("Filters:", filters, "Status:", status);
-//   }, [filters, status]);
-
-//   return (
-//     <>
-//       <TeamFilters
-//         role={role}
-//         values={filters}
-//         status={status}
-//         onStatusChange={setStatus}
-//         onChange={(key, value) =>
-//           setFilters((prev) => ({ ...prev, [key]: value }))
-//         }
-//       />
-
-//       <Stack direction="row" spacing={5} alignItems="center">
-//         {/* <Stack direction="row" spacing={1} alignItems="center">
-//                 <FilterAltOutlinedIcon color="primary" />
-//                 <Typography fontWeight={700}>Filters</Typography>
-//               </Stack> */}
-
-//         {/* STATUS */}
-//         <Stack direction="row" spacing={0.5}>
-//           <Chip
-//             icon={<CheckCircleIcon />}
-//             label="Active"
-//             color={status === "active" ? "success" : "default"}
-//             variant={status === "active" ? "filled" : "outlined"}
-//             // onClick={() => onStatusChange("active")}
-//             sx={{ fontWeight: 600 }}
-//           />
-//           <Chip
-//             icon={<RadioButtonUncheckedIcon />}
-//             label="Inactive"
-//             color={status === "inactive" ? "warning" : "default"}
-//             variant={status === "inactive" ? "filled" : "outlined"}
-//             // onClick={() => onStatusChange("inactive")}
-//             sx={{ fontWeight: 600 }}
-//           />
-//         </Stack>
-//       </Stack>
-
-//       {/* RIGHT */}
-//       <Stack direction="row" spacing={1} alignItems="center">
-//         <Button
-//           variant="contained"
-//           startIcon={<AddIcon />}
-//           sx={{
-//             borderRadius: 2,
-//             fontWeight: 700,
-//             px: 2.5,
-//           }}
-//         >
-//           Add Member
-//         </Button>
-
-//         <Divider orientation="vertical" flexItem />
-
-//         <Tooltip title="Import members">
-//           <IconButton sx={{ border: "1px solid", borderColor: "divider" }}>
-//             <UploadIcon />
-//           </IconButton>
-//         </Tooltip>
-
-//         <Tooltip title="Export">
-//           <IconButton
-//             // onClick={(e) => setAnchorEl(e.currentTarget)}
-//             sx={{ border: "1px solid", borderColor: "divider" }}
-//           >
-//             <DownloadIcon />
-//           </IconButton>
-//         </Tooltip>
-
-//         <Menu
-//           anchorEl={anchorEl}
-//           open={Boolean(anchorEl)}
-//           onClose={() => setAnchorEl(null)}
-//         >
-//           <MenuItem>Export CSV</MenuItem>
-//           <MenuItem>Export Excel</MenuItem>
-//         </Menu>
-//       </Stack>
-//     </>
-//   );
-// };

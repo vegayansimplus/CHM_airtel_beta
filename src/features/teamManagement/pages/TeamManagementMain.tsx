@@ -1,47 +1,58 @@
-import { Box } from "@mui/material";
-import { TeamTopInfoCard } from "../components/topInfoCard/TopInfoCardMain";
-import { TeamManagementFilter } from "../components/filters/TeamManagementFilter";
-import TeamFilterBar from "../../../components/common/filters/TeamFilterBar";
+import { useMemo, useState } from "react";
+// import TeamManagementFilter from "./TeamManagementFilter";
 import TeamSkillSetTable from "../components/teamDetailsTable/TeamSkillSetTable";
-import { TEAM_SKILLSET_DATA } from "../data/teamSkillset.mock";
-// import { TeamManagementFilterMain } from "../components/filters/TeamManagementFilter";
-// import { TeamManagementFilterMain } from "../components/filters/teamManagementFilterMain";
-export const TeamManagementMain = () => {
-  return (
-    <Box>
-      <Box
-        sx={{
-          // display: "flex",
-          justifyContent: "space-between",
-          // p: "2px 0px 4px 0px",
-        }}
-      >
-        <Box
-        //  sx={{ bgcolor: "orange" }}
-        >
-          <TeamTopInfoCard levelCount={[]} />
-        </Box>
-        <Box sx={{ bgcolor: "white", mt: 0.5 }}>
-          <TeamManagementFilter />
-          {/* <TeamFilterBar /> */}
-          {/* <TeamFilterBar
-            role={"admin"}
-            functionOptions={"Engineering, QA".split(", ")}
-            subFunctionOptions={"React Team, API Team".split(", ")}
-            selectedFunction={"Engineering"}
-            selectedSubFunction={"React Team"}
-            onFunctionChange={e=> console.log("Function changed", e)}
-            onSubFunctionChange={e=> console.log("Sub Function changed", e)}
-            onAdd={() => console.log("Add Member")}
-            onImport={() => console.log("Import")}
-            onExport={(type) => console.log("Export", type)}
-          /> */}
-        </Box>
 
-        <Box sx={{ bgcolor: "white", mt: 2, borderRadius: 2 }}>
-          <TeamSkillSetTable data={TEAM_SKILLSET_DATA} userRole="Team Lead" />
-        </Box>
-      </Box>
-    </Box>
+import { useGetEmployeesBySubDomainQuery } from "../../orgHierarchy/api/orgHierarchy.api";
+import type { OrgFilterValues } from "../../orgHierarchy/types/orgHierarchy.types";
+import type { EmployeeDto } from "../types/employee.types";
+import type { TeamSkillSet } from "../types/teamSkillset.types";
+import { TeamManagementFilter } from "../components/filters/TeamManagementFilter";
+import { TeamTopInfoCard } from "../components/topInfoCard/TopInfoCardMain";
+
+export const TeamManagementMain = () => {
+  const [filters, setFilters] = useState<OrgFilterValues>({});
+
+  const subDomainId = filters.subDomain;
+
+  //  CALL API ONLY AFTER SUB-DOMAIN IS SELECTED
+  const { data = [], isFetching } = useGetEmployeesBySubDomainQuery(
+    { subDomainId: subDomainId! },
+    { skip: !subDomainId }, // 🔒 CRITICAL
+  );
+
+  //  MAP BACKEND DTO → TABLE MODEL
+  const tableData = useMemo<TeamSkillSet[]>(() => {
+    return data.map((e: EmployeeDto) => ({
+      olmId: e.olmId,
+      employeeName: e.employeeName,
+      teamFunction: "-", // not provided by API yet
+      subFunction: "-", // not provided by API yet
+      designation: e.designation,
+      role: "TEAM_MEMBER",
+      level: e.jobLevel,
+      payRoll: e.employmentType,
+      companyName: e.vendorCompany,
+      domain: "-",
+      vendor: e.deviceVendorCapability
+        ? e.deviceVendorCapability.split(",")
+        : [],
+      gender: e.gender,
+      officeLocation: e.officeLocation,
+      status: e.employeeStatus === "ACTIVE" ? "Active" : "Inactive",
+    }));
+  }, [data]);
+
+  return (
+    <>
+      {/* FILTER BAR */}
+      <TeamManagementFilter filters={filters} setFilters={setFilters} />
+
+      <>
+        <TeamTopInfoCard levelCount={[]} />
+      </>
+
+      {/* TABLE */}
+      <TeamSkillSetTable data={tableData} userRole="Super Admin" />
+    </>
   );
 };

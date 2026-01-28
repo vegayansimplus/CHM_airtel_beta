@@ -12,4 +12,5 @@ export const api = createApi({
     },
   }),
   endpoints: () => ({}),
+  tagTypes: ["ORG_HIERARCHY"],
 });
