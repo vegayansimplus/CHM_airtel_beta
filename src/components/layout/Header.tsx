@@ -89,7 +89,9 @@ const Header: React.FC<HeaderProps> = ({
       console.warn("Logout API failed, continuing local logout");
     } finally {
       sessionStorage.removeItem("access_token");
+      localStorage.removeItem("access_token");
       localStorage.removeItem("auth_user");
+      localStorage.clear();
       dispatch(logout());
       navigate("/login", { replace: true });
       setLoading(false);

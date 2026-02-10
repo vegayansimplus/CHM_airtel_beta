@@ -38,8 +38,8 @@ const LevelBadge = ({
       transition: "all 0.25s ease",
       cursor: "pointer",
       "&:hover": {
-        transform: "translateY(-4px)",
-        boxShadow: highlight ? 10 : 4,
+        transform: "translateY(-1px)",
+        boxShadow: highlight ? 10 : 2,
       },
     }}
   >
@@ -76,7 +76,7 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
   return (
     <Card
       sx={{
-        p: 1,
+        p: 0.5,
         m: 0.5,
         borderRadius: 3,
         boxShadow: 1,
@@ -88,7 +88,7 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
           <Card
             sx={{
               width: "85%",
-              p: 2,
+              p: 1,
               borderRadius: 1,
 
               /* Glass effect */

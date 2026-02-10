@@ -3,87 +3,78 @@ import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
-  type MRT_Cell,
 } from "material-react-table";
 import {
   Box,
   IconButton,
   Tooltip,
-  Chip,
   Typography,
 } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import { generateColumns } from "../../utils/generateColumns";
 
-import type { TeamSkillSet } from "../../types/teamSkillset.types";
-import { teamSkillsetColumns } from "../../utils/tableColumns";
 
 interface Props {
-  data: TeamSkillSet[];
+  data: Record<string, any>[]; 
   userRole: "User" | "Team Lead" | "Super Admin";
 }
-
 const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
-  const columns = useMemo<MRT_ColumnDef<TeamSkillSet>[]>(() => {
-    const enhancedColumns = teamSkillsetColumns.map((col) => {
-      if (col.accessorKey === "status") {
-        return {
-          ...col,
-          Cell: ({ cell }: { cell: MRT_Cell<TeamSkillSet> }) => {
-            const value = cell.getValue<string>();
-            return (
-              <Chip
-                label={value}
-                size="small"
-                color={value === "Active" ? "success" : "default"}
-                sx={{ fontWeight: 600 }}
-              />
-            );
-          },
-        };
-      }
-      return col;
-    });
+  const columns = useMemo<MRT_ColumnDef<Record<string, any>>[]>(() => {
+    const dynamicColumns = generateColumns(data);
 
-    if (userRole === "User") return enhancedColumns;
+    if (userRole === "User") return dynamicColumns;
 
     return [
-      ...enhancedColumns,
+      ...dynamicColumns,
       {
-        accessorKey: "action",
+        id: "actions",
         header: "Actions",
-        size: 80,
-        Cell: () => (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              gap: 0.5,
-              opacity: 0.6,
-              transition: "0.2s",
-              "&:hover": { opacity: 1 },
-            }}
-          >
-            <Tooltip title="Edit">
-              <IconButton size="small" color="primary">
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton size="small" color="error">
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ),
+        size: 100,
+        Cell: ({ row }) => {
+          const userId = row.original.userId; 
+
+          return (
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "center",
+                gap: 0.5,
+                opacity: 0.7,
+                "&:hover": { opacity: 1 },
+              }}
+            >
+              <Tooltip title="Edit">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => handleEdit(userId)}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDelete(userId)}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
+        },
       },
     ];
-  }, [userRole]);
+  }, [data, userRole]);
 
   const table = useMaterialReactTable({
     columns,
     data,
+
     enableColumnFilters: true,
     enableSorting: true,
     enableGrouping: true,
@@ -93,23 +84,26 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
     enableFullScreenToggle: true,
     enableColumnOrdering: true,
     enableRowVirtualization: true,
+    enableColumnResizing: true,
     initialState: {
       density: "compact",
     },
 
-    //  TOP TOOLBAR
+    /* ===================== TOOLBAR ===================== */
+
     renderTopToolbarCustomActions: () => (
       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
         <Typography variant="subtitle2" fontWeight={600}>
-          Team Skillset Overview
+          Team Members Overview
         </Typography>
-        <Tooltip title="Manage team members, roles & skills">
+        <Tooltip title="Manage team members">
           <InfoOutlinedIcon fontSize="small" color="action" />
         </Tooltip>
       </Box>
     ),
 
-    //  HEADER STYLE
+    /* ===================== STYLES ===================== */
+
     muiTableHeadCellProps: {
       sx: {
         background:
@@ -121,7 +115,6 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
       },
     },
 
-    //  BODY CELLS
     muiTableBodyCellProps: {
       sx: {
         fontSize: "12px",
@@ -130,8 +123,6 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
       },
     },
 
-    //  ROW UX
-     
     muiTableBodyRowProps: {
       sx: {
         transition: "0.15s",
@@ -145,15 +136,10 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
       },
     },
 
-    //  EMPTY STATE
+    /* ===================== EMPTY ===================== */
+
     renderEmptyRowsFallback: () => (
-      <Box
-        sx={{
-          textAlign: "center",
-          py: 6,
-          color: "text.secondary",
-        }}
-      >
+      <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
         <Typography variant="subtitle1" fontWeight={600}>
           No team members found
         </Typography>
@@ -168,4 +154,9 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
 };
 
 export default TeamSkillSetTable;
-
+const handleEdit = (userId: number) => {
+  console.log("Edit user:", userId);
+};
+const handleDelete = (userId: number) => {
+  console.log("Delete user:", userId);
+};
