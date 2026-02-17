@@ -32,7 +32,7 @@ const OrgHierarchyFilters = ({
   const visible = ORG_FILTER_VISIBILITY[role] ?? [];
 
   return (
-    <Box display="flex" gap={2} alignItems="center" sx={{ mt: 2 }}>
+    <Box display="flex" gap={2} alignItems="center" sx={{ mt: 1.5 }}>
       {visible.map((key) => (
         <OrgFilterSelect
           key={key}

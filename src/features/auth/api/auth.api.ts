@@ -10,11 +10,11 @@ export const authApi = api.injectEndpoints({
           method: "POST",
           body,
         }),
-      }
+      },
     ),
 
-    getLoggedUser: builder.query<LoggedUserApiResponse[], void>({
-      query: () => "/users/v1/getloggeduserdetails",
+    getLoggedUser: builder.query<LoggedUserApiResponse, void>({
+      query: () => "/users/v2/getloggeduserdetails",
     }),
 
     forceLogout: builder.mutation<void, { olmId: string }>({

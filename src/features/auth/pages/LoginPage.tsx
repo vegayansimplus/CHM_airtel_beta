@@ -31,8 +31,10 @@ import {
 } from "../api/auth.api";
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
-import type { AuthUser } from "../types/auth.types";
+// import type { AuthUser } from "../types/auth.types";
 import { authStorage } from "../../../app/store/auth.storage";
+import { normalizeRBAC } from "../utils/rbacNormalizer";
+import type { AuthUser } from "../types/auth.types";
 
 const LoginPage: React.FC = () => {
   const [olmId, setOlmId] = useState("");
@@ -107,38 +109,28 @@ const LoginPage: React.FC = () => {
     sessionStorage.setItem("access_token", res.accessToken);
 
     const userRes = await fetchUser().unwrap();
-    const apiUser = userRes[0];
+    // const apiUser = userRes[0];
+    const apiUser = userRes;
 
     const user: AuthUser = {
       olmId: apiUser.olmId,
       employeeName: apiUser.employeeName,
-      roleName: apiUser.roleName,
-      moduleName: [apiUser.moduleName], // convert string → string[]
-      permissions: apiUser.permissions, // already string[]
-      authenticated: true,
+      roleCode: apiUser.roleCode,
       userId: apiUser.userId,
+      modules: normalizeRBAC(apiUser),
+      authenticated: true,
     };
 
-    // const user: AuthUser = {
-    //   olmId: apiUser.olmId,
-    //   employeeName: apiUser.employeeName,
-    //   roleName: apiUser.roleName,
-    //   moduleName: apiUser.moduleName.split(","),
-    //   permissions: apiUser.permissions.split(","),
-    //   authenticated: true,
-    // };
-
+ 
     dispatch(setUser(user));
 
     authStorage.setToken(res.accessToken);
-
     authStorage.setUser({
       olmId: user.olmId,
       employeeName: user.employeeName,
-      roleName: user.roleName,
-      moduleName: user.moduleName,
-      permissions: user.permissions,
+      roleCode: user.roleCode,
       userId: user.userId,
+      modules: user.modules,
     });
 
     navigate("/home", { replace: true });

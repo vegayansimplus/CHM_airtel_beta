@@ -79,7 +79,7 @@ const Header: React.FC<HeaderProps> = ({
   if (!user) return null;
 
   const olmId = user.olmId;
-  const userRole = user.roleName;
+  const roleCode = user.roleCode;
 
   const handleLogout = async () => {
     try {
@@ -196,7 +196,7 @@ const Header: React.FC<HeaderProps> = ({
             </MenuItem>
 
             <MenuItem>
-              <BadgeIcon sx={{ mr: 1 }} /> Role: {userRole}
+              <BadgeIcon sx={{ mr: 1 }} /> Role: {roleCode}
             </MenuItem>
 
             <MenuItem onClick={handleLogout} disabled={loading}>
@@ -283,6 +283,8 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 export default Header;
+
+
 
 // import React, { useState, type JSX } from "react";
 // import {

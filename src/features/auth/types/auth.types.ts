@@ -1,77 +1,124 @@
+export interface ModulePermission {
+  moduleName: string;
+  permissions: string[];
+}
 
 export interface LoggedUserApiResponse {
   olmId: string;
   employeeName: string;
-  roleName: string;
-  permissions: string[];
-  moduleName: string;
-  isAuthenticated: boolean;
+  roleCode: string;
+  modules: ModulePermission[];
   userId: string;
 }
 
 export interface AuthUser {
   olmId: string;
   employeeName: string;
-  roleName: string;
-  moduleName: string[];
-  permissions: string[];
-  authenticated: boolean;
+  roleCode: string;
   userId: string;
+  modules: Record<string, string[]>;
+  authenticated: boolean;
 }
 
 export interface StoredUser {
   olmId: string;
   employeeName: string;
-  roleName: string;
-  moduleName: string[];
-  permissions: string[];
+  roleCode: string;
   userId: string;
-  // authenticated: boolean;
+  modules: Record<string, string[]>;
 }
 
-export interface LoginResponse {
-  status: string;
-  message: string;
-  accessToken?: string;
-
-}
-
-
-export interface LogoutResponse { olmId: string }
-// features/auth/types/auth.types.ts
-
-export interface LoggedUserApiResponse {
-  olmId: string;
-  employeeName: string;
-  roleName: string;
-  moduleName: string;
-  permissions: string[];
-  isAuthenticated: boolean;
-  userId: string;
-}
-
-export interface AuthUser {
-  olmId: string;
-  employeeName: string;
-  roleName: string;
-  moduleName: string[];
-  permissions: string[];
-  authenticated: boolean;
-  userId: string;
-}
-
-export interface StoredUser {
-  olmId: string;
-  employeeName: string;
-  roleName: string;
-  moduleName: string[];
-  permissions: string[];
-  userId: string;
-  // authenticated: boolean;
-}
 
 export interface LoginResponse {
   status: string;
   message: string;
   accessToken?: string;
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// export interface ModulePermission {
+//   moduleName: string;
+//   permissions: string[];
+// }
+
+// export interface LoggedUserApiResponse {
+//   olmId: string;
+//   employeeName: string;
+//   roleCode: string;
+//   modules: ModulePermission[];
+//   userId: string;
+// }
+
+// export interface AuthUser {
+//   olmId: string;
+//   employeeName: string;
+//   roleCode: string;
+//   userId: string;
+//   modules: Record<string, string[]>;
+//   authenticated: boolean;
+// }
+
+// export interface LoginResponse {
+//   status: string;
+//   message: string;
+//   accessToken?: string;
+// }
+
+// // export interface AuthUser {
+// //   olmId: string;
+// //   employeeName: string;
+// //   roleName: string;
+// //   moduleName: string[];
+// //   permissions: string[];
+// //   authenticated: boolean;
+// //   userId: string;
+// // }
+
+// export interface StoredUser {
+//   olmId: string;
+//   employeeName: string;
+//   roleCode: string;
+//   userId: string;
+//   modules: Record<string, string[]>;
+// }
+
+// export interface LogoutResponse {
+//   olmId: string;
+// }
+// // features/auth/types/auth.types.ts
+
+// export interface LoggedUserApiResponse {
+//   olmId: string;
+//   employeeName: string;
+//   roleName: string;
+//   moduleName: string;
+//   permissions: string[];
+//   isAuthenticated: boolean;
+//   userId: string;
+// }
+
+// // export interface AuthUser {
+// //   olmId: string;
+// //   employeeName: string;
+// //   roleName: string;
+// //   moduleName: string[];
+// //   permissions: string[];
+// //   authenticated: boolean;
+// //   userId: string;
+// // }
+
+// // export interface StoredUser {
+// //   olmId: string;
+// //   employeeName: string;
+// //   roleName: string;
+// //   moduleName: string[];
+// //   permissions: string[];
+// //   userId: string;
+// //   // authenticated: boolean;
+// // }
+
+// // export interface LoginResponse {
+// //   status: string;
+// //   message: string;
+// //   accessToken?: string;
+// // }

@@ -6,14 +6,10 @@ import type {
 } from "../types/orgHierarchy.types";
 
 export const useOrgHierarchyFilters = (
-  userId: number,
-  roleName: string,
+ 
   filters: OrgFilterValues,
 ) => {
-  const { data, isLoading, isError } = useGetOrgHierarchyByUserQuery({
-    userId,
-    roleName,
-  });
+  const { data, isLoading, isError } = useGetOrgHierarchyByUserQuery();
 
   const options = useMemo<Record<OrgFilterKey, any[]>>(() => {
     if (!data?.data) {

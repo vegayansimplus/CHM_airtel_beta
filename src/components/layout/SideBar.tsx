@@ -50,8 +50,7 @@ const SideBar: React.FC<SideBarProps> = ({
   ];
 
   const isActive = (path: string) =>
-    location.pathname === path ||
-    location.pathname.startsWith(path);
+    location.pathname === path || location.pathname.startsWith(path);
 
   return (
     <Drawer
@@ -72,7 +71,6 @@ const SideBar: React.FC<SideBarProps> = ({
           overflowX: "hidden",
           boxShadow: "2px 0 10px rgba(0,0,0,0.45)",
           borderRadius: "0 18px 18px 0",
-      
         },
       }}
     >
@@ -134,9 +132,7 @@ const SideBar: React.FC<SideBarProps> = ({
                   borderRadius: 2.5,
                   px: isCollapsed ? 1.5 : 2,
                   py: 1.2,
-                  color: active
-                    ? "#ffffff"
-                    : "rgba(255,255,255,0.75)",
+                  color: active ? "#ffffff" : "rgba(255,255,255,0.75)",
                   background: active
                     ? "linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05))"
                     : "transparent",
@@ -150,8 +146,7 @@ const SideBar: React.FC<SideBarProps> = ({
                         bottom: 8,
                         width: 4,
                         borderRadius: "0 6px 6px 0",
-                        background:
-                          "linear-gradient(180deg, #38bdf8, #6366f1)",
+                        background: "linear-gradient(180deg, #38bdf8, #6366f1)",
                         boxShadow: "0 0 12px rgba(56,189,248,0.8)",
                       }
                     : {},
@@ -196,7 +191,6 @@ const SideBar: React.FC<SideBarProps> = ({
 };
 
 export default SideBar;
-
 
 // import React from "react";
 // import {
@@ -369,7 +363,6 @@ export default SideBar;
 
 // export default SideBar;
 
-
 // import React from "react";
 // import {
 //   Box,
@@ -405,7 +398,7 @@ export default SideBar;
 
 //   if (!user) return null;
 
-//   const userRoles = user.roles; 
+//   const userRoles = user.roles;
 
 //   const sidebarItems = [
 //     {

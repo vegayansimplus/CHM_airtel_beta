@@ -7,12 +7,14 @@ import "react-toastify/dist/ReactToastify.css";
 import { store } from "./app/store.ts";
 import { CssBaseline } from "@mui/material";
 import AuthHydrator from "./features/auth/utils/AuthHydrator.tsx";
+import GlobalLoader from "./components/common/GlobalLoader";
 
 createRoot(document.getElementById("root")!).render(
   <>
     <Provider store={store}>
       <CssBaseline />
       <AuthHydrator />
+      <GlobalLoader/>
       <App />
       <ToastContainer
         autoClose={2000}

@@ -1,151 +1,266 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
+  type MRT_PaginationState,
 } from "material-react-table";
-import {
-  Box,
-  IconButton,
-  Tooltip,
-  Typography,
-} from "@mui/material";
+import { Box, IconButton, Tooltip, Chip } from "@mui/material";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import { generateColumns } from "../../utils/generateColumns";
+import { TeamTopInfoCard } from "./TeamTopInfoCard";
 
+/* ================= LEVEL COLOR MAP ================= */
 
-interface Props {
-  data: Record<string, any>[]; 
-  userRole: "User" | "Team Lead" | "Super Admin";
+const levelColorMap: Record<string, { bg: string; color: string }> = {
+  L1: { bg: "#E3F2FD", color: "#1565C0" },
+  L2: { bg: "#E8F5E9", color: "#2E7D32" },
+  L3: { bg: "#FFF3E0", color: "#EF6C00" },
+  L4: { bg: "#FDECEA", color: "#C62828" },
+};
+
+/* ================= PROPS ================= */
+
+interface OverviewType {
+  l1Count: number;
+  l2Count: number;
+  l3Count: number;
+  l4Count: number;
+  teamLead: string;
+  totalCount: number;
 }
-const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
-  const columns = useMemo<MRT_ColumnDef<Record<string, any>>[]>(() => {
-    const dynamicColumns = generateColumns(data);
+interface Props {
+  data: Record<string, any>[];
+  totalRowCount: number;
+  // isLoading: boolean;
+  pagination: MRT_PaginationState;
+  setPagination: React.Dispatch<React.SetStateAction<MRT_PaginationState>>;
+  roleCode: "User" | "Team Lead" | "Super Admin";
+  overview?: OverviewType;
+}
 
-    if (userRole === "User") return dynamicColumns;
+/* ================= DEFAULT COLUMN VISIBILITY ================= */
 
-    return [
-      ...dynamicColumns,
-      {
+const DEFAULT_VISIBLE = [
+  "olmId",
+  "employeeName",
+  "emailId",
+  "mobileNo",
+  "jobLevel",
+  "employmentType",
+  "designation",
+  "officeLocation",
+];
+
+const STORAGE_KEY = "team-table-column-visibility";
+
+/* ============================================================= */
+
+const TeamSkillSetTable: React.FC<Props> = ({
+  data,
+  totalRowCount,
+  // isLoading,
+  pagination,
+  setPagination,
+  roleCode,
+  overview,
+}) => {
+  /* ================= ACTION HANDLERS ================= */
+
+  const handleEdit = (userId: number) => {
+    console.log("Edit:", userId);
+  };
+
+  const handleDelete = (userId: number) => {
+    console.log("Delete:", userId);
+  };
+
+  /* ================= STABLE COLUMN KEYS ================= */
+  // Prevent columns regenerating on every render
+  const columnKeys = useMemo(() => {
+    if (!data?.length) return [];
+    return Object.keys(data[0]).filter((key) => key !== "userId");
+  }, [data]);
+
+  /* ================= COLUMNS ================= */
+
+  const columns = useMemo<MRT_ColumnDef<any>[]>(() => {
+    const baseColumns: MRT_ColumnDef<any>[] = columnKeys.map((key) => ({
+      accessorKey: key,
+      header: key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (str) => str.toUpperCase()),
+      size: 160,
+      Cell:
+        key === "jobLevel"
+          ? ({ cell }) => {
+              const value = cell.getValue<string>();
+              const style = levelColorMap[value] || {
+                bg: "#f5f5f5",
+                color: "#555",
+              };
+
+              return (
+                <Chip
+                  label={value}
+                  size="small"
+                  sx={{
+                    backgroundColor: style.bg,
+                    color: style.color,
+                    fontWeight: 600,
+                    borderRadius: "8px",
+                    minWidth: 45,
+                  }}
+                />
+              );
+            }
+          : key === "employmentType"
+            ? ({ cell }) => (
+                <Chip
+                  label={cell.getValue<string>()}
+                  size="small"
+                  sx={{
+                    backgroundColor: "#F3F4F6",
+                    color: "#374151",
+                    fontWeight: 500,
+                    borderRadius: "8px",
+                  }}
+                />
+              )
+            : undefined,
+    }));
+
+    if (roleCode !== "User") {
+      baseColumns.push({
         id: "actions",
         header: "Actions",
-        size: 100,
-        Cell: ({ row }) => {
-          const userId = row.original.userId; 
+        size: 120,
+        enableSorting: false,
+        enableColumnFilter: false,
+        Cell: ({ row }) => (
+          <Box display="flex" gap={0.5}>
+            <Tooltip title="Edit">
+              <IconButton
+                size="small"
+                color="primary"
+                onClick={() => handleEdit(row.original.userId)}
+              >
+                <EditIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete">
+              <IconButton
+                size="small"
+                color="error"
+                onClick={() => handleDelete(row.original.userId)}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        ),
+      });
+    }
 
-          return (
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                gap: 0.5,
-                opacity: 0.7,
-                "&:hover": { opacity: 1 },
-              }}
-            >
-              <Tooltip title="Edit">
-                <IconButton
-                  size="small"
-                  color="primary"
-                  onClick={() => handleEdit(userId)}
-                >
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+    return baseColumns;
+  }, [columnKeys, roleCode]);
 
-              <Tooltip title="Delete">
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => handleDelete(userId)}
-                >
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          );
-        },
-      },
-    ];
-  }, [data, userRole]);
+  /* ================= COLUMN VISIBILITY ================= */
+
+  const [columnVisibility, setColumnVisibility] = useState<
+    Record<string, boolean>
+  >(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : {};
+  });
+
+  useEffect(() => {
+    if (!columnKeys.length) return;
+
+    if (Object.keys(columnVisibility).length === 0) {
+      const visibility: Record<string, boolean> = {};
+      columnKeys.forEach((key) => {
+        visibility[key] = DEFAULT_VISIBLE.includes(key);
+      });
+      setColumnVisibility(visibility);
+    }
+  }, [columnKeys]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(columnVisibility));
+  }, [columnVisibility]);
+
+  /* ================= TABLE CONFIG ================= */
 
   const table = useMaterialReactTable({
     columns,
     data,
 
-    enableColumnFilters: true,
-    enableSorting: true,
-    enableGrouping: true,
-    enableStickyHeader: true,
-    enablePagination: true,
-    enableDensityToggle: true,
-    enableFullScreenToggle: true,
-    enableColumnOrdering: true,
-    enableRowVirtualization: true,
-    enableColumnResizing: true,
-    initialState: {
-      density: "compact",
+    // SERVER SIDE PAGINATION
+    manualPagination: true,
+    rowCount: totalRowCount,
+
+    onPaginationChange: setPagination,
+
+    state: {
+      pagination,
+      // isLoading,
+      columnVisibility,
     },
 
-    /* ===================== TOOLBAR ===================== */
+    onColumnVisibilityChange: setColumnVisibility,
 
-    renderTopToolbarCustomActions: () => (
-      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-        <Typography variant="subtitle2" fontWeight={600}>
-          Team Members Overview
-        </Typography>
-        <Tooltip title="Manage team members">
-          <InfoOutlinedIcon fontSize="small" color="action" />
-        </Tooltip>
-      </Box>
-    ),
+    // muiPaginationProps: {
+    //   rowsPerPageOptions: [5, 10, 15, 20, 25, 50],
+    // },
+    muiPaginationProps: {
+  rowsPerPageOptions: useMemo(() => {
+    const baseOptions = [5, 10, 15, 20, 25, 50];
 
-    /* ===================== STYLES ===================== */
+    // Add totalRowCount if not already included
+    const options = totalRowCount > 0
+      ? Array.from(new Set([...baseOptions, totalRowCount])).sort((a, b) => a - b)
+      : baseOptions;
+
+    return options;
+  }, [totalRowCount]),
+},
+
+
+    enablePagination: true,
+    enableColumnFilters: true,
+    enableSorting: true,
+    enableColumnOrdering: true,
+    enableColumnResizing: true,
+    enableStickyHeader: true,
+    enableColumnPinning: true,
+
+    initialState: {
+      density: "compact",
+      columnPinning: {
+        right: roleCode !== "User" ? ["actions"] : [],
+      },
+    },
 
     muiTableHeadCellProps: {
       sx: {
-        background:
-          "linear-gradient(180deg, #e3f2fd 0%, #f8fbff 100%)",
-        textAlign: "center",
+        backgroundColor: "#f4f6f8",
         fontWeight: 700,
-        fontSize: "12px",
-        borderBottom: "1px solid #dbe3ec",
+        fontSize: "13px",
       },
     },
-
     muiTableBodyCellProps: {
       sx: {
         fontSize: "12px",
-        padding: "6px 8px",
-        borderBottom: "1px solid #f0f0f0",
+        padding: "1px",
+        pl: 1,
       },
     },
 
-    muiTableBodyRowProps: {
-      sx: {
-        transition: "0.15s",
-        "&:hover": {
-          backgroundColor: "#f5faff",
-          transform: "scale(1.002)",
-        },
-        "&:nth-of-type(odd)": {
-          backgroundColor: "#fcfcfc",
-        },
-      },
-    },
-
-    /* ===================== EMPTY ===================== */
-
-    renderEmptyRowsFallback: () => (
-      <Box sx={{ textAlign: "center", py: 6, color: "text.secondary" }}>
-        <Typography variant="subtitle1" fontWeight={600}>
-          No team members found
-        </Typography>
-        <Typography variant="body2">
-          Try adjusting filters or search keywords
-        </Typography>
+    renderTopToolbarCustomActions: () => (
+      <Box display="flex" alignItems="center" gap={1}>
+        {/* <TeamTopInfoCard levelCount={[]} /> */}
+        <TeamTopInfoCard overview={overview} />
       </Box>
     ),
   });
@@ -154,9 +269,3 @@ const TeamSkillSetTable: React.FC<Props> = ({ data, userRole }) => {
 };
 
 export default TeamSkillSetTable;
-const handleEdit = (userId: number) => {
-  console.log("Edit user:", userId);
-};
-const handleDelete = (userId: number) => {
-  console.log("Delete user:", userId);
-};
