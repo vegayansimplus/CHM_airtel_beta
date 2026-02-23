@@ -32,7 +32,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
     console.log("navigate ", navigate);
     console.log("location ", location);
     if (location.pathname === "/") {
-      const storedRoute = localStorage.getItem("currentRoute") || "/dashboard";
+      const storedRoute = localStorage.getItem("currentRoute") || "/login";
       navigate(storedRoute, { replace: true });
     }
   }, [navigate, location.pathname]);

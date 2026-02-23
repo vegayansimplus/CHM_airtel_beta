@@ -78,12 +78,12 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
   return (
     <Box
       sx={{
-        backgroundColor: "auto",
+        backgroundColor: "transparent",
         maxWidth: "100%",
-        margin: "50px auto",
-        height: "auto",
+        // margin: "20px auto",
+        height:"auto",
         pl: 8,
-        overflow: "hidden",
+        overflow: "auto",
         "&::-webkit-scrollbar": {
           height: "8px",
         },
@@ -102,12 +102,8 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
       {/* -------- Tabs Header -------- */}
       <Box
         sx={{
-          backgroundColor: "auto",
-          display: "flex",
-          height: "20px",
-          alignItems: "center",
-          alignContent: "center",
-          justifyContent: "center",
+          backgroundColor: "transparent",
+        marginTop: "45px",
         }}
       >
         <Tabs
@@ -125,7 +121,7 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
                 height: 0,
                 borderRight: "8px solid transparent",
                 borderLeft: "8px solid transparent",
-                borderBottom: "10px solid pink",
+                borderBottom: "10px solid grey",
                 position: "absolute",
                 bottom: 0,
               },
@@ -134,7 +130,8 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
               backgroundColor: "auto",
             },
             width: "100%",
-            backgroundColor: "auto",
+            // backgroundColor: "#384252",
+            backgroundColor: "transparent",
             boxShadow: 2,
             mt: 1,
           }}

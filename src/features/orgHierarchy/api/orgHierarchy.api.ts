@@ -2,9 +2,6 @@ import { api } from "../../../service/api";
 import type { OrgHierarchyResponse } from "../types/orgHierarchy.types";
 import type { EmployeeDto } from "../../teamManagement/types/employee.types";
 
-/* ============================================================
-   SPRING PAGINATION RESPONSE (MATCHES YOUR BACKEND EXACTLY)
-============================================================ */
 
 export interface PaginatedResponse<T> {
   content: T[];
@@ -18,9 +15,6 @@ export interface PaginatedResponse<T> {
   empty: boolean;
 }
 
-/* ============================================================
-   API
-============================================================ */
 
 export const orgHierarchyApi = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -32,7 +26,7 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "GET",
       }),
 
-      keepUnusedDataFor: 300, // cache 5 minutes
+      keepUnusedDataFor: 6, 
       providesTags: ["ORG_HIERARCHY"],
     }),
 
@@ -48,7 +42,7 @@ export const orgHierarchyApi = api.injectEndpoints({
       }
     >({
       query: ({ subDomainId, employeeStatus, page, size }) => ({
-        url: "/users/v2/getemployeesbysubdomain",
+        url: "/users/v3/getemployeesbysubdomain",
         method: "GET",
         params: {
           subDomainId,
@@ -58,7 +52,7 @@ export const orgHierarchyApi = api.injectEndpoints({
         },
       }),
 
-      keepUnusedDataFor: 120,
+      keepUnusedDataFor: 6 ,
 
       providesTags: (result, error, arg) => [
         { type: "EMPLOYEES", id: `${arg.subDomainId}-${arg.employeeStatus}` },
@@ -80,7 +74,7 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "GET",
         params: { subDomainId },
       }),
-      keepUnusedDataFor: 120,
+      keepUnusedDataFor: 6,
     }),
   }),
 
@@ -92,39 +86,3 @@ export const {
   useGetEmployeesBySubDomainQuery,
   useGetEmpCountBySubDomainIdQuery,
 } = orgHierarchyApi;
-
-// import { api } from "../../../service/api";
-// import type { OrgHierarchyResponse } from "../types/orgHierarchy.types";
-// import type { EmployeeDto } from "../../teamManagement/types/employee.types";
-
-// export const orgHierarchyApi = api.injectEndpoints({
-//   endpoints: (builder) => ({
-//     // Org hierarchy
-//     getOrgHierarchyByUser: builder.query<OrgHierarchyResponse, void>({
-//       query: () => ({
-//         // url: "/users/getOrgHierarchyByUser",
-//         url: "/users/V1/getOrgHierarchyByUser",
-//         method: "GET",
-//       }),
-//     }),
-
-//     //  Employees by sub-domain
-//     getEmployeesBySubDomain: builder.query<
-//       EmployeeDto[],
-//       { subDomainId: number }
-//     >({
-//       query: ({ subDomainId }) => ({
-//         url: "/users/getEmployeesBySubDomain",
-//         method: "GET",
-//         params: { subDomainId },
-//       }),
-//     }),
-//   }),
-
-//   overrideExisting: false,
-// });
-
-// export const {
-//   useGetOrgHierarchyByUserQuery,
-//   useGetEmployeesBySubDomainQuery,
-// } = orgHierarchyApi;

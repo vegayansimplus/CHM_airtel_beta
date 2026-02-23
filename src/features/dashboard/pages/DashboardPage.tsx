@@ -120,7 +120,7 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
                 height: 0,
                 borderRight: "8px solid transparent",
                 borderLeft: "8px solid transparent",
-                borderBottom: "10px solid pink",
+                borderBottom: "10px solid grey",
                 position: "absolute",
                 bottom: 0,
               },

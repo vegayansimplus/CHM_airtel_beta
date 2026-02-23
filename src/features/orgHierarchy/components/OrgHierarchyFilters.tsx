@@ -32,16 +32,34 @@ const OrgHierarchyFilters = ({
   const visible = ORG_FILTER_VISIBILITY[role] ?? [];
 
   return (
-    <Box display="flex" gap={2} alignItems="center" sx={{ mt: 1.5 }}>
-      {visible.map((key) => (
-        <OrgFilterSelect
-          key={key}
-          label={LABELS[key]}
-          value={values[key]}
-          options={options[key]}
-          onChange={(v) => onChange(key, v)}
-        />
-      ))}
+    <Box display="flex" gap={2} alignItems="center" sx={{ mt: 0 }}>
+      {visible.map((key) => {
+        let disabled = false;
+
+        if (key === "teamFunction") {
+          disabled = !values.vertical;
+        }
+
+        if (key === "domain") {
+          disabled = !values.teamFunction;
+        }
+
+        if (key === "subDomain") {
+          disabled = !values.domain;
+        }
+
+        return (
+          <OrgFilterSelect
+            key={key}
+            label={LABELS[key]}
+            value={values[key]}
+            options={options[key]}
+            disabled={disabled} 
+            onChange={(v) => onChange(key, v)}
+          />
+        );
+      })}
+
       {children}
     </Box>
   );
@@ -50,3 +68,32 @@ const OrgHierarchyFilters = ({
 export default OrgHierarchyFilters;
 
 
+// More scalable Code
+// const hierarchy: OrgFilterKey[] = [
+//   "vertical",
+//   "teamFunction",
+//   "domain",
+//   "subDomain",
+// ];
+
+// {visible.map((key) => {
+//   const index = hierarchy.indexOf(key);
+
+//   let disabled = false;
+
+//   if (index > 0) {
+//     const parentKey = hierarchy[index - 1];
+//     disabled = !values[parentKey];
+//   }
+
+//   return (
+//     <OrgFilterSelect
+//       key={key}
+//       label={LABELS[key]}
+//       value={values[key]}
+//       options={options[key]}
+//       disabled={disabled}
+//       onChange={(v) => onChange(key, v)}
+//     />
+//   );
+// })}
