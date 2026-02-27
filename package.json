@@ -16,6 +16,8 @@
     "@mui/icons-material": "^7.3.6",
     "@mui/material": "^7.3.6",
     "@mui/styled-engine-sc": "^7.3.6",
+    "@mui/x-data-grid": "^8.27.1",
+    "@mui/x-date-pickers": "^8.27.2",
     "@react-pdf/renderer": "^4.3.2",
     "@reduxjs/toolkit": "^2.11.2",
     "axios": "^1.13.2",

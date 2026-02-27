@@ -17,6 +17,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 import vegayanLogo from "../../assets/images/Airtel.png";
 import { useBgColor } from "../../context/BgColorContext";
 import { useAppSelector } from "../../app/hooks";
+import { CalendarMonth } from "@mui/icons-material";
 
 interface SideBarProps {
   isCollapsed?: boolean;
@@ -47,6 +48,12 @@ const SideBar: React.FC<SideBarProps> = ({
       text: "Team Management",
       icon: <Groups2Icon />,
     },
+
+    {
+      to:"/roster",
+      text:"Roster View",
+      icon:<CalendarMonth />
+    }
   ];
 
   const isActive = (path: string) =>

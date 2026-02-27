@@ -6,6 +6,7 @@ import {
   type MRT_PaginationState,
   type MRT_Column,
 } from "material-react-table";
+import { useTheme, alpha } from "@mui/material";
 import {
   Box,
   IconButton,
@@ -44,9 +45,7 @@ const MultiSelectFilter = ({
 }) => {
   // const selected = (column.getFilterValue() as string[]) || [];
   const rawValue = column.getFilterValue();
-const selected = Array.isArray(rawValue) ? rawValue : [];
-
-
+  const selected = Array.isArray(rawValue) ? rawValue : [];
 
   return (
     <FormControl variant="standard" sx={{ minWidth: 140 }}>
@@ -118,7 +117,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any>(null);
-
+  const theme = useTheme();
   const handleEdit = (rowData: any) => {
     setEditData(rowData);
     setDialogOpen(true);
@@ -303,22 +302,32 @@ const TeamSkillSetTable: React.FC<Props> = ({
     //   },
     // },
 
+    /* ================= HEADER ================= */
     muiTableHeadCellProps: {
       sx: {
-        backgroundColor: "#e8f4ff",
+        backgroundColor:
+          theme.palette.mode === "dark"
+            ? alpha(theme.palette.primary.main, 0.15)
+            : alpha(theme.palette.primary.main, 0.08),
+
+        color: theme.palette.text.primary,
         textAlign: "center",
-        border: "1px solid #e3e5e8",
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        fontSize: "12px",
-        padding: "0.1px",
-        pl: 1,
+        fontWeight: 600,
+        border: `1px solid ${theme.palette.divider}`,
       },
     },
 
-     muiTableContainerProps: {
+    muiTableBodyCellProps: {
+      sx: {
+        fontSize: "12px",
+        padding: "4px 8px",
+        color: theme.palette.text.secondary,
+        border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
+      },
+    },
+
+    muiTableContainerProps: {
       sx: {
         maxHeight: {
           xs: "100px",
@@ -327,13 +336,20 @@ const TeamSkillSetTable: React.FC<Props> = ({
           lg: "300px",
           xl: "390px",
         },
-        "&::-webkit-scrollbar": { height: "5px" },
-        "&::-webkit-scrollbar-track": { backgroundColor: "transparent" },
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: "#888",
-          borderRadius: "4px",
+
+        backgroundColor: theme.palette.background.paper,
+
+        "&::-webkit-scrollbar": { height: "6px" },
+        "&::-webkit-scrollbar-track": {
+          backgroundColor:
+            theme.palette.mode === "dark"
+              ? theme.palette.background.default
+              : "#f1f1f1",
         },
-        "&::-webkit-scrollbar-thumb:hover": { backgroundColor: "grey" },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: theme.palette.primary.main,
+          borderRadius: "6px",
+        },
       },
     },
     muiPaginationProps: {

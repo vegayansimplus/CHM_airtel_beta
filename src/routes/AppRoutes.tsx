@@ -14,6 +14,10 @@ import TeamManagementPage from "../features/teamManagement/pages/TeamManagementP
 import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
 import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
 import { HomeDashboard } from "../features/dashboard/pages/HomeDashboard";
+import MonthlyRosterPageTab from "../features/roster/page/MonthlyRosterPageTab";
+import { MonthlyRosterMain } from "../features/roster/monthly/MonthlyRosterMain";
+import { RosterViewMain } from "../features/roster/page/RosterViewMain";
+import { WeeklyRosterMain } from "../features/roster/weekly/WeeklyRosterMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -58,11 +62,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          
-          <Route
-            path="/home"
-            element={<HomeDashboard />}
-          />
+          <Route path="/home" element={<HomeDashboard />} />
           <Route
             path="/homedashboard"
             element={<CommonContainer>Hello</CommonContainer>}
@@ -81,14 +81,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route
-            index
-            element={<Navigate to="teammanagement" replace />}
-          />
-          <Route
-            path="teammanagement"
-            element={<TeamManagementMain />}
-          />
+          <Route index element={<Navigate to="teammanagement" replace />} />
+          <Route path="teammanagement" element={<TeamManagementMain />} />
           <Route
             path="taskconfiguration"
             element={
@@ -96,7 +90,46 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           />
         </Route>
-        {/* <Route path="*" element={<Navigate to="/home" replace />} /> */}
+
+        <Route
+          path="roster"
+          element={
+            <PrivateRoute
+              element={
+                <MonthlyRosterPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="view" replace />} />
+          <Route path="view" element={<RosterViewMain />} />
+          <Route path="monthly" element={<>Monthly Roster</>} />
+          <Route path="view" element={<RosterViewMain />} />
+        </Route>
+        <Route
+          path="roster"
+          element={
+            <PrivateRoute
+              element={
+                <MonthlyRosterPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="rosterview" replace />} />
+          <Route path="rosterview" element={<RosterViewMain />} />
+
+          <Route path="weeklyroster" element={<>Roster View</>} />
+
+          <Route path="monthlyroster" element={<>Monthly Roster View </>} />
+        </Route>
+
         <Route index element={<Navigate to="/home" replace />} />
       </Routes>
     </Suspense>
