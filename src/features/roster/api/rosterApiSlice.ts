@@ -17,9 +17,8 @@ export const rosterApiSlice = api.injectEndpoints({
           startDate,
           endDate,
         },
-
       }),
-      
+
       keepUnusedDataFor: 6,
       providesTags: ["RosterVIew"],
     }),
@@ -45,6 +44,17 @@ export const rosterApiSlice = api.injectEndpoints({
         params,
       }),
     }),
+
+    getShiftDropdown: builder.query<
+      { shiftId: number; shiftRange: string }[],
+      { subDomainId: number }
+    >({
+      query: ({ subDomainId }) => ({
+        url: "/monthlyrosterview/shiftdropdowns",
+        method: "GET",
+        params: { subDomainId },
+      }),
+    }),
   }),
 });
 
@@ -52,8 +62,8 @@ export const {
   useGetRosterViewQuery,
   useGetCurrentShiftCountQuery,
   useChangeShiftMutation,
-} =
-  rosterApiSlice;
+  useGetShiftDropdownQuery,
+} = rosterApiSlice;
 
 // types for the mutation input
 export interface ChangeShiftParams {

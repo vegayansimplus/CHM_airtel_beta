@@ -9,6 +9,7 @@ import {
   ListItemText,
   Tooltip,
   Drawer,
+  Badge,
 } from "@mui/material";
 import { NavLink, useLocation } from "react-router";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -27,6 +28,7 @@ import {
   // Schedule,
   // Task,
 } from "@mui/icons-material";
+import { useGetUnreadNotificationCountQuery } from "../../features/inbox/api/inboxApiSlice";
 interface SideBarProps {
   isCollapsed?: boolean;
   onCollapseToggle?: () => void;
@@ -42,7 +44,10 @@ const SideBar: React.FC<SideBarProps> = ({
   const location = useLocation();
   const { bgColor } = useBgColor();
   const user = useAppSelector((s) => s.auth.user);
-
+  // const inboxCount = useAppSelector((s) => s.notifications.inboxCount); // example store
+  const { data: countData } = useGetUnreadNotificationCountQuery();
+  const inboxCount = countData?.notificationCount ?? 0;
+  // const inboxCount = 3; // hardcoded for now
   if (!user) return null;
 
   const sidebarItems = [
@@ -75,7 +80,11 @@ const SideBar: React.FC<SideBarProps> = ({
     {
       to: "/inbox",
       text: "Inbox",
-      icon: <MailIcon />,
+      icon: (
+        <Badge badgeContent={inboxCount} color="error">
+          <MailIcon />
+        </Badge>
+      ),
     },
   ];
 

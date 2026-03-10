@@ -77,7 +77,7 @@ export const RosterShiftCell = ({
 
   // Formatted Output Text
   const title = isOff
-    ? "Week Off"
+    ? "WO"
     : isLeave
       ? "Leave"
       : shift?.shiftDisplay || "Morning Shift";
@@ -125,7 +125,7 @@ export const RosterShiftCell = ({
     <TableCell sx={{ p: 0.5, borderBottom: "none", height: "100%" }}>
       {/* Tooltip ensures users can always read full text even when screen is small and text truncates */}
       <Tooltip
-        title={isOff ? "Week Off" : `${title} (${subtitle})`}
+        title={isOff ? "WO" : `${title} (${subtitle})`}
         placement="top"
         arrow
         enterDelay={400}

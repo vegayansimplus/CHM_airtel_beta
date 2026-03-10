@@ -17,10 +17,10 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
-
 import {
   useGetRosterViewQuery,
   useChangeShiftMutation,
+  useGetShiftDropdownQuery,
 } from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
 import { RosterToolbar } from "../components/RosterToolbar";
@@ -68,6 +68,11 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       endDate,
     },
     { skip: shouldSkip },
+  );
+
+  const { data: shiftOptions = [] } = useGetShiftDropdownQuery(
+    { subDomainId: subDomainId ?? 0 },
+    { skip: !subDomainId },
   );
 
   const users = data?.data ?? [];
@@ -150,12 +155,11 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     const [cell1, cell2] = selectedSwapCells;
 
     try {
-      // Execute both shift changes simultaneously
       await Promise.all([
         changeShift({
           affectedUserId: cell1.userId,
           shiftDate: cell1.date,
-          newShiftRange: cell2.shift?.shiftRange || "", // Adjust based on your API's expected format
+          newShiftRange: cell2.shift?.shiftRange || "",
           newAssignActivity: 0,
           newAvailableMinutes: 0,
           newShiftId: 0,
@@ -246,9 +250,8 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       )}
 
       <TableContainer component={Paper}>
-        <SmartScrollContainer height={480} enableHorizontal>
+        <SmartScrollContainer height={450} enableHorizontal>
           <Table stickyHeader size="small">
-            {/* TableHead code remains the same... */}
             <TableHead>
               <TableRow>
                 <TableCell
@@ -268,11 +271,11 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
                   </Stack>
                 </TableCell>
                 {weekDates.map((date) => (
-                  <TableCell key={date} align="center">
-                    <Typography variant="caption">
+                  <TableCell key={date} align="center" size="small">
+                    <Typography fontSize="0.75rem">
                       {dayjs(date).format("ddd")}
                     </Typography>
-                    <Typography fontWeight={700}>
+                    <Typography fontWeight={700} fontSize="0.75rem">
                       {dayjs(date).format("DD")}
                     </Typography>
                   </TableCell>
@@ -283,7 +286,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
             <TableBody>
               {hasError ? (
                 <TableRow>
-                  <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
                     <Stack alignItems="center" spacing={1}>
                       <ErrorOutlineIcon color="error" sx={{ fontSize: 40 }} />
                       <Typography variant="h6" color="error">
@@ -338,7 +341,15 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         editData={editDialogConfig.data}
         onSave={handleSaveShift}
         saving={isChanging}
+        shiftOptions={shiftOptions}
       />
+      {/* <EditRosterDialog
+        open={editDialogConfig.isOpen}
+        onClose={handleCloseEdit}
+        editData={editDialogConfig.data}
+        onSave={handleSaveShift}
+        saving={isChanging}
+      /> */}
 
       {/* Validations Snackbar */}
       <Snackbar

@@ -23,12 +23,23 @@ export interface NotificationItem {
   subject: string | null;
 }
 
+export interface NotificationCountResponse {
+  notificationCount: number;
+}
 export const inboxApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
-    getUnreadNotifications: builder.query<NotificationItem[], { readFlag: boolean }>({
+    getUnreadNotifications: builder.query<
+      NotificationItem[],
+      { readFlag: boolean }
+    >({
       query: ({ readFlag }) => `/notification/unread?readFlag=${readFlag}`,
+    }),
+
+    getUnreadNotificationCount: builder.query<NotificationCountResponse, void>({
+      query: () => `/notification/notificationcount?readFlag=False`,
+      providesTags: ["NotificationCount"],
     }),
   }),
 });
 
-export const { useGetUnreadNotificationsQuery } = inboxApiSlice;
+export const { useGetUnreadNotificationsQuery, useGetUnreadNotificationCountQuery } = inboxApiSlice;
