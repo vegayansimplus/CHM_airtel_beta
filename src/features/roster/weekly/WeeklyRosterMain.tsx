@@ -10,8 +10,8 @@ import {
   Paper,
   Stack,
   Typography,
-  CircularProgress,
   Alert,
+  Snackbar,
 } from "@mui/material";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
@@ -29,6 +29,13 @@ import { RosterShiftCell } from "../components/RosterShiftCell";
 import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
 
 dayjs.extend(isoWeek);
+// Define type for swap selection
+interface SwapCell {
+  userId: string;
+  date: string;
+  shift: any;
+  jobLevel: string;
+}
 
 export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const [weekStart, setWeekStart] = useState(dayjs().startOf("isoWeek"));
@@ -41,13 +48,19 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     data: null,
   });
 
+  // --- SWAP STATE ---
+  const [isSwapMode, setIsSwapMode] = useState(false);
+  const [selectedSwapCells, setSelectedSwapCells] = useState<SwapCell[]>([]);
+  const [isSwapping, setIsSwapping] = useState(false);
+  const [toastMsg, setToastMsg] = useState<string | null>(null);
+
   const weekEnd = weekStart.endOf("isoWeek");
   const startDate = weekStart.format("YYYY-MM-DD");
   const endDate = weekEnd.format("YYYY-MM-DD");
 
   const shouldSkip = !subDomainId || subDomainId === 0;
 
-  const { data, error, isLoading, isFetching } = useGetRosterViewQuery(
+  const { data, error, isLoading, refetch } = useGetRosterViewQuery(
     {
       domainId: domainId ?? 0,
       subDomainId: subDomainId ?? 0,
@@ -65,6 +78,8 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     );
   }, [weekStart]);
 
+  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+
   // --- HANDLERS ---
   const handleOpenEdit = (shift: any, date: string, userId: string) => {
     setEditDialogConfig({
@@ -77,9 +92,99 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     setEditDialogConfig({ isOpen: false, data: null });
   };
 
-  // mutation hook for change API
-  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+  // --- CELL CLICK LOGIC (Handles both Edit & Swap) ---
+  const handleCellClick = (shift: any, date: string, user: any) => {
+    if (!isSwapMode) {
+      handleOpenEdit(shift, date, user.userId);
+      return;
+    }
 
+    // 1. Validation: Only future dates
+    const isFuture = dayjs(date).startOf("day").isAfter(dayjs().startOf("day"));
+    if (!isFuture) {
+      setToastMsg("Only future dates can be selected for a shift swap.");
+      return;
+    }
+
+    const alreadySelectedIndex = selectedSwapCells.findIndex(
+      (c) => c.userId === user.userId && c.date === date,
+    );
+
+    // 2. Toggle Unselect
+    if (alreadySelectedIndex >= 0) {
+      setSelectedSwapCells((prev) =>
+        prev.filter((_, i) => i !== alreadySelectedIndex),
+      );
+      return;
+    }
+
+    // 3. Validation: Max 2 cells
+    if (selectedSwapCells.length >= 2) {
+      setToastMsg("You can only select a maximum of two shifts to swap.");
+      return;
+    }
+
+    // 4. Validation: Same Level check
+    if (
+      selectedSwapCells.length === 1 &&
+      selectedSwapCells[0].jobLevel !== user.jobLevel
+    ) {
+      setToastMsg(
+        "Shift swap is only allowed between employees of the same level.",
+      );
+      return;
+    }
+
+    // Select Cell
+    setSelectedSwapCells((prev) => [
+      ...prev,
+      { userId: user.userId, date, shift, jobLevel: user.jobLevel },
+    ]);
+  };
+
+  // --- EXECUTE SWAP ---
+  const handleApplySwap = async () => {
+    if (selectedSwapCells.length !== 2) return;
+    setIsSwapping(true);
+
+    const [cell1, cell2] = selectedSwapCells;
+
+    try {
+      // Execute both shift changes simultaneously
+      await Promise.all([
+        changeShift({
+          affectedUserId: cell1.userId,
+          shiftDate: cell1.date,
+          newShiftRange: cell2.shift?.shiftRange || "", // Adjust based on your API's expected format
+          newAssignActivity: 0,
+          newAvailableMinutes: 0,
+          newShiftId: 0,
+          reason: "Shift Swap",
+        }).unwrap(),
+        changeShift({
+          affectedUserId: cell2.userId,
+          shiftDate: cell2.date,
+          newShiftRange: cell1.shift?.shiftRange || "",
+          newAssignActivity: 0,
+          newAvailableMinutes: 0,
+          newShiftId: 0,
+          reason: "Shift Swap",
+        }).unwrap(),
+      ]);
+
+      setToastMsg("Shifts swapped successfully!");
+      setIsSwapMode(false);
+      setSelectedSwapCells([]);
+      refetch(); // Refresh data
+    } catch (error) {
+      console.error("Failed to swap shifts", error);
+      setToastMsg("Failed to complete shift swap. Please try again.");
+    } finally {
+      setIsSwapping(false);
+    }
+  };
+
+  // Standard Change Shift Logic (Dialog)
   const handleSaveShift = async (
     userId: string,
     date: string,
@@ -87,7 +192,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     reason: string,
   ) => {
     try {
-      const params = {
+      await changeShift({
         affectedUserId: userId,
         shiftDate: date,
         newShiftRange: newShiftValue,
@@ -95,29 +200,16 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         newAvailableMinutes: 0,
         newShiftId: 0,
         reason,
-      };
-
-      await changeShift(params).unwrap();
+      }).unwrap();
       handleCloseEdit();
     } catch (error) {
       console.error("Failed to change shift", error);
     }
   };
 
-  const isApiCustomError = data?.success === false;
-  const apiCustomErrorMessage = (data as any)?.message;
+  const hasError = data?.success === false || !!error;
+  const errorMessage = "Roster not generated for selected range";
 
-  const isHttpError = !!error;
-  const httpErrorMessage =
-    error && "data" in error ? (error as any).data?.message : null;
-
-  const hasError = isApiCustomError || isHttpError;
-  const errorMessage =
-    apiCustomErrorMessage ||
-    httpErrorMessage ||
-    "Roster not generated for selected range";
-
-  // Early return if no domain is selected yet
   if (shouldSkip) {
     return (
       <Alert severity="info" sx={{ mt: 2 }}>
@@ -127,7 +219,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   }
 
   return (
-    <Box bgcolor="#F9FAFB" height="80vh">
+    <Box bgcolor="#F9FAFB" height="80vh" position="relative">
       <RosterToolbar
         startDate={startDate}
         endDate={endDate}
@@ -135,11 +227,28 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         goNextWeek={() => setWeekStart((p) => p.add(1, "week"))}
         domainId={domainId}
         subDomainId={subDomainId}
+        // Swap props
+        isSwapMode={isSwapMode}
+        onToggleSwapMode={() => {
+          setIsSwapMode((p) => !p);
+          setSelectedSwapCells([]);
+        }}
+        selectedSwapCount={selectedSwapCells.length}
+        onApplySwap={handleApplySwap}
+        isSwapping={isSwapping}
       />
+
+      {isSwapMode && (
+        <Alert severity="warning" sx={{ mb: 1 }}>
+          Swap Mode Active: Select two shifts of future dates and same level to
+          swap. ({selectedSwapCells.length}/2 selected)
+        </Alert>
+      )}
 
       <TableContainer component={Paper}>
         <SmartScrollContainer height={480} enableHorizontal>
           <Table stickyHeader size="small">
+            {/* TableHead code remains the same... */}
             <TableHead>
               <TableRow>
                 <TableCell
@@ -158,7 +267,6 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
                     </Typography>
                   </Stack>
                 </TableCell>
-
                 {weekDates.map((date) => (
                   <TableCell key={date} align="center">
                     <Typography variant="caption">
@@ -173,7 +281,6 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
             </TableHead>
 
             <TableBody>
-              {/* 4. HANDLE LOADING STATE */}
               {hasError ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
@@ -185,32 +292,38 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
                     </Stack>
                   </TableCell>
                 </TableRow>
-              ) : /* 6. HANDLE EMPTY DATA STATE */
-              users.length === 0 ? (
+              ) : users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
                     <Typography color="text.secondary">
-                      No roster available for selected range.
+                      No roster available.
                     </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                /* 7. NORMAL RENDERING */
                 users.map((user: any) => (
                   <TableRow key={user.userId} hover>
                     <RosterEmployeeCell user={user} />
 
-                    {weekDates.map((date) => (
-                      <RosterShiftCell
-                        key={date}
-                        shift={user.roster?.[date]}
-                        shiftDate={date}
-                        rowUserId={user.userId}
-                        onEditClick={(shift) =>
-                          handleOpenEdit(shift, date, user.userId)
-                        }
-                      />
-                    ))}
+                    {weekDates.map((date) => {
+                      const isSelectedForSwap = selectedSwapCells.some(
+                        (c) => c.userId === user.userId && c.date === date,
+                      );
+
+                      return (
+                        <RosterShiftCell
+                          key={date}
+                          shift={user.roster?.[date]}
+                          shiftDate={date}
+                          rowUserId={user.userId}
+                          isSelectedForSwap={isSelectedForSwap}
+                          isSwapMode={isSwapMode}
+                          onEditClick={(shift) =>
+                            handleCellClick(shift, date, user)
+                          }
+                        />
+                      );
+                    })}
                   </TableRow>
                 ))
               )}
@@ -219,7 +332,6 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         </SmartScrollContainer>
       </TableContainer>
 
-      {/* --- ADD DIALOG COMPONENT HERE --- */}
       <EditRosterDialog
         open={editDialogConfig.isOpen}
         onClose={handleCloseEdit}
@@ -227,10 +339,20 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         onSave={handleSaveShift}
         saving={isChanging}
       />
+
+      {/* Validations Snackbar */}
+      <Snackbar
+        open={!!toastMsg}
+        autoHideDuration={4000}
+        onClose={() => setToastMsg(null)}
+        message={toastMsg}
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+      />
     </Box>
   );
 };
 
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // import { useMemo, useState } from "react";
 // import {
 //   Box,
@@ -243,12 +365,18 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //   Paper,
 //   Stack,
 //   Typography,
+//   CircularProgress,
+//   Alert,
 // } from "@mui/material";
 // import FilterListIcon from "@mui/icons-material/FilterList";
+// import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 // import dayjs from "dayjs";
 // import isoWeek from "dayjs/plugin/isoWeek";
 
-// import { useGetRosterViewQuery, useChangeShiftMutation } from "../api/rosterApiSlice";
+// import {
+//   useGetRosterViewQuery,
+//   useChangeShiftMutation,
+// } from "../api/rosterApiSlice";
 // import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
 // import { RosterToolbar } from "../components/RosterToolbar";
 // import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
@@ -260,7 +388,6 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 // export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //   const [weekStart, setWeekStart] = useState(dayjs().startOf("isoWeek"));
 
-//   // --- DIALOG STATE ---
 //   const [editDialogConfig, setEditDialogConfig] = useState<{
 //     isOpen: boolean;
 //     data: { shift: any; date: string; userId: string } | null;
@@ -273,16 +400,23 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //   const startDate = weekStart.format("YYYY-MM-DD");
 //   const endDate = weekEnd.format("YYYY-MM-DD");
 
-//   const { data } = useGetRosterViewQuery(
-//     { domainId, subDomainId, startDate, endDate },
-//     { skip: !domainId || !subDomainId }
+//   const shouldSkip = !subDomainId || subDomainId === 0;
+
+//   const { data, error, isLoading, isFetching } = useGetRosterViewQuery(
+//     {
+//       domainId: domainId ?? 0,
+//       subDomainId: subDomainId ?? 0,
+//       startDate,
+//       endDate,
+//     },
+//     { skip: shouldSkip },
 //   );
 
 //   const users = data?.data ?? [];
 
 //   const weekDates = useMemo(() => {
 //     return Array.from({ length: 7 }, (_, i) =>
-//       weekStart.add(i, "day").format("YYYY-MM-DD")
+//       weekStart.add(i, "day").format("YYYY-MM-DD"),
 //     );
 //   }, [weekStart]);
 
@@ -305,10 +439,8 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //     userId: string,
 //     date: string,
 //     newShiftValue: string,
-//     reason: string
+//     reason: string,
 //   ) => {
-//     console.log("Saving Shift...", { userId, date, newShiftValue, reason });
-
 //     try {
 //       const params = {
 //         affectedUserId: userId,
@@ -320,13 +452,34 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //         reason,
 //       };
 
-//       const response = await changeShift(params).unwrap();
-//       console.log("API response", response);
+//       await changeShift(params).unwrap();
 //       handleCloseEdit();
 //     } catch (error) {
 //       console.error("Failed to change shift", error);
 //     }
 //   };
+
+//   const isApiCustomError = data?.success === false;
+//   const apiCustomErrorMessage = (data as any)?.message;
+
+//   const isHttpError = !!error;
+//   const httpErrorMessage =
+//     error && "data" in error ? (error as any).data?.message : null;
+
+//   const hasError = isApiCustomError || isHttpError;
+//   const errorMessage =
+//     apiCustomErrorMessage ||
+//     httpErrorMessage ||
+//     "Roster not generated for selected range";
+
+//   // Early return if no domain is selected yet
+//   if (shouldSkip) {
+//     return (
+//       <Alert severity="info" sx={{ mt: 2 }}>
+//         Please select Domain and SubDomain
+//       </Alert>
+//     );
+//   }
 
 //   return (
 //     <Box bgcolor="#F9FAFB" height="80vh">
@@ -345,39 +498,77 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 //             <TableHead>
 //               <TableRow>
 //                 <TableCell
-//                   sx={{ width: 200, bgcolor: "#fff", position: "sticky", left: 0, zIndex: 20 }}
+//                   sx={{
+//                     width: 200,
+//                     bgcolor: "#fff",
+//                     position: "sticky",
+//                     left: 0,
+//                     zIndex: 20,
+//                   }}
 //                 >
-//                   <Stack direction="row" spacing={1}>
+//                   <Stack direction="row" spacing={1} alignItems="center">
 //                     <FilterListIcon fontSize="small" />
-//                     <Typography fontSize="0.75rem">Employees ({users.length})</Typography>
+//                     <Typography fontSize="0.75rem" fontWeight={600}>
+//                       Employees {!hasError && !isLoading && `(${users.length})`}
+//                     </Typography>
 //                   </Stack>
 //                 </TableCell>
 
 //                 {weekDates.map((date) => (
 //                   <TableCell key={date} align="center">
-//                     <Typography variant="caption">{dayjs(date).format("ddd")}</Typography>
-//                     <Typography fontWeight={700}>{dayjs(date).format("DD")}</Typography>
+//                     <Typography variant="caption">
+//                       {dayjs(date).format("ddd")}
+//                     </Typography>
+//                     <Typography fontWeight={700}>
+//                       {dayjs(date).format("DD")}
+//                     </Typography>
 //                   </TableCell>
 //                 ))}
 //               </TableRow>
 //             </TableHead>
 
 //             <TableBody>
-//               {users.map((user: any) => (
-//                 <TableRow key={user.userId} hover>
-//                   <RosterEmployeeCell user={user} />
-
-//                   {weekDates.map((date) => (
-//                     <RosterShiftCell
-//                       key={date}
-//                       shift={user.roster?.[date]}
-//                       shiftDate={date}
-//                       rowUserId={user.userId}
-//                       onEditClick={(shift) => handleOpenEdit(shift, date, user.userId)} // Open dialog
-//                     />
-//                   ))}
+//               {/* 4. HANDLE LOADING STATE */}
+//               {hasError ? (
+//                 <TableRow>
+//                   <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+//                     <Stack alignItems="center" spacing={1}>
+//                       <ErrorOutlineIcon color="error" sx={{ fontSize: 40 }} />
+//                       <Typography variant="h6" color="error">
+//                         {errorMessage}
+//                       </Typography>
+//                     </Stack>
+//                   </TableCell>
 //                 </TableRow>
-//               ))}
+//               ) : /* 6. HANDLE EMPTY DATA STATE */
+//               users.length === 0 ? (
+//                 <TableRow>
+//                   <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+//                     <Typography color="text.secondary">
+//                       No roster available for selected range.
+//                     </Typography>
+//                   </TableCell>
+//                 </TableRow>
+//               ) : (
+//                 /* 7. NORMAL RENDERING */
+//                 users.map((user: any) => (
+//                   <TableRow key={user.userId} hover>
+//                     <RosterEmployeeCell user={user} />
+
+//                     {weekDates.map((date) => (
+//                       <RosterShiftCell
+//                         key={date}
+//                         shift={user.roster?.[date]}
+//                         shiftDate={date}
+//                         rowUserId={user.userId}
+//                         onEditClick={(shift) =>
+//                           handleOpenEdit(shift, date, user.userId)
+//                         }
+//                       />
+//                     ))}
+//                   </TableRow>
+//                 ))
+//               )}
 //             </TableBody>
 //           </Table>
 //         </SmartScrollContainer>

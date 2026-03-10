@@ -1,15 +1,9 @@
-import {
-  Box,
-  RadioGroup,
-  FormControlLabel,
-  Radio,
-} from "@mui/material";
+import { Box, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import { useState, useMemo } from "react";
 import dayjs, { Dayjs } from "dayjs";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-
 import { getMonthRange, getWeekRange } from "../utils/dateRange.utils";
 import { MonthlyRosterMain } from "../monthly/MonthlyRosterMain";
 import { WeeklyRosterMain } from "../weekly/WeeklyRosterMain";
@@ -54,9 +48,7 @@ export const RosterViewMain = () => {
           <RadioGroup
             row
             value={view}
-            onChange={(e) =>
-              setView(e.target.value as "weekly" | "monthly")
-            }
+            onChange={(e) => setView(e.target.value as "weekly" | "monthly")}
           >
             <FormControlLabel
               value="weekly"
@@ -76,17 +68,13 @@ export const RosterViewMain = () => {
               views={["month", "year"]}
               value={selectedDate}
               format="MMM YYYY"
-              onChange={(newValue) =>
-                newValue && setSelectedDate(newValue)
-              }
+              onChange={(newValue) => newValue && setSelectedDate(newValue)}
               slotProps={{ textField: { size: "small" } }}
             />
           ) : (
             <DatePicker
               value={selectedDate}
-              onChange={(newValue) =>
-                newValue && setSelectedDate(newValue)
-              }
+              onChange={(newValue) => newValue && setSelectedDate(newValue)}
               slotProps={{ textField: { size: "small" } }}
             />
           )}
@@ -123,6 +111,8 @@ export const RosterViewMain = () => {
     </>
   );
 };
+
+
 // import { Box, RadioGroup, FormControlLabel, Radio } from "@mui/material";
 // import { useState, useMemo } from "react";
 // import dayjs, { Dayjs } from "dayjs";

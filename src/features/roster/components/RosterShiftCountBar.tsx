@@ -21,7 +21,8 @@ export const CompactShiftCountBar = ({ domainId, subDomainId }: Props) => {
       sx={{
         px: 0.5,
         py: 0.25,
-        overflowX: "auto"
+        overflowX: "auto",
+        alignContent: "center",
       }}
     >
       <Stack direction="row" spacing={1} alignItems="center">
