@@ -1,8 +1,8 @@
 import { Box, Grid } from "@mui/material";
-import WeeklyRoster from "../components/WeeklyRoster";
-import OnLeaveTodayCard from "../components/OnLeaveTodayCard";
-import NotificationCard from "../components/NotificationCard";
-import TaskOverviewModule from "../components/TaskOverviewModule";
+// import WeeklyRoster from "../components/WeeklyRoster";
+// import OnLeaveTodayCard from "../components/OnLeaveTodayCard";
+// import NotificationCard from "../components/NotificationCard";
+// import TaskOverviewModule from "../components/TaskOverviewModule";
 import WorkLocationStatusCard from "../components/worklocation/WorkLocationStatusCard";
 // import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
 
@@ -13,55 +13,44 @@ export const HomeDashboard = () => {
         {/* LEFT SIDE */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Grid container spacing={1}>
-            {/* Stats */}
-            <Grid size={7}>
-              {/* <StatsCards /> */}
+            {/* <Grid size={7}>
               <TaskOverviewModule />
-              {/* <TodayTasksWidget/> */}
-            </Grid>
-            {/* Wor Location Tracker */}
+            </Grid> */}
+
             <Grid size={5}>
-              {/* <TaskList /> */}
-              {/* <h1>Work Location</h1> */}
               <WorkLocationStatusCard />
             </Grid>
             {/* Leave Section Row */}
-            <Grid size={12}>
+            {/* <Grid size={12}>
               <Grid container spacing={2}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <OnLeaveTodayCard />
                 </Grid>
 
                 <Grid size={{ xs: 12, md: 6 }}>
-                  {/* <UpcomingHolidayCard /> */}
-
-                  {/* <>Upcoming Leave</> */}
+               
                   <OnLeaveTodayCard />
                 </Grid>
               </Grid>
-            </Grid>
+            </Grid> */}
           </Grid>
         </Grid>
 
         {/* RIGHT SIDE */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        {/* <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={1}>
             <Grid size={12}>
-              {/* <NotificationList /> */}
               <NotificationCard />
             </Grid>
             <Grid size={12}>
               <WeeklyRoster />
             </Grid>
           </Grid>
-        </Grid>
+        </Grid> */}
       </Grid>
     </Box>
   );
 };
-
-
-
 
 // import { Box, Grid } from "@mui/material";
 // import StatsCards from "../components/StatsCards";

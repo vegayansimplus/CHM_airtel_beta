@@ -58,10 +58,11 @@ const MultiSelectFilter = ({
             ? `${(selected as string[]).length} selected`
             : (selected as string[]).join(", ")
         }
+        size="small"
       >
         {options.map((option) => (
           <MenuItem key={option} value={option}>
-            <Checkbox checked={selected.includes(option)} />
+            <Checkbox checked={selected.includes(option)} size="small" />
             <ListItemText primary={option} />
           </MenuItem>
         ))}
@@ -320,7 +321,10 @@ const TeamSkillSetTable: React.FC<Props> = ({
     muiTableBodyCellProps: {
       sx: {
         fontSize: "12px",
-        padding: "4px 8px",
+        // padding: "4px 8px",
+        padding: "0px 8px",
+        // alignContent: "center",
+        // textAlign: "center",
         color: theme.palette.text.secondary,
         border: `1px solid ${theme.palette.divider}`,
         backgroundColor: theme.palette.background.paper,
@@ -334,7 +338,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
           sm: "100px",
           md: "180px",
           lg: "300px",
-          xl: "390px",
+          xl: "363px",
         },
 
         backgroundColor: theme.palette.background.paper,

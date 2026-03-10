@@ -3,7 +3,7 @@
 export type Gender = "Male" | "Female" | "Other";
 
 export interface CreateEmployeeRequest {
-  actorUserId: number; // userId of logged user
+  actorUserId?: number; // userId of logged user
   olmid: string;
   employeeName: string;
   emailId: string;

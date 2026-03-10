@@ -1,127 +1,53 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
-  Typography,
   Table,
-  TableBody,
-  TableCell,
-  TableContainer,
   TableHead,
   TableRow,
+  TableBody,
+  TableContainer,
+  TableCell,
   Paper,
-  IconButton,
-  Tooltip,
+  Stack,
+  Typography,
   CircularProgress,
   Alert,
-  Stack,
-  Avatar,
-  Button,
-  Select,
-  MenuItem,
-  Divider,
-  FormControl,
-  useTheme,
-  Chip,
 } from "@mui/material";
-
-// Icons
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import FilterListIcon from "@mui/icons-material/FilterList";
-// import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-// import RosterEmpty from "../../../src/assets/svg/rosterEmpty.svg"
-import RosterEmpty from "../../../assets/svg/rosterEmpty.svg";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
-import { useGetRosterViewQuery } from "../api/rosterApiSlice";
+
+import {
+  useGetRosterViewQuery,
+  useChangeShiftMutation,
+} from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
-import { CompactShiftCountBar } from "../components/RosterShiftCountBar";
-// import { CurrentShiftCountBar } from "../components/RosterShiftCountBar";
+import { RosterToolbar } from "../components/RosterToolbar";
+import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
+import { RosterShiftCell } from "../components/RosterShiftCell";
+import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
 
 dayjs.extend(isoWeek);
 
-/* ================= TYPES ================= */
-
-interface Props {
-  domainId?: number;
-  subDomainId?: number;
-}
-
-interface Shift {
-  assignActCount: number;
-  availableMins: number;
-  shiftDisplay: string;
-  workMode: string | null;
-}
-
-interface UserRoster {
-  userId: number;
-  olmid: string;
-  jobLevel: string;
-  mobileNo: string;
-  officeLocation: string;
-  roster: Record<string, Shift>;
-}
-
-/* ================= HELPER FUNCTIONS ================= */
-
-const getShiftStyles = (shiftDisplay: string | null) => {
-  if (!shiftDisplay || shiftDisplay === "WO") {
-    return {
-      bgcolor: "transparent",
-      borderColor: "transparent",
-      color: "#9e9e9e",
-    };
-  }
-  if (shiftDisplay.includes("LEAVE")) {
-    return { bgcolor: "#FFEBEE", borderColor: "#EF5350", color: "#C62828" };
-  }
-
-  const firstChar = shiftDisplay.charAt(0).toUpperCase();
-  switch (firstChar) {
-    case "M":
-      return { bgcolor: "#E3F2FD", borderColor: "#42A5F5", color: "#1565C0" };
-    case "A":
-      return { bgcolor: "#F3E5F5", borderColor: "#AB47BC", color: "#6A1B9A" };
-    case "B":
-      return { bgcolor: "#E0F2F1", borderColor: "#26A69A", color: "#00695C" };
-    case "N":
-      return { bgcolor: "#FFF3E0", borderColor: "#FFA726", color: "#EF6C00" };
-    default:
-      return { bgcolor: "#F5F5F5", borderColor: "#BDBDBD", color: "#616161" };
-  }
-};
-
-const parseShiftData = (displayString: string) => {
-  if (!displayString) return { time: "-", label: "" };
-  if (displayString === "WO") return { time: "Week Off", label: "" };
-  if (displayString === "LEAVE") return { time: "Leave", label: "" };
-
-  const match = displayString.match(/\(([^)]+)\)/);
-  if (match) {
-    return { time: match[1], label: displayString.split(" ")[0] };
-  }
-  return { time: displayString, label: "" };
-};
-
-const getInitials = (name: string) =>
-  name?.substring(0, 2).toUpperCase() || "??";
-
-/* ================= COMPONENT ================= */
-
-export const WeeklyRosterMain = ({ domainId, subDomainId }: Props) => {
-  const theme = useTheme();
-
-  /* ================= STATE ================= */
+export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const [weekStart, setWeekStart] = useState(dayjs().startOf("isoWeek"));
+
+  const [editDialogConfig, setEditDialogConfig] = useState<{
+    isOpen: boolean;
+    data: { shift: any; date: string; userId: string } | null;
+  }>({
+    isOpen: false,
+    data: null,
+  });
+
   const weekEnd = weekStart.endOf("isoWeek");
   const startDate = weekStart.format("YYYY-MM-DD");
   const endDate = weekEnd.format("YYYY-MM-DD");
 
-  /* ================= FETCH ================= */
-  const shouldSkip = !domainId || !subDomainId;
-  const { data, isLoading, isError } = useGetRosterViewQuery(
+  const shouldSkip = !subDomainId || subDomainId === 0;
+
+  const { data, error, isLoading, isFetching } = useGetRosterViewQuery(
     {
       domainId: domainId ?? 0,
       subDomainId: subDomainId ?? 0,
@@ -130,229 +56,115 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: Props) => {
     },
     { skip: shouldSkip },
   );
-  const users: UserRoster[] = data?.data ?? [];
 
-  /* ================= MEMOS ================= */
+  const users = data?.data ?? [];
+
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) =>
       weekStart.add(i, "day").format("YYYY-MM-DD"),
     );
   }, [weekStart]);
 
-  /* ================= HANDLERS ================= */
-  const goNextWeek = () => setWeekStart((prev) => prev.add(1, "week"));
-  const goPrevWeek = () => setWeekStart((prev) => prev.subtract(1, "week"));
+  // --- HANDLERS ---
+  const handleOpenEdit = (shift: any, date: string, userId: string) => {
+    setEditDialogConfig({
+      isOpen: true,
+      data: { shift, date, userId },
+    });
+  };
 
-  /* ================= RENDER ================= */
+  const handleCloseEdit = () => {
+    setEditDialogConfig({ isOpen: false, data: null });
+  };
 
-  if (shouldSkip)
+  // mutation hook for change API
+  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+
+  const handleSaveShift = async (
+    userId: string,
+    date: string,
+    newShiftValue: string,
+    reason: string,
+  ) => {
+    try {
+      const params = {
+        affectedUserId: userId,
+        shiftDate: date,
+        newShiftRange: newShiftValue,
+        newAssignActivity: 0,
+        newAvailableMinutes: 0,
+        newShiftId: 0,
+        reason,
+      };
+
+      await changeShift(params).unwrap();
+      handleCloseEdit();
+    } catch (error) {
+      console.error("Failed to change shift", error);
+    }
+  };
+
+  const isApiCustomError = data?.success === false;
+  const apiCustomErrorMessage = (data as any)?.message;
+
+  const isHttpError = !!error;
+  const httpErrorMessage =
+    error && "data" in error ? (error as any).data?.message : null;
+
+  const hasError = isApiCustomError || isHttpError;
+  const errorMessage =
+    apiCustomErrorMessage ||
+    httpErrorMessage ||
+    "Roster not generated for selected range";
+
+  // Early return if no domain is selected yet
+  if (shouldSkip) {
     return (
-      <Box
-        sx={{
-          height: "72vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-          // bgcolor: "#F9FAFB",
-          background:
-            theme.palette.mode === "dark"
-              ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
-              : "linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4))",
-        }}
-      >
-        <Box
-          component="img"
-          src={RosterEmpty}
-          alt="Select Domain Illustration"
-          sx={{
-            width: 420,
-            maxWidth: "90%",
-            // mb: 3,
-            userSelect: "none",
-            pointerEvents: "none",
-          }}
-        />
-
-        <Typography variant="h6" fontWeight={600} gutterBottom>
-          Select Domain & SubDomain
-        </Typography>
-
-        <Typography variant="body2" color="text.secondary">
-          Choose filters above to weekly roster view.
-        </Typography>
-      </Box>
+      <Alert severity="info" sx={{ mt: 2 }}>
+        Please select Domain and SubDomain
+      </Alert>
     );
+  }
+
   return (
-    <Box
-      sx={{
-        bgcolor: "#F9FAFB",
-        height: "72vh", // Force full viewport height
-        display: "flex",
-        flexDirection: "column",
-        p: 0,
-        overflow: "hidden",
-      }}
-    >
-      {/* ===== HEADER TOOLBAR ===== */}
-      <Paper
-        elevation={0}
-        sx={{
-          mb: 1,
-          p: 1,
-          borderRadius: 2,
-          border: "1px solid #E0E0E0",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          flexWrap: "wrap",
-          gap: 1,
-        }}
-      >
-        <Stack
-          direction="row"
-          alignItems="center"
-          bgcolor="#F3F4F6"
-          borderRadius={6}
-          px={1}
-          py={0.5}
-        >
-          <CompactShiftCountBar
-            domainId={domainId}
-            subDomainId={subDomainId}
-          />{" "}
-        </Stack>
+    <Box bgcolor="#F9FAFB" height="80vh">
+      <RosterToolbar
+        startDate={startDate}
+        endDate={endDate}
+        goPrevWeek={() => setWeekStart((p) => p.subtract(1, "week"))}
+        goNextWeek={() => setWeekStart((p) => p.add(1, "week"))}
+        domainId={domainId}
+        subDomainId={subDomainId}
+      />
 
-        {/* Center: Date Navigation */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          bgcolor="#F3F4F6"
-          borderRadius={6}
-          px={1}
-          py={0.5}
-        >
-          <IconButton size="small" onClick={goPrevWeek}>
-            <NavigateBeforeIcon fontSize="small" />
-          </IconButton>
-          <Typography
-            variant="body2"
-            fontWeight={600}
-            sx={{ mx: 2, minWidth: 130, textAlign: "center" }}
-          >
-            {dayjs(startDate).format("DD MMM")} -{" "}
-            {dayjs(endDate).format("DD MMM")}
-          </Typography>
-          <IconButton size="small" onClick={goNextWeek}>
-            <NavigateNextIcon fontSize="small" />
-          </IconButton>
-        </Stack>
-
-        {/* Right: Actions */}
-        <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            size="small"
-            color="inherit"
-            endIcon={<KeyboardArrowDownIcon />}
-            sx={{
-              textTransform: "none",
-              borderColor: "#E0E0E0",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Tools
-          </Button>
-          {/* <Button
-            variant="contained"
-            disableElevation
-            size="small"
-            sx={{
-              textTransform: "none",
-              bgcolor: "#7986CB",
-              whiteSpace: "nowrap",
-            }}
-          >
-            Publish
-          </Button> */}
-        </Stack>
-      </Paper>
-
-      {/* ===== RESPONSIVE TABLE CONTAINER ===== */}
-
-      <TableContainer
-        component={Paper}
-        sx={{
-          flex: 1,
-          borderRadius: 2,
-          boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
-          border: "1px solid #E0E0E0",
-          overflow: "auto", // Enables native scrolling
-          maxHeight: "60vh",
-        }}
-      >
-        <SmartScrollContainer height={400} enableHorizontal>
+      <TableContainer component={Paper}>
+        <SmartScrollContainer height={480} enableHorizontal>
           <Table stickyHeader size="small">
             <TableHead>
               <TableRow>
-                {/* 
-                  === STICKY CORNER (Top-Left) === 
-                  Needs highest z-index to stay on top of both
-                  header row and first column
-              */}
                 <TableCell
                   sx={{
-                    width: 260,
-                    pl: 3,
-                    py: 2,
+                    width: 200,
                     bgcolor: "#fff",
                     position: "sticky",
                     left: 0,
-                    top: 0,
-                    zIndex: 20, // Highest Priority
-                    borderRight: "1px solid #F0F0F0",
-                    borderBottom: "1px solid #F0F0F0",
-                    boxShadow: "2px 2px 5px -2px rgba(0,0,0,0.05)", // Subtle shadow for depth
+                    zIndex: 20,
                   }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={1}>
-                    <FilterListIcon fontSize="small" color="action" />
-                    <Typography variant="subtitle2" color="text.secondary">
-                      All Employees
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <FilterListIcon fontSize="small" />
+                    <Typography fontSize="0.75rem" fontWeight={600}>
+                      Employees {!hasError && !isLoading && `(${users.length})`}
                     </Typography>
-                    <KeyboardArrowDownIcon fontSize="small" color="action" />
                   </Stack>
                 </TableCell>
 
-                {/* === STICKY HEADER ROW === */}
                 {weekDates.map((date) => (
-                  <TableCell
-                    key={date}
-                    align="center"
-                    sx={{
-                      bgcolor: "#fff",
-                      borderLeft: "1px solid #F0F0F0",
-                      borderBottom: "1px solid #F0F0F0",
-                      minWidth: 160,
-                      py: 1.5,
-                      position: "sticky",
-                      top: 0,
-                      zIndex: 10, // Medium Priority
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      display="block"
-                      color="text.secondary"
-                      sx={{ textTransform: "uppercase" }}
-                    >
+                  <TableCell key={date} align="center">
+                    <Typography variant="caption">
                       {dayjs(date).format("ddd")}
                     </Typography>
-                    <Typography
-                      variant="h6"
-                      fontWeight={500}
-                      sx={{ lineHeight: 1 }}
-                    >
+                    <Typography fontWeight={700}>
                       {dayjs(date).format("DD")}
                     </Typography>
                   </TableCell>
@@ -361,176 +173,224 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: Props) => {
             </TableHead>
 
             <TableBody>
-              {/* === USER ROWS === */}
-              {users.map((user) => (
-                <TableRow key={user.userId} hover>
-                  {/* === STICKY FIRST COLUMN === */}
-                  <TableCell
-                    sx={{
-                      pl: 3,
-                      py: 2,
-                      bgcolor: "#fff",
-                      position: "sticky",
-                      left: 0,
-                      zIndex: 5, // Lower than corner, higher than data
-                      borderRight: "1px solid #F0F0F0",
-                      boxShadow: "2px 0 5px -2px rgba(0,0,0,0.05)",
-                    }}
-                  >
-                    <Stack direction="row" spacing={2} alignItems="center">
-                      <Avatar
-                        sx={{
-                          width: 36,
-                          height: 36,
-                          fontSize: 14,
-                          bgcolor:
-                            user.jobLevel === "L2" ? "#FFCCBC" : "#B2DFDB",
-                          color: "#444",
-                        }}
-                      >
-                        {getInitials(user.olmid)}
-                      </Avatar>
-                      <Box>
-                        <Typography
-                          variant="subtitle2"
-                          fontWeight={700}
-                          sx={{
-                            color: "#3F51B5",
-                            cursor: "pointer",
-                            lineHeight: 1.2,
-                          }}
-                        >
-                          {user.olmid}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          display="block"
-                          color="text.secondary"
-                        >
-                          {user.jobLevel}
-                        </Typography>
-                        <Typography
-                          variant="caption"
-                          color="text.disabled"
-                          sx={{ fontSize: "0.65rem" }}
-                        >
-                          {/* 42 h / $ 504.00 */}
-                        </Typography>
-                      </Box>
+              {/* 4. HANDLE LOADING STATE */}
+              {hasError ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                    <Stack alignItems="center" spacing={1}>
+                      <ErrorOutlineIcon color="error" sx={{ fontSize: 40 }} />
+                      <Typography variant="h6" color="error">
+                        {errorMessage}
+                      </Typography>
                     </Stack>
                   </TableCell>
-
-                  {/* === DATA CELLS === */}
-                  {weekDates.map((date) => {
-                    const shift = user.roster?.[date];
-                    const styles = getShiftStyles(shift?.shiftDisplay);
-                    const { time, label } = parseShiftData(
-                      shift?.shiftDisplay || "",
-                    );
-                    const isOff =
-                      !shift ||
-                      shift.shiftDisplay === "WO" ||
-                      !shift.shiftDisplay;
-
-                    return (
-                      <TableCell
-                        key={date}
-                        sx={{
-                          borderLeft: "1px solid #F0F0F0",
-                          p: 1,
-                          verticalAlign: "top",
-                          height: 90, // Fixed height for uniformity
-                        }}
-                      >
-                        {!isOff ? (
-                          <Tooltip
-                            title={`Tasks: ${shift?.assignActCount ?? 0} | Avl: ${shift?.availableMins ?? 0}`}
-                            arrow
-                          >
-                            <Box
-                              sx={{
-                                bgcolor: styles.bgcolor,
-                                borderLeft: `4px solid ${styles.borderColor}`,
-                                borderRadius: 1,
-                                p: 1,
-                                height: "100%",
-                                display: "flex",
-                                flexDirection: "column",
-                                justifyContent: "center",
-                                cursor: "pointer",
-                                transition: "all 0.2s",
-                                "&:hover": {
-                                  boxShadow: "0 2px 5px rgba(0,0,0,0.1)",
-                                  filter: "brightness(0.98)",
-                                },
-                              }}
-                            >
-                              <Typography
-                                variant="caption"
-                                fontWeight={700}
-                                sx={{
-                                  color: "#444",
-                                  display: "block",
-                                  mb: 0.5,
-                                }}
-                              >
-                                {time}
-                              </Typography>
-                              <Stack
-                                direction="row"
-                                alignItems="center"
-                                justifyContent="space-between"
-                              >
-                                <Typography
-                                  variant="caption"
-                                  sx={{ color: styles.color, fontWeight: 500 }}
-                                >
-                                  {label || user.jobLevel}
-                                </Typography>
-                                {shift?.workMode === "WFH" && (
-                                  <Chip
-                                    label="WFH"
-                                    size="small"
-                                    sx={{ height: 16, fontSize: "0.6rem" }}
-                                  />
-                                )}
-                              </Stack>
-                            </Box>
-                          </Tooltip>
-                        ) : (
-                          <Box
-                            sx={{
-                              height: "100%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              bgcolor:
-                                shift?.shiftDisplay === "WO"
-                                  ? "#FAFAFA"
-                                  : "transparent",
-                            }}
-                          >
-                            {shift?.shiftDisplay === "WO" && (
-                              <Typography
-                                variant="caption"
-                                color="text.disabled"
-                                fontWeight={500}
-                                letterSpacing={1}
-                              >
-                                WO
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      </TableCell>
-                    );
-                  })}
                 </TableRow>
-              ))}
+              ) : /* 6. HANDLE EMPTY DATA STATE */
+              users.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 8 }}>
+                    <Typography color="text.secondary">
+                      No roster available for selected range.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                /* 7. NORMAL RENDERING */
+                users.map((user: any) => (
+                  <TableRow key={user.userId} hover>
+                    <RosterEmployeeCell user={user} />
+
+                    {weekDates.map((date) => (
+                      <RosterShiftCell
+                        key={date}
+                        shift={user.roster?.[date]}
+                        shiftDate={date}
+                        rowUserId={user.userId}
+                        onEditClick={(shift) =>
+                          handleOpenEdit(shift, date, user.userId)
+                        }
+                      />
+                    ))}
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </SmartScrollContainer>
       </TableContainer>
+
+      {/* --- ADD DIALOG COMPONENT HERE --- */}
+      <EditRosterDialog
+        open={editDialogConfig.isOpen}
+        onClose={handleCloseEdit}
+        editData={editDialogConfig.data}
+        onSave={handleSaveShift}
+        saving={isChanging}
+      />
     </Box>
   );
 };
+
+// import { useMemo, useState } from "react";
+// import {
+//   Box,
+//   Table,
+//   TableHead,
+//   TableRow,
+//   TableBody,
+//   TableContainer,
+//   TableCell,
+//   Paper,
+//   Stack,
+//   Typography,
+// } from "@mui/material";
+// import FilterListIcon from "@mui/icons-material/FilterList";
+// import dayjs from "dayjs";
+// import isoWeek from "dayjs/plugin/isoWeek";
+
+// import { useGetRosterViewQuery, useChangeShiftMutation } from "../api/rosterApiSlice";
+// import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
+// import { RosterToolbar } from "../components/RosterToolbar";
+// import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
+// import { RosterShiftCell } from "../components/RosterShiftCell";
+// import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
+
+// dayjs.extend(isoWeek);
+
+// export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
+//   const [weekStart, setWeekStart] = useState(dayjs().startOf("isoWeek"));
+
+//   // --- DIALOG STATE ---
+//   const [editDialogConfig, setEditDialogConfig] = useState<{
+//     isOpen: boolean;
+//     data: { shift: any; date: string; userId: string } | null;
+//   }>({
+//     isOpen: false,
+//     data: null,
+//   });
+
+//   const weekEnd = weekStart.endOf("isoWeek");
+//   const startDate = weekStart.format("YYYY-MM-DD");
+//   const endDate = weekEnd.format("YYYY-MM-DD");
+
+//   const { data } = useGetRosterViewQuery(
+//     { domainId, subDomainId, startDate, endDate },
+//     { skip: !domainId || !subDomainId }
+//   );
+
+//   const users = data?.data ?? [];
+
+//   const weekDates = useMemo(() => {
+//     return Array.from({ length: 7 }, (_, i) =>
+//       weekStart.add(i, "day").format("YYYY-MM-DD")
+//     );
+//   }, [weekStart]);
+
+//   // --- HANDLERS ---
+//   const handleOpenEdit = (shift: any, date: string, userId: string) => {
+//     setEditDialogConfig({
+//       isOpen: true,
+//       data: { shift, date, userId },
+//     });
+//   };
+
+//   const handleCloseEdit = () => {
+//     setEditDialogConfig({ isOpen: false, data: null });
+//   };
+
+//   // mutation hook for change API
+//   const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+
+//   const handleSaveShift = async (
+//     userId: string,
+//     date: string,
+//     newShiftValue: string,
+//     reason: string
+//   ) => {
+//     console.log("Saving Shift...", { userId, date, newShiftValue, reason });
+
+//     try {
+//       const params = {
+//         affectedUserId: userId,
+//         shiftDate: date,
+//         newShiftRange: newShiftValue,
+//         newAssignActivity: 0,
+//         newAvailableMinutes: 0,
+//         newShiftId: 0,
+//         reason,
+//       };
+
+//       const response = await changeShift(params).unwrap();
+//       console.log("API response", response);
+//       handleCloseEdit();
+//     } catch (error) {
+//       console.error("Failed to change shift", error);
+//     }
+//   };
+
+//   return (
+//     <Box bgcolor="#F9FAFB" height="80vh">
+//       <RosterToolbar
+//         startDate={startDate}
+//         endDate={endDate}
+//         goPrevWeek={() => setWeekStart((p) => p.subtract(1, "week"))}
+//         goNextWeek={() => setWeekStart((p) => p.add(1, "week"))}
+//         domainId={domainId}
+//         subDomainId={subDomainId}
+//       />
+
+//       <TableContainer component={Paper}>
+//         <SmartScrollContainer height={480} enableHorizontal>
+//           <Table stickyHeader size="small">
+//             <TableHead>
+//               <TableRow>
+//                 <TableCell
+//                   sx={{ width: 200, bgcolor: "#fff", position: "sticky", left: 0, zIndex: 20 }}
+//                 >
+//                   <Stack direction="row" spacing={1}>
+//                     <FilterListIcon fontSize="small" />
+//                     <Typography fontSize="0.75rem">Employees ({users.length})</Typography>
+//                   </Stack>
+//                 </TableCell>
+
+//                 {weekDates.map((date) => (
+//                   <TableCell key={date} align="center">
+//                     <Typography variant="caption">{dayjs(date).format("ddd")}</Typography>
+//                     <Typography fontWeight={700}>{dayjs(date).format("DD")}</Typography>
+//                   </TableCell>
+//                 ))}
+//               </TableRow>
+//             </TableHead>
+
+//             <TableBody>
+//               {users.map((user: any) => (
+//                 <TableRow key={user.userId} hover>
+//                   <RosterEmployeeCell user={user} />
+
+//                   {weekDates.map((date) => (
+//                     <RosterShiftCell
+//                       key={date}
+//                       shift={user.roster?.[date]}
+//                       shiftDate={date}
+//                       rowUserId={user.userId}
+//                       onEditClick={(shift) => handleOpenEdit(shift, date, user.userId)} // Open dialog
+//                     />
+//                   ))}
+//                 </TableRow>
+//               ))}
+//             </TableBody>
+//           </Table>
+//         </SmartScrollContainer>
+//       </TableContainer>
+
+//       {/* --- ADD DIALOG COMPONENT HERE --- */}
+//       <EditRosterDialog
+//         open={editDialogConfig.isOpen}
+//         onClose={handleCloseEdit}
+//         editData={editDialogConfig.data}
+//         onSave={handleSaveShift}
+//         saving={isChanging}
+//       />
+//     </Box>
+//   );
+// };

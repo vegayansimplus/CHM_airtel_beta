@@ -26,6 +26,7 @@ export const ROLE_FILTER_VISIBILITY: Record<string, FilterKey[]> = {
   admin: ["domain", "subDomain", "teamFunction", "teamSubFunction"],
   manager: ["teamFunction", "teamSubFunction"],
   user: ["teamFunction"],
+  SUB_DOMAIN_HEAD: ["domain","subDomain", "teamFunction", "teamSubFunction"],
   SUPER_ADMIN: ["domain", "subDomain", "teamFunction", "teamSubFunction"],
   VERTICAL_HEAD: ["domain", "subDomain", "teamFunction", "teamSubFunction"],
   FUNCTION_HEAD: ["domain", "subDomain", "teamFunction", "teamSubFunction"],

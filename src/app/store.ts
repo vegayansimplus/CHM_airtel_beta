@@ -3,12 +3,14 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer from "../features/auth/slices/auth.slice";
 import { api } from "../service/api";
 import loadingReducer from "./loadingSlice";
+import rosterReducer from "../features/roster/slices/roster.slice"; 
 
 export const store = configureStore({
   reducer: {
     [api.reducerPath]: api.reducer,
     auth: authReducer,
     loading: loadingReducer,
+    roster:rosterReducer,
   },
   middleware: (gDM) =>
     gDM({ serializableCheck: false }).concat(api.middleware),

@@ -33,19 +33,14 @@ const OrgHierarchyFilters = ({
 
   return (
     <Box display="flex" gap={2} alignItems="center" sx={{ mt: 0 }}>
-      {visible.map((key) => {
+      {visible.map((key, index) => {
         let disabled = false;
 
-        if (key === "teamFunction") {
-          disabled = !values.vertical;
-        }
+        // get previous visible filter
+        const prevKey = visible[index - 1];
 
-        if (key === "domain") {
-          disabled = !values.teamFunction;
-        }
-
-        if (key === "subDomain") {
-          disabled = !values.domain;
+        if (prevKey) {
+          disabled = !values[prevKey];
         }
 
         return (
@@ -54,7 +49,7 @@ const OrgHierarchyFilters = ({
             label={LABELS[key]}
             value={values[key]}
             options={options[key]}
-            disabled={disabled} 
+            disabled={disabled}
             onChange={(v) => onChange(key, v)}
           />
         );
@@ -64,9 +59,50 @@ const OrgHierarchyFilters = ({
     </Box>
   );
 };
+// const OrgHierarchyFilters = ({
+//   role,
+//   values,
+//   options,
+//   onChange,
+//   children,
+// }: Props) => {
+//   const visible = ORG_FILTER_VISIBILITY[role] ?? [];
+
+//   return (
+//     <Box display="flex" gap={2} alignItems="center" sx={{ mt: 0 }}>
+//       {visible.map((key) => {
+//         let disabled = false;
+
+//         if (key === "teamFunction") {
+//           disabled = !values.vertical;
+//         }
+
+//         if (key === "domain") {
+//           disabled = !values.teamFunction;
+//         }
+
+//         if (key === "subDomain") {
+//           disabled = !values.domain;
+//         }
+
+//         return (
+//           <OrgFilterSelect
+//             key={key}
+//             label={LABELS[key]}
+//             value={values[key]}
+//             options={options[key]}
+//             disabled={disabled}
+//             onChange={(v) => onChange(key, v)}
+//           />
+//         );
+//       })}
+
+//       {children}
+//     </Box>
+//   );
+// };
 
 export default OrgHierarchyFilters;
-
 
 // More scalable Code
 // const hierarchy: OrgFilterKey[] = [

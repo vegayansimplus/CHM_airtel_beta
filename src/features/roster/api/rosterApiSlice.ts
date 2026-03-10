@@ -17,8 +17,11 @@ export const rosterApiSlice = api.injectEndpoints({
           startDate,
           endDate,
         },
+
       }),
+      
       keepUnusedDataFor: 6,
+      providesTags: ["RosterVIew"],
     }),
     getCurrentShiftCount: builder.query<
       CurrentShiftCount[],
@@ -30,8 +33,35 @@ export const rosterApiSlice = api.injectEndpoints({
         params: { domainId, subDomainId },
       }),
     }),
+
+    // mutation for changing a shift using query parameters as per API
+    changeShift: builder.mutation<
+      { status: string; message: string },
+      ChangeShiftParams
+    >({
+      query: (params) => ({
+        url: "/monthlyrosterview/changeshift",
+        method: "POST",
+        params,
+      }),
+    }),
   }),
 });
 
-export const { useGetRosterViewQuery, useGetCurrentShiftCountQuery } =
+export const {
+  useGetRosterViewQuery,
+  useGetCurrentShiftCountQuery,
+  useChangeShiftMutation,
+} =
   rosterApiSlice;
+
+// types for the mutation input
+export interface ChangeShiftParams {
+  affectedUserId: string | number;
+  newShiftRange: string;
+  newAssignActivity?: number;
+  newAvailableMinutes?: number;
+  shiftDate: string;
+  newShiftId?: number;
+  reason?: string;
+}

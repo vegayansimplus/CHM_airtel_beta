@@ -20,8 +20,9 @@ export const orgHierarchyApi = api.injectEndpoints({
   endpoints: (builder) => ({
     addNewEmployee: builder.mutation<ApiResponse, CreateEmployeeRequest>({
       query: (body) => ({
-        url: "/teamoverview/v1/addnewemp",
-        method: "PUT",
+        // url: "/teamoverview/v1/addnewemp",
+        url:"/teamoverview/v2/addnewemp",
+        method: "POST",
         body,
       }),
 

@@ -73,6 +73,7 @@ const TeamFilterBar = ({
 
         {canSeeFilters && (
           <>
+          <h1>{role||"Sujit thorat"}</h1>
             <CustomSelect
               label="Function"
               value={selectedFunction}

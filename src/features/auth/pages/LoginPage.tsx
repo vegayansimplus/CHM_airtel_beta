@@ -155,9 +155,9 @@ const LoginPage: React.FC = () => {
 
   return (
     <Box sx={{ display: "flex", height: "100vh", bgcolor: "#020f24" }}>
-      <Backdrop open={isLoading}>
+      {/* <Backdrop open={isLoading}>
         <CircularProgress />
-      </Backdrop>
+      </Backdrop> */}
 
       {/* LEFT IMAGE */}
       <Box
@@ -205,95 +205,106 @@ const LoginPage: React.FC = () => {
 
             <Divider sx={{ mb: 3 }} />
 
-            <TextField
-              label="OLMID"
-              fullWidth
-              margin="dense"
-              value={olmId}
-              onChange={(e) => setOlmId(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <AccountCircleIcon />
-                  </InputAdornment>
-                ),
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLogin();
               }}
-            />
-
-            <TextField
-              label="Password"
-              type={showPassword ? "text" : "password"}
-              fullWidth
-              margin="dense"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LockIcon />
-                  </InputAdornment>
-                ),
-                endAdornment: (
-                  <IconButton onClick={() => setShowPassword(!showPassword)}>
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                ),
-              }}
-            />
-
-            {/* CAPTCHA */}
-            <Box mt={3}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                display="block"
-                mb={1}
-              >
-                Security Check
-              </Typography>
-
-              <Box display="flex" alignItems="center" gap={1}>
-                <canvas ref={canvasRef} width={150} height={35} />
-                <IconButton size="small" onClick={refreshCaptcha}>
-                  <RefreshIcon />
-                </IconButton>
-              </Box>
-
+              style={{ width: "100%" }}
+            >
               <TextField
-                label="Enter CAPTCHA"
+                label="OLMID"
                 fullWidth
                 margin="dense"
-                value={captchaInput}
-                onChange={(e) => setCaptchaInput(e.target.value.toUpperCase())}
+                value={olmId}
+                onChange={(e) => setOlmId(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <AccountCircleIcon />
+                    </InputAdornment>
+                  ),
+                }}
               />
-            </Box>
 
-            {error && (
-              <Typography color="error" variant="body2" mt={1}>
-                {error}
-              </Typography>
-            )}
+              <TextField
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                fullWidth
+                margin="dense"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon />
+                    </InputAdornment>
+                  ),
+                  endAdornment: (
+                    <IconButton onClick={() => setShowPassword(!showPassword)}>
+                      {showPassword ? <VisibilityOff /> : <Visibility />}
+                    </IconButton>
+                  ),
+                }}
+              />
 
-            {!isAlreadyLogged ? (
-              <Button
-                fullWidth
-                variant="contained"
-                sx={{ mt: 3, py: 1 }}
-                onClick={handleLogin}
-              >
-                Login
-              </Button>
-            ) : (
-              <Button
-                fullWidth
-                color="secondary"
-                variant="contained"
-                sx={{ mt: 3, py: 1 }}
-                onClick={handleForceLogout}
-              >
-                Force Logout
-              </Button>
-            )}
+              {/* CAPTCHA */}
+              <Box mt={3}>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  display="block"
+                  mb={1}
+                >
+                  Security Check
+                </Typography>
+
+                <Box display="flex" alignItems="center" gap={1}>
+                  <canvas ref={canvasRef} width={150} height={35} />
+                  <IconButton size="small" onClick={refreshCaptcha}>
+                    <RefreshIcon />
+                  </IconButton>
+                </Box>
+
+                <TextField
+                  label="Enter CAPTCHA"
+                  fullWidth
+                  margin="dense"
+                  value={captchaInput}
+                  onChange={(e) =>
+                    setCaptchaInput(e.target.value.toUpperCase())
+                  }
+                />
+              </Box>
+
+              {error && (
+                <Typography color="error" variant="body2" mt={1}>
+                  {error}
+                </Typography>
+              )}
+
+              {!isAlreadyLogged ? (
+                <Button
+                  type="submit"
+                  fullWidth
+                  variant="contained"
+                  sx={{ mt: 3, py: 1 }}
+                  disabled={isLoading}
+                >
+                  Login
+                </Button>
+              ) : (
+                <Button
+                  fullWidth
+                  color="secondary"
+                  variant="contained"
+                  sx={{ mt: 3, py: 1 }}
+                  onClick={handleForceLogout}
+                >
+                  Force Logout
+                </Button>
+              )}
+            </form>
           </CardContent>
         </Card>
       </Box>

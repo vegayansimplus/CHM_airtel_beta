@@ -88,9 +88,8 @@ export const MonthlyRosterMain = ({
   const theme = useTheme();
   const [detailedView, setDetailedView] = useState(false);
 
-  const shouldSkip =
-    !domainId || !subDomainId || domainId === 0 || subDomainId === 0;
-
+  // const shouldSkip =!domainId || !subDomainId || domainId === 0 || subDomainId === 0;
+  const shouldSkip = !subDomainId || subDomainId === 0;
   const { data, isLoading, isError } = useGetRosterViewQuery(
     {
       domainId: domainId ?? 0,

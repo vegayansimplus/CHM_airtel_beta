@@ -50,7 +50,7 @@ export const AddMemberDialog = ({ open, onClose, actorUserId }: Props) => {
 
   const initialForm: CreateEmployeeRequest = useMemo(
     () => ({
-      actorUserId,
+      // actorUserId,
       olmid: "",
       employeeName: "",
       emailId: "",

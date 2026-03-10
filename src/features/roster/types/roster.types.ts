@@ -28,3 +28,10 @@ export interface MonthlyRosterParams {
   teamId: number;
   userId?: number;
 }
+
+export interface Shift {
+  assignActCount: number;
+  availableMins: number;
+  shiftDisplay: string;
+  workMode: string | null;
+}
