@@ -22,14 +22,18 @@ import {
   useGetRosterViewQuery,
   useChangeShiftMutation,
   useGetShiftDropdownQuery,
+  useShiftSwapByManagerMutation,
+  useShiftSwapRequestByTeamMemberMutation,
 } from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
+import { useAuth } from "../../auth/hooks/useAuth"; 
 import { RosterToolbar } from "../components/RosterToolbar";
 import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
 import { RosterShiftCell } from "../components/RosterShiftCell";
 import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
 import { ShiftInfoDialog } from "../components/dialog/ShiftInfoDialog";
 import { SwapRosterDialog } from "../components/dialog/SwapRosterDialog";
+import { toast } from "react-toastify";
 
 dayjs.extend(isoWeek);
 // Define type for swap selection
@@ -111,8 +115,80 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     );
   }, [weekStart]);
 
-  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();  const [swapByManager] = useShiftSwapByManagerMutation();
+  const [requestByMember] = useShiftSwapRequestByTeamMemberMutation();
 
+  const { role } = useAuth();
+
+  // executor that picks the right endpoint(s) based on role
+  const executeSwap = async (
+    cell1: SwapCell,
+    cell2: SwapCell,
+    reason: string,
+  ): Promise<void> => {
+    setToastMsg(null);
+    setIsSwapping(true);
+    try {
+      let resp;
+      if (
+        [
+          "SUPER_ADMIN",
+          "DOMAIN_HEAD",
+          "FUNCTION_HEAD",
+          "SUB_DOMAIN_HEAD",
+        ].includes(role as string)
+      ) {
+        resp = await swapByManager({
+          affectedUserId1: cell1.userId,
+          shiftDate1: cell1.date,
+          affectedUserId2: cell2.userId,
+          shiftDate2: cell2.date,
+          shiftSwapReason: reason,
+        }).unwrap();
+      } else if (role === "TEAM_MEMBER") {
+        resp = await requestByMember({
+          shiftDate1: cell1.date,
+          recipientUserId: cell2.userId,
+          shiftDate2: cell2.date,
+          shiftSwapReason: reason,
+        }).unwrap();
+
+        // optionally also call manager endpoint (ignore its response)
+        await swapByManager({
+          affectedUserId1: cell1.userId,
+          shiftDate1: cell1.date,
+          affectedUserId2: cell2.userId,
+          shiftDate2: cell2.date,
+          shiftSwapReason: reason,
+        }).unwrap().catch(() => {});
+      } else {
+        resp = await swapByManager({
+          affectedUserId1: cell1.userId,
+          shiftDate1: cell1.date,
+          affectedUserId2: cell2.userId,
+          shiftDate2: cell2.date,
+          shiftSwapReason: reason,
+        }).unwrap();
+      }
+
+      // show toast from API message if available
+      if (resp && resp.message) {
+        setToastMsg(resp.message);
+        toast.error(resp.message); 
+      } else {
+        toast.success("Shift swap completed successfully");
+        setToastMsg("Shift swap completed successfully");
+      }
+    } catch (err: any) {
+      console.error("swap error", err);
+      const errMsg = err?.data?.message || err?.message || "Shift swap failed";
+      setToastMsg(errMsg);
+      toast.error(errMsg);
+      throw err; // rethrow so dialog can close or show error
+    } finally {
+      setIsSwapping(false);
+    }
+  };
   // --- HANDLERS ---
   const handleOpenEdit = (shift: any, date: string, userId: string) => {
     setEditDialogConfig({
@@ -151,6 +227,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     const isFuture = dayjs(date).startOf("day").isAfter(dayjs().startOf("day"));
     if (!isFuture) {
       setToastMsg("Only future dates can be selected for a shift swap.");
+      toast.warning("Only future dates can be selected for a shift swap.");
       return;
     }
 
@@ -227,8 +304,9 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     newAvailableMinutes: number,
     reason: string,
   ) => {
+    setToastMsg(null);
     try {
-      await changeShift({
+      const resp = await changeShift({
         affectedUserId: userId,
         shiftDate: date,
         newShiftId,
@@ -237,8 +315,13 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         reason,
       }).unwrap();
       handleCloseEdit();
-    } catch (error) {
+      setToastMsg(resp.message || "Shift changed successfully");
+      toast.success(resp.message || "Shift changed successfully");
+    } catch (error: any) {
       console.error("Failed to change shift", error);
+      const msg = error?.data?.message || error?.message || "Change shift failed";
+      setToastMsg(msg);
+      toast.error(msg);
     }
   };
 
@@ -281,6 +364,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         open={swapDialogConfig.isOpen}
         onClose={handleCloseSwap}
         swapData={swapDialogConfig.data}
+        onConfirm={executeSwap}
         onSwapSuccess={() => {
           setToastMsg("Shifts swapped successfully!");
           setIsSwapMode(false);

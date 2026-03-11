@@ -63,11 +63,29 @@ export const rosterApiSlice = api.injectEndpoints({
     >({
       query: (params) => ({
         url: "/monthlyrosterview/shiftswapbymanager",
-        method: "GET",
+        method: "POST",
         params: {
           affectedUserId1: params.affectedUserId1,
           shiftDate1: params.shiftDate1,
           affectedUserId2: params.affectedUserId2,
+          shiftDate2: params.shiftDate2,
+          shiftSwapReason: params.shiftSwapReason,
+        },
+      }),
+      invalidatesTags: ["RosterVIew"],
+    }),
+
+    // mutation for shift swap request initiated by team member
+    shiftSwapRequestByTeamMember: builder.mutation<
+      { status: string; message: string },
+      TeamMemberSwapParams
+    >({
+      query: (params) => ({
+        url: "/monthlyrosterview/shiftswapreqbyteammember",
+        method: "POST",
+        params: {
+          shiftDate1: params.shiftDate1,
+          recipientUserId: params.recipientUserId,
           shiftDate2: params.shiftDate2,
           shiftSwapReason: params.shiftSwapReason,
         },
@@ -93,6 +111,8 @@ export const {
   useGetCurrentShiftCountQuery,
   useChangeShiftMutation,
   useGetShiftDropdownQuery,
+  useShiftSwapByManagerMutation,
+  useShiftSwapRequestByTeamMemberMutation, // team‑member endpoint
 } = rosterApiSlice;
 
 // types for the mutation input
@@ -109,6 +129,14 @@ export interface ShiftSwapParams {
   affectedUserId1: string | number;
   shiftDate1: string;
   affectedUserId2: string | number;
+  shiftDate2: string;
+  shiftSwapReason: string;
+}
+
+// parameters for team‑member initiated swap request
+export interface TeamMemberSwapParams {
+  shiftDate1: string;
+  recipientUserId: string | number;
   shiftDate2: string;
   shiftSwapReason: string;
 }
