@@ -38,6 +38,7 @@ export const inboxApiSlice = api.injectEndpoints({
     getUnreadNotificationCount: builder.query<NotificationCountResponse, void>({
       query: () => `/notification/notificationcount?readFlag=False`,
       providesTags: ["NotificationCount"],
+      
     }),
   }),
 });

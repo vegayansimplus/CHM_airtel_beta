@@ -19,7 +19,7 @@ export const rosterApiSlice = api.injectEndpoints({
         },
       }),
 
-      keepUnusedDataFor: 6,
+      // keepUnusedDataFor: 6,
       providesTags: ["RosterVIew"],
     }),
     getCurrentShiftCount: builder.query<
@@ -38,11 +38,41 @@ export const rosterApiSlice = api.injectEndpoints({
       { status: string; message: string },
       ChangeShiftParams
     >({
+      query: (params) => {
+        return {
+          url: "/monthlyrosterview/changeshift",
+          method: "POST",
+          params: {
+            affectedUserId: params.affectedUserId,
+            shiftDate: params.shiftDate,
+            newShiftId: params.newShiftId, // shiftId selected from dropdown
+            newAssignActivity: params.newAssignActivity, // assignActCount from roster data or dialog
+            newAvailableMinutes: params.newAvailableMinutes, // availableMins from roster data or dialog
+            reason: params.reason,
+          },
+        };
+      
+      },
+        invalidatesTags: ["RosterVIew"],
+    }),
+
+    // mutation for shift swap by manager
+    shiftSwapByManager: builder.mutation<
+      { status: string; message: string },
+      ShiftSwapParams
+    >({
       query: (params) => ({
-        url: "/monthlyrosterview/changeshift",
-        method: "POST",
-        params,
+        url: "/monthlyrosterview/shiftswapbymanager",
+        method: "GET",
+        params: {
+          affectedUserId1: params.affectedUserId1,
+          shiftDate1: params.shiftDate1,
+          affectedUserId2: params.affectedUserId2,
+          shiftDate2: params.shiftDate2,
+          shiftSwapReason: params.shiftSwapReason,
+        },
       }),
+      invalidatesTags: ["RosterVIew"],
     }),
 
     getShiftDropdown: builder.query<
@@ -68,10 +98,17 @@ export const {
 // types for the mutation input
 export interface ChangeShiftParams {
   affectedUserId: string | number;
-  newShiftRange: string;
-  newAssignActivity?: number;
-  newAvailableMinutes?: number;
+  newShiftId: number;
+  newAssignActivity: number;
+  newAvailableMinutes: number;
   shiftDate: string;
-  newShiftId?: number;
   reason?: string;
+}
+
+export interface ShiftSwapParams {
+  affectedUserId1: string | number;
+  shiftDate1: string;
+  affectedUserId2: string | number;
+  shiftDate2: string;
+  shiftSwapReason: string;
 }

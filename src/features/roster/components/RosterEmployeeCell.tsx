@@ -1,15 +1,17 @@
-import { TableCell, Stack, Avatar, Typography, Box } from "@mui/material";
+import { TableCell, Stack, Avatar, Typography, Box, useTheme } from "@mui/material";
 
 const getInitials = (name: string) =>
   name?.substring(0, 2).toUpperCase() || "??";
 
 export const RosterEmployeeCell = ({ user }: any) => {
+  const theme = useTheme();
+  
   return (
     <TableCell
       sx={{
         position: "sticky",
         left: 0,
-        bgcolor: "#fff",
+        bgcolor: theme.palette.background.paper,
       }}
     >
       <Stack direction="row" spacing={1}>

@@ -45,7 +45,11 @@ const SideBar: React.FC<SideBarProps> = ({
   const { bgColor } = useBgColor();
   const user = useAppSelector((s) => s.auth.user);
   // const inboxCount = useAppSelector((s) => s.notifications.inboxCount); // example store
-  const { data: countData } = useGetUnreadNotificationCountQuery();
+  const { data: countData } = useGetUnreadNotificationCountQuery(undefined, {
+    // pollingInterval: 15000,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
+  });
   const inboxCount = countData?.notificationCount ?? 0;
   // const inboxCount = 3; // hardcoded for now
   if (!user) return null;

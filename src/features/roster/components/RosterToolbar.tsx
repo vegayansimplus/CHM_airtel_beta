@@ -1,4 +1,4 @@
-import { Paper, Stack, IconButton, Typography, Button, CircularProgress } from "@mui/material";
+import { Paper, Stack, IconButton, Typography, Button, CircularProgress, useTheme } from "@mui/material";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -33,6 +33,9 @@ export const RosterToolbar = ({
   onApplySwap,
   isSwapping
 }: Props) => {
+  const theme = useTheme();
+  const bgColor = theme.palette.mode === "dark" ? theme.palette.background.paper : "#F3F4F6";
+  
   return (
     <Paper
       elevation={0}
@@ -40,12 +43,12 @@ export const RosterToolbar = ({
         p: 0.5,
         mb: 0.5,
         borderRadius: 2,
-        border: "1px solid #E0E0E0",
+        border: `1px solid ${theme.palette.divider}`,
         display: "flex",
         justifyContent: "space-between",
       }}
     >
-      <Stack direction="row" bgcolor="#F3F4F6" borderRadius={6}>
+      <Stack direction="row" bgcolor={bgColor} borderRadius={6}>
         <CompactShiftCountBar domainId={domainId} subDomainId={subDomainId} />
       </Stack>
 
@@ -76,7 +79,7 @@ export const RosterToolbar = ({
           )}
         </Stack>
 
-        <Stack direction="row" alignItems="center" bgcolor="#F3F4F6" borderRadius={6}>
+        <Stack direction="row" alignItems="center" bgcolor={bgColor} borderRadius={6}>
           <IconButton size="small" onClick={goPrevWeek}>
             <NavigateBeforeIcon fontSize="small" />
           </IconButton>
