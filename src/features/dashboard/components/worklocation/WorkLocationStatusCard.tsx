@@ -60,7 +60,7 @@ const WorkLocationStatusCard: React.FC = () => {
 
   return (
     <Card elevation={1} sx={{ borderRadius: 3 }}>
-      <CardContent sx={{ p: 2 }}>
+      <CardContent sx={{ p: 2}}>
         {/* Header */}
         <Stack
           direction="row"

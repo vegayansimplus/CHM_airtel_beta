@@ -7,5 +7,6 @@ export const useAuth = () => {
     isAuthenticated: Boolean(auth.token),
     user: auth.user,
     role: auth.user?.roleCode,
+    userId: auth.user?.userId,
   };
 };

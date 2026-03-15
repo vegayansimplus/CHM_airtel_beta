@@ -1,6 +1,5 @@
 import { Card, CardContent, Typography, Box } from "@mui/material";
 import type { ReactNode } from "react";
-// import { ReactNode } from "react";
 
 interface Props {
   title: string;
@@ -10,7 +9,7 @@ interface Props {
 
 const SectionCard = ({ title, action, children }: Props) => {
   return (
-    <Card elevation={1} sx={{ borderRadius: 3 , maxHeight: "250px", overflow: "auto"}}>
+    <Card  sx={{ borderRadius: 3 , maxHeight: "250px", overflow: "auto"}}>
       <CardContent>
         <Box
           display="flex"

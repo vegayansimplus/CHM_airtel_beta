@@ -26,7 +26,7 @@ import {
   useShiftSwapRequestByTeamMemberMutation,
 } from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
-import { useAuth } from "../../auth/hooks/useAuth"; 
+import { useAuth } from "../../auth/hooks/useAuth";
 import { RosterToolbar } from "../components/RosterToolbar";
 import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
 import { RosterShiftCell } from "../components/RosterShiftCell";
@@ -67,8 +67,18 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const [swapDialogConfig, setSwapDialogConfig] = useState<{
     isOpen: boolean;
     data: {
-      cell1: { userId: string; date: string; shiftId: number; shiftDisplay: string };
-      cell2: { userId: string; date: string; shiftId: number; shiftDisplay: string };
+      cell1: {
+        userId: string;
+        date: string;
+        shiftId: number;
+        shiftDisplay: string;
+      };
+      cell2: {
+        userId: string;
+        date: string;
+        shiftId: number;
+        shiftDisplay: string;
+      };
     } | null;
   }>({
     isOpen: false,
@@ -115,15 +125,26 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     );
   }, [weekStart]);
 
-  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();  const [swapByManager] = useShiftSwapByManagerMutation();
+  const [changeShift, { isLoading: isChanging }] = useChangeShiftMutation();
+  const [swapByManager] = useShiftSwapByManagerMutation();
   const [requestByMember] = useShiftSwapRequestByTeamMemberMutation();
 
-  const { role } = useAuth();
+  const { role,userId } = useAuth();
 
   // executor that picks the right endpoint(s) based on role
   const executeSwap = async (
-    cell1: SwapCell,
-    cell2: SwapCell,
+    cell1: {
+      userId: string;
+      date: string;
+      shiftId: number;
+      shiftDisplay: string;
+    },
+    cell2: {
+      userId: string;
+      date: string;
+      shiftId: number;
+      shiftDisplay: string;
+    },
     reason: string,
   ): Promise<void> => {
     setToastMsg(null);
@@ -146,27 +167,17 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
           shiftSwapReason: reason,
         }).unwrap();
       } else if (role === "TEAM_MEMBER") {
+        // Identify which cell belongs to the logged-in user and which to the other user
+        const loggedInUserId = String(userId);
+        const isCell1LoggedInUser = String(cell1.userId) === loggedInUserId;
+        
+        const loggedInUserCell = isCell1LoggedInUser ? cell1 : cell2;
+        const otherUserCell = isCell1LoggedInUser ? cell2 : cell1;
+        
         resp = await requestByMember({
-          shiftDate1: cell1.date,
-          recipientUserId: cell2.userId,
-          shiftDate2: cell2.date,
-          shiftSwapReason: reason,
-        }).unwrap();
-
-        // optionally also call manager endpoint (ignore its response)
-        await swapByManager({
-          affectedUserId1: cell1.userId,
-          shiftDate1: cell1.date,
-          affectedUserId2: cell2.userId,
-          shiftDate2: cell2.date,
-          shiftSwapReason: reason,
-        }).unwrap().catch(() => {});
-      } else {
-        resp = await swapByManager({
-          affectedUserId1: cell1.userId,
-          shiftDate1: cell1.date,
-          affectedUserId2: cell2.userId,
-          shiftDate2: cell2.date,
+          shiftDate1: loggedInUserCell.date,
+          recipientUserId: otherUserCell.userId,
+          shiftDate2: otherUserCell.date,
           shiftSwapReason: reason,
         }).unwrap();
       }
@@ -174,17 +185,18 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       // show toast from API message if available
       if (resp && resp.message) {
         setToastMsg(resp.message);
-        toast.error(resp.message); 
-      } else {
-        toast.success("Shift swap completed successfully");
-        setToastMsg("Shift swap completed successfully");
-      }
+        toast.success(resp.message);
+      } 
+      // else {
+      //   toast.success("Shift swap completed successfully");
+      //   setToastMsg("Shift swap completed successfully");
+      // }
     } catch (err: any) {
       console.error("swap error", err);
       const errMsg = err?.data?.message || err?.message || "Shift swap failed";
       setToastMsg(errMsg);
       toast.error(errMsg);
-      throw err; // rethrow so dialog can close or show error
+      throw err; 
     } finally {
       setIsSwapping(false);
     }
@@ -263,7 +275,12 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     // Select Cell
     setSelectedSwapCells((prev) => [
       ...prev,
-      { userId: user.userId, date, shiftId: getShiftId(shift?.shiftDisplay || ""), jobLevel: user.jobLevel },
+      {
+        userId: user.userId,
+        date,
+        shiftId: getShiftId(shift?.shiftDisplay || ""),
+        jobLevel: user.jobLevel,
+      },
     ]);
   };
 
@@ -279,13 +296,17 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         userId: cell1.userId,
         date: cell1.date,
         shiftId: cell1.shiftId,
-        shiftDisplay: shiftOptions.find(opt => opt.shiftId === cell1.shiftId)?.shiftRange || "Unknown",
+        shiftDisplay:
+          shiftOptions.find((opt) => opt.shiftId === cell1.shiftId)
+            ?.shiftRange || "Unknown",
       },
       cell2: {
         userId: cell2.userId,
         date: cell2.date,
         shiftId: cell2.shiftId,
-        shiftDisplay: shiftOptions.find(opt => opt.shiftId === cell2.shiftId)?.shiftRange || "Unknown",
+        shiftDisplay:
+          shiftOptions.find((opt) => opt.shiftId === cell2.shiftId)
+            ?.shiftRange || "Unknown",
       },
     };
 
@@ -319,7 +340,8 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       toast.success(resp.message || "Shift changed successfully");
     } catch (error: any) {
       console.error("Failed to change shift", error);
-      const msg = error?.data?.message || error?.message || "Change shift failed";
+      const msg =
+        error?.data?.message || error?.message || "Change shift failed";
       setToastMsg(msg);
       toast.error(msg);
     }
@@ -338,7 +360,11 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 
   return (
     <Box
-      bgcolor={theme.palette.mode === "dark" ? theme.palette.background.default : "#F9FAFB"}
+      bgcolor={
+        theme.palette.mode === "dark"
+          ? theme.palette.background.default
+          : "#F9FAFB"
+      }
       height="80vh"
       position="relative"
     >
@@ -462,7 +488,6 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
                       );
                     })}
                   </TableRow>
-                
                 ))
               )}
             </TableBody>

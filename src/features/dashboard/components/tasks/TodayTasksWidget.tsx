@@ -101,7 +101,7 @@ const TodayTasksWidget = () => {
     
 
       {/* Stats Row */}
-      <Stack direction="row" spacing={1} mb={2}>
+      <Stack direction="row" spacing={1} mb={1}>
         <StatMini
           label="Total Tasks"
           value={total}
@@ -127,7 +127,7 @@ const TodayTasksWidget = () => {
       <Divider sx={{ mb: 1 }} />
 
       {/* Table */}
-      <TableContainer sx={{ flex: 1 ,  maxHeight: "100px", overflow: "auto"}}>
+      <TableContainer sx={{ flex: 1 ,  maxHeight: "80px", overflow: "auto", bgcolor: "transparent"}}>
         <Table size="small">
           <TableHead>
             <TableRow>

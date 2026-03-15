@@ -1,10 +1,10 @@
 import { Box, Grid } from "@mui/material";
-// import WeeklyRoster from "../components/WeeklyRoster";
-// import OnLeaveTodayCard from "../components/OnLeaveTodayCard";
-// import NotificationCard from "../components/NotificationCard";
-// import TaskOverviewModule from "../components/TaskOverviewModule";
+import WeeklyRoster from "../components/WeeklyRoster";
+import OnLeaveTodayCard from "../components/OnLeaveTodayCard";
+import NotificationCard from "../components/NotificationCard";
+import TaskOverviewModule from "../components/TaskOverviewModule";
 import WorkLocationStatusCard from "../components/worklocation/WorkLocationStatusCard";
-// import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
+import TodayTasksWidget from "../components/tasks/TodayTasksWidget";
 
 export const HomeDashboard = () => {
   return (
@@ -13,9 +13,9 @@ export const HomeDashboard = () => {
         {/* LEFT SIDE */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Grid container spacing={1}>
-            {/* <Grid size={7}>
+            <Grid size={7}>
               <TaskOverviewModule />
-            </Grid> */}
+            </Grid>
 
             <Grid size={5}>
               <WorkLocationStatusCard />
@@ -37,7 +37,7 @@ export const HomeDashboard = () => {
         </Grid>
 
         {/* RIGHT SIDE */}
-        {/* <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Grid container spacing={1}>
             <Grid size={12}>
               <NotificationCard />
@@ -46,7 +46,7 @@ export const HomeDashboard = () => {
               <WeeklyRoster />
             </Grid>
           </Grid>
-        </Grid> */}
+        </Grid>
       </Grid>
     </Box>
   );
