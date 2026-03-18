@@ -12,5 +12,11 @@ export const api = createApi({
     },
   }),
   endpoints: () => ({}),
-  tagTypes: ["ORG_HIERARCHY", "EMPLOYEES","RosterVIew" ,"Leave","NotificationCount"],
+  tagTypes: [
+    "ORG_HIERARCHY",
+    "EMPLOYEES",
+    "RosterVIew",
+    "Leave",
+    "NotificationCount",
+  ],
 });

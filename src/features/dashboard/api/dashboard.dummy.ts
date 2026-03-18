@@ -1,0 +1,150 @@
+export const dummyDashboardData = {
+  // ... (keep existing tasks, notifications, and roster data)
+  tasks: { total: 12, completed: 8, pending: 4 },
+  notifications: [
+    {
+      id: 1,
+      message: "Shift swap requested by John Doe",
+      category: "Rostering",
+      time: "10m ago",
+      type: "success",
+    },
+    {
+      id: 2,
+      message: "Shift swap request rejected by manager",
+      category: "Rostering",
+      time: "1h ago",
+      type: "error",
+    },
+    {
+      id: 3,
+      message: "Leave request approved by manager",
+      category: "Leave",
+      time: "2h ago",
+      type: "info",
+    },
+  ],
+  roster: {
+    employee: {
+      name: "KARTHIKA P",
+      id: "B0324261",
+      role: "IP Access_CCB",
+      initials: "KP",
+    },
+    schedule: [
+      { day: "Sun", date: "Mar 15", type: "off" },
+      {
+        day: "Mon",
+        date: "Mar 16",
+        type: "work",
+        shift: "General",
+        time: "09:30 - 18:30",
+        mins: 540,
+        flags: 0,
+      },
+      {
+        day: "Tue",
+        date: "Mar 17",
+        type: "work",
+        shift: "General",
+        time: "09:30 - 18:30",
+        mins: 540,
+        flags: 0,
+      },
+      {
+        day: "Wed",
+        date: "Mar 18",
+        type: "work",
+        shift: "General",
+        time: "09:30 - 18:30",
+        mins: 540,
+        flags: 0,
+      },
+      {
+        day: "Thu",
+        date: "Mar 19",
+        type: "work",
+        shift: "General",
+        time: "09:30 - 18:30",
+        mins: 540,
+        flags: 0,
+      },
+      {
+        day: "Fri",
+        date: "Mar 20",
+        type: "work",
+        shift: "General",
+        time: "09:30 - 18:30",
+        mins: 540,
+        flags: 0,
+      },
+      { day: "Sat", date: "Mar 21", type: "off" },
+    ],
+  },
+
+  // NEW DATA ADDED BELOW
+  holidays: [
+    {
+      id: 1,
+      name: "Good Friday",
+      date: "29",
+      month: "Mar",
+      day: "Friday",
+      type: "Public Holiday",
+    },
+    {
+      id: 2,
+      name: "Eid al-Fitr",
+      date: "10",
+      month: "Apr",
+      day: "Wednesday",
+      type: "Public Holiday",
+    },
+    {
+      id: 3,
+      name: "Labour Day",
+      date: "01",
+      month: "May",
+      day: "Wednesday",
+      type: "Public Holiday",
+    },
+  ],
+  onLeave: [
+    {
+      id: 1,
+      name: "Rahul Sharma",
+      role: "UI/UX Designer",
+      initials: "RS",
+      type: "Sick Leave",
+      color: "#EF4444",
+      bg: "#FEF2F2",
+    },
+    {
+      id: 2,
+      name: "Priya Patel",
+      role: "Frontend Dev",
+      initials: "PP",
+      type: "Annual Leave",
+      color: "#3B82F6",
+      bg: "#EFF6FF",
+    },
+    {
+      id: 3,
+      name: "Amit Kumar",
+      role: "QA Engineer",
+      initials: "AK",
+      type: "Half Day",
+      color: "#F59E0B",
+      bg: "#FFFBEB",
+    },
+  ],
+
+  
+  // NEW: Mock Task List Data
+  taskList: [
+    { id: 1, title: "Review Q1 Performance Report", project: "Management", time: "10:00 AM", status: "completed", priority: "High" },
+    { id: 2, title: "Update IP Access Protocols", project: "Security", time: "02:30 PM", status: "pending", priority: "Urgent" },
+    { id: 3, title: "Weekly Team Sync", project: "Meetings", time: "04:00 PM", status: "pending", priority: "Normal" },
+    { id: 4, title: "Submit Timesheet approval", project: "HR", time: "06:00 PM", status: "pending", priority: "Normal" },
+  ],
+};

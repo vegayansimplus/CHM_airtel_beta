@@ -184,7 +184,13 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
       </Box>
 
       {/* -------- Content Area -------- */}
-      <Box sx={{ p: 3, minHeight: "60vh" }}>
+      <Box sx={{ 
+        
+        pl: 2,
+        pr:2,
+        pt:1,
+        
+        minHeight: "60vh" }}>
         <Suspense
           fallback={
             <Box

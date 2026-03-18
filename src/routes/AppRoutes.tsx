@@ -23,6 +23,7 @@ import { UserRosterMain } from "../features/userMe/userRoster/UserRosterMain";
 import { UserLeaveSectionMain } from "../features/userMe/userLeaveSection/UserLeaveSectionMain";
 import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
+import SchedularTabView from "../features/scheduler/pages/SchedularTabView";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -155,7 +156,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={
             <PrivateRoute
               element={
-                <InboxPageTab
+                <SchedularTabView
                   setDynamicHeaderText={setDynamicHeaderText}
                   setDynamicHeaderIcon={setDynamicHeaderIcon}
                 />
