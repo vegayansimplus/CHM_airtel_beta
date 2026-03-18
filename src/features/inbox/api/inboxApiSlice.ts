@@ -28,7 +28,13 @@ export const inboxApiSlice = api.injectEndpoints({
     getUnreadNotifications: builder.query<NotificationItem[], { readFlag: number }>({
       query: ({ readFlag }) => `/notification/unread?readFlag=${readFlag}`,
     }),
+
+    getUnreadNotificationCount: builder.query<{ notificationCount: number }[], void>({
+      query: () => `/notification/notificationcount?readFlag=0`,
+    }),
   }),
+
+
 });
 
-export const { useGetUnreadNotificationsQuery } = inboxApiSlice;
+export const { useGetUnreadNotificationsQuery, useGetUnreadNotificationCountQuery } = inboxApiSlice;
