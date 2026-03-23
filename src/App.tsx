@@ -6,7 +6,7 @@ import {
 } from "react-router";
 import { BgColorProvider } from "./context/BgColorContext";
 import { ColorModeContext, useMode } from "./style/theme";
-import { CssBaseline, ThemeProvider } from "@mui/material";
+import { Box, CssBaseline, ThemeProvider } from "@mui/material";
 import Header from "./components/layout/Header";
 import SideBar from "./components/layout/SideBar";
 import { Home } from "@mui/icons-material";
@@ -15,6 +15,7 @@ import AppRoutes from "./routes/AppRoutes";
 import { PublicRoute } from "./routes/PublicRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
 import { useAppSelector } from "./app/hooks";
+import { AppScrollView } from "./components/ui/AppScrollView";
 
 
 const App: React.FC = () => {
@@ -52,6 +53,8 @@ const App: React.FC = () => {
                 </>
               )}
 
+
+              <AppScrollView>
               <main className="content">
                 <Routes>
                   <Route
@@ -68,7 +71,7 @@ const App: React.FC = () => {
                     }
                   />
                 </Routes>
-              </main>
+              </main></AppScrollView>
             </div>
           </ThemeProvider>
         </ColorModeContext.Provider>

@@ -1,5 +1,5 @@
-import CommonContainer from "../../../components/common/CommonContainer";
+import UserMonthlyRosterView from "../components/UserMonthlyRosterView";
 
 export const UserRosterMain = () => {
-  return <CommonContainer>UserRosterMain</CommonContainer>;
+  return <UserMonthlyRosterView />;
 };

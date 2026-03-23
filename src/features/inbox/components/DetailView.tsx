@@ -1,18 +1,19 @@
 import { alpha, Button, Chip, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
 import { type InboxItem } from "./TaskInbox";
 
-import AccessTimeIcon from "@mui/icons-material/AccessTime";
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import NotificationsIcon from "@mui/icons-material/Notifications";
-import SearchIcon from "@mui/icons-material/Search";
+// import AccessTimeIcon from "@mui/icons-material/AccessTime";
+// import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+// import NotificationsIcon from "@mui/icons-material/Notifications";
+// import SearchIcon from "@mui/icons-material/Search";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import MenuIcon from "@mui/icons-material/Menu";
+// import MenuIcon from "@mui/icons-material/Menu";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import AssignmentIcon from "@mui/icons-material/Assignment";
-import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
-import AllInboxIcon from "@mui/icons-material/AllInbox";
+// import AssignmentIcon from "@mui/icons-material/Assignment";
+// import AssignmentLateIcon from "@mui/icons-material/AssignmentLate";
+// import AllInboxIcon from "@mui/icons-material/AllInbox";
 import { formatModuleName } from "../utils/formatModuleName";
+import { AppScrollView } from "../../../components/ui/AppScrollView";
 
 export const DetailView = ({
   activeItem,
@@ -42,7 +43,7 @@ export const DetailView = ({
   return (
     <>
       <Stack
-        p={{ xs: 2, md: 4 }}
+        p={{ xs: 2, md: 1}}
         borderBottom={1}
         borderColor="divider"
         bgcolor="background.paper"
@@ -88,7 +89,7 @@ export const DetailView = ({
         </Typography>
       </Stack>
 
-      <Stack
+      <AppScrollView
         p={{ xs: 2, md: 4 }}
         flex={1}
         overflow="auto"
@@ -115,7 +116,7 @@ export const DetailView = ({
             {activeItem.message}
           </Typography>
         </Paper>
-      </Stack>
+      </AppScrollView>
 
       {/* Action Footer */}
       <Stack

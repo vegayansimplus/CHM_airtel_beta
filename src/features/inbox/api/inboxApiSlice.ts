@@ -29,7 +29,7 @@ export const inboxApiSlice = api.injectEndpoints({
       query: ({ readFlag }) => `/notification/unread?readFlag=${readFlag}`,
     }),
 
-    getUnreadNotificationCount: builder.query<{ notificationCount: number }[], void>({
+    getUnreadNotificationCount: builder.query<{ notificationCount: number }, void>({
       query: () => `/notification/notificationcount?readFlag=0`,
     }),
   }),

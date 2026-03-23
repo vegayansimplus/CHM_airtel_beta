@@ -2,6 +2,7 @@ import { alpha, Box, Chip, IconButton, InputAdornment, LinearProgress, Stack, Ta
 import type { InboxItem } from "./TaskInbox";
 import MenuIcon from "@mui/icons-material/Menu";
 import SearchIcon from "@mui/icons-material/Search";
+import { AppScrollView } from "../../../components/ui/AppScrollView";
 
 // --- Middle List Panel ---
 export const NotificationList = ({
@@ -23,7 +24,8 @@ export const NotificationList = ({
       <Stack
         direction="row"
         alignItems="center"
-        sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1, pb: 0.5 }}
+        sx={{ borderBottom: 1, borderColor: "divider", px: 2, pt: 1, pb: 0.5, }}
+
       >
         <IconButton
           sx={{ display: { xs: "block", md: "none" }, mr: 1 }}
@@ -63,7 +65,7 @@ export const NotificationList = ({
         </Tabs>
       </Stack>
 
-      <Box sx={{ p: 2 }}>
+      <Box sx={{ p: 1 }}>
         <TextField
           fullWidth
           size="small"
@@ -86,10 +88,11 @@ export const NotificationList = ({
         />
       </Box>
 
-      <Stack
+      <AppScrollView
         sx={{
           flex: 1,
           overflowY: "auto",
+          
           "&::-webkit-scrollbar": { width: "6px" },
           "&::-webkit-scrollbar-track": { background: "transparent" },
           "&::-webkit-scrollbar-thumb": {
@@ -123,7 +126,8 @@ export const NotificationList = ({
               key={item.id}
               onClick={() => setSelectedItemId(item.id)}
               sx={{
-                p: 2,
+                backgroundColor:"red",
+                p: 1.5,
                 cursor: "pointer",
                 borderBottom: `1px solid ${theme.palette.divider}`,
                 bgcolor: isSelected
@@ -205,7 +209,7 @@ export const NotificationList = ({
             </Box>
           );
         })}
-      </Stack>
+      </AppScrollView>
     </>
   );
 };

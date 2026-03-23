@@ -49,7 +49,7 @@ const SideBar: React.FC<SideBarProps> = ({
     refetchOnFocus: true,
     refetchOnReconnect: true,
   });
-  const inboxCount = countData?.[0]?.notificationCount ?? 0; // const inboxCount = 3; // hardcoded for now
+  const inboxCount = countData?.notificationCount ?? 0; // const inboxCount = 3; // hardcoded for now
   if (!user) return null;
 
   const sidebarItems = [

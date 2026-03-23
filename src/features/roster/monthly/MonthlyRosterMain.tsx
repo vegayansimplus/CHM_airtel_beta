@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { useGetRosterViewQuery } from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
-
+import FilterSvg from "../../../assets/svg/RosterEmpty.svg";
 /* ================= TYPES ================= */
 
 interface Props {
@@ -122,7 +122,20 @@ export const MonthlyRosterMain = ({
   const users: UserRoster[] = data?.data ?? [];
 
   if (shouldSkip) {
-    return <Alert severity="info">Please select Domain and SubDomain</Alert>;
+    return (
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "calc(100vh - 220px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <img src={FilterSvg} alt="Select Filter" width={650} />
+      </Box>
+    );
   }
 
   // if (isLoading) {

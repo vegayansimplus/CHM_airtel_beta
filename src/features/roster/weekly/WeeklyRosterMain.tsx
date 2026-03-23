@@ -34,6 +34,7 @@ import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
 import { ShiftInfoDialog } from "../components/dialog/ShiftInfoDialog";
 import { SwapRosterDialog } from "../components/dialog/SwapRosterDialog";
 import { toast } from "react-toastify";
+import FilterSvg from "../../../assets/svg/RosterEmpty.svg"
 
 dayjs.extend(isoWeek);
 // Define type for swap selection
@@ -350,13 +351,30 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const hasError = data?.success === false || !!error;
   const errorMessage = "Roster not generated for selected range";
 
+
   if (shouldSkip) {
-    return (
-      <Alert severity="info" sx={{ mt: 2 }}>
-        Please select Domain and SubDomain
-      </Alert>
-    );
-  }
+  return (
+     <Box
+        sx={{
+          width: "100%",
+          minHeight: "calc(100vh - 220px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <img src={FilterSvg} alt="Select Filter" width={650} />
+      </Box>
+  );
+}
+  // if (shouldSkip) {
+  //   return (
+  //     <Alert severity="info" sx={{ mt: 2 }}>
+  //       Please select Domain and SubDomain
+  //     </Alert>
+  //   );
+  // }
 
   return (
     <Box
