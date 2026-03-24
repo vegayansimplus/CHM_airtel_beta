@@ -1,10 +1,6 @@
 import { createContext, useState, useMemo } from "react";
 import { createTheme, type ThemeOptions } from "@mui/material/styles";
 
-/* ================================
-   COLOR TOKENS
-================================ */
-
 interface ColorTokens {
   grey: { [key: number]: string };
   primary: { [key: number]: string };
@@ -282,7 +278,6 @@ export const themeSettings = (mode: "light" | "dark"): ThemeOptions => {
     },
   };
 };
-
 
 interface ColorModeContextType {
   toggleColorMode: () => void;

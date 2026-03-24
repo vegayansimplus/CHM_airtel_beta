@@ -1,7 +1,7 @@
 import React, { useCallback, type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
 
-import { useNotifTokens, buildToggleCss } from "./notificationTokens";
+import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
 import {
   useGetNotificationsQuery,
   useUpdateNotificationMutation,

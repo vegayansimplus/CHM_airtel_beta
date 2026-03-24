@@ -3,9 +3,6 @@ import { useTheme } from "@mui/material/styles";
 import TopActionsSection from "../components/TopActionsSection";
 import NotificationDialog from "../components/NotificationDialog";
 import NotificationManagementTable from "../components/NotificationManagementTable";
-// import TopActionsSection from "./TopActionsSection";
-// import NotificationManagementTable from "./NotificationManagementTable";
-// import NotificationDialog from "./NotificationDialog";
 
 const NotificationManagerMain: React.FC = () => {
   const theme = useTheme();
@@ -15,8 +12,7 @@ const NotificationManagerMain: React.FC = () => {
     <div
       style={{
         padding: "28px 32px",
-        minHeight: "100vh",
-        // Uses theme.palette.background.default → #0B1220 (dark) / #F8FAFC (light)
+        // minHeight: "100vh",
         background: theme.palette.background.default,
       }}
     >

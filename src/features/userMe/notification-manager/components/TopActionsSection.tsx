@@ -1,6 +1,6 @@
 import React, { type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
-import { useNotifTokens } from "./notificationTokens";
+import { useNotifTokens } from "../style/notificationTokens";
 
 interface TopActionsSectionProps {
   onAddNewNotification: () => void;
