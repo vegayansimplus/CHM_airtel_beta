@@ -23,7 +23,10 @@ import { UserRosterMain } from "../features/userMe/userRoster/UserRosterMain";
 import { UserLeaveSectionMain } from "../features/userMe/userLeaveSection/UserLeaveSectionMain";
 import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
-import SchedularTabView from "../features/scheduler/pages/SchedularTabView";
+// import SchedularTabView from "../features/scheduler/pages/SchedularTabView";
+import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGeneratorTab";
+import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
+import NotificationManagerMain from "../features/userMe/notification-manager/pages/NotificationMangermain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -113,6 +116,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="monthlyview" replace />} />
           <Route path="monthlyview" element={<UserRosterMain />} />
           <Route path="leave" element={<UserLeaveSectionMain />} />
+          <Route path="notifiactionmanger" element={<NotificationManagerMain />} />
         </Route>
 
         <Route
@@ -134,7 +138,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="view" element={<RosterViewMain />} />
         </Route>
 
-         <Route
+        <Route
           path="inbox"
           element={
             <PrivateRoute
@@ -148,15 +152,22 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="notifications" replace />} />
-          <Route path="notifications" element={<TaskInbox/>} />
-          <Route path="action" element={<><>Notifications</></>} />
+          <Route path="notifications" element={<TaskInbox />} />
+          <Route
+            path="action"
+            element={
+              <>
+                <>Notifications</>
+              </>
+            }
+          />
         </Route>
         <Route
           path="scheduler"
           element={
             <PrivateRoute
               element={
-                <SchedularTabView
+                <SchedulerMainTab
                   setDynamicHeaderText={setDynamicHeaderText}
                   setDynamicHeaderIcon={setDynamicHeaderIcon}
                 />
@@ -164,11 +175,42 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route index element={<Navigate to="shiftscheduler" replace />} />
+          <Route index element={<Navigate to="crqWorkflow" replace />} />
           <Route path="shiftscheduler" element={<>Shift Scheduler</>} />
-          <Route path="action" element={<><>Notifications</></>} />
+          <Route
+            path="action"
+            element={
+              <>
+                <>Notifications</>
+              </>
+            }
+          />
         </Route>
 
+        <Route
+          path="generateroster"
+          element={
+            <PrivateRoute
+              element={
+                <RosterGeneratorTabView
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="rostergeneration" replace />} />
+          <Route path="rostergeneration" element={<>Roster Generation</>} />
+          <Route
+            path="test"
+            element={
+              <>
+                <>Notifications</>
+              </>
+            }
+          />
+        </Route>
 
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />

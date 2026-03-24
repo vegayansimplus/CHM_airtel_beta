@@ -8,7 +8,7 @@ import {
 } from "@mui/material";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import { useGetPendingLeavesQuery } from "../api/leave.api";
+import { useGetLeaveHistoryQuery } from "../api/leave.api";
 
 const formatDate = (dateString: string) =>
   new Date(dateString).toLocaleDateString("en-US", {
@@ -18,7 +18,7 @@ const formatDate = (dateString: string) =>
   });
 
 export default function PendingLeaveList() {
-  const { data, isLoading } = useGetPendingLeavesQuery();
+  const { data, isLoading } = useGetLeaveHistoryQuery();
 
   if (isLoading) {
     return (
@@ -54,7 +54,7 @@ export default function PendingLeaveList() {
             justifyContent: "space-between",
             alignItems: "center",
             borderLeft: "4px solid",
-            borderLeftColor: "warning.main", // Highlights it's pending
+            borderLeftColor: "warning.main",
             transition: "box-shadow 0.2s",
             "&:hover": { boxShadow: 1 },
           }}

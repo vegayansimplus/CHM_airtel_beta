@@ -1,4 +1,14 @@
-import { alpha, Button, Chip, IconButton, Paper, Stack, Typography, useTheme } from "@mui/material";
+import {
+  alpha,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import { type InboxItem } from "./TaskInbox";
 
 // import AccessTimeIcon from "@mui/icons-material/AccessTime";
@@ -14,7 +24,11 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 // import AllInboxIcon from "@mui/icons-material/AllInbox";
 import { formatModuleName } from "../utils/formatModuleName";
 import { AppScrollView } from "../../../components/ui/AppScrollView";
+import { useNotificationAction } from "../hooks/useNotificationAction";
+import { authStorage } from "../../../app/store/auth.storage";
+import { toast } from "react-toastify";
 
+// import { authStorage } from "../../../../app/store/auth.storage";
 export const DetailView = ({
   activeItem,
   onBack,
@@ -24,6 +38,126 @@ export const DetailView = ({
 }) => {
   const theme = useTheme();
 
+  const loggedUser = authStorage.getUser();
+  const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
+
+  const { handleAction, isLoading } = useNotificationAction();
+
+  const currentUserRole = roleName;
+  if (!activeItem) {
+    return (
+      <Stack
+        flex={1}
+        alignItems="center"
+        justifyContent="center"
+        bgcolor="background.default"
+      >
+        <CheckCircleIcon sx={{ fontSize: 64, color: "text.disabled", mb: 2 }} />
+        <Typography color="text.secondary" variant="body1" fontWeight={500}>
+          Select an item to view details
+        </Typography>
+      </Stack>
+    );
+  }
+
+  const processResponse = (res: any, action?: string) => {
+    // Debug: Log the response to check structure
+    console.log("API Response:", res);
+    
+    // Safety check for stringified JSON
+    let data = typeof res === "string" ? JSON.parse(res) : res;
+    
+    // Handle RTK Query wrapped response
+    if (data && typeof data === "object" && !data.status) {
+      // RTK Query might wrap the actual response
+      console.log("Unwrapping data structure:", data);
+      data = data.data || data;
+    }
+
+    if (data?.status === "Success" || data?.status === "SUCCESS") {
+      // Use API message if available, otherwise show action-specific message
+      const successMessage = data?.message?.trim() 
+        ? data.message 
+        : getDefaultSuccessMessage(action);
+      console.log("Success message:", successMessage);
+      toast.success(successMessage, { autoClose: 3000 });
+      onBack(); // Deselect item and go back to list
+    } else {
+      const errorMessage = data?.message || "Operation failed. Please try again.";
+      console.log("Error message:", errorMessage);
+      toast.error(errorMessage, { autoClose: 3000 });
+    }
+  };
+
+  const getDefaultSuccessMessage = (action?: string): string => {
+    switch (action) {
+      case "APPROVED":
+        return "Request approved successfully";
+      case "REJECTED":
+        return "Request rejected successfully";
+      case "ACKNOWLEDGE":
+        return "Request acknowledged successfully";
+      default:
+        return "Operation completed successfully";
+    }
+  };
+
+  const onApprove = async () => {
+    if (!activeItem) return;
+    try {
+      const res = await handleAction(activeItem, "APPROVED", currentUserRole);
+      processResponse(res, "APPROVED");
+    } catch (err: any) {
+      // RTK Query usually nests backend error responses inside err.data
+      toast.error(
+        err?.data?.message || err?.message || "Failed to approve request",
+      );
+    }
+  };
+  const onReject = async () => {
+    if (!activeItem) return;
+
+    // NOTE: For a better UI later, replace window.prompt with a MUI Dialog component.
+    const reason = window.prompt(
+      "Please enter a reason for rejection (required):",
+    );
+
+    if (reason === null) return; // User cancelled the prompt
+    if (reason.trim() === "") {
+      toast.error("Rejection reason is required."); // <-- VALIDATION TOAST
+      return;
+    }
+
+    try {
+      const res = await handleAction(
+        activeItem,
+        "REJECTED",
+        currentUserRole,
+        reason,
+      );
+      processResponse(res, "REJECTED");
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message || err?.message || "Failed to reject request",
+      );
+    }
+  };
+
+  const onAcknowledge = async () => {
+    if (!activeItem) return;
+    try {
+      const res = await handleAction(
+        activeItem,
+        "ACKNOWLEDGE",
+        currentUserRole,
+      );
+      processResponse(res, "ACKNOWLEDGE");
+    } catch (err: any) {
+      toast.error(
+        err?.data?.message || err?.message || "Failed to acknowledge",
+      );
+    }
+  };
   if (!activeItem) {
     return (
       <Stack
@@ -43,7 +177,7 @@ export const DetailView = ({
   return (
     <>
       <Stack
-        p={{ xs: 2, md: 1}}
+        p={{ xs: 2, md: 1 }}
         borderBottom={1}
         borderColor="divider"
         bgcolor="background.paper"
@@ -133,17 +267,19 @@ export const DetailView = ({
               variant="contained"
               color="success"
               fullWidth
+              disabled={isLoading}
+              startIcon={
+                isLoading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : null
+              }
               sx={{
                 py: 1.2,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: 2,
               }}
-              onClick={() =>
-                alert(
-                  `Approving Entity ID: ${activeItem.parsedPayload?.entity_id}`,
-                )
-              }
+              onClick={onApprove}
             >
               Approve
             </Button>
@@ -151,17 +287,14 @@ export const DetailView = ({
               variant="outlined"
               color="error"
               fullWidth
+              disabled={isLoading}
               sx={{
                 py: 1.2,
                 fontWeight: 600,
                 textTransform: "none",
                 borderRadius: 2,
               }}
-              onClick={() =>
-                alert(
-                  `Rejecting Entity ID: ${activeItem.parsedPayload?.entity_id}`,
-                )
-              }
+              onClick={onReject}
             >
               Reject
             </Button>
@@ -171,19 +304,19 @@ export const DetailView = ({
             variant="contained"
             fullWidth
             disableElevation
+            disabled={isLoading}
             sx={{
               py: 1.2,
               fontWeight: 600,
               textTransform: "none",
               borderRadius: 2,
             }}
-            onClick={() => alert(`Acknowledged.`)}
+            onClick={onAcknowledge}
           >
-            Acknowledge
+            {isLoading ? "Acknowledging..." : "Acknowledge"}
           </Button>
         )}
       </Stack>
     </>
   );
 };
-

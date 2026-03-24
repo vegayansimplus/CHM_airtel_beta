@@ -82,9 +82,9 @@ export interface LoginResponse {
 //   modules: Record<string, string[]>;
 // }
 
-// export interface LogoutResponse {
-//   olmId: string;
-// }
+export interface LogoutResponse {
+  olmId: string;
+}
 // // features/auth/types/auth.types.ts
 
 // export interface LoggedUserApiResponse {

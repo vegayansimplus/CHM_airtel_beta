@@ -1,59 +1,53 @@
-
-import { api } from "../../../../service/api"
-import type {
-  LeaveRequest,
-  CreateLeavePayload,
-} from "../types/leave.types"
-
-
+import { api } from "../../../../service/api";
+import type {CreateLeavePayload, LeaveHistoryResponse } from "../types/leave.types";
 
 export const leaveApiSlice = api.injectEndpoints({
-
   endpoints: (builder) => ({
-
-    getPendingLeaves: builder.query<LeaveRequest[], void>({
-      query: () => ({
-        url: "/leaves/pending",
-        method: "GET",
-      }),
-
+    getLeaveHistory: builder.query<LeaveHistoryResponse[], void>({
+      query: () => ({ url: "/leave/history", method: "GET" }),
       keepUnusedDataFor: 60,
-
       providesTags: ["Leave"],
     }),
 
-
-    getLeaveHistory: builder.query<LeaveRequest[], void>({
-      query: () => ({
-        url: "/leaves/history",
-        method: "GET",
-      }),
-
-      keepUnusedDataFor: 60,
-
-      providesTags: ["Leave"],
-    }),
-
-
-    applyLeave: builder.mutation<void, CreateLeavePayload>({
-      query: (body) => ({
-        url: "/leaves",
+    applyLeave: builder.mutation<
+      { status: "Success" | "Error"; message: string },
+      CreateLeavePayload
+    >({
+      query: ({
+        leaveType,
+        startDate,
+        endDate,
+        reason,
+        leaveDuration,
+        session,
+      }) => ({
+        url: "/leave/request",
         method: "POST",
-        body,
+        params: {
+          leaveStartDate: startDate,
+          leaveEndDate: leaveDuration === "Half Day" ? startDate : endDate,
+          leaveType:
+            leaveType.charAt(0).toUpperCase() +
+            leaveType.slice(1).toLowerCase(),
+          leaveDuration, // "FullDay" | "HalfDay"
+          ...(leaveDuration === "Half Day" && { session }), // "Morning" | "Afternoon"
+          leaveReason: reason,
+        },
       }),
-
       invalidatesTags: ["Leave"],
     }),
 
+    getLeaveTypes: builder.query<{ leaveType: string }[], void>({
+      query: () => ({ url: "/leave/types", method: "GET" }),
+      keepUnusedDataFor: 60,
+    }),
   }),
 
   overrideExisting: false,
-})
-
-
+});
 
 export const {
-  useGetPendingLeavesQuery,
   useGetLeaveHistoryQuery,
   useApplyLeaveMutation,
-} = leaveApiSlice
+  useGetLeaveTypesQuery,
+} = leaveApiSlice;

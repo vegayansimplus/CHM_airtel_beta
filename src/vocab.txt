@@ -1,10 +1,30 @@
-Rebarbatory
-Crepitation
-Discalced
-Obdormition
-Resipiscence 
-Contretemps
-Impecuniosity
-Suffusive
-Myrmidon
-Acerbity
+| Word            | Part of Speech | Pronunciation (Marathi) | Meaning (English)               | Meaning (Marathi)               | Example Sentence                              | Synonyms                | Antonyms             |
+| --------------- | -------------- | ----------------------- | ------------------------------- | ------------------------------- | --------------------------------------------- | ----------------------- | -------------------- |
+| **Obtect**      | Adjective      | ऑबटेक्ट                 | Covered or concealed            | झाकलेले / लपवलेले               | The sky was obtect with dark clouds.          | Covered, hidden         | Exposed, uncovered   |
+| **Peregrinate** | Verb           | पेरिग्रिनेट             | To travel or wander             | भ्रमण करणे                      | He loved to peregrinate across unknown lands. | Wander, roam            | Stay, settle         |
+| **Refulgent**   | Adjective      | रिफल्जंट                | Shining brightly                | तेजस्वी / झगमगणारे              | The refulgent sun lit the valley.             | Radiant, चमकदार         | Dull, dim            |
+| **Tautologous** | Adjective      | टॉटोलॉगस                | Repetitive or redundant         | पुनरुक्त / अनावश्यक पुनरावृत्ती | His speech was tautologous and boring.        | Redundant, repetitive   | Concise, meaningful  |
+| **Uliginous**   | Adjective      | युलिजिनस                | Muddy or marshy                 | दलदलीचा / चिखलयुक्त             | The uliginous land was hard to cross.         | Marshy, swampy          | Dry, arid            |
+| **Virescent**   | Adjective      | व्हायरेसेंट             | Becoming green                  | हिरवे होत जाणारे                | The virescent leaves signaled spring.         | Greening, fresh         | Withering, dry       |
+| **Wamble**      | Verb           | वॅम्बल                  | To feel nausea                  | मळमळ होणे                       | I began to wamble after the ride.             | Nauseate, feel sick     | Stabilize, settle    |
+| **Xerothermic** | Adjective      | झेरोथर्मिक              | Hot and dry climate             | उष्ण व कोरडे हवामान             | Xerothermic conditions affect agriculture.    | Arid, dry               | Humid, moist         |
+| **Zephyrous**   | Adjective      | झेफायरस                 | Gentle, breezy                  | मंद वाऱ्याचा                    | The zephyrous wind cooled the evening.        | Breezy, हलका वारा       | Stormy, harsh        |
+| **Aposiopatic** | Adjective      | अपोसिओपॅटिक             | Breaking off suddenly in speech | वाक्य अर्धवट सोडणे              | His aposiopatic response showed hesitation.   | Interrupted, incomplete | Complete, continuous |
+______________________________________________________________________________________________________________________________________________________________________________________________________________________________________
+
+
+Brontide
+Inspissate
+Jocundity
+Lethiferous
+Mimetic
+Perniciousness
+Whelming
+mitigate
+tremulant
+veridical
+
+
+
+
+

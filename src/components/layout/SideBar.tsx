@@ -18,9 +18,10 @@ import MenuIcon from "@mui/icons-material/Menu";
 import vegayanLogo from "../../assets/images/Airtel.png";
 import { useBgColor } from "../../context/BgColorContext";
 import { useAppSelector } from "../../app/hooks";
-import { CalendarMonth } from "@mui/icons-material";
+import { CalendarMonth, RequestQuoteSharp } from "@mui/icons-material";
 import MailIcon from "@mui/icons-material/Mail";
 import PersonIcon from "@mui/icons-material/Person";
+import ViewTimelineOutlinedIcon from '@mui/icons-material/ViewTimelineOutlined';
 import {
   // Dashboard,
   // FileUpload,
@@ -62,6 +63,11 @@ const SideBar: React.FC<SideBarProps> = ({
       to: "/me",
       text: "Me",
       icon: <PersonIcon />,
+    },
+    {
+      to: "/generateroster",
+      text: "Roster Generator",
+      icon: <ViewTimelineOutlinedIcon />,
     },
     {
       to: "/team",

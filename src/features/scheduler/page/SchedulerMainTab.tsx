@@ -3,12 +3,13 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
-interface UserMeMainPageTabProps {
+
+interface SchedulerMainTabProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
-const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
+const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
 }) => {
@@ -18,34 +19,25 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
 
   if (!user) return null;
 
-  /* ================= ACTIVE TAB ================= */
-
   const activeTab = useMemo(() => {
-    const segment = location.pathname.split("/").pop();
+    const segments = location.pathname.split("/");
+    const lastSegment = segments[segments.length - 1];
 
-    if (segment === "leave") return "leave";
-    if (segment === "notifiactionmanger") return "notifiactionmanger";
+    //  ensure correct tab detection
+    if (["rostergeneration"].includes(lastSegment)) {
+      return lastSegment;
+    }
 
-    return "monthlyview";
+    return "rostergeneration"; // default fallback
   }, [location.pathname]);
 
   /* ================= HEADER CONTROL ================= */
 
   useEffect(() => {
     switch (activeTab) {
-      case "monthlyview":
-        setDynamicHeaderText("Monthly View");
+      case "rostergeneration":
+        setDynamicHeaderText("Shift Scheduler");
         break;
-
-      case "leave":
-        setDynamicHeaderText("Apply Leave");
-        break;
-
-      case "notifiactionmanger":
-        setDynamicHeaderText("Notification Manager");
-        break;
-      default:
-        setDynamicHeaderText("Monthly View");
     }
 
     setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
@@ -61,6 +53,7 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
         height: "auto",
         pl: 8,
         overflow: "auto",
+
         "&::-webkit-scrollbar": {
           height: 8,
         },
@@ -85,17 +78,21 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
             theme.palette.mode === "dark"
               ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
               : "linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4))",
+
           backdropFilter: "blur(18px)",
           WebkitBackdropFilter: "blur(18px)",
-          border: `1px solid ${
+
+          border: `1px ${
             theme.palette.mode === "dark"
               ? "rgba(255,255,255,0.08)"
               : "rgba(255,255,255,0.6)"
           }`,
+
           boxShadow:
             theme.palette.mode === "dark"
               ? "0 8px 32px rgba(0,0,0,0.45)"
               : "0 8px 32px rgba(0,0,0,0.08)",
+
           transition: "all 0.3s ease",
         }}
       >
@@ -132,22 +129,17 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
           }}
         >
           <Tab
-            label="Roster View"
-            value="monthlyview"
-            to="monthlyview"
+            label="Shift Scheduler"
+            value="rostergeneration" //  must match route
+            to="rostergeneration"   //  must match route
             component={Link}
           />
-
-          <Tab label="Apply Leave" value="leave" to="leave" component={Link} />
-          <Tab label="Notification Manger" value="notifiactionmanger" to="notifiactionmanger" component={Link} />
-
-          
         </Tabs>
       </Box>
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 0, minHeight: "65vh" }}>
+      <Box sx={{ p: 2, minHeight: "65vh" }}>
         <Suspense
           fallback={
             <Box
@@ -169,4 +161,4 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
   );
 };
 
-export default UserMeMainPageTab;
+export default SchedulerMainTab;

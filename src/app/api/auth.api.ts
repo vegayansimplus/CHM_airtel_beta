@@ -1,4 +1,4 @@
-import type {  LoginResponse, LogoutResponse } from '../../features/auth/types/auth.types';
+import type {  LoginResponse,  LogoutResponse } from '../../features/auth/types/auth.types';
 import { baseApi } from './baseApi';
 
 export const authApi = baseApi.injectEndpoints({

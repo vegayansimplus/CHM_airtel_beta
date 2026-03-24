@@ -24,12 +24,14 @@ import { tokens, ColorModeContext } from "../../style/theme";
 import { useBgColor } from "../../context/BgColorContext";
 import { useNavigate } from "react-router";
 import VegayanLogo from "../../assets/images/logo_vega.png";
+import AirtelLog from "../../assets/images/airtel3.png";
 import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useLogoutMutation } from "../../features/auth/api/auth.api";
 import { logout } from "../../features/auth/slices/auth.slice";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
 import BadgeIcon from "@mui/icons-material/Badge";
+
 /* Accent colors shown in palette */
 const THEME_COLORS = [
   "#6C5CE7", // Purple
@@ -139,14 +141,29 @@ const Header: React.FC<HeaderProps> = ({
           bgcolor: bgColor,
         }}
       >
-        <Box display="flex" alignItems="center">
+        {/* <Box display="flex" alignItems="center">
           <IconButton sx={{ color: "white" }}>
             {dynamicHeaderIcon || <AccountCircleIcon />}
           </IconButton>
           <Typography variant="h6">{dynamicHeaderText}</Typography>
-        </Box>
+        </Box> */}
 
         <Box display="flex" alignItems="center">
+          <IconButton sx={{ p: 0 }}>
+            <img
+              src={AirtelLog}
+              alt="Airtel Logo"
+              style={{
+                width: "80px",
+                height: "auto",
+                objectFit: "contain",
+              }}
+            />
+          </IconButton>
+          {/* <Typography variant="h6">Change Management</Typography> */}
+        </Box>
+
+        <Box display="flex" alignItems="center" >
           <img src={VegayanLogo} alt="Logo" width={30} />
 
           <Box
@@ -282,4 +299,3 @@ const Header: React.FC<HeaderProps> = ({
   );
 };
 export default Header;
-

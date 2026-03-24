@@ -110,6 +110,10 @@ const LoginPage: React.FC = () => {
 
     const userRes = await fetchUser().unwrap();
     // const apiUser = userRes[0];
+    if (!userRes) {
+      toast.error("User data not received");
+      return;
+    }
     const apiUser = userRes;
 
     const user: AuthUser = {
@@ -121,7 +125,6 @@ const LoginPage: React.FC = () => {
       authenticated: true,
     };
 
- 
     dispatch(setUser(user));
 
     authStorage.setToken(res.accessToken);
