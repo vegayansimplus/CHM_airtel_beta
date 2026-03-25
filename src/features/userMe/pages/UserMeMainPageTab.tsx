@@ -3,6 +3,7 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
+import { useNotifTokens } from "../notification-manager/style/notificationTokens";
 interface UserMeMainPageTabProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
@@ -15,7 +16,7 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
-
+const tk = useNotifTokens(theme);
   if (!user) return null;
 
   /* ================= ACTIVE TAB ================= */
@@ -56,7 +57,9 @@ const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
   return (
     <Box
       sx={{
-        backgroundColor: theme.palette.background.paper,
+        // backgroundColor: theme.palette.background.paper,
+        backgroundColor:  tk.accentDim,
+
         maxWidth: "100%",
         height: "auto",
         pl: 8,

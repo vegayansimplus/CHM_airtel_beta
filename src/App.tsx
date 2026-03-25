@@ -1,12 +1,8 @@
-import React, {  useState } from "react";
-import {
-  Route,
-  BrowserRouter,
-  Routes,
-} from "react-router";
+import React, { useState } from "react";
+import { Route, BrowserRouter, Routes } from "react-router";
 import { BgColorProvider } from "./context/BgColorContext";
 import { ColorModeContext, useMode } from "./style/theme";
-import { Box, CssBaseline, ThemeProvider } from "@mui/material";
+import {  CssBaseline, ThemeProvider } from "@mui/material";
 import Header from "./components/layout/Header";
 import SideBar from "./components/layout/SideBar";
 import { Home } from "@mui/icons-material";
@@ -16,7 +12,6 @@ import { PublicRoute } from "./routes/PublicRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
 import { useAppSelector } from "./app/hooks";
 import { AppScrollView } from "./components/ui/AppScrollView";
-
 
 const App: React.FC = () => {
   const isAuth = useAppSelector((s) => s.auth.isAuthenticated);
@@ -53,25 +48,25 @@ const App: React.FC = () => {
                 </>
               )}
 
-
               <AppScrollView>
-              <main className="content">
-                <Routes>
-                  <Route
-                    path="/login"
-                    element={<PublicRoute element={<LoginPage />} />}
-                  />
-                  <Route
-                    path="/*"
-                    element={
-                      <AppRoutes
-                        setDynamicHeaderText={setDynamicHeaderText}
-                        setDynamicHeaderIcon={setDynamicHeaderIcon}
-                      />
-                    }
-                  />
-                </Routes>
-              </main></AppScrollView>
+                <main className="content">
+                  <Routes>
+                    <Route
+                      path="/login"
+                      element={<PublicRoute element={<LoginPage />} />}
+                    />
+                    <Route
+                      path="/*"
+                      element={
+                        <AppRoutes
+                          setDynamicHeaderText={setDynamicHeaderText}
+                          setDynamicHeaderIcon={setDynamicHeaderIcon}
+                        />
+                      }
+                    />
+                  </Routes>
+                </main>
+              </AppScrollView>
             </div>
           </ThemeProvider>
         </ColorModeContext.Provider>
@@ -80,4 +75,3 @@ const App: React.FC = () => {
   );
 };
 export default App;
-

@@ -1,93 +1,68 @@
 import { api } from "../../../../service/api";
 
 export interface ApiNotificationSetting {
-  moduleId: string;
-  module: string;
-  submodule: string;
-  action: string;
-  notificationStatus: "Enable" | "Disabled";
-  self: "Yes" | "No";
-  manager: "Yes" | "No";
-  team: "Yes" | "No";
+  actionCode: string;
+  configId: number;
+  moduleCode: string;
+  notifyDomainHead: boolean;
+  notifyFunctionHead: boolean;
+  notifySubDomainHead: boolean;
+  notifySuperAdmin: boolean;
+  notifyTeamMember: boolean;
+  notifyVerticalHead: boolean;
+  subModuleCode: string;
 }
 
-export interface AddNotificationPayload {
-  module: string;
-  subModule: string;
-  action: string;
-  notificationStatus: "Enable" | "Disabled";
-  self: "Yes" | "No";
-  manager: "Yes" | "No";
-  team: "Yes" | "No";
-}
+// UI model matches API shape exactly
+export interface TransformedNotificationSetting extends ApiNotificationSetting {}
 
-export interface TransformedNotificationSetting {
-  moduleId: string;
-  module: string;
-  submodule: string;
-  action: string;
-  status: boolean;
-  self: boolean;
-  manager: boolean;
-  team: boolean;
-}
+//  helper to decide "status"
+const getStatus = (item: ApiNotificationSetting) =>
+  item.notifyDomainHead ||
+  item.notifyFunctionHead ||
+  item.notifySubDomainHead ||
+  item.notifySuperAdmin ||
+  item.notifyTeamMember ||
+  item.notifyVerticalHead;
 
 export const notificationApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
-    getNotifications: builder.query<TransformedNotificationSetting[], void>({
-      query: () => "/notificationmanager/shownotificationmanager",
-      transformResponse: (rawResult: ApiNotificationSetting[]) =>
-        rawResult.map((item) => ({
-          ...item,
-          status: item.notificationStatus === "Enable",
-          self: item.self === "Yes",
-          manager: item.manager === "Yes",
-          team: item.team === "Yes",
-        })),
-    //   providesTags: ["NotificationManagerControl"],
+    getNotificationConfigs: builder.query<ApiNotificationSetting[], void>({
+      query: () => "/notification-manager/show",
+      // no transform needed — UI model matches API shape exactly
     }),
-
     updateNotification: builder.mutation<void, any>({
       query: (u) => ({
         url: `/notificationmanager/insertupdatenotificationmanager`,
         method: "POST",
-        params: {
-          moduleId: u.moduleId,
-          module: u.module,
-          subModule: u.subModule,
-          action: u.action,
-          notificationStatus: u.notificationStatus,
-          self: u.self,
-          manager: u.manager,
-          team: u.team,
+        body: {
+          configId: u.configId,
+          subModuleCode: u.subModuleCode,
+          actionCode: u.actionCode,
+          moduleCode: u.moduleCode,
+          notifyDomainHead: u.notifyDomainHead,
+          notifyFunctionHead: u.notifyFunctionHead,
+          notifySubDomainHead: u.notifySubDomainHead,
+          notifySuperAdmin: u.notifySuperAdmin,
+          notifyTeamMember: u.notifyTeamMember,
+          notifyVerticalHead: u.notifyVerticalHead,
         },
       }),
-    //   invalidatesTags: ["NotificationManagerControl"],
     }),
 
-    addNotification: builder.mutation<void, AddNotificationPayload>({
-      query: (n) => ({
-        url: `/notificationmanager/insertupdatenotificationmanager`,
-        method: "POST",
-        params: n,
-      }),
-    //   invalidatesTags: ["NotificationManagerControl"],
-    }),
-
-    deleteNotification: builder.mutation<void, { moduleId: string }>({
+    deleteNotification: builder.mutation<void, { moduleId: number }>({
       query: ({ moduleId }) => ({
         url: "/notificationmanager/deletenotificationmanager",
         method: "POST",
-        params: { moduleId },
+        body: { configId: moduleId },
       }),
-    //   invalidatesTags: ["NotificationManagerControl"],
     }),
   }),
 });
 
 export const {
-  useGetNotificationsQuery,
+  // useGetNotificationsQuery,
+  useGetNotificationConfigsQuery,
   useUpdateNotificationMutation,
   useDeleteNotificationMutation,
-  useAddNotificationMutation,
 } = notificationApiSlice;

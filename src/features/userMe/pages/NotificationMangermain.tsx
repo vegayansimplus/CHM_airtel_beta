@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import TopActionsSection from "../components/TopActionsSection";
-import NotificationDialog from "../components/NotificationDialog";
-import NotificationManagementTable from "../components/NotificationManagementTable";
+import TopActionsSection from "../notification-manager/components/TopActionsSection";
+import NotificationDialog from "../notification-manager/components/NotificationDialog";
+import NotificationManagementTable from "../notification-manager/components/NotificationManagementTable";
 
 const NotificationManagerMain: React.FC = () => {
   const theme = useTheme();

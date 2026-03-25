@@ -244,7 +244,7 @@ export const DetailView = ({
             sx={{
               color: "text.primary",
               whiteSpace: "pre-wrap",
-              lineHeight: 1.7,
+              lineHeight: 1,
             }}
           >
             {activeItem.message}

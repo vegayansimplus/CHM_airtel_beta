@@ -18,11 +18,11 @@ const TopActionsSection: React.FC<TopActionsSectionProps> = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 22,
+        marginBottom: 1,
       }}
     >
       {/* Title */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 1 }}>
         <span
           style={{
             fontSize: 22,

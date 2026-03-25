@@ -2,14 +2,22 @@ import { Box, CircularProgress, Grid, Paper, Typography } from "@mui/material";
 import { useState } from "react";
 
 import CommonContainer from "../../../components/common/CommonContainer";
-import ApplyLeaveDrawer from "./components/ApplyLeaveDrawer";
-import LeaveActionPanel from "./components/LeaveActionPanel";
-import { LeaveTabs } from "./components/LeaveTabs";
-import { UniversalLeaveTable } from "./components/UniversalLeaveTable";
-import { useGetLeaveHistoryQuery } from "./api/leave.api";
-import { useLeaveStats } from "./hooks/useLeaveStats";
-import { useFilteredLeaves } from "./hooks/useFilteredLeaves";
-import type { LeaveTabValue } from "./types/leave.types";
+import { useGetLeaveHistoryQuery } from "../userLeaveSection/api/leave.api";
+import ApplyLeaveDrawer from "../userLeaveSection/components/ApplyLeaveDrawer";
+import LeaveActionPanel from "../userLeaveSection/components/LeaveActionPanel";
+import { LeaveTabs } from "../userLeaveSection/components/LeaveTabs";
+import UniversalLeaveTable from "../userLeaveSection/components/UniversalLeaveTable";
+import { useFilteredLeaves } from "../userLeaveSection/hooks/useFilteredLeaves";
+import { useLeaveStats } from "../userLeaveSection/hooks/useLeaveStats";
+import type { LeaveTabValue } from "../userLeaveSection/types/leave.types";
+// import ApplyLeaveDrawer from "./components/ApplyLeaveDrawer";
+// import LeaveActionPanel from "./components/LeaveActionPanel";
+// import { LeaveTabs } from "./components/LeaveTabs";
+// import { UniversalLeaveTable } from "./components/UniversalLeaveTable";
+// import { useGetLeaveHistoryQuery } from "./api/leave.api";
+// import { useLeaveStats } from "./hooks/useLeaveStats";
+// import { useFilteredLeaves } from "./hooks/useFilteredLeaves";
+// import type { LeaveTabValue } from "./types/leave.types";
 
 export const UserLeaveSectionMain = () => {
   const [isDrawerOpen, setDrawerOpen] = useState(false);

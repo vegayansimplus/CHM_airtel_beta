@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
-import { useAddNotificationMutation } from "../api/notificationApiSlice";
+import { useUpdateNotificationMutation } from "../api/notificationApiSlice";
 
 // ─── Keyframes only (no external fonts/libs) ─────────────────────────────────
 const BASE_CSS = `
@@ -138,7 +138,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
   const tk = useNotifTokens(theme);
 
   const [addNotification, { isLoading, isSuccess, isError }] =
-    useAddNotificationMutation();
+    useUpdateNotificationMutation();
   const [module, setModule] = useState("");
   const [subModule, setSubModule] = useState("");
   const [action, setAction] = useState("");
