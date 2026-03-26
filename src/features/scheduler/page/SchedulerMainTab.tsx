@@ -3,6 +3,7 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
+import { useTabColorTokens } from "../../../style/theme";
 
 interface SchedulerMainTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -16,6 +17,7 @@ const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
+  const bg = useTabColorTokens(theme);
 
   if (!user) return null;
 
@@ -48,7 +50,9 @@ const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
   return (
     <Box
       sx={{
-        backgroundColor: theme.palette.background.paper,
+        // backgroundColor: theme.palette.background.paper,
+        backgroundColor:bg.accentDim,
+
         maxWidth: "100%",
         height: "auto",
         pl: 8,
@@ -64,7 +68,7 @@ const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
               : "#f1f1f1",
         },
         "&::-webkit-scrollbar-thumb": {
-          backgroundColor: theme.palette.primary.main,
+          // backgroundColor: theme.palette.primary.main,
           borderRadius: 4,
         },
       }}
@@ -139,7 +143,7 @@ const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "65vh" }}>
+      <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
         <Suspense
           fallback={
             <Box

@@ -376,7 +376,7 @@ const NotificationManagementTable: React.FC = () => {
     columns,
     data: rows,
     state: {
-      isLoading,
+      // isLoading,
       showAlertBanner: isError,
     },
     // Turn off MRT native settings to match visual requirements of custom table

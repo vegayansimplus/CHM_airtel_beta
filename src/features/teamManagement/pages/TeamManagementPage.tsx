@@ -4,6 +4,7 @@ import { useLocation, useNavigate, Outlet } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 // import { alpha } from "@mui/material/styles";
 import { useAppSelector } from "../../../app/hooks";
+import { useTabColorTokens } from "../../../style/theme";
 
 interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -39,6 +40,7 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
   const navigate = useNavigate();
   const location = useLocation();
   const user = useAppSelector((s) => s.auth.user);
+  const bg = useTabColorTokens(theme);
 
   if (!user) return null;
 
@@ -78,14 +80,15 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
   return (
     <Box
       sx={{
-        backgroundColor: theme.palette.background.paper,
-        maxWidth: "100%",
+        // backgroundColor: theme.palette.background.paper,
+        backgroundColor:bg.accentDim,
+         maxWidth: "100%",
         height: "auto",
         pl: 8,
         overflow: "auto",
 
         /* THEME-AWARE SCROLLBAR */
-        "&::-webkit-scrollbar": {
+       "&::-webkit-scrollbar": {
           height: 8,
         },
         "&::-webkit-scrollbar-track": {
@@ -95,14 +98,14 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
               : "#f1f1f1",
         },
         "&::-webkit-scrollbar-thumb": {
-          backgroundColor: theme.palette.primary.main,
+          // backgroundColor: theme.palette.primary.main,
           borderRadius: 4,
         },
       }}
     >
       {/* -------- Tabs Header -------- */}
       <Box
-        sx={{
+         sx={{
           mt: "45px",
           background:
             theme.palette.mode === "dark"
@@ -112,7 +115,7 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
           backdropFilter: "blur(18px)",
           WebkitBackdropFilter: "blur(18px)",
 
-          border: `1px solid ${
+          border: `1px ${
             theme.palette.mode === "dark"
               ? "rgba(255,255,255,0.08)"
               : "rgba(255,255,255,0.6)"
@@ -124,16 +127,6 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
               : "0 8px 32px rgba(0,0,0,0.08)",
 
           transition: "all 0.3s ease",
-          // mt: "45px",
-          // // px: 2,
-          // // py: 1,
-          // borderRadius: 2,
-          // backgroundColor:
-          //   theme.palette.mode === "dark"
-          //     ? alpha(theme.palette.background.paper, 0.6)
-          //     : alpha(theme.palette.background.paper, 0.9),
-          // border: `1px solid ${theme.palette.divider}`,
-          // backdropFilter: "blur(6px)",
         }}
       >
         <Tabs
@@ -144,7 +137,17 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
           variant="scrollable"
           scrollButtons="auto"
           allowScrollButtonsMobile
-          sx={{
+           sx={{
+            px: 2,
+            "& .MuiTab-root": {
+              textTransform: "none",
+              fontWeight: 500,
+              fontSize: 14,
+            },
+            "& .Mui-selected": {
+              fontWeight: 600,
+              color: theme.palette.primary.main,
+            },
             "& .MuiTabs-indicator": {
               display: "flex",
               justifyContent: "center",
@@ -155,49 +158,11 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
                 height: 0,
                 borderRight: "8px solid transparent",
                 borderLeft: "8px solid transparent",
-                // borderBottom: "10px solid pink",
                 borderBottom: `10px solid ${theme.palette.primary.main}`,
                 position: "absolute",
                 bottom: 0,
               },
             },
-            "&.Mui-focusVisible": {
-              backgroundColor: "red",
-            },
-            width: "100%",
-            backgroundColor: "auto",
-            boxShadow: 2,
-            mt: 1,
-            "& .MuiTab-root": {
-              textTransform: "none",
-              fontWeight: 500,
-              fontSize: 14,
-              color: theme.palette.text.secondary,
-              transition: "all 0.25s ease",
-            },
-            "& .Mui-selected": {
-              color: theme.palette.primary.main,
-              fontWeight: 600,
-            },
-
-            // "& .MuiTab-root": {
-            //   textTransform: "none",
-            //   fontWeight: 500,
-            //   fontSize: 14,
-            //   color: theme.palette.text.secondary,
-            //   transition: "all 0.25s ease",
-            // },
-
-            // "& .Mui-selected": {
-            //   color: theme.palette.primary.main,
-            //   fontWeight: 600,
-            // },
-
-            // "& .MuiTabs-indicator": {
-            //   height: 3,
-            //   borderRadius: 3,
-            //   backgroundColor: theme.palette.primary.main,
-            // },
           }}
         >
           <Tab label="Team Overview" />

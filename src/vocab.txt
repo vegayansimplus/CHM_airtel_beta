@@ -29,7 +29,15 @@ veridical
 Bolster
 Disparage
 Induce
-Curtail 
+Curtail
+Perceive
+
+
+++++++++++++++++++++++++++++++++++++++++
+Exempt
+Alienate
+concede 
+Instigate
 
 
 

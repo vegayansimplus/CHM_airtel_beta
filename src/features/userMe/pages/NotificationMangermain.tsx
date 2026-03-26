@@ -12,7 +12,6 @@ const NotificationManagerMain: React.FC = () => {
     <div
       style={{
         padding: "28px 32px",
-        // minHeight: "100vh",
         background: theme.palette.background.default,
       }}
     >

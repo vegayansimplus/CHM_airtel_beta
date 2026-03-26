@@ -7,27 +7,22 @@ import {
   Navigate,
 } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
-// import DashboardView from "../features/dashboard/pages/DashboardPage";
 import CommonContainer from "../components/common/CommonContainer";
-// import { SkillSetTeamViewMain } from "../features/teamManagement/pages/TeamManagementMain";
 import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
 import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
 import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
 import { HomeDashboard } from "../features/dashboard/pages/HomeDashboard";
 import MonthlyRosterPageTab from "../features/roster/page/MonthlyRosterPageTab";
-// import { MonthlyRosterMain } from "../features/roster/monthly/MonthlyRosterMain";
 import { RosterViewMain } from "../features/roster/page/RosterViewMain";
-// import { WeeklyRosterMain } from "../features/roster/weekly/WeeklyRosterMain";
 import UserMeMainPageTab from "../features/userMe/pages/UserMeMainPageTab";
 import { UserRosterMain } from "../features/userMe/userRoster/UserRosterMain";
-// import { UserLeaveSectionMain } from "../features/userMe/userLeaveSection/UserLeaveSectionMain";
 import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
-// import SchedularTabView from "../features/scheduler/pages/SchedularTabView";
 import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGeneratorTab";
 import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
 import NotificationManagerMain from "../features/userMe/pages/NotificationMangermain";
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
+import { PlanAndInventoryMain } from "../features/scheduler/page/PlanAndInvenotryMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -117,7 +112,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="monthlyview" replace />} />
           <Route path="monthlyview" element={<UserRosterMain />} />
           <Route path="leave" element={<UserLeaveSectionMain />} />
-          <Route path="notifiactionmanger" element={<NotificationManagerMain />} />
+          <Route
+            path="notifiactionmanger"
+            element={<NotificationManagerMain />}
+          />
         </Route>
 
         <Route
@@ -177,7 +175,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
-          <Route path="shiftscheduler" element={<>Shift Scheduler</>} />
+          <Route path="crqWorkflow" element={<PlanAndInventoryMain/>} />
           <Route
             path="action"
             element={
