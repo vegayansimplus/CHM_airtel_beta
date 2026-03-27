@@ -50,8 +50,8 @@ const SchedulerMainTab: React.FC<SchedulerMainTabProps> = ({
   return (
     <Box
       sx={{
-        // backgroundColor: theme.palette.background.paper,
-        backgroundColor:bg.accentDim,
+        backgroundColor:bg.isDark? bg.accentDim:theme.palette.background.paper,
+        // backgroundColor:bg.accentDim,
 
         maxWidth: "100%",
         height: "auto",

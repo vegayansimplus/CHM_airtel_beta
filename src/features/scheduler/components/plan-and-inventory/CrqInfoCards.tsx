@@ -138,7 +138,7 @@ const InfoBlock = ({
       flexDirection: "column",
       justifyContent: "center",
       alignItems: "center",
-      minWidth: "120px",
+      minWidth: "180px",
       whiteSpace: "nowrap",
     }}
   >

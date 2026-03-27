@@ -20,9 +20,9 @@ import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
 import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGeneratorTab";
 import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
-import NotificationManagerMain from "../features/userMe/pages/NotificationMangermain";
+import NotificationManagerMain from "../features/userMe/pages/NotificationManagerMain";
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
-import { PlanAndInventoryMain } from "../features/scheduler/page/PlanAndInvenotryMain";
+import { PlanAndInventoryMain } from "../features/scheduler/page/PlanAndInventoryMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;

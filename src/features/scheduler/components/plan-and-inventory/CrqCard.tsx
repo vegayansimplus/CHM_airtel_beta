@@ -52,6 +52,7 @@ export const CrqCard: React.FC<CrqCardProps> = ({
         borderRadius: colors.radiusL,
         border: `1.5px solid ${isSelected ? colors.accentBorder : colors.border}`,
         bgcolor: isSelected ? colors.accentDim : colors.surface,
+        // bgcolor:"red",
         overflow: "hidden",
         transition:
           "border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease",
@@ -147,7 +148,7 @@ export const CrqCard: React.FC<CrqCardProps> = ({
         </Stack> */}
 
         {/* Info Cards Container */}
-        <Box sx={{ flex: 1, overflow: "hidden", minWidth: 0 }}>
+        <Box sx={{ flex: 1, overflowX: "scroll" , width:"60vw"}}>
           <CrqInfoCards crq={crq} colors={colors} />
         </Box>
 

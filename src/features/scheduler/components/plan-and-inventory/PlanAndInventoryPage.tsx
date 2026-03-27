@@ -20,19 +20,18 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-
 // Icons
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+// import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
-import StopRoundedIcon from "@mui/icons-material/StopRounded";
-import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+// import StopRoundedIcon from "@mui/icons-material/StopRounded";
+// import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
-import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+// import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { useTabColorTokens } from "../../../../style/theme";
-import CrqInfoCards from "./CrqInfoCards";
-import CrqTaskTable from "./CrqTaskTable";
+// import CrqInfoCards from "./CrqInfoCards";
+// import CrqTaskTable from "./CrqTaskTable";
 import { mockCrqResponse } from "../../api/mockData";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
@@ -489,13 +488,14 @@ export const PlanAndInventoryPage: React.FC = () => {
     <Box
       id="planning-container"
       sx={{
-        p: { xs: 1.5, sm: 2, md: 2.5 },
-        bgcolor: colors.bg,
+        p: { xs: 1.5, sm: 2, md: 1 },
+        // mt: 1,
+        // bgcolor: colors.bg,
         minHeight: "100%",
       }}
     >
       {PlanPageGlobalStyles}
-      <Stack
+      {/* <Stack
         direction={{ xs: "column", sm: "row" }}
         alignItems={{ xs: "flex-start", sm: "center" }}
         justifyContent="space-between"
@@ -529,7 +529,7 @@ export const PlanAndInventoryPage: React.FC = () => {
             </Typography>
           </Box>
         </Stack>
-      </Stack>
+      </Stack> */}
       <MaterialReactTable table={table} />
     </Box>
   );
