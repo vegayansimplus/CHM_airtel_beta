@@ -70,7 +70,7 @@ export const PlanAndInventoryMain = () => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   // Initialize Stepper (Setting default to 1 -> "Plan & inventory")
-  const { activeStep, goToStep } = useStepper(1, WORKFLOW_STEPS.length);
+  const { activeStep, goToStep } = useStepper(0, WORKFLOW_STEPS.length);
 
   return (
     <Box sx={{ p: { xs: 1, md: 0 } }}>
@@ -101,14 +101,14 @@ export const PlanAndInventoryMain = () => {
       </Box>
 
       
-      {activeStep === 0 && <h1>CRQ Assignment</h1>}
-      {activeStep === 1 && <PlanAndInventoryPage/>}
-      {activeStep === 2 && <h1>Impact analysis</h1>}
-      {activeStep === 3 && <h1>MOP creation</h1>}
-      {activeStep === 4 && <h1>MOP validation</h1>}
-      {activeStep === 5 && <h1>Scheduling</h1>}
-      {activeStep === 6 && <h1>Network exec</h1>}
-      {activeStep === 7 && <h1>Task closure</h1>}
+      {/* {activeStep === 0 && <h1>CRQ Assignment</h1>} */}
+      {activeStep === 0 && <PlanAndInventoryPage/>}
+      {activeStep === 1 && <h1>Impact analysis</h1>}
+      {activeStep === 2 && <h1>MOP creation</h1>}
+      {activeStep === 3 && <h1>MOP validation</h1>}
+      {activeStep === 4 && <h1>Scheduling</h1>}
+      {activeStep === 5 && <h1>Network exec</h1>}
+      {activeStep === 6 && <h1>Task closure</h1>}
 
     </Box>
   );
