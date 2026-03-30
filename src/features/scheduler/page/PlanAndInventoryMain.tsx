@@ -1,15 +1,10 @@
-import { Box, Card, CardContent, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
-
-// Stepper Imports
+import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState"; 
 import { AppStepper } from "../../../components/ui/AppStepper/AppStepper";
 import { useStepper } from "../../../hooks/useStepper";
-
-// Icons matching your screenshot UI
-import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
 import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
 import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
@@ -21,41 +16,35 @@ import type { IStep } from "../../../components/ui/AppStepper/types";
 import { useTabColorTokens } from "../../../style/theme";
 import {PlanAndInventoryPage} from "../components/plan-and-inventory/PlanAndInventoryPage";
 
-// Step Configuration Mapping
 const WORKFLOW_STEPS: IStep[] = [
   {
     id: 1,
-    label: "CRQ assignment",
-    icon: <AssignmentTurnedInOutlinedIcon fontSize="small" />,
-  },
-  {
-    id: 2,
     label: "Plan & inventory",
     icon: <Inventory2OutlinedIcon fontSize="small" />,
   },
   {
-    id: 3,
+    id: 2,
     label: "Impact analysis",
     icon: <MonitorHeartOutlinedIcon fontSize="small" />,
   },
   {
-    id: 4,
+    id: 3,
     label: "MOP creation",
     icon: <NoteAddOutlinedIcon fontSize="small" />,
   },
   {
-    id: 5,
+    id: 4,
     label: "MOP validation",
     icon: <FactCheckOutlinedIcon fontSize="small" />,
   },
   {
-    id: 6,
+    id: 5,
     label: "Scheduling",
     icon: <EditCalendarOutlinedIcon fontSize="small" />,
   },
-  { id: 7, label: "Network exec", icon: <WifiOutlinedIcon fontSize="small" /> },
+  { id: 6, label: "Network exec", icon: <WifiOutlinedIcon fontSize="small" /> },
   {
-    id: 8,
+    id: 7,
     label: "Task closure",
     icon: <TaskAltOutlinedIcon fontSize="small" />,
   },
@@ -113,26 +102,3 @@ export const PlanAndInventoryMain = () => {
     </Box>
   );
 };
-
-// import { authStorage } from "../../../app/store/auth.storage";
-// import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
-// import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-// import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
-
-// export const PlanAndInventoryMain = () => {
-//   const loggedUser = authStorage.getUser();
-//   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-//   const { values, handleChange } = useOrgHierarchyState();
-//   const { options } = useOrgHierarchyFilters(values);
-
-//   return (
-//     <div>
-//       <OrgHierarchyFilters
-//         role={roleName}
-//         values={values}
-//         options={options}
-//         onChange={handleChange}
-//       />
-//     </div>
-//   );
-// };
