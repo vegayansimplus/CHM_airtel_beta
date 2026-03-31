@@ -23,7 +23,6 @@ import EventIcon from "@mui/icons-material/Event";
 import type { CreateEmployeeRequest } from "../../types/createUser.types";
 import type { CreateUserDropdownResponse } from "../../api/teamManagement.api";
 
-
 interface Props {
   form: CreateEmployeeRequest;
   setForm: React.Dispatch<React.SetStateAction<any>>;

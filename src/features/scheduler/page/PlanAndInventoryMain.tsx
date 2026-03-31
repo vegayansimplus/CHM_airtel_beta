@@ -91,7 +91,7 @@ export const PlanAndInventoryMain = () => {
 
       
       {/* {activeStep === 0 && <h1>CRQ Assignment</h1>} */}
-      {activeStep === 0 && <PlanAndInventoryPage/>}
+      {activeStep === 0 && <PlanAndInventoryPage domainId={values.domain} subDomainId={values.subDomain} />}
       {activeStep === 1 && <h1>Impact analysis</h1>}
       {activeStep === 2 && <h1>MOP creation</h1>}
       {activeStep === 3 && <h1>MOP validation</h1>}

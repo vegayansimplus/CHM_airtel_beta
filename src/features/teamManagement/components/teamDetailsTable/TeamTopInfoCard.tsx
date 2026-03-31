@@ -1,223 +1,325 @@
 import React from "react";
-import {
-  Card,
-  Box,
-  Typography,
-  Avatar,
-  Chip,
-  useTheme,
-} from "@mui/material";
+import { Box, Typography, Avatar, useTheme } from "@mui/material";
 
-/* ================= OVERVIEW TYPE ================= */
+/* ================= TYPES ================= */
 
 interface OverviewType {
   l1Count: number;
   l2Count: number;
   l3Count: number;
   l4Count: number;
-  teamLead: string;
+  teamLead: string | null;
   totalCount: number;
 }
 
 interface TeamTopInfoCardProps {
-  overview?: OverviewType;   // ✅ dynamic data
+  overview?: OverviewType;
   teamName?: string;
 }
 
+/* ================= ICONS ================= */
+
+const GroupIcon: React.FC<{ color: string }> = ({ color }) => (
+  <svg
+    width="13"
+    height="13"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ display: "block", flexShrink: 0 }}
+  >
+    <circle cx="5" cy="6" r="2" stroke={color} strokeWidth="1.4" />
+    <circle cx="11" cy="6" r="2" stroke={color} strokeWidth="1.4" />
+    <path
+      d="M1 14c0-2 1.5-3.2 4-3.2M15 14c0-2-1.5-3.2-4-3.2M8 10.8c-2.5 0-4 1.2-4 3.2M8 10.8c2.5 0 4 1.2 4 3.2"
+      stroke={color}
+      strokeWidth="1.4"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+const LeadIcon: React.FC<{ color: string }> = ({ color }) => (
+  <svg
+    width="9"
+    height="9"
+    viewBox="0 0 16 16"
+    fill="none"
+    style={{ display: "block", flexShrink: 0 }}
+  >
+    <circle cx="8" cy="5.5" r="2.8" stroke={color} strokeWidth="1.6" />
+    <path
+      d="M2.5 14c0-3 2.5-4.5 5.5-4.5s5.5 1.5 5.5 4.5"
+      stroke={color}
+      strokeWidth="1.6"
+      strokeLinecap="round"
+    />
+  </svg>
+);
+
+/* ================= COMPONENT ================= */
+
 export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
   overview,
-  teamName = "IP Core",
+  teamName = "",
 }) => {
   const theme = useTheme();
 
-  // If API still loading
   if (!overview) return null;
 
-  // ----------------{ Level Style Map }----------------
-  const levelStyles: Record<
-    string,
-    { bg: string; color: string }
-  > = {
-    L1: { bg: "#E3F2FD", color: "#1976D2" },
-    L2: { bg: "#E8F5E9", color: "#2E7D32" },
-    L3: { bg: "#FFF3E0", color: "#ED6C02" },
-    L4: { bg: "#FDECEA", color: "#C62828" },
-    TOTAL: { bg: "#EDE7F6", color: "#512DA8" },
+  const levels = [
+    { key: "L1", count: overview.l1Count, bg: "#EBF5FF", color: "#1565C0" },
+    { key: "L2", count: overview.l2Count, bg: "#EDFBF0", color: "#1B5E20" },
+    { key: "L3", count: overview.l3Count, bg: "#FFF8EE", color: "#BF360C" },
+    { key: "L4", count: overview.l4Count, bg: "#FFF0EE", color: "#B71C1C" },
+  ];
+
+  const totalStyle = {
+    bg: "#F0EEFF",
+    color: "#311B92",
+    subColor: "#7E57C2",
+  };
+
+  const borderColor =
+    theme.palette.mode === "dark"
+      ? "rgba(255,255,255,0.1)"
+      : "rgba(0,0,0,0.08)";
+
+  const segBorder = `1px solid ${borderColor}`;
+
+  const segHover = {
+    cursor: "default",
+    transition: "filter 0.2s ease",
+    "&:hover": { filter: "brightness(0.93)" },
   };
 
   return (
-    <Card
+    <Box
       sx={{
-        p: 0.5,
-        borderRadius: 3,
-        boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+        display: "flex",
+        alignItems: "stretch",
+        border: segBorder,
+        borderRadius: "10px",
+        overflow: "hidden",
+        width: "100%",
+        height: "44px",
       }}
     >
+      {/* ──────────── Identity panel ──────────── */}
       <Box
         sx={{
           display: "flex",
-          justifyContent: "space-between",
           alignItems: "center",
-          flexWrap: "wrap",
-          gap: 2,
+          gap: "10px",
+          px: "14px",
+          borderRight: segBorder,
+          flexShrink: 0,
+          minWidth: "190px",
+          bgcolor: "background.paper",
         }}
       >
-        {/* ---------------- LEFT SIDE ---------------- */}
-        <Box display="flex" alignItems="center" gap={2}>
-          <Avatar
+        <Avatar
+          sx={{
+            background: "linear-gradient(135deg, #5C6BC0, #7986CB)",
+            width: 26,
+            height: 26,
+            fontSize: "9px",
+            fontWeight: 600,
+            letterSpacing: "0.04em",
+          }}
+        >
+          {teamName.slice(0, 2).toUpperCase()}
+        </Avatar>
+
+        <Box sx={{ overflow: "hidden" }}>
+          <Typography
+            noWrap
             sx={{
-              bgcolor: "#5C6BC0",
-              width: 35,
-              height: 35,
+              fontSize: "12.5px",
               fontWeight: 600,
+              color: "text.primary",
+              lineHeight: 1.25,
             }}
           >
-            {teamName.slice(0, 2).toUpperCase()}
-          </Avatar>
+            {teamName}
+          </Typography>
 
-          <Box>
-            <Typography fontWeight={700}>
-              {teamName}
-            </Typography>
-
+          <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
+            <LeadIcon color={theme.palette.text.disabled} />
             <Typography
-              variant="body1"
-              sx={{ color: "text.secondary" }}
+              noWrap
+              sx={{
+                fontSize: "10px",
+                color: "text.disabled",
+                lineHeight: 1.25,
+              }}
             >
-              Team Head:{" "}
-              <Typography
-                component="span"
-                fontWeight={600}
-                color="text.primary"
-              >
-                {overview.teamLead}
-              </Typography>
+              {overview.teamLead ?? "Not assigned"}
             </Typography>
           </Box>
         </Box>
+      </Box>
 
-        {/* ---------------- RIGHT SIDE (Responsive Chips) ---------------- */}
+      {/* ──────────── Level segments ──────────── */}
+      {levels.map((lvl) => (
         <Box
+          key={lvl.key}
           sx={{
+            flex: 1,
             display: "flex",
-            flexWrap: "wrap",
-            gap: 2,
-            justifyContent: { xs: "flex-start", md: "flex-end" },
+            alignItems: "center",
+            justifyContent: "center",
+            px: "10px",
+            bgcolor: lvl.bg,
+            borderRight: segBorder,
+            ...segHover,
           }}
         >
-          <Chip
-            label={`L1: ${overview.l1Count}`}
-            sx={{
-              backgroundColor: levelStyles.L1.bg,
-              color: levelStyles.L1.color,
-              fontWeight: 600,
-              borderRadius: "8px",
-            }}
-          />
-
-          <Chip
-            label={`L2: ${overview.l2Count}`}
-            sx={{
-              backgroundColor: levelStyles.L2.bg,
-              color: levelStyles.L2.color,
-              fontWeight: 600,
-              borderRadius: "8px",
-            }}
-          />
-
-          <Chip
-            label={`L3: ${overview.l3Count}`}
-            sx={{
-              backgroundColor: levelStyles.L3.bg,
-              color: levelStyles.L3.color,
-              fontWeight: 600,
-              borderRadius: "8px",
-            }}
-          />
-
-          <Chip
-            label={`L4: ${overview.l4Count}`}
-            sx={{
-              backgroundColor: levelStyles.L4.bg,
-              color: levelStyles.L4.color,
-              fontWeight: 600,
-              borderRadius: "8px",
-            }}
-          />
-
-          <Chip
-            label={`Total (Active): ${overview.totalCount}`}
-            sx={{
-              backgroundColor: levelStyles.TOTAL.bg,
-              color: levelStyles.TOTAL.color,
-              fontWeight: 700,
-              borderRadius: "8px",
-              px: 1,
-            }}
-          />
+          {/*
+           * Label + Count sit at baseline alignment.
+           * Label: small (10px) + semi-transparent → reads as a "key"
+           * Count: large (17px) + bold             → reads as the "value"
+           * The size gap is the readability fix.
+           */}
+          <Box sx={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+            <Typography
+              sx={{
+                fontSize: "10px",
+                fontWeight: 600,
+                letterSpacing: "0.04em",
+                color: lvl.color,
+                opacity: 0.65,
+                lineHeight: 1,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {lvl.key}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: "17px",
+                fontWeight: 700,
+                color: lvl.color,
+                lineHeight: 1,
+              }}
+            >
+              {lvl.count}
+            </Typography>
+          </Box>
         </Box>
+      ))}
+
+      {/* ──────────── Total segment ──────────── */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "7px",
+          px: "16px",
+          flexShrink: 0,
+          bgcolor: totalStyle.bg,
+          borderLeft: segBorder,
+          ...segHover,
+        }}
+      >
+        <GroupIcon color={totalStyle.color} />
+
+        <Box sx={{ display: "flex", alignItems: "baseline", gap: "4px" }}>
+          <Typography
+            sx={{
+              fontSize: "10px",
+              fontWeight: 600,
+              letterSpacing: "0.04em",
+              color: totalStyle.color,
+              opacity: 0.65,
+              lineHeight: 1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            TOTAL
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: "17px",
+              fontWeight: 700,
+              color: totalStyle.color,
+              lineHeight: 1,
+            }}
+          >
+            {overview.totalCount}
+          </Typography>
+        </Box>
+
+        <Typography
+          sx={{
+            fontSize: "10px",
+            color: totalStyle.subColor,
+            lineHeight: 1,
+            alignSelf: "center",
+          }}
+        >
+          (active)
+        </Typography>
       </Box>
-    </Card>
+    </Box>
   );
 };
 
 // import React from "react";
-// import { Card, Box, Typography, useTheme } from "@mui/material";
-// import { tokens } from "../../../../style/theme";
-// import type { TeamDataEntryType } from "../../types/TeamDataEntryType";
+// import {
+//   // Card,
+//   Box,
+//   Typography,
+//   Avatar,
+//   Chip,
+//   useTheme,
+// } from "@mui/material";
+
+// /* ================= OVERVIEW TYPE ================= */
+
+// interface OverviewType {
+//   l1Count: number;
+//   l2Count: number;
+//   l3Count: number;
+//   l4Count: number;
+//   teamLead: string;
+//   totalCount: number;
+// }
 
 // interface TeamTopInfoCardProps {
-//   levelCount: TeamDataEntryType[];
+//   overview?: OverviewType;   // dynamic data
+//   teamName?: string;
 // }
 
 // export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
-//   levelCount,
+//   overview,
+//   teamName = "",
 // }) => {
 //   const theme = useTheme();
-//   const colors = tokens(theme.palette.mode);
 
-//   const activeMembers = levelCount.filter(
-//     (item) => item.status?.toLowerCase() === "active",
-//   );
+//   // If API still loading
+//   if (!overview) return null;
 
-//   const levelCounts = activeMembers.reduce(
-//     (acc, item) => {
-//       acc[item.level] = (acc[item.level] || 0) + 1;
-//       return acc;
-//     },
-//     {} as Record<string, number>,
-//   );
-
-//   const totalActive = activeMembers.length;
-
-//   const Stat = ({
-//     label,
-//     value,
-//     highlight = false,
-//   }: {
-//     label: string;
-//     value: number;
-//     highlight?: boolean;
-//   }) => (
-//     <Box
-//       sx={{
-//         display: "flex",
-//         alignItems: "center",
-//         gap: 0.5,
-//         px: highlight ? 2 : 0,
-//         py: highlight ? 0.5 : 0,
-//         borderRadius: 1,
-//         bgcolor: highlight ? "#1E3A8A" : "transparent",
-//         color: highlight ? "#fff" : "inherit",
-//       }}
-//     >
-//       <Typography fontWeight={600}>{label}:</Typography>
-//       <Typography fontWeight={700}>{value}</Typography>
-//     </Box>
-//   );
+//   // ----------------{ Level Style Map }----------------
+//   const levelStyles: Record<
+//     string,
+//     { bg: string; color: string }
+//   > = {
+//     L1: { bg: "#E3F2FD", color: "#1976D2" },
+//     L2: { bg: "#E8F5E9", color: "#2E7D32" },
+//     L3: { bg: "#FFF3E0", color: "#ED6C02" },
+//     L4: { bg: "#FDECEA", color: "#C62828" },
+//     TOTAL: { bg: "#EDE7F6", color: "#512DA8" },
+//   };
 
 //   return (
-//     <Card sx={{ p: 2, borderRadius: 2, boxShadow: 1 }}>
+//     <Box
+//       sx={{
+//         // p: 0.5,
+//         borderRadius: 3,
+//         // boxShadow: "0 2px 8px rgba(0,0,0,0.08)",
+//       }}
+//     >
 //       <Box
 //         sx={{
 //           display: "flex",
@@ -227,28 +329,101 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
 //           gap: 2,
 //         }}
 //       >
-//         <Typography variant="h6" fontWeight={700}>
-//           IP Core • Pankaj Chaudhary
-//         </Typography>
+//         {/* ---------------- LEFT SIDE ---------------- */}
+//         <Box display="flex" alignItems="center" gap={2}>
+//           <Avatar
+//             sx={{
+//               bgcolor: "#5C6BC0",
+//               width: 30,
+//               height: 30,
+//               fontWeight: 600,
+//             }}
+//           >
+//             {teamName.slice(0, 2).toUpperCase()}
+//           </Avatar>
 
+//           <Box>
+//             <Typography fontWeight={700}>
+//               {teamName}
+//             </Typography>
+
+//             <Typography
+//               variant="body1"
+//               sx={{ color: "text.secondary" }}
+//             >
+//               Team Head:{" "}
+//               <Typography
+//                 component="span"
+//                 fontWeight={600}
+//                 color="text.primary"
+//               >
+//                 {overview.teamLead}
+//               </Typography>
+//             </Typography>
+//           </Box>
+//         </Box>
+
+//         {/* ---------------- RIGHT SIDE (Responsive Chips) ---------------- */}
 //         <Box
 //           sx={{
 //             display: "flex",
-//             alignItems: "center",
-//             gap: 3,
-//             "& > *:not(:last-child)": {
-//               borderRight: "1px solid #e0e0e0",
-//               pr: 2,
-//             },
+//             flexWrap: "wrap",
+//             gap: 2,
+//             justifyContent: { xs: "flex-start", md: "flex-end" },
 //           }}
 //         >
-//           <Stat label="L1" value={levelCounts["L1"] || 10000} />
-//           <Stat label="L2" value={levelCounts["L2"] || 920} />
-//           <Stat label="L3" value={levelCounts["L3"] || 890} />
-//           <Stat label="L4" value={levelCounts["L4"] || 870} />
-//           <Stat label="Total (Active)" value={totalActive} highlight />
+//           <Chip
+//             label={`L1: ${overview.l1Count}`}
+//             sx={{
+//               backgroundColor: levelStyles.L1.bg,
+//               color: levelStyles.L1.color,
+//               fontWeight: 600,
+//               borderRadius: "8px",
+//             }}
+//           />
+
+//           <Chip
+//             label={`L2: ${overview.l2Count}`}
+//             sx={{
+//               backgroundColor: levelStyles.L2.bg,
+//               color: levelStyles.L2.color,
+//               fontWeight: 600,
+//               borderRadius: "8px",
+//             }}
+//           />
+
+//           <Chip
+//             label={`L3: ${overview.l3Count}`}
+//             sx={{
+//               backgroundColor: levelStyles.L3.bg,
+//               color: levelStyles.L3.color,
+//               fontWeight: 600,
+//               borderRadius: "8px",
+//             }}
+//           />
+
+//           <Chip
+//             label={`L4: ${overview.l4Count}`}
+//             sx={{
+//               backgroundColor: levelStyles.L4.bg,
+//               color: levelStyles.L4.color,
+//               fontWeight: 600,
+//               borderRadius: "8px",
+//             }}
+//           />
+
+//           <Chip
+//             label={`Total (Active): ${overview.totalCount}`}
+//             sx={{
+//               backgroundColor: levelStyles.TOTAL.bg,
+//               color: levelStyles.TOTAL.color,
+//               fontWeight: 700,
+//               borderRadius: "8px",
+//               px: 1,
+//             }}
+//           />
 //         </Box>
 //       </Box>
-//     </Card>
+//     </Box>
 //   );
 // };

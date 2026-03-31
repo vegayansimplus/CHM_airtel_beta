@@ -23,6 +23,8 @@ import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
 import NotificationManagerMain from "../features/userMe/pages/NotificationManagerMain";
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/PlanAndInventoryMain";
+import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
+import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -70,7 +72,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="/home" element={<HomeDashboard />} />
           <Route
             path="/homedashboard"
-            element={<CommonContainer>Hello</CommonContainer>}
+            element={<Dashboard/>}
           />
         </Route>
         <Route
@@ -175,7 +177,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
-          <Route path="crqWorkflow" element={<PlanAndInventoryMain/>} />
+          <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
           <Route
             path="action"
             element={
@@ -184,6 +186,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
               </>
             }
           />
+
+          <Route path="crqWorkflow/:crqNo" element={<CrqDetailedView />} />
         </Route>
 
         <Route

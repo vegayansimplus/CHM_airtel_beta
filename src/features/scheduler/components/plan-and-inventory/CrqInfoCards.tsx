@@ -143,12 +143,14 @@ const InfoBlock = ({
     }}
   >
     <Typography
+      component="div"
       variant="caption"
       sx={{ color: colors.textSecondary, mb: 0.5, fontSize: "0.75rem" }}
     >
       {label}
     </Typography>
     <Typography
+      component="div"
       variant="body2"
       sx={{ fontWeight: 600, color: colors.textPrimary }}
     >

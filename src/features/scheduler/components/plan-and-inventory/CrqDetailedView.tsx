@@ -1,15 +1,11 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
-import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
-// import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
-
-import VisibilityIcon from "@mui/icons-material/Visibility";
+import { useParams } from "react-router"; 
 import {
   Box,
   Typography,
   IconButton,
   Tooltip,
   Stack,
-  Button,
   TextField,
   Chip,
   InputAdornment,
@@ -21,7 +17,8 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
+
+// Icons
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -32,15 +29,10 @@ import { useGetImpactAnalysisQuery } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
-import CustomActionButton from "../../../../components/common/CustomActionButton";
-import { PlanInvDialog } from "../dialog/PlanInvDialog";
 
-interface PlanAndInventoryPageProps {
-  domainId?: number;
-  subDomainId?: number;
-}
-
+// ─────────────────────────────────────────────────────────────────────────────
 // Global Styles
+// ─────────────────────────────────────────────────────────────────────────────
 const PlanPageGlobalStyles = (
   <GlobalStyles
     styles={{
@@ -49,18 +41,11 @@ const PlanPageGlobalStyles = (
         to: { opacity: 1, transform: "translateY(0)" },
       },
       ".crq-card": { animation: "fadeSlideIn 0.22s ease both" },
-      ".crq-card:nth-of-type(1)": { animationDelay: "0.02s" },
-      ".crq-card:nth-of-type(2)": { animationDelay: "0.05s" },
-      ".crq-card:nth-of-type(3)": { animationDelay: "0.08s" },
-      ".crq-card:nth-of-type(4)": { animationDelay: "0.11s" },
-      ".crq-card:nth-of-type(n+5)": { animationDelay: "0.14s" },
-
       ".expand-chevron": {
         transition: "transform 0.22s cubic-bezier(.4,0,.2,1)",
         display: "flex",
       },
       ".expand-chevron.open": { transform: "rotate(90deg)" },
-
       ".plan-table-scroll::-webkit-scrollbar": { height: "6px", width: "6px" },
       ".plan-table-scroll::-webkit-scrollbar-track": {
         background: "transparent",
@@ -72,23 +57,22 @@ const PlanPageGlobalStyles = (
 
 type Colors = ReturnType<typeof useTabColorTokens>;
 
+// ─────────────────────────────────────────────────────────────────────────────
+// DetailPanel Wrapper
+// ─────────────────────────────────────────────────────────────────────────────
 interface DetailPanelProps {
   plan: any;
   openCrqs: Record<string, boolean>;
-  selectedCrq: any;
   colors: Colors;
   onToggle: (id: string) => void;
-  onSelect: (crq: any) => void;
   onStartPause: (crq: any) => void;
 }
 
 const DetailPanel: React.FC<DetailPanelProps> = ({
   plan,
   openCrqs,
-  selectedCrq,
   colors,
   onToggle,
-  onSelect,
   onStartPause,
 }) => (
   <Box
@@ -117,7 +101,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           textTransform: "uppercase",
         }}
       >
-        CRQs
+        CRQ DETAILS
       </Typography>
       <Chip
         label={plan.crqs?.length ?? 0}
@@ -161,16 +145,10 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           crq={crq}
           plan={plan}
           colors={colors}
-          isOpen={!!openCrqs[crq.crqNo]}
-          isSelected={selectedCrq?.crqNo === crq.crqNo}
+          isOpen={!!openCrqs[crq.crqNo]} // Controls if tasks expand
+          isSelected={false} // Selection checkbox is ignored in detail view
           onToggle={() => onToggle(crq.crqNo)}
-          onSelect={() =>
-            onSelect(
-              selectedCrq?.crqNo === crq.crqNo
-                ? null
-                : { ...crq, planNumber: plan.planNumber },
-            )
-          }
+          onSelect={() => {}} // Disabled in this view
           onStartPause={() => onStartPause(crq)}
         />
       ))
@@ -178,53 +156,71 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   </Box>
 );
 
-export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
-  domainId,
-  subDomainId,
-}) => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────────────────────────────────────
+export const CrqDetailedView: React.FC = () => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
+  const { crqNo } = useParams<{ crqNo: string }>();
 
-  const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
-  const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
-  const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
+  // ─── ALL HOOKS DECLARED FIRST (unconditionally) ───
+
+  // State hooks
+  const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({
+    [crqNo as string]: true,
+  });
+  const [singlePlan, setSinglePlan] = useState<Plan[]>([]);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
 
+  // Query hook
   const {
     data: impactData,
-    isLoading,
+    // isLoading,
     isError,
     error,
-  } = useGetImpactAnalysisQuery(
-    {
-      domainId: domainId ?? 1,
-      subDomainId: subDomainId ?? 1,
-    },
-    {
-      skip: !domainId || !subDomainId,
-    },
-  );
+  } = useGetImpactAnalysisQuery({
+    domainId: 1,
+    subDomainId: 1,
+  });
 
+  // Effect hooks
   useEffect(() => {
-    if (impactData?.plans) {
-      setPlansOriginal(impactData.plans);
+    if (!impactData?.plans?.length) {
+      setSinglePlan([]);
+      return;
     }
-  }, [impactData]);
+
+    const parentPlan = impactData.plans.find((p) =>
+      p.crqs?.some((c) => c.crqNo === crqNo),
+    );
+
+    if (parentPlan) {
+      const isolatedPlan = {
+        ...parentPlan,
+        crqs: parentPlan.crqs.filter((c) => c.crqNo === crqNo),
+      };
+      setSinglePlan([isolatedPlan]);
+    } else {
+      setSinglePlan([]);
+    }
+  }, [impactData, crqNo]);
 
   useEffect(() => {
     const t = setTimeout(() => setGlobalSearch(globalSearchInput), 300);
     return () => clearTimeout(t);
   }, [globalSearchInput]);
 
+  // Callback hooks
   const handleStartPauseReview = useCallback((crq: any) => {
     const isRunning =
       (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
-    setPlansOriginal((prev) =>
+    setSinglePlan((prev) =>
       prev.map((plan) => ({
         ...plan,
-        crqs: plan.crqs.map((c) =>
+        crqs: plan.crqs.map((c: any) =>
           c.crqNo === crq.crqNo
             ? {
                 ...c,
@@ -236,8 +232,8 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     );
   }, []);
 
-  const toggleFullScreen = () => {
-    const elem = document.getElementById("planning-container");
+  const toggleFullScreen = useCallback(() => {
+    const elem = document.getElementById("detailed-planning-container");
     if (!document.fullscreenElement) {
       elem?.requestFullscreen();
       setIsFullscreen(true);
@@ -245,15 +241,18 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       document.exitFullscreen();
       setIsFullscreen(false);
     }
-  };
+  }, []);
 
-  const toggleCrq = (id: string) =>
-    setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] }));
+  const toggleCrq = useCallback(
+    (id: string) => setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] })),
+    [],
+  );
 
+  // Memo hooks
   const filteredPlans = useMemo(() => {
-    if (!globalSearch) return plansOriginal;
+    if (!globalSearch) return singlePlan;
     const g = globalSearch.trim();
-    return plansOriginal
+    return singlePlan
       .map((plan: any) => {
         const match = deepSearch(plan, g);
         const crqs = (plan.crqs || []).filter((c: any) => deepSearch(c, g));
@@ -261,7 +260,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         return { ...plan, crqs: g ? crqs : plan.crqs };
       })
       .filter(Boolean);
-  }, [plansOriginal, globalSearch]);
+  }, [singlePlan, globalSearch]);
 
   const columns = useMemo<MRT_ColumnDef<any>[]>(
     () => [
@@ -318,142 +317,103 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     [colors],
   );
 
-  const [openReviewDialog, setOpenReviewDialog] = useState(false);
-
-  const handleOpenReviewDialog = () => {
-    if (!selectedCrq) return;
-    setOpenReviewDialog(true);
-  };
-
-  const handleCloseReviewDialog = () => {
-    setOpenReviewDialog(false);
-  };
-  const renderTopToolbarCustomActions = () => (
-    <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
-      <TextField
-        size="small"
-        placeholder="Search plans, CRQs, tasks…"
-        value={globalSearchInput}
-        onChange={(e) => setGlobalSearchInput(e.target.value)}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchRoundedIcon sx={{ fontSize: 15, color: colors.textDim }} />
-            </InputAdornment>
-          ),
-          sx: {
-            fontSize: 13,
-            height: 34,
-            borderRadius: "9px",
-            bgcolor: colors.trackOff,
-            color: colors.textPrimary,
-            "& fieldset": { borderColor: colors.border },
-            "&:hover fieldset": {
-              borderColor: `${colors.accentBorder} !important`,
-            },
-            "&.Mui-focused fieldset": {
-              borderColor: `${colors.accent} !important`,
-              borderWidth: "1.5px !important",
-            },
-            "& input::placeholder": { color: colors.textDim, opacity: 1 },
-          },
-        }}
-        sx={{ width: 260 }}
-      />
-      <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-        <IconButton
+  const renderTopToolbarCustomActions = useCallback(
+    () => (
+      <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
+        <TextField
           size="small"
-          onClick={toggleFullScreen}
-          sx={{
-            width: 34,
-            height: 34,
-            borderRadius: "9px",
-            bgcolor: colors.trackOff,
-            color: colors.textSecondary,
-            border: `1px solid ${colors.border}`,
-            transition: "all 0.15s ease",
-            "&:hover": {
+          placeholder="Search tasks, details..."
+          value={globalSearchInput}
+          onChange={(e) => setGlobalSearchInput(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchRoundedIcon
+                  sx={{ fontSize: 15, color: colors.textDim }}
+                />
+              </InputAdornment>
+            ),
+            sx: {
+              fontSize: 13,
+              height: 34,
+              borderRadius: "9px",
+              bgcolor: colors.trackOff,
+              color: colors.textPrimary,
+              "& fieldset": { borderColor: colors.border },
+              "&:hover fieldset": {
+                borderColor: `${colors.accentBorder} !important`,
+              },
+              "&.Mui-focused fieldset": {
+                borderColor: `${colors.accent} !important`,
+                borderWidth: "1.5px !important",
+              },
+            },
+          }}
+          sx={{ width: 260 }}
+        />
+        <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+          <IconButton
+            size="small"
+            onClick={toggleFullScreen}
+            sx={{
+              width: 34,
+              height: 34,
+              borderRadius: "9px",
+              bgcolor: colors.trackOff,
+              color: colors.textSecondary,
+              border: `1px solid ${colors.border}`,
+              "&:hover": {
+                bgcolor: colors.accentDim,
+                color: colors.accent,
+                borderColor: colors.accentBorder,
+              },
+            }}
+          >
+            {isFullscreen ? (
+              <FullscreenExitIcon sx={{ fontSize: 17 }} />
+            ) : (
+              <FullscreenIcon sx={{ fontSize: 17 }} />
+            )}
+          </IconButton>
+        </Tooltip>
+        <Stack direction="row" spacing={0.8}>
+          <Chip
+            label={`Target CRQ: ${crqNo}`}
+            size="small"
+            sx={{
+              height: 24,
+              fontSize: 11,
+              fontWeight: 700,
               bgcolor: colors.accentDim,
               color: colors.accent,
-              borderColor: colors.accentBorder,
-            },
-          }}
-        >
-          {isFullscreen ? (
-            <FullscreenExitIcon sx={{ fontSize: 17 }} />
-          ) : (
-            <FullscreenIcon sx={{ fontSize: 17 }} />
-          )}
-        </IconButton>
-      </Tooltip>
-
-      {/* Button opens route in a new tab */}
-      <CustomActionButton
-        label="View Selected CRQ"
-        disabled={!selectedCrq}
-        url={
-          selectedCrq
-            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}`
-            : undefined
-        }
-        colors={colors}
-      />
-
-      <CustomActionButton
-        label="Review CRQ"
-        disabled={!selectedCrq}
-        onClick={handleOpenReviewDialog}
-        startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-        colors={colors}
-      />
-
-      <Stack direction="row" spacing={0.8}>
-        <Chip
-          label={`${filteredPlans.length} plans`}
-          size="small"
-          sx={{
-            height: 24,
-            fontSize: 11,
-            fontWeight: 700,
-            bgcolor: colors.accentDim,
-            color: colors.accent,
-            border: `1px solid ${colors.accentBorder}`,
-          }}
-        />
-        <Chip
-          label={`${filteredPlans.reduce((a: number, p: any) => a + (p.crqs?.length || 0), 0)} CRQs`}
-          size="small"
-          sx={{
-            height: 24,
-            fontSize: 11,
-            fontWeight: 700,
-            bgcolor: colors.infoDim,
-            color: colors.info,
-            border: `1px solid ${colors.infoBorder}`,
-          }}
-        />
+              border: `1px solid ${colors.accentBorder}`,
+            }}
+          />
+        </Stack>
       </Stack>
-    </Stack>
+    ),
+    [globalSearchInput, toggleFullScreen, isFullscreen, crqNo, colors],
   );
 
   const table = useMaterialReactTable({
     columns,
     data: filteredPlans,
-    enableSorting: true,
-    enablePagination: true,
+    enableSorting: false,
+    enablePagination: false,
     renderDetailPanel: ({ row }) => (
       <DetailPanel
         plan={row.original}
         openCrqs={openCrqs}
-        selectedCrq={selectedCrq}
         colors={colors}
         onToggle={toggleCrq}
-        onSelect={setSelectedCrq} // <--- FIXED: Only updates state!
         onStartPause={handleStartPauseReview}
       />
     ),
     renderTopToolbarCustomActions,
-    initialState: { density: "compact" },
+    initialState: {
+      density: "compact",
+      expanded: true,
+    },
     muiDetailPanelProps: { sx: { padding: 0 } },
     muiTablePaperProps: {
       elevation: 0,
@@ -468,34 +428,15 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       sx: {
         fontSize: "11px !important",
         fontWeight: "700 !important",
-        letterSpacing: "0.55px !important",
-        textTransform: "uppercase !important",
         color: `${colors.textSecondary} !important`,
         bgcolor: colors.isDark
           ? "rgba(255,255,255,0.025)"
           : "rgba(248,250,252,0.95)",
         borderBottom: `1px solid ${colors.border} !important`,
-        py: "10px !important",
       },
     },
     muiTableBodyCellProps: {
-      sx: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        borderBottom: `1px solid ${colors.border}`,
-        py: "8px !important",
-      },
-    },
-    muiTableBodyRowProps: {
-      sx: {
-        transition: "background 0.12s ease",
-        cursor: "pointer",
-        "&:hover td": {
-          bgcolor: colors.isDark
-            ? "rgba(99,102,241,0.04)"
-            : "rgba(99,102,241,0.025)",
-        },
-      },
+      sx: { fontSize: 13, borderBottom: `1px solid ${colors.border}` },
     },
     muiTopToolbarProps: {
       sx: {
@@ -506,52 +447,27 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         minHeight: 52,
       },
     },
-    muiBottomToolbarProps: {
-      sx: {
-        bgcolor: colors.isDark
-          ? "rgba(255,255,255,0.01)"
-          : "rgba(248,250,252,0.7)",
-        borderTop: `1px solid ${colors.border}`,
-        minHeight: 44,
-      },
-    },
-    muiTableContainerProps: {
-      className: "plan-table-scroll",
-      sx: {
-        maxHeight: "calc(100vh - 280px)",
-        "&::-webkit-scrollbar-thumb": {
-          backgroundColor: colors.isDark ? "#1F2937" : "#CBD5E1",
-        },
-      },
-    },
+    muiBottomToolbarProps: { sx: { display: "none" } },
   });
 
-  if (!domainId || !subDomainId) {
+  // ─── EARLY RETURNS (after all hooks) ───
+
+  if (isError) {
     return (
-      <Box
-        sx={{
-          width: "100%",
-          minHeight: "calc(100vh - 220px)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexDirection: "column",
-        }}
-      >
-        <img src={FilterSvg} alt="Select Filter" width={850} />
+      <Box id="detailed-planning-container" sx={{ p: 3 }}>
+        <Typography color="error">
+          Failed to load CRQ details.{" "}
+          {(error as any)?.error || "Please refresh."}
+        </Typography>
       </Box>
     );
   }
 
-  if (isError) {
+  if (!singlePlan.length) {
     return (
-      <Box
-        id="planning-container"
-        sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
-      >
-        <Typography color="error">
-          An error occurred while fetching impact analysis data.{" "}
-          {(error as any)?.error || "Please retry."}
+      <Box id="detailed-planning-container" sx={{ p: 3 }}>
+        <Typography sx={{ color: colors.textPrimary }}>
+          No CRQ found for {crqNo}.
         </Typography>
       </Box>
     );
@@ -559,23 +475,11 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
 
   return (
     <Box
-      id="planning-container"
+      id="detailed-planning-container"
       sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
     >
       {PlanPageGlobalStyles}
       <MaterialReactTable table={table} />
-
-      <PlanInvDialog
-        open={openReviewDialog}
-        onClose={() => setOpenReviewDialog(false)}
-        crq={selectedCrq}
-        colors={colors}
-        onSubmit={(data) => {
-          console.log("Review Submitted:", data);
-        }}
-      />
     </Box>
   );
 };
-
-export default PlanAndInventoryPage;
