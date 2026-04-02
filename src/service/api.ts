@@ -18,5 +18,6 @@ export const api = createApi({
     "RosterVIew",
     "Leave",
     "NotificationCount",
+    "ImpactAnalysis",
   ],
 });

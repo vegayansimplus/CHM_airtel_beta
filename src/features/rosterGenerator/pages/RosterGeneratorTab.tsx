@@ -3,6 +3,7 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
+import { useTabColorTokens } from "../../../style/theme";
 
 interface RosterGeneratorTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -16,14 +17,14 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
-
+  const bg = useTabColorTokens(theme);
   if (!user) return null;
 
   const activeTab = useMemo(() => {
     const segments = location.pathname.split("/");
     const lastSegment = segments[segments.length - 1];
 
-    // ✅ ensure correct tab detection
+    //  ensure correct tab detection
     if (["rostergeneration"].includes(lastSegment)) {
       return lastSegment;
     }
@@ -48,7 +49,8 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
   return (
     <Box
       sx={{
-        backgroundColor: theme.palette.background.paper,
+        // backgroundColor: theme.palette.background.paper,
+        backgroundColor: bg.accentDim,
         maxWidth: "100%",
         height: "auto",
         pl: 8,
@@ -130,8 +132,8 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
         >
           <Tab
             label="Shift Scheduler"
-            value="rostergeneration" // ✅ must match route
-            to="rostergeneration"   // ✅ must match route
+            value="rostergeneration" //  must match route
+            to="rostergeneration" //  must match route
             component={Link}
           />
         </Tabs>

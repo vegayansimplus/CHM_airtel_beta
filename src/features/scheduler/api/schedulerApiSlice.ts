@@ -19,7 +19,7 @@ export const rosterApiSlice = api.injectEndpoints({
           subDomainId,
         },
       }),
-      providesTags: ["RosterVIew"],
+      providesTags: ["ImpactAnalysis"],
     }),
     getCurrentShiftCount: builder.query<number, void>({
       query: () => ({
@@ -27,10 +27,29 @@ export const rosterApiSlice = api.injectEndpoints({
         method: "GET",
       }),
     }),
+    updateImpactAnalysisStatus: builder.mutation<
+      any,
+      {
+        crqNo: string;
+        crqId: number;
+        action: "pause" | "start";
+      }
+    >({
+      query: ({ crqNo, crqId, action }) => ({
+        url: `/crqworkflow/updateimpactanalysis/${action}`,
+        method: "POST",
+        params: {
+          crqNo,
+          crqId,
+        },
+      }),
+      invalidatesTags: ["ImpactAnalysis"],
+    }),
   }),
 });
 
 export const {
   useGetImpactAnalysisQuery,
   useGetCurrentShiftCountQuery,
+  useUpdateImpactAnalysisStatusMutation,
 } = rosterApiSlice;

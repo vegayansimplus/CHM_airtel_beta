@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
 // import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 
@@ -28,12 +29,12 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useGetImpactAnalysisQuery } from "../../api/schedulerApiSlice";
+import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
-import { PlanInvDialog } from "../dialog/PlanInvDialog";
+import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 
 interface PlanAndInventoryPageProps {
   domainId?: number;
@@ -184,6 +185,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
 }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
+  const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
 
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
@@ -218,23 +220,61 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     return () => clearTimeout(t);
   }, [globalSearchInput]);
 
-  const handleStartPauseReview = useCallback((crq: any) => {
-    const isRunning =
-      (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
-    setPlansOriginal((prev) =>
-      prev.map((plan) => ({
-        ...plan,
-        crqs: plan.crqs.map((c) =>
-          c.crqNo === crq.crqNo
-            ? {
-                ...c,
-                impactAnalysisStatus: isRunning ? "Paused" : "In Progress",
-              }
-            : c,
-        ),
-      })),
-    );
-  }, []);
+  const handleStartPauseReview = useCallback(
+    async (crq: any) => {
+      try {
+        const isRunning =
+          (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
+        const action = isRunning ? "pause" : "start";
+
+        // Call API to update status
+        const response = await updateImpactAnalysisStatus({
+          crqNo: crq.crqNo,
+          crqId: crq.crqId,
+          action,
+        }).unwrap();
+
+        // Show success toast
+        toast.success(response?.message || "Updated successfully.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Update local state
+        setPlansOriginal((prev) =>
+          prev.map((plan) => ({
+            ...plan,
+            crqs: plan.crqs.map((c) =>
+              c.crqNo === crq.crqNo
+                ? {
+                    ...c,
+                    impactAnalysisStatus: isRunning ? "Paused" : "In Progress",
+                  }
+                : c,
+            ),
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to update impact analysis status:", error);
+        toast.error(
+          (error as any)?.data?.message || "Failed to update status. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          },
+        );
+      }
+    },
+    [updateImpactAnalysisStatus],
+  );
 
   const toggleFullScreen = () => {
     const elem = document.getElementById("planning-container");
@@ -448,7 +488,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         selectedCrq={selectedCrq}
         colors={colors}
         onToggle={toggleCrq}
-        onSelect={setSelectedCrq} // <--- FIXED: Only updates state!
+        onSelect={setSelectedCrq}
         onStartPause={handleStartPauseReview}
       />
     ),

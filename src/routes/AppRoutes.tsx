@@ -25,6 +25,8 @@ import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionM
 import { PlanAndInventoryMain } from "../features/scheduler/page/PlanAndInventoryMain";
 import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
 import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
+import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
+import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -178,6 +180,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
+          <Route path="activityviewandsetup" element={<ActivityViewAndSetupMain />} />
           <Route
             path="action"
             element={
@@ -204,7 +207,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="rostergeneration" replace />} />
-          <Route path="rostergeneration" element={<>Roster Generation</>} />
+          <Route path="rostergeneration" element={<RosterGenerationMain/>} />
           <Route
             path="test"
             element={
