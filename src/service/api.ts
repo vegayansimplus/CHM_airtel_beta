@@ -19,5 +19,8 @@ export const api = createApi({
     "Leave",
     "NotificationCount",
     "ImpactAnalysis",
+    "CrqReview",
+    "MopCreateView",
+    "MopValidateView"
   ],
 });

@@ -1,4 +1,4 @@
-import type { CrqReviewResponse } from "../types/crqWorflow.types";
+import type { CrqReviewResponse } from "../types/crqWorkflow.types";
 
 export const mockCrqResponse: CrqReviewResponse = {
   plans: [

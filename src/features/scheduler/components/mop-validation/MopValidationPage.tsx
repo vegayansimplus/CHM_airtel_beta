@@ -1,12 +1,14 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import { useParams } from "react-router"; 
+import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
+import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
   Typography,
   IconButton,
   Tooltip,
   Stack,
+  // Button,
   TextField,
   Chip,
   InputAdornment,
@@ -18,22 +20,28 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-
-// Icons
+// import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
+import { useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
-import { CrqCard } from "./CrqCard";
+// import { CrqCard } from "./CrqCard";
+import CustomActionButton from "../../../../components/common/CustomActionButton";
+import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
+import { CrqCard } from "../chips/CrqCard";
+import { useGetMopValidateViewQuery } from "../../api/mopValidateApiSlice";
 
-// ─────────────────────────────────────────────────────────────────────────────
+interface MopValidationPageProps {
+  domainId?: number;
+  subDomainId?: number;
+}
+
 // Global Styles
-// ─────────────────────────────────────────────────────────────────────────────
 const PlanPageGlobalStyles = (
   <GlobalStyles
     styles={{
@@ -42,11 +50,18 @@ const PlanPageGlobalStyles = (
         to: { opacity: 1, transform: "translateY(0)" },
       },
       ".crq-card": { animation: "fadeSlideIn 0.22s ease both" },
+      ".crq-card:nth-of-type(1)": { animationDelay: "0.02s" },
+      ".crq-card:nth-of-type(2)": { animationDelay: "0.05s" },
+      ".crq-card:nth-of-type(3)": { animationDelay: "0.08s" },
+      ".crq-card:nth-of-type(4)": { animationDelay: "0.11s" },
+      ".crq-card:nth-of-type(n+5)": { animationDelay: "0.14s" },
+
       ".expand-chevron": {
         transition: "transform 0.22s cubic-bezier(.4,0,.2,1)",
         display: "flex",
       },
       ".expand-chevron.open": { transform: "rotate(90deg)" },
+
       ".plan-table-scroll::-webkit-scrollbar": { height: "6px", width: "6px" },
       ".plan-table-scroll::-webkit-scrollbar-track": {
         background: "transparent",
@@ -58,22 +73,22 @@ const PlanPageGlobalStyles = (
 
 type Colors = ReturnType<typeof useTabColorTokens>;
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DetailPanel Wrapper
-// ─────────────────────────────────────────────────────────────────────────────
 interface DetailPanelProps {
   plan: any;
   openCrqs: Record<string, boolean>;
+  selectedCrq: any;
   colors: Colors;
   onToggle: (id: string) => void;
+  onSelect: (crq: any) => void;
   onStartPause: (crq: any) => void;
 }
-
 const DetailPanel: React.FC<DetailPanelProps> = ({
   plan,
   openCrqs,
+  selectedCrq,
   colors,
   onToggle,
+  onSelect,
   onStartPause,
 }) => (
   <Box
@@ -102,7 +117,7 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           textTransform: "uppercase",
         }}
       >
-        CRQ DETAILS
+        CRQs
       </Typography>
       <Chip
         label={plan.crqs?.length ?? 0}
@@ -146,10 +161,16 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
           crq={crq}
           plan={plan}
           colors={colors}
-          isOpen={!!openCrqs[crq.crqNo]} // Controls if tasks expand
-          isSelected={false} // Selection checkbox is ignored in detail view
+          isOpen={!!openCrqs[crq.crqNo]}
+          isSelected={selectedCrq?.crqNo === crq.crqNo}
           onToggle={() => onToggle(crq.crqNo)}
-          onSelect={() => {}} // Disabled in this view
+          onSelect={() =>
+            onSelect(
+              selectedCrq?.crqNo === crq.crqNo
+                ? null
+                : { ...crq, planNumber: plan.planNumber },
+            )
+          }
           onStartPause={() => onStartPause(crq)}
         />
       ))
@@ -157,65 +178,47 @@ const DetailPanel: React.FC<DetailPanelProps> = ({
   </Box>
 );
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Main Component
-// ─────────────────────────────────────────────────────────────────────────────
-export const CrqDetailedView: React.FC = () => {
+export const MopValidationPage: React.FC<MopValidationPageProps> = ({
+  domainId,
+  subDomainId,
+}) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
-  const { crqNo } = useParams<{ crqNo: string }>();
   const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
 
-  // ─── ALL HOOKS DECLARED FIRST (unconditionally) ───
-
-  // State hooks
-  const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({
-    [crqNo as string]: true,
-  });
-  const [singlePlan, setSinglePlan] = useState<Plan[]>([]);
+  const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
+  const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
+  const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
 
-  // Query hook
   const {
     data: impactData,
-    // isLoading,
+    isLoading,
     isError,
     error,
-  } = useGetImpactAnalysisQuery({
-    domainId: 1,
-    subDomainId: 1,
-  });
+  } = useGetMopValidateViewQuery(
+    {
+      domainId: domainId ?? 1,
+      subDomainId: subDomainId ?? 1,
+    },
+    {
+      skip: !domainId || !subDomainId,
+    },
+  );
 
-  // Effect hooks
   useEffect(() => {
-    if (!impactData?.plans?.length) {
-      setSinglePlan([]);
-      return;
+    if (impactData?.plans) {
+      setPlansOriginal(impactData.plans);
     }
-
-    const parentPlan = impactData.plans.find((p) =>
-      p.crqs?.some((c) => c.crqNo === crqNo),
-    );
-
-    if (parentPlan) {
-      const isolatedPlan = {
-        ...parentPlan,
-        crqs: parentPlan.crqs.filter((c) => c.crqNo === crqNo),
-      };
-      setSinglePlan([isolatedPlan]);
-    } else {
-      setSinglePlan([]);
-    }
-  }, [impactData, crqNo]);
+  }, [impactData]);
 
   useEffect(() => {
     const t = setTimeout(() => setGlobalSearch(globalSearchInput), 300);
     return () => clearTimeout(t);
   }, [globalSearchInput]);
 
-  // Callback hooks
   const handleStartPauseReview = useCallback(
     async (crq: any) => {
       try {
@@ -231,20 +234,13 @@ export const CrqDetailedView: React.FC = () => {
         }).unwrap();
 
         // Show success toast
-        toast.success(response?.message || "Updated successfully.", {
-          position: "top-right",
-          autoClose: 3000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-        });
+        toast.success(response?.message || "Updated successfully.");
 
         // Update local state
-        setSinglePlan((prev) =>
+        setPlansOriginal((prev) =>
           prev.map((plan) => ({
             ...plan,
-            crqs: plan.crqs.map((c: any) =>
+            crqs: plan.crqs.map((c) =>
               c.crqNo === crq.crqNo
                 ? {
                     ...c,
@@ -257,23 +253,16 @@ export const CrqDetailedView: React.FC = () => {
       } catch (error) {
         console.error("Failed to update impact analysis status:", error);
         toast.error(
-          (error as any)?.data?.message || "Failed to update status. Please try again.",
-          {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          },
+          (error as any)?.data?.message ||
+            "Failed to update status. Please try again.",
         );
       }
     },
     [updateImpactAnalysisStatus],
   );
 
-  const toggleFullScreen = useCallback(() => {
-    const elem = document.getElementById("detailed-planning-container");
+  const toggleFullScreen = () => {
+    const elem = document.getElementById("planning-container");
     if (!document.fullscreenElement) {
       elem?.requestFullscreen();
       setIsFullscreen(true);
@@ -281,18 +270,15 @@ export const CrqDetailedView: React.FC = () => {
       document.exitFullscreen();
       setIsFullscreen(false);
     }
-  }, []);
+  };
 
-  const toggleCrq = useCallback(
-    (id: string) => setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] })),
-    [],
-  );
+  const toggleCrq = (id: string) =>
+    setOpenCrqs((prev) => ({ ...prev, [id]: !prev[id] }));
 
-  // Memo hooks
   const filteredPlans = useMemo(() => {
-    if (!globalSearch) return singlePlan;
+    if (!globalSearch) return plansOriginal;
     const g = globalSearch.trim();
-    return singlePlan
+    return plansOriginal
       .map((plan: any) => {
         const match = deepSearch(plan, g);
         const crqs = (plan.crqs || []).filter((c: any) => deepSearch(c, g));
@@ -300,7 +286,7 @@ export const CrqDetailedView: React.FC = () => {
         return { ...plan, crqs: g ? crqs : plan.crqs };
       })
       .filter(Boolean);
-  }, [singlePlan, globalSearch]);
+  }, [plansOriginal, globalSearch]);
 
   const columns = useMemo<MRT_ColumnDef<any>[]>(
     () => [
@@ -357,103 +343,142 @@ export const CrqDetailedView: React.FC = () => {
     [colors],
   );
 
-  const renderTopToolbarCustomActions = useCallback(
-    () => (
-      <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
-        <TextField
-          size="small"
-          placeholder="Search tasks, details..."
-          value={globalSearchInput}
-          onChange={(e) => setGlobalSearchInput(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchRoundedIcon
-                  sx={{ fontSize: 15, color: colors.textDim }}
-                />
-              </InputAdornment>
-            ),
-            sx: {
-              fontSize: 13,
-              height: 34,
-              borderRadius: "9px",
-              bgcolor: colors.trackOff,
-              color: colors.textPrimary,
-              "& fieldset": { borderColor: colors.border },
-              "&:hover fieldset": {
-                borderColor: `${colors.accentBorder} !important`,
-              },
-              "&.Mui-focused fieldset": {
-                borderColor: `${colors.accent} !important`,
-                borderWidth: "1.5px !important",
-              },
+  const [openReviewDialog, setOpenReviewDialog] = useState(false);
+
+  const handleOpenReviewDialog = () => {
+    if (!selectedCrq) return;
+    setOpenReviewDialog(true);
+  };
+
+  const handleCloseReviewDialog = () => {
+    setOpenReviewDialog(false);
+  };
+  const renderTopToolbarCustomActions = () => (
+    <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
+      <TextField
+        size="small"
+        placeholder="Search plans, CRQs, tasks…"
+        value={globalSearchInput}
+        onChange={(e) => setGlobalSearchInput(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchRoundedIcon sx={{ fontSize: 15, color: colors.textDim }} />
+            </InputAdornment>
+          ),
+          sx: {
+            fontSize: 13,
+            height: 34,
+            borderRadius: "9px",
+            bgcolor: colors.trackOff,
+            color: colors.textPrimary,
+            "& fieldset": { borderColor: colors.border },
+            "&:hover fieldset": {
+              borderColor: `${colors.accentBorder} !important`,
             },
-          }}
-          sx={{ width: 260 }}
-        />
-        <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
-          <IconButton
-            size="small"
-            onClick={toggleFullScreen}
-            sx={{
-              width: 34,
-              height: 34,
-              borderRadius: "9px",
-              bgcolor: colors.trackOff,
-              color: colors.textSecondary,
-              border: `1px solid ${colors.border}`,
-              "&:hover": {
-                bgcolor: colors.accentDim,
-                color: colors.accent,
-                borderColor: colors.accentBorder,
-              },
-            }}
-          >
-            {isFullscreen ? (
-              <FullscreenExitIcon sx={{ fontSize: 17 }} />
-            ) : (
-              <FullscreenIcon sx={{ fontSize: 17 }} />
-            )}
-          </IconButton>
-        </Tooltip>
-        <Stack direction="row" spacing={0.8}>
-          <Chip
-            label={`Target CRQ: ${crqNo}`}
-            size="small"
-            sx={{
-              height: 24,
-              fontSize: 11,
-              fontWeight: 700,
+            "&.Mui-focused fieldset": {
+              borderColor: `${colors.accent} !important`,
+              borderWidth: "1.5px !important",
+            },
+            "& input::placeholder": { color: colors.textDim, opacity: 1 },
+          },
+        }}
+        sx={{ width: 260 }}
+      />
+      <Tooltip title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}>
+        <IconButton
+          size="small"
+          onClick={toggleFullScreen}
+          sx={{
+            width: 34,
+            height: 34,
+            borderRadius: "9px",
+            bgcolor: colors.trackOff,
+            color: colors.textSecondary,
+            border: `1px solid ${colors.border}`,
+            transition: "all 0.15s ease",
+            "&:hover": {
               bgcolor: colors.accentDim,
               color: colors.accent,
-              border: `1px solid ${colors.accentBorder}`,
-            }}
-          />
-        </Stack>
+              borderColor: colors.accentBorder,
+            },
+          }}
+        >
+          {isFullscreen ? (
+            <FullscreenExitIcon sx={{ fontSize: 17 }} />
+          ) : (
+            <FullscreenIcon sx={{ fontSize: 17 }} />
+          )}
+        </IconButton>
+      </Tooltip>
+
+      {/* Button opens route in a new tab */}
+      <CustomActionButton
+        label="View Selected CRQ"
+        disabled={!selectedCrq}
+        url={
+          selectedCrq
+            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}`
+            : undefined
+        }
+        colors={colors}
+      />
+
+      <CustomActionButton
+        label="Review CRQ"
+        disabled={!selectedCrq}
+        onClick={handleOpenReviewDialog}
+        startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
+
+      <Stack direction="row" spacing={0.8}>
+        <Chip
+          label={`${filteredPlans.length} plans`}
+          size="small"
+          sx={{
+            height: 24,
+            fontSize: 11,
+            fontWeight: 700,
+            bgcolor: colors.accentDim,
+            color: colors.accent,
+            border: `1px solid ${colors.accentBorder}`,
+          }}
+        />
+        <Chip
+          label={`${filteredPlans.reduce((a: number, p: any) => a + (p.crqs?.length || 0), 0)} CRQs`}
+          size="small"
+          sx={{
+            height: 24,
+            fontSize: 11,
+            fontWeight: 700,
+            bgcolor: colors.infoDim,
+            color: colors.info,
+            border: `1px solid ${colors.infoBorder}`,
+          }}
+        />
       </Stack>
-    ),
-    [globalSearchInput, toggleFullScreen, isFullscreen, crqNo, colors],
+    </Stack>
   );
 
   const table = useMaterialReactTable({
     columns,
     data: filteredPlans,
-    enableSorting: false,
-    enablePagination: false,
+    enableSorting: true,
+    enablePagination: true,
     renderDetailPanel: ({ row }) => (
       <DetailPanel
         plan={row.original}
         openCrqs={openCrqs}
+        selectedCrq={selectedCrq}
         colors={colors}
         onToggle={toggleCrq}
+        onSelect={setSelectedCrq}
         onStartPause={handleStartPauseReview}
       />
     ),
     renderTopToolbarCustomActions,
-    initialState: {
-      density: "compact",
-      expanded: true,
-    },
+    initialState: { density: "compact" },
     muiDetailPanelProps: { sx: { padding: 0 } },
     muiTablePaperProps: {
       elevation: 0,
@@ -468,15 +493,34 @@ export const CrqDetailedView: React.FC = () => {
       sx: {
         fontSize: "11px !important",
         fontWeight: "700 !important",
+        letterSpacing: "0.55px !important",
+        textTransform: "uppercase !important",
         color: `${colors.textSecondary} !important`,
         bgcolor: colors.isDark
           ? "rgba(255,255,255,0.025)"
           : "rgba(248,250,252,0.95)",
         borderBottom: `1px solid ${colors.border} !important`,
+        py: "10px !important",
       },
     },
     muiTableBodyCellProps: {
-      sx: { fontSize: 13, borderBottom: `1px solid ${colors.border}` },
+      sx: {
+        fontSize: 13,
+        color: colors.textPrimary,
+        borderBottom: `1px solid ${colors.border}`,
+        py: "8px !important",
+      },
+    },
+    muiTableBodyRowProps: {
+      sx: {
+        transition: "background 0.12s ease",
+        cursor: "pointer",
+        "&:hover td": {
+          bgcolor: colors.isDark
+            ? "rgba(99,102,241,0.04)"
+            : "rgba(99,102,241,0.025)",
+        },
+      },
     },
     muiTopToolbarProps: {
       sx: {
@@ -487,27 +531,52 @@ export const CrqDetailedView: React.FC = () => {
         minHeight: 52,
       },
     },
-    muiBottomToolbarProps: { sx: { display: "none" } },
+    muiBottomToolbarProps: {
+      sx: {
+        bgcolor: colors.isDark
+          ? "rgba(255,255,255,0.01)"
+          : "rgba(248,250,252,0.7)",
+        borderTop: `1px solid ${colors.border}`,
+        minHeight: 44,
+      },
+    },
+    muiTableContainerProps: {
+      className: "plan-table-scroll",
+      sx: {
+        maxHeight: "calc(100vh - 280px)",
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: colors.isDark ? "#1F2937" : "#CBD5E1",
+        },
+      },
+    },
   });
 
-  // ─── EARLY RETURNS (after all hooks) ───
-
-  if (isError) {
+  if (!domainId || !subDomainId) {
     return (
-      <Box id="detailed-planning-container" sx={{ p: 3 }}>
-        <Typography color="error">
-          Failed to load CRQ details.{" "}
-          {(error as any)?.error || "Please refresh."}
-        </Typography>
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "calc(100vh - 220px)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexDirection: "column",
+        }}
+      >
+        <img src={FilterSvg} alt="Select Filter" width={850} />
       </Box>
     );
   }
 
-  if (!singlePlan.length) {
+  if (isError) {
     return (
-      <Box id="detailed-planning-container" sx={{ p: 3 }}>
-        <Typography sx={{ color: colors.textPrimary }}>
-          No CRQ found for {crqNo}.
+      <Box
+        id="planning-container"
+        sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
+      >
+        <Typography color="error">
+          An error occurred while fetching impact analysis data.{" "}
+          {(error as any)?.error || "Please retry."}
         </Typography>
       </Box>
     );
@@ -515,11 +584,21 @@ export const CrqDetailedView: React.FC = () => {
 
   return (
     <Box
-      id="detailed-planning-container"
+      id="planning-container"
       sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
     >
       {PlanPageGlobalStyles}
       <MaterialReactTable table={table} />
+
+      <PlanInvDialog
+        open={openReviewDialog}
+        onClose={() => setOpenReviewDialog(false)}
+        crq={selectedCrq}
+        colors={colors}
+        onSubmit={(data) => {
+          console.log("Review Submitted:", data);
+        }}
+      />
     </Box>
   );
 };

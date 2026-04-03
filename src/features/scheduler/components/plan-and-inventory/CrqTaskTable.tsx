@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from 'material-react-table';
-import type { Task } from '../../types/crqWorflow.types';
+import type { Task } from '../../types/crqWorkflow.types';
 
 interface CrqTaskTableProps {
   tasks: Task[];

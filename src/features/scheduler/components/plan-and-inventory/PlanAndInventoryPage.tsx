@@ -30,11 +30,12 @@ import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
-import type { Plan } from "../../types/crqWorflow.types";
+import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
+import { useGetCrqReviewQuery } from "../../api/crqreviewApiSlice";
 
 interface PlanAndInventoryPageProps {
   domainId?: number;
@@ -82,7 +83,6 @@ interface DetailPanelProps {
   onSelect: (crq: any) => void;
   onStartPause: (crq: any) => void;
 }
-
 const DetailPanel: React.FC<DetailPanelProps> = ({
   plan,
   openCrqs,
@@ -199,7 +199,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     isLoading,
     isError,
     error,
-  } = useGetImpactAnalysisQuery(
+  } = useGetCrqReviewQuery(
     {
       domainId: domainId ?? 1,
       subDomainId: subDomainId ?? 1,

@@ -1,5 +1,5 @@
 import { api } from "../../../service/api";
-import type { CrqReviewResponse } from "../types/crqWorflow.types";
+import type { CrqReviewResponse } from "../types/crqWorkflow.types";
 
 // use this api:/crqworkflow/impactanalysis?domainId=1&subDomainId=1
 export const rosterApiSlice = api.injectEndpoints({
