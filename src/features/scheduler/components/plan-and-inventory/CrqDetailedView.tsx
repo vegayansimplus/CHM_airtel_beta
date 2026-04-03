@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
+import { toast } from "react-toastify";
 import { useParams } from "react-router"; 
 import {
   Box,
@@ -25,7 +26,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useGetImpactAnalysisQuery } from "../../api/schedulerApiSlice";
+import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
@@ -163,6 +164,7 @@ export const CrqDetailedView: React.FC = () => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const { crqNo } = useParams<{ crqNo: string }>();
+  const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
 
   // ─── ALL HOOKS DECLARED FIRST (unconditionally) ───
 
@@ -214,23 +216,61 @@ export const CrqDetailedView: React.FC = () => {
   }, [globalSearchInput]);
 
   // Callback hooks
-  const handleStartPauseReview = useCallback((crq: any) => {
-    const isRunning =
-      (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
-    setSinglePlan((prev) =>
-      prev.map((plan) => ({
-        ...plan,
-        crqs: plan.crqs.map((c: any) =>
-          c.crqNo === crq.crqNo
-            ? {
-                ...c,
-                impactAnalysisStatus: isRunning ? "Paused" : "In Progress",
-              }
-            : c,
-        ),
-      })),
-    );
-  }, []);
+  const handleStartPauseReview = useCallback(
+    async (crq: any) => {
+      try {
+        const isRunning =
+          (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
+        const action = isRunning ? "pause" : "start";
+
+        // Call API to update status
+        const response = await updateImpactAnalysisStatus({
+          crqNo: crq.crqNo,
+          crqId: crq.crqId,
+          action,
+        }).unwrap();
+
+        // Show success toast
+        toast.success(response?.message || "Updated successfully.", {
+          position: "top-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+        });
+
+        // Update local state
+        setSinglePlan((prev) =>
+          prev.map((plan) => ({
+            ...plan,
+            crqs: plan.crqs.map((c: any) =>
+              c.crqNo === crq.crqNo
+                ? {
+                    ...c,
+                    impactAnalysisStatus: isRunning ? "Paused" : "In Progress",
+                  }
+                : c,
+            ),
+          })),
+        );
+      } catch (error) {
+        console.error("Failed to update impact analysis status:", error);
+        toast.error(
+          (error as any)?.data?.message || "Failed to update status. Please try again.",
+          {
+            position: "top-right",
+            autoClose: 3000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          },
+        );
+      }
+    },
+    [updateImpactAnalysisStatus],
+  );
 
   const toggleFullScreen = useCallback(() => {
     const elem = document.getElementById("detailed-planning-container");

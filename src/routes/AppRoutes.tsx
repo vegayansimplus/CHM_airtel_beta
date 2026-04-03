@@ -27,6 +27,7 @@ import { CrqDetailedView } from "../features/scheduler/components/plan-and-inven
 import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
 import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
+import UserManagement from "../features/userManagement/components/UserManagement";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -74,7 +75,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="/home" element={<HomeDashboard />} />
           <Route
             path="/homedashboard"
-            element={<Dashboard/>}
+            // element={<Dashboard />}
+            element={<UserManagement/>}
           />
         </Route>
         <Route
@@ -180,7 +182,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
-          <Route path="activityviewandsetup" element={<ActivityViewAndSetupMain />} />
+          <Route
+            path="activityviewandsetup"
+            element={<ActivityViewAndSetupMain />}
+          />
           <Route
             path="action"
             element={
@@ -207,7 +212,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="rostergeneration" replace />} />
-          <Route path="rostergeneration" element={<RosterGenerationMain/>} />
+          <Route path="rostergeneration" element={<RosterGenerationMain />} />
           <Route
             path="test"
             element={
