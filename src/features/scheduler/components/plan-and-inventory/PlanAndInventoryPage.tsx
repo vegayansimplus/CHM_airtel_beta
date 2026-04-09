@@ -29,7 +29,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
+import { useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
@@ -186,7 +186,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
-
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
@@ -261,15 +260,8 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       } catch (error) {
         console.error("Failed to update impact analysis status:", error);
         toast.error(
-          (error as any)?.data?.message || "Failed to update status. Please try again.",
-          {
-            position: "top-right",
-            autoClose: 3000,
-            hideProgressBar: false,
-            closeOnClick: true,
-            pauseOnHover: true,
-            draggable: true,
-          },
+          (error as any)?.data?.message ||
+            "Failed to update status. Please try again.",
         );
       }
     },
@@ -558,7 +550,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     muiTableContainerProps: {
       className: "plan-table-scroll",
       sx: {
-        maxHeight: "calc(100vh - 280px)",
+        maxHeight: "calc(100vh - 350px)",
         "&::-webkit-scrollbar-thumb": {
           backgroundColor: colors.isDark ? "#1F2937" : "#CBD5E1",
         },

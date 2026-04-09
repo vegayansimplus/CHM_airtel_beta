@@ -37,6 +37,8 @@ import { deepSearch } from "../../util/stringUtils";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { CrqCard } from "../chips/CrqCard";
+// import { CrqCard } from "../plan-and-inventory/CrqCard";
+// import { CrqCard } from "../chips/CrqCard";
 
 interface ImpactAnalysisPageProps {
   domainId?: number;

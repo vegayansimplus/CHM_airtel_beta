@@ -24,10 +24,12 @@ import NotificationManagerMain from "../features/userMe/pages/NotificationManage
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
 import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
-import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
-import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
+// import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
+// import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
 import UserManagement from "../features/userManagement/components/UserManagement";
+import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
+import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -76,7 +78,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route
             path="/homedashboard"
             // element={<Dashboard />}
-            element={<UserManagement/>}
+            element={<UserManagement />}
           />
         </Route>
         <Route
@@ -184,7 +186,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
           <Route
             path="activityviewandsetup"
-            element={<ActivityViewAndSetupMain />}
+            // element={<ActivityViewAndSetupMain />}
+            element={<ActivityViewAndSetup />}
           />
           <Route
             path="action"
@@ -222,6 +225,13 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             }
           />
         </Route>
+
+        <Route
+          path="user-management"
+          element={
+            <PrivateRoute element={<Holidayandnetworkschedulemanagermain />} />
+          }
+        ></Route>
 
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />

@@ -69,7 +69,7 @@ export const PlanAndInventoryMain = () => {
       {/* Top Stepper Card */}
       <OrgHierarchyFilters
         role={roleName}
-        values={values}
+        values={values} 
         options={options}
         onChange={handleChange}
       />
