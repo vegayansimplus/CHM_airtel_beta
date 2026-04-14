@@ -323,7 +323,7 @@ export const AddMemberDialog = ({ open, onClose, actorUserId }: Props) => {
         onClose();
       }}
       fullWidth
-      maxWidth="md"
+      maxWidth="sm"
       TransitionProps={{ timeout: 280 }}
       PaperProps={{
         elevation: 0,
@@ -1114,13 +1114,13 @@ export const AddMemberDialog = ({ open, onClose, actorUserId }: Props) => {
 
 //           <Box>
 
-            // <HierarchySelector
-            //   hierarchy={hierarchy}
-            //   setHierarchy={setHierarchy}
-            //   hierarchyData={hierarchyData}
-            //   loading={hierarchyLoading}
-            //   errors={errors}
-            // />
+// <HierarchySelector
+//   hierarchy={hierarchy}
+//   setHierarchy={setHierarchy}
+//   hierarchyData={hierarchyData}
+//   loading={hierarchyLoading}
+//   errors={errors}
+// />
 //           </Box>
 //         </Stack>
 //       </DialogContent>

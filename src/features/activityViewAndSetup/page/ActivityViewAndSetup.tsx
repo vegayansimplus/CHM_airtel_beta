@@ -1,4 +1,3 @@
-
 import { Alert, Box, Snackbar } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import { Chip, Fade, Paper, Typography, useTheme } from "@mui/material";
@@ -7,6 +6,13 @@ import { useActivity } from "../hooks/useActivity";
 import { ActivityList } from "../components/activitySetup/ActivityList";
 import { CreateActivity } from "../components/activitySetup/CreateActivity";
 import { ConfigurePhases } from "../components/activitySetup/ConfigurePhases";
+// import { TeamManagementFilter } from "../../teamManagement/components/filters/TeamManagementFilter";
+// import { useState } from "react";
+// import type { OrgFilterValues } from "../../orgHierarchy/types/orgHierarchy.types";
+import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
+import { authStorage } from "../../../app/store/auth.storage";
+import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
+import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 
 // ─────────────────────────────────────────────
 //  ActivityViewAndSetup
@@ -23,7 +29,10 @@ export const ActivityViewAndSetup = () => {
       : viewMode === "create"
         ? "Create Activity"
         : "Configure Phases";
-
+  const loggedUser = authStorage.getUser();
+  const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
+  const { values, handleChange } = useOrgHierarchyState();
+  const { options } = useOrgHierarchyFilters(values);
   const viewAccent =
     viewMode === "list"
       ? theme.palette.primary.main
@@ -37,60 +46,23 @@ export const ActivityViewAndSetup = () => {
   )}, ${alpha(viewAccent, theme.palette.mode === "dark" ? 0.06 : 0.04)})`;
 
   return (
-    <Paper
-      elevation={0}
-      sx={{
-        borderRadius: 3,
-        overflow: "hidden",
-        border: `1px solid ${theme.palette.divider}`,
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? "rgba(255,255,255,0.01)"
-            : theme.palette.background.paper,
-      }}
-    >
-      <Box
-        sx={{
-          px: { xs: 1.5, md: 2.5 },
-          py: { xs: 1.5, md: 2 },
-          background: headerBg,
-          borderBottom: `1px solid ${alpha(viewAccent, 0.28)}`,
-        }}
-      >
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "flex-start",
-            justifyContent: "space-between",
-            gap: 1.5,
-            flexWrap: "wrap",
-          }}
-        >
-          <Box>
-            <Typography variant="h5" fontWeight={800} sx={{ lineHeight: 1.1 }}>
-              Activity View & Setup
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              Create activities, manage status, and configure phase requirements.
-            </Typography>
-          </Box>
-
-          <Chip
-            label={`View: ${viewLabel}`}
-            size="small"
-            sx={{
-              fontWeight: 800,
-              borderRadius: 999,
-              bgcolor: alpha(viewAccent, theme.palette.mode === "dark" ? 0.22 : 0.12),
-              color: viewAccent,
-              border: `1px solid ${alpha(viewAccent, theme.palette.mode === "dark" ? 0.55 : 0.30)}`,
-              height: 28,
-            }}
-          />
-        </Box>
+    <>
+      <Box>
+        <OrgHierarchyFilters
+          role={roleName}
+          values={values}
+          options={options}
+          onChange={handleChange}
+        />
       </Box>
 
-      <Box sx={{ position: "relative", px: { xs: 1.5, md: 2.5 }, py: { xs: 1.5, md: 2 } }}>
+      <Box
+        sx={{
+          position: "relative",
+          px: { xs: 1.5, md: 2.5 },
+          py: { xs: 1.5, md: 2 },
+        }}
+      >
         <Fade key={viewMode} timeout={220} in>
           {/* View switcher — no routing needed, pure Redux state */}
           <Box>
@@ -117,13 +89,8 @@ export const ActivityViewAndSetup = () => {
           </Alert>
         </Snackbar>
       </Box>
-    </Paper>
+    </>
   );
 };
-
-// ─────────────────────────────────────────────
-//  ActivityViewAndSetupMain
-//  Used by AppRoutes as the Outlet child
-// ─────────────────────────────────────────────
 
 export const ActivityViewAndSetupMain = () => <ActivityViewAndSetup />;

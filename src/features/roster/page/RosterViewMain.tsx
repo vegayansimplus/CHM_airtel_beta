@@ -12,24 +12,37 @@ import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchySt
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { authStorage } from "../../../app/store/auth.storage";
 
-const compactTextFieldSx = {
-  minWidth: 160,
-  "& .MuiInputBase-root": {
-    height: 32,
+const compactDatePickerSx = {
+  width: 130,
+
+  "& .MuiOutlinedInput-root": {
+    height: "28px !important",
+    minHeight: "28px !important",
+    paddingRight: "2px",
+
+    "& input": {
+      padding: "4px 6px !important",
+      fontSize: "12px",
+    },
   },
-  "& .MuiInputBase-input": {
-    padding: "4px 8px",
-    fontSize: "0.8rem",
+
+  "& .MuiInputAdornment-root": {
+    marginLeft: "2px",
   },
+
+  "& .MuiIconButton-root": {
+    padding: "2px",
+  },
+
+  "& .MuiSvgIcon-root": {
+    fontSize: "16px",
+  },
+
   "& .MuiInputLabel-root": {
-    fontSize: "0.8rem",
-    transform: "translate(8px, 7px) scale(1)",
-  },
-  "& .MuiInputLabel-shrink": {
-    transform: "translate(12px, -6px) scale(0.75)",
+    fontSize: "12px",
+    top: "-6px",
   },
 };
-
 export const RosterViewMain = () => {
   const [view, setView] = useState<"weekly" | "monthly">("weekly");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
@@ -86,25 +99,28 @@ export const RosterViewMain = () => {
           {/* ===== DATE PICKER ===== */}
           {view === "monthly" ? (
             <DatePicker
-              views={["month", "year"]}
+              views={["month"]}
               value={selectedDate}
               format="MMM YYYY"
               onChange={handleDateChange}
               slotProps={{
                 textField: {
                   size: "small",
-                  sx: compactTextFieldSx,
+
+                  sx: compactDatePickerSx,
                 },
               }}
             />
           ) : (
             <DatePicker
+              views={["month"]}
+              format="MMM YYYY"
               value={selectedDate}
               onChange={handleDateChange}
               slotProps={{
                 textField: {
                   size: "small",
-                  sx: compactTextFieldSx,
+                  sx: compactDatePickerSx,
                 },
               }}
             />
@@ -279,9 +295,6 @@ export const RosterViewMain = () => {
 //     </>
 //   );
 // };
-
-
-
 
 // // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // // // How I can customize this also

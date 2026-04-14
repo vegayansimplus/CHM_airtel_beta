@@ -192,7 +192,7 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
                 whiteSpace: "nowrap",
               }}
             >
-              {lvl.key}
+              {lvl.key} :
             </Typography>
             <Typography
               sx={{

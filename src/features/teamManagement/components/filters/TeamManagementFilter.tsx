@@ -1,28 +1,36 @@
-import { useState, useCallback } from "react";
-import Stack from "@mui/material/Stack";
+import { useState, useCallback, useRef } from "react";
 import {
   Box,
   Button,
+  ButtonGroup,
   Chip,
   Divider,
   IconButton,
   Menu,
   MenuItem,
   Tooltip,
+  Paper,
+  ClickAwayListener,
+  MenuList,
+  Grow,
+  Popper,
+  Stack,
 } from "@mui/material";
-
-import AddIcon from "@mui/icons-material/Add";
+// import AddIcon from "@mui/icons-material/Add";
 import DownloadIcon from "@mui/icons-material/Download";
+import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
-
 import { authStorage } from "../../../../app/store/auth.storage";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFilters";
+import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
-
 import { AddMemberDialog } from "../dialog/AddMemberDialog";
 import { UploadEmployeeDialog } from "../dialog/UploadEmployeeDialog";
+import { ExportPanel } from "./ExportPanel";
+import { RichStatusToggle } from "./RichStatusToggle";
 
 interface Props {
   filters: OrgFilterValues;
@@ -38,44 +46,39 @@ export const TeamManagementFilter = ({
   setStatus,
 }: Props) => {
   const loggedUser = authStorage.getUser();
-  const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const actorUserId = loggedUser?.userId;
-
+  const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { options } = useOrgHierarchyFilters(filters);
 
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
 
-  /* ================= FILTER CHANGE ================= */
+  // Split button state
+  const [splitOpen, setSplitOpen] = useState(false);
+  const splitAnchorRef = useRef<HTMLDivElement>(null);
+
   const handleFilterChange = useCallback(
     (key: keyof OrgFilterValues, value?: number) => {
       setFilters((prev) => {
         const next = { ...prev, [key]: value };
-
         if (key === "vertical") {
           delete next.teamFunction;
           delete next.domain;
           delete next.subDomain;
         }
-
         if (key === "teamFunction") {
           delete next.domain;
           delete next.subDomain;
         }
-
         if (key === "domain") {
           delete next.subDomain;
         }
-
         return next;
       });
     },
     [setFilters],
   );
-
-  /* ================= EXPORT MENU ================= */
-  const handleMenuClose = () => setAnchorEl(null);
 
   return (
     <>
@@ -94,9 +97,9 @@ export const TeamManagementFilter = ({
             gap: 2,
           }}
         >
-          {/* ================= LEFT SECTION ================= */}
+          {/* LEFT: Status chips */}
           <Stack direction="row" spacing={2} alignItems="center">
-            <Chip
+            {/* <Chip
               icon={<CheckCircleIcon />}
               label="Active"
               color={status === "ACTIVE" ? "success" : "default"}
@@ -104,7 +107,6 @@ export const TeamManagementFilter = ({
               onClick={() => setStatus("ACTIVE")}
               sx={{ fontWeight: 600 }}
             />
-
             <Chip
               icon={<RadioButtonUncheckedIcon />}
               label="Inactive"
@@ -112,62 +114,142 @@ export const TeamManagementFilter = ({
               variant={status === "INACTIVE" ? "filled" : "outlined"}
               onClick={() => setStatus("INACTIVE")}
               sx={{ fontWeight: 600 }}
+            /> */}
+            <RichStatusToggle
+              status={status}
+              setStatus={setStatus}
+              activeCount={15}
+              inactiveCount={4}
             />
           </Stack>
 
-          {/* ================= RIGHT SECTION ================= */}
+          {/* RIGHT: Split button + Export */}
           <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={() => actorUserId && setOpenAddDialog(true)}
+            {/* ── SPLIT BUTTON ── */}
+            <ButtonGroup
+              variant="contained"
+              ref={splitAnchorRef}
+              disableElevation
+              sx={{
+                borderRadius: "8px",
+                "& .MuiButtonGroup-grouped": {
+                  borderColor: "rgba(255,255,255,0.3)",
+                },
+              }}
             >
-              Add Member
-            </Button>
+              <Button
+                startIcon={<PersonAddAltIcon />}
+                onClick={() => actorUserId && setOpenAddDialog(true)}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 600,
+                  borderRadius: "8px 0 0 8px",
+                  px: 2,
+                }}
+              >
+                Add Member
+              </Button>
+              <Button
+                size="small"
+                onClick={() => setSplitOpen((prev) => !prev)}
+                sx={{ borderRadius: "0 8px 8px 0", px: 0.5, minWidth: 32 }}
+              >
+                <ArrowDropDownIcon />
+              </Button>
+            </ButtonGroup>
 
-            <Divider orientation="vertical" flexItem />
-
-            <Button
-              variant="outlined"
-              onClick={() => setOpenUploadDialog(true)}
+            <Popper
+              open={splitOpen}
+              anchorEl={splitAnchorRef.current}
+              transition
+              disablePortal
+              placement="bottom-end"
+              style={{ zIndex: 1300 }}
             >
-              Upload Users
-            </Button>
+              {({ TransitionProps }) => (
+                <Grow {...TransitionProps}>
+                  <Paper
+                    elevation={3}
+                    sx={{
+                      borderRadius: "10px",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      overflow: "hidden",
+                      mt: 0.5,
+                    }}
+                  >
+                    <ClickAwayListener onClickAway={() => setSplitOpen(false)}>
+                      <MenuList dense disablePadding>
+                        <MenuItem
+                          onClick={() => {
+                            setSplitOpen(false);
+                            actorUserId && setOpenAddDialog(true);
+                          }}
+                          sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
+                        >
+                          <PersonAddAltIcon
+                            sx={{ fontSize: 18, color: "primary.main" }}
+                          />
+                          Add single member
+                        </MenuItem>
+                        <Divider sx={{ my: 0 }} />
+                        <MenuItem
+                          onClick={() => {
+                            setSplitOpen(false);
+                            setOpenUploadDialog(true);
+                          }}
+                          sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
+                        >
+                          <UploadFileIcon
+                            sx={{ fontSize: 18, color: "success.main" }}
+                          />
+                          Upload via Excel
+                        </MenuItem>
+                      </MenuList>
+                    </ClickAwayListener>
+                  </Paper>
+                </Grow>
+              )}
+            </Popper>
 
-            <Tooltip title="Export">
+            {/* Export */}
+
+            <ExportPanel
+              onExport={({ format, scope, columns }) => {
+                console.log("Exporting:", { format, scope, columns });
+                // call your export API here
+              }}
+            />
+            {/* <Tooltip title="Export">
               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
                 <DownloadIcon />
               </IconButton>
             </Tooltip>
-
             <Menu
               anchorEl={anchorEl}
               open={Boolean(anchorEl)}
-              onClose={handleMenuClose}
+              onClose={() => setAnchorEl(null)}
             >
               <MenuItem
                 onClick={() => {
-                  handleMenuClose();
+                  setAnchorEl(null);
                   console.log("Export PDF");
                 }}
               >
                 Export PDF
               </MenuItem>
-
               <MenuItem
                 onClick={() => {
-                  handleMenuClose();
+                  setAnchorEl(null);
                   console.log("Export Excel");
                 }}
               >
                 Export Excel
               </MenuItem>
-            </Menu>
+            </Menu> */}
           </Stack>
         </Box>
       </OrgHierarchyFilters>
-
-      {/* ================= DIALOGS ================= */}
 
       {actorUserId && (
         <AddMemberDialog
@@ -176,7 +258,6 @@ export const TeamManagementFilter = ({
           actorUserId={actorUserId}
         />
       )}
-
       <UploadEmployeeDialog
         open={openUploadDialog}
         onClose={() => setOpenUploadDialog(false)}
@@ -184,3 +265,190 @@ export const TeamManagementFilter = ({
     </>
   );
 };
+
+// import { useState, useCallback } from "react";
+// import Stack from "@mui/material/Stack";
+// import {
+//   Box,
+//   Button,
+//   Chip,
+//   Divider,
+//   IconButton,
+//   Menu,
+//   MenuItem,
+//   Tooltip,
+// } from "@mui/material";
+
+// import AddIcon from "@mui/icons-material/Add";
+// import DownloadIcon from "@mui/icons-material/Download";
+// import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+// import RadioButtonUncheckedIcon from "@mui/icons-material/RadioButtonUnchecked";
+
+// import { authStorage } from "../../../../app/store/auth.storage";
+// import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
+// import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFilters";
+// import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
+
+// import { AddMemberDialog } from "../dialog/AddMemberDialog";
+// import { UploadEmployeeDialog } from "../dialog/UploadEmployeeDialog";
+
+// interface Props {
+//   filters: OrgFilterValues;
+//   setFilters: React.Dispatch<React.SetStateAction<OrgFilterValues>>;
+//   status: "ACTIVE" | "INACTIVE";
+//   setStatus: React.Dispatch<React.SetStateAction<"ACTIVE" | "INACTIVE">>;
+// }
+
+// export const TeamManagementFilter = ({
+//   filters,
+//   setFilters,
+//   status,
+//   setStatus,
+// }: Props) => {
+//   const loggedUser = authStorage.getUser();
+//   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
+//   const actorUserId = loggedUser?.userId;
+
+//   const { options } = useOrgHierarchyFilters(filters);
+
+//   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+//   const [openAddDialog, setOpenAddDialog] = useState(false);
+//   const [openUploadDialog, setOpenUploadDialog] = useState(false);
+
+//   /* ================= FILTER CHANGE ================= */
+//   const handleFilterChange = useCallback(
+//     (key: keyof OrgFilterValues, value?: number) => {
+//       setFilters((prev) => {
+//         const next = { ...prev, [key]: value };
+
+//         if (key === "vertical") {
+//           delete next.teamFunction;
+//           delete next.domain;
+//           delete next.subDomain;
+//         }
+
+//         if (key === "teamFunction") {
+//           delete next.domain;
+//           delete next.subDomain;
+//         }
+
+//         if (key === "domain") {
+//           delete next.subDomain;
+//         }
+
+//         return next;
+//       });
+//     },
+//     [setFilters],
+//   );
+
+//   /* ================= EXPORT MENU ================= */
+//   const handleMenuClose = () => setAnchorEl(null);
+
+//   return (
+//     <>
+//       <OrgHierarchyFilters
+//         role={roleName}
+//         values={filters}
+//         options={options}
+//         onChange={handleFilterChange}
+//       >
+//         <Box
+//           sx={{
+//             display: "flex",
+//             justifyContent: "space-between",
+//             width: "100%",
+//             flexWrap: "wrap",
+//             gap: 2,
+//           }}
+//         >
+//           {/* ================= LEFT SECTION ================= */}
+//           <Stack direction="row" spacing={2} alignItems="center">
+//             <Chip
+//               icon={<CheckCircleIcon />}
+//               label="Active"
+//               color={status === "ACTIVE" ? "success" : "default"}
+//               variant={status === "ACTIVE" ? "filled" : "outlined"}
+//               onClick={() => setStatus("ACTIVE")}
+//               sx={{ fontWeight: 600 }}
+//             />
+
+//             <Chip
+//               icon={<RadioButtonUncheckedIcon />}
+//               label="Inactive"
+//               color={status === "INACTIVE" ? "warning" : "default"}
+//               variant={status === "INACTIVE" ? "filled" : "outlined"}
+//               onClick={() => setStatus("INACTIVE")}
+//               sx={{ fontWeight: 600 }}
+//             />
+//           </Stack>
+
+//           {/* ================= RIGHT SECTION ================= */}
+//           <Stack direction="row" spacing={1} alignItems="center">
+//             <Button
+//               variant="outlined"
+//               startIcon={<AddIcon />}
+//               onClick={() => actorUserId && setOpenAddDialog(true)}
+//             >
+//               Add Member
+//             </Button>
+
+//             <Divider orientation="vertical" flexItem />
+
+//             <Button
+//               variant="outlined"
+//               onClick={() => setOpenUploadDialog(true)}
+//             >
+//               Upload Users
+//             </Button>
+
+//             <Tooltip title="Export">
+//               <IconButton onClick={(e) => setAnchorEl(e.currentTarget)}>
+//                 <DownloadIcon />
+//               </IconButton>
+//             </Tooltip>
+
+//             <Menu
+//               anchorEl={anchorEl}
+//               open={Boolean(anchorEl)}
+//               onClose={handleMenuClose}
+//             >
+//               <MenuItem
+//                 onClick={() => {
+//                   handleMenuClose();
+//                   console.log("Export PDF");
+//                 }}
+//               >
+//                 Export PDF
+//               </MenuItem>
+
+//               <MenuItem
+//                 onClick={() => {
+//                   handleMenuClose();
+//                   console.log("Export Excel");
+//                 }}
+//               >
+//                 Export Excel
+//               </MenuItem>
+//             </Menu>
+//           </Stack>
+//         </Box>
+//       </OrgHierarchyFilters>
+
+//       {/* ================= DIALOGS ================= */}
+
+//       {actorUserId && (
+//         <AddMemberDialog
+//           open={openAddDialog}
+//           onClose={() => setOpenAddDialog(false)}
+//           actorUserId={actorUserId}
+//         />
+//       )}
+
+//       <UploadEmployeeDialog
+//         open={openUploadDialog}
+//         onClose={() => setOpenUploadDialog(false)}
+//       />
+//     </>
+//   );
+// };

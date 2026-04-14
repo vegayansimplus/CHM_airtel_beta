@@ -95,12 +95,9 @@ Prognostication
 
 -transient
 -Aphoristic
--
--
--
--
--
--
--
--
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Bilk
+Byzantine
+Holistic
+Pristine
 

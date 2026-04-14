@@ -322,7 +322,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
       sx: {
         fontSize: "12px",
         // padding: "4px 8px",
-        padding: "0px 8px",
+        padding: "0px 5px",
         // alignContent: "center",
         // textAlign: "center",
         color: theme.palette.text.secondary,
@@ -337,8 +337,8 @@ const TeamSkillSetTable: React.FC<Props> = ({
           xs: "100px",
           sm: "100px",
           md: "180px",
-          lg: "300px",
-          xl: "363px",
+          lg: "350px",
+          xl: "405px",
         },
 
         backgroundColor: theme.palette.background.paper,
