@@ -30,6 +30,9 @@ import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGe
 import UserManagement from "../features/userManagement/components/UserManagement";
 import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
+import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
+import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
+import { UserLogs } from "../features/userManagement/pages/UserLogs";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -229,9 +232,26 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         <Route
           path="user-management"
           element={
-            <PrivateRoute element={<Holidayandnetworkschedulemanagermain />} />
+            // <PrivateRoute element={<Holidayandnetworkschedulemanagermain />} />
+            // <PrivateRoute element={<Holidayandnetworkschedulemanagermain />} />
+            <PrivateRoute element={<UserManagementLayout />} />
           }
-        ></Route>
+        >
+          <Route index element={<Navigate to="usermang" replace />} />
+          <Route path="usermang" element={<UserManagement />} />
+          <Route path="userlogs" element={<UserLogs />} />
+        </Route>
+
+        {/* <Route
+              path="user-management"
+              element={
+                <PrivateRoute element={<UserManagementLayout />} />
+              }
+>
+  <Route index element={<Navigate to="usermang" replace />} />
+  <Route path="usermang" element={<UserManagement />} />
+  <Route path="userlogs" element={<UserLogs />} />
+</Route> */}
 
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
