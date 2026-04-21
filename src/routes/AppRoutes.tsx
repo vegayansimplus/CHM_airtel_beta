@@ -29,10 +29,11 @@ import { CrqDetailedView } from "../features/scheduler/components/plan-and-inven
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
 import UserManagement from "../features/userManagement/components/UserManagement";
 import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
-import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
-import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
+// import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
+// import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
 import { UserLogs } from "../features/userManagement/pages/UserLogs";
+import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -242,16 +243,24 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="userlogs" element={<UserLogs />} />
         </Route>
 
-        {/* <Route
+        <Route path="global-settings">
+          <Route path="globalsettings" element={<AdminSettingDashboard />} />
+        </Route>
+
+        {/* 
+        
+          <Route
               path="user-management"
               element={
                 <PrivateRoute element={<UserManagementLayout />} />
               }
->
-  <Route index element={<Navigate to="usermang" replace />} />
-  <Route path="usermang" element={<UserManagement />} />
-  <Route path="userlogs" element={<UserLogs />} />
-</Route> */}
+            >
+            <Route index element={<Navigate to="usermang" replace />} />
+            <Route path="usermang" element={<UserManagement />} />
+            <Route path="userlogs" element={<UserLogs />} />
+          </Route> 
+          
+        */}
 
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />

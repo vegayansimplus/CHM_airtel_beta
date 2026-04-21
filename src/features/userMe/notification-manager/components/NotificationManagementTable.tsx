@@ -402,7 +402,7 @@ const NotificationManagementTable: React.FC = () => {
     },
     muiTableContainerProps: {
       sx: {
-        maxHeight: "70vh",
+        maxHeight: "83vh",
       },
     },
     muiTableHeadCellProps: {

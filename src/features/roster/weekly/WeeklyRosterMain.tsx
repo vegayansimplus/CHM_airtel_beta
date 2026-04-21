@@ -34,10 +34,9 @@ import { EditRosterDialog } from "../components/dialog/EditRosterDialog";
 import { ShiftInfoDialog } from "../components/dialog/ShiftInfoDialog";
 import { SwapRosterDialog } from "../components/dialog/SwapRosterDialog";
 import { toast } from "react-toastify";
-import FilterSvg from "../../../assets/svg/RosterEmpty.svg"
+import FilterSvg from "../../../assets/svg/RosterEmpty.svg";
 
 dayjs.extend(isoWeek);
-// Define type for swap selection
 interface SwapCell {
   userId: string;
   date: string;
@@ -118,8 +117,21 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
     return option?.shiftId || 0;
   };
 
-  const users = data?.data ?? [];
+  const [searchTerm, setSearchTerm] = useState("");
+  // const users = data?.data ?? [];
+const users = useMemo(() => {
+  const allUsers = data?.data ?? [];
 
+  if (!searchTerm?.trim()) return allUsers;
+
+  const keyword = searchTerm.toLowerCase();
+
+  return allUsers.filter((user: any) => {
+    const searchableText = JSON.stringify(user).toLowerCase();
+
+    return searchableText.includes(keyword);
+  });
+}, [data, searchTerm]);
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) =>
       weekStart.add(i, "day").format("YYYY-MM-DD"),
@@ -130,7 +142,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const [swapByManager] = useShiftSwapByManagerMutation();
   const [requestByMember] = useShiftSwapRequestByTeamMemberMutation();
 
-  const { role,userId } = useAuth();
+  const { role, userId } = useAuth();
 
   // executor that picks the right endpoint(s) based on role
   const executeSwap = async (
@@ -171,10 +183,10 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         // Identify which cell belongs to the logged-in user and which to the other user
         const loggedInUserId = String(userId);
         const isCell1LoggedInUser = String(cell1.userId) === loggedInUserId;
-        
+
         const loggedInUserCell = isCell1LoggedInUser ? cell1 : cell2;
         const otherUserCell = isCell1LoggedInUser ? cell2 : cell1;
-        
+
         resp = await requestByMember({
           shiftDate1: loggedInUserCell.date,
           recipientUserId: otherUserCell.userId,
@@ -187,7 +199,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       if (resp && resp.message) {
         setToastMsg(resp.message);
         toast.success(resp.message);
-      } 
+      }
       // else {
       //   toast.success("Shift swap completed successfully");
       //   setToastMsg("Shift swap completed successfully");
@@ -197,7 +209,7 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       const errMsg = err?.data?.message || err?.message || "Shift swap failed";
       setToastMsg(errMsg);
       toast.error(errMsg);
-      throw err; 
+      throw err;
     } finally {
       setIsSwapping(false);
     }
@@ -351,10 +363,9 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
   const hasError = data?.success === false || !!error;
   const errorMessage = "Roster not generated for selected range";
 
-
   if (shouldSkip) {
-  return (
-     <Box
+    return (
+      <Box
         sx={{
           width: "100%",
           minHeight: "calc(100vh - 220px)",
@@ -366,15 +377,9 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
       >
         <img src={FilterSvg} alt="Select Filter" width={650} />
       </Box>
-  );
-}
-  // if (shouldSkip) {
-  //   return (
-  //     <Alert severity="info" sx={{ mt: 2 }}>
-  //       Please select Domain and SubDomain
-  //     </Alert>
-  //   );
-  // }
+    );
+  }
+
 
   return (
     <Box
@@ -402,6 +407,8 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
         selectedSwapCount={selectedSwapCells.length}
         onApplySwap={handleApplySwap}
         isSwapping={isSwapping}
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
       />
 
       <SwapRosterDialog

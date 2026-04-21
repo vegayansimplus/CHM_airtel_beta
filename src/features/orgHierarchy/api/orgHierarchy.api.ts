@@ -85,4 +85,5 @@ export const {
   useGetOrgHierarchyByUserQuery,
   useGetEmployeesBySubDomainQuery,
   useGetEmpCountBySubDomainIdQuery,
+  useLazyGetEmployeesBySubDomainQuery
 } = orgHierarchyApi;

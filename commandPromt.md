@@ -119,5 +119,3 @@ I will now provide the UI image.
 <!-- _____________________________ -->
 
 
-
-based on current image I want best professional and best user interactive UI so give me best UI with improved and prefessional color coding and best options 

@@ -21,7 +21,8 @@ import {
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { TeamTopInfoCard } from "./TeamTopInfoCard";
-import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
+// import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
+import FilterSvg from "../../../../assets/svg/Filter.svg";
 import { CreateEditMemberDialog } from "../dialog/CreateEditMemberDialog";
 import { ExitEmployeeDialog } from "../dialog/ExitEmployeeDialog";
 
@@ -90,6 +91,7 @@ interface Props {
   roleCode: "User" | "Team Lead" | "Super Admin";
   overview?: OverviewType;
   isFilterSelected: boolean;
+  onFilteredRowsChange?: (rows: Record<string, any>[]) => void;
 }
 
 const DEFAULT_VISIBLE = [
@@ -113,6 +115,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
   roleCode,
   overview,
   isFilterSelected,
+  onFilteredRowsChange,
 }) => {
   const [editData, setEditData] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -129,6 +132,24 @@ const TeamSkillSetTable: React.FC<Props> = ({
     setExitDialogOpen(true);
   };
 
+  // Pagination logic
+  function getPaginationOptions(
+    baseOptions: number[],
+    totalCount: number,
+  ): number[] {
+    const maxOption = Math.max(...baseOptions);
+
+    if (totalCount > maxOption) {
+      // Avoid duplicates just in case
+      if (!baseOptions.includes(totalCount)) {
+        return [...baseOptions, totalCount];
+      }
+    }
+
+    return baseOptions;
+  }
+
+  // _________________________________________\\\
   /* ================= COLUMN KEYS ================= */
 
   const columnKeys = useMemo(() => {
@@ -360,16 +381,23 @@ const TeamSkillSetTable: React.FC<Props> = ({
       rowsPerPageOptions: useMemo(() => {
         const baseOptions = [5, 10, 15, 20, 25, 50];
 
-        // Add totalRowCount if not already included
-        const options =
-          totalRowCount > 0
-            ? Array.from(new Set([...baseOptions, totalRowCount])).sort(
-                (a, b) => a - b,
-              )
-            : baseOptions;
-
-        return options;
+        return getPaginationOptions(baseOptions, totalRowCount).sort(
+          (a, b) => a - b,
+        );
       }, [totalRowCount]),
+      //   rowsPerPageOptions: useMemo(() => {
+      //     const baseOptions = [5, 10, 15, 20, 25, 50];
+
+      //     // Add totalRowCount if not already included
+      //     const options =
+      //       totalRowCount > 0
+      //         ? Array.from(new Set([...baseOptions, totalRowCount])).sort(
+      //             (a, b) => a - b,
+      //           )
+      //         : baseOptions;
+
+      //     return options;
+      //   }, [totalRowCount]),
     },
 
     initialState: {
@@ -385,19 +413,29 @@ const TeamSkillSetTable: React.FC<Props> = ({
     ),
   });
 
+  // Expose filtered rows to parent whenever filters change
+  useEffect(() => {
+    if (!onFilteredRowsChange) return;
+    const filtered = table.getFilteredRowModel().rows.map((r) => r.original);
+    onFilteredRowsChange(filtered);
+  }, [
+    table.getState().columnFilters,
+    data, // re-run when server data refreshes
+  ]);
+
   if (!isFilterSelected) {
     return (
       <Box
         sx={{
           width: "100%",
-          minHeight: "calc(100vh - 220px)",
+          minHeight: "calc(100vh - 200px)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexDirection: "column",
         }}
       >
-        <img src={FilterSvg} alt="Select Filter" width={850} />
+        <img src={FilterSvg} alt="Select Filter" width={1050} />
       </Box>
     );
   }

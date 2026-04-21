@@ -1,6 +1,5 @@
 import { Box, useTheme } from "@mui/material";
 import { tokens } from "../../style/theme";
-import { AppScrollView } from "../ui/AppScrollView";
 
 const CommonContainer = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();

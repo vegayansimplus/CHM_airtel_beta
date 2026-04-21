@@ -57,7 +57,6 @@ interface UserRoster {
   roster: Record<string, Shift>;
 }
 
-
 const getShiftLetter = (shift?: string | null): string => {
   if (!shift) return "W";
   if (shift === "LEAVE") return "L";
@@ -65,7 +64,7 @@ const getShiftLetter = (shift?: string | null): string => {
   return shift.charAt(0);
 };
 
-/* ✅ UNCHANGED — original business logic */
+/*  — original business logic */
 const getShiftColor = (
   shift: string | null | undefined,
   mode: "light" | "dark",
@@ -171,7 +170,7 @@ export const MonthlyRosterMain = ({
   const theme = useTheme();
   const mode = theme.palette.mode;
 
-  /* ── Original state ── ✅ UNCHANGED */
+  /* ── Original state ──  */
   const [detailedView, setDetailedView] = useState(false);
 
   /* ── NEW UI-only state ── */
@@ -182,7 +181,7 @@ export const MonthlyRosterMain = ({
   const [highlightShift, setHighlightShift] = useState<string>("");
   const [showFilters, setShowFilters] = useState(false);
 
-  /* ── Original API logic ── ✅ UNCHANGED */
+  /* ── Original API logic ──  */
   const shouldSkip = !subDomainId || subDomainId === 0;
   const { data, isLoading, isError } = useGetRosterViewQuery(
     {
@@ -194,7 +193,7 @@ export const MonthlyRosterMain = ({
     { skip: shouldSkip },
   );
 
-  /* ── Original date generation ── ✅ UNCHANGED */
+  /* ── Original date generation ──  */
   const allDates = useMemo(() => {
     if (!startDate || !endDate) return [];
 
@@ -214,7 +213,7 @@ export const MonthlyRosterMain = ({
   const users: UserRoster[] = data?.data ?? [];
 
   /*
-   * NEW: client-side filter slice.
+   *  client-side filter slice.
    * getShiftLetter is at module scope so referencing it here is safe.
    */
   const filteredUsers = useMemo(() => {
@@ -243,7 +242,7 @@ export const MonthlyRosterMain = ({
     });
   }, [users, searchQuery, filterShift, filterLevel, allDates]);
 
-  /* NEW: summary stats */
+  /*  summary stats */
   const stats = useMemo(() => {
     const counts: Record<string, number> = {
       N: 0,
@@ -264,7 +263,7 @@ export const MonthlyRosterMain = ({
     return counts;
   }, [filteredUsers, allDates]);
 
-  /* NEW: daily active-staff count per date */
+  /*  daily active-staff count per date */
   const dailyCoverage = useMemo(() => {
     return allDates.map((date) => {
       let active = 0;
@@ -276,13 +275,13 @@ export const MonthlyRosterMain = ({
     });
   }, [filteredUsers, allDates]);
 
-  /* NEW: unique sorted job levels for dropdown */
+  /*  unique sorted job levels for dropdown */
   const jobLevels = useMemo(
     () => Array.from(new Set(users.map((u) => u.jobLevel))).sort(),
     [users],
   );
 
-  /* ── Original guard returns ── ✅ UNCHANGED */
+  /* ── Original guard returns ──  */
   if (shouldSkip) {
     return (
       <Box
@@ -354,7 +353,7 @@ export const MonthlyRosterMain = ({
           </Box> */}
 
           <Box display="flex" alignItems="center" gap={1} flexWrap="wrap">
-            {/* NEW: heatmap toggle */}
+            {/*  heatmap toggle */}
             <FormControlLabel
               control={
                 <Switch
@@ -365,7 +364,7 @@ export const MonthlyRosterMain = ({
               }
               label={<Typography fontSize={13}>Heatmap</Typography>}
             />
-            {/* ✅ ORIGINAL detailed-view toggle — unchanged */}
+            {/*  ORIGINAL detailed-view toggle — unchanged */}
             <FormControlLabel
               control={
                 <Switch
@@ -376,7 +375,7 @@ export const MonthlyRosterMain = ({
               label="Detailed View"
             />
           </Box>
-          {/* NEW: stats chips */}
+          {/*  stats chips */}
           <Box
             display="flex"
             gap={1}
@@ -427,7 +426,7 @@ export const MonthlyRosterMain = ({
         </Box>
       </Paper>
 
-      {/* NEW: toolbar */}
+      {/*  toolbar */}
       <Box display="flex" alignItems="center" gap={1} mb={1} flexWrap="wrap">
         {/* Search */}
         <TextField
@@ -513,7 +512,7 @@ export const MonthlyRosterMain = ({
         </Box>
       </Box>
 
-      {/* NEW: collapsible filter bar */}
+      {/*  collapsible filter bar */}
       <Collapse in={showFilters}>
         <Box
           display="flex"
@@ -587,7 +586,7 @@ export const MonthlyRosterMain = ({
           position: "relative",
         }}
       >
-        {/* NEW: loading overlay — reads original isLoading, no logic change */}
+        {/*  loading overlay — reads original isLoading, no logic change */}
         {isLoading && (
           <Box
             sx={{
@@ -617,7 +616,7 @@ export const MonthlyRosterMain = ({
             {/* ===== HEADER ===== */}
             <TableHead>
               <TableRow>
-                {/* ✅ UNCHANGED sticky employee header */}
+                {/*  sticky employee header */}
                 <TableCell
                   sx={{
                     width: 200,
@@ -646,7 +645,7 @@ export const MonthlyRosterMain = ({
                         position: "sticky",
                         top: 0,
                         zIndex: 10,
-                        /* NEW: today gets primary tint, weekend gets subtle grey.
+                        /*  today gets primary tint, weekend gets subtle grey.
                            Single borderBottom key — fixes duplicate-property lint error. */
                         background: isToday
                           ? alpha(theme.palette.primary.main, 0.1)
@@ -676,7 +675,7 @@ export const MonthlyRosterMain = ({
 
             {/* ===== BODY ===== */}
             <TableBody>
-              {/* NEW: empty state when all employees are filtered out */}
+              {/*  empty state when all employees are filtered out */}
               {filteredUsers.length === 0 && (
                 <TableRow>
                   <TableCell
@@ -693,7 +692,7 @@ export const MonthlyRosterMain = ({
 
               {filteredUsers.map((user) => (
                 <TableRow key={user.userId} hover>
-                  {/* ✅ UNCHANGED sticky employee column */}
+                  {/*  sticky employee column */}
                   <TableCell
                     sx={{
                       width: 200,
@@ -713,7 +712,7 @@ export const MonthlyRosterMain = ({
                       <Typography fontSize={11} color="text.secondary">
                         {user.jobLevel}
                       </Typography>
-                      {/* NEW: office location pill (renders only when field is set) */}
+                      {/*  office location pill (renders only when field is set) */}
                       {user.officeLocation && (
                         <Typography
                           fontSize={9}
@@ -736,18 +735,15 @@ export const MonthlyRosterMain = ({
                     const isToday = date === todayStr;
                     const isWeekend = [0, 6].includes(dayjs(date).day());
 
-                    /* ✅ ORIGINAL color call — not modified */
                     const originalColor = getShiftColor(
                       shift?.shiftDisplay,
                       mode,
                     );
 
-                    /* NEW: heatmap overrides color only when its toggle is on */
                     const color = heatmapMode
                       ? getHeatmapColor(shift?.shiftDisplay, mode)
                       : originalColor;
 
-                    /* NEW: highlight dim via opacity, no color mutation */
                     const letter = getShiftLetter(shift?.shiftDisplay);
                     const isDimmed =
                       highlightShift !== "" && letter !== highlightShift;
@@ -765,7 +761,6 @@ export const MonthlyRosterMain = ({
                               : "transparent",
                         }}
                       >
-                        {/* NEW: MUI Tooltip — wraps original badge, no inner changes */}
                         <Tooltip
                           arrow
                           placement="top"
@@ -787,14 +782,14 @@ export const MonthlyRosterMain = ({
                               )}
                               {shift?.availableMins !== undefined && (
                                 <Typography fontSize={11}>
-                                  Available:{" "}
+                                  6 Available:{" "}
                                   {Math.round(shift.availableMins / 60)}h
                                 </Typography>
                               )}
                             </Box>
                           }
                         >
-                          {/* ✅ ORIGINAL badge Box — sx additions only */}
+                          {/*  ORIGINAL badge Box — sx additions only */}
                           <Box
                             sx={{
                               display: "inline-flex",
@@ -807,13 +802,13 @@ export const MonthlyRosterMain = ({
                               fontWeight: 600,
                               fontSize: detailedView ? 12 : 11,
                               minHeight: detailedView ? 36 : 24,
-                              /* NEW: fade non-highlighted shifts */
+                              /*  fade non-highlighted shifts */
                               opacity: isDimmed ? 0.15 : 1,
                               transition: "opacity 0.15s",
                               cursor: "default",
                             }}
                           >
-                            {/* ✅ ORIGINAL display logic — untouched */}
+                            {/*  ORIGINAL display logic — untouched */}
                             {detailedView
                               ? (shift?.shiftDisplay ?? "WO")
                               : getShiftLetter(shift?.shiftDisplay)}
@@ -825,7 +820,7 @@ export const MonthlyRosterMain = ({
                 </TableRow>
               ))}
 
-              {/* NEW: sticky daily active-staff summary row */}
+              {/*  sticky daily active-staff summary row */}
               {filteredUsers.length > 0 && (
                 <TableRow
                   sx={{

@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import FilterSvg from "../../../../assets/svg/NoDataFound.svg";
+import FilterSvg from "../../../../assets/svg/Filter.svg";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,

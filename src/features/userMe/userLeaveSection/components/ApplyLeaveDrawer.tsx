@@ -20,8 +20,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import WbSunnyRoundedIcon from "@mui/icons-material/WbSunnyRounded";
 import NightsStayRoundedIcon from "@mui/icons-material/NightsStayRounded";
-import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
+// import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+// import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import EventNoteRoundedIcon from "@mui/icons-material/EventNoteRounded";
 import { useApplyLeaveMutation, useGetLeaveTypesQuery } from "../api/leave.api";
 import { toast } from "react-toastify";
@@ -95,6 +95,8 @@ const inputSx = {
     fontSize: "0.875rem",
   },
 };
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 
 export default function ApplyLeaveDrawer({ open, onClose }: Props) {
   const theme = useTheme();
@@ -117,6 +119,7 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
     leaveType: false,
     startDate: false,
     endDate: false,
+    reason: false,
   });
 
   const isHalfDay = form.duration === "Half Day";
@@ -136,7 +139,8 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
     form.leaveType &&
     form.startDate &&
     (isHalfDay || form.endDate) &&
-    !isEndBeforeStart;
+    !isEndBeforeStart &&
+    form.reason.trim().length > 0;
 
   const handleDurationChange = (val: DurationType) => {
     setForm((f) => ({
@@ -155,78 +159,49 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
     }));
   };
 
-  // const handleSubmit = async () => {
-  //   setTouched({ leaveType: true, startDate: true, endDate: true });
-  //   if (!canSubmit) return;
-  //   try {
-  //     await applyLeave({
-  //       leaveType: form.leaveType,
-  //       startDate: form.startDate,
-  //       endDate: isHalfDay ? form.startDate : form.endDate,
-  //       reason: form.reason,
-  //       leaveDuration: form.duration,
-  //       ...(isHalfDay && { session: form.session }),
-  //     }).unwrap();
-  //     setForm({
-  //       leaveType: "",
-  //       startDate: "",
-  //       endDate: "",
-  //       reason: "",
-  //       duration: "Full Day",
-  //       session: "FirstHalf",
-  //     });
-  //     setTouched({ leaveType: false, startDate: false, endDate: false });
-  //     onClose();
-  //   } catch {
-  //     // error handled via isError
-  //   }
-  // };
-
-  // Accent color shortcuts
   const handleSubmit = async () => {
-  setTouched({ leaveType: true, startDate: true, endDate: true });
-  if (!canSubmit) return;
+    setTouched({ leaveType: true, startDate: true, endDate: true, reason: true });
+    if (!canSubmit) return;
 
-  try {
-    const res = await applyLeave({
-      leaveType: form.leaveType,
-      startDate: form.startDate,
-      endDate: isHalfDay ? form.startDate : form.endDate,
-      reason: form.reason,
-      leaveDuration: form.duration,
-      ...(isHalfDay && { session: form.session }),
-    }).unwrap();
+    try {
+      const res = await applyLeave({
+        leaveType: form.leaveType,
+        startDate: form.startDate,
+        endDate: isHalfDay ? form.startDate : form.endDate,
+        reason: form.reason,
+        leaveDuration: form.duration,
+        ...(isHalfDay && { session: form.session }),
+      }).unwrap();
 
-    // 🔥 CORE LOGIC
-    if (res.status === "Success") {
-      toast.success(res.message || "Leave applied successfully");
+      // 🔥 CORE LOGIC
+      if (res.status === "Success") {
+        toast.success(res.message || "Leave applied successfully");
 
-      setForm({
-        leaveType: "",
-        startDate: "",
-        endDate: "",
-        reason: "",
-        duration: "Full Day",
-        session: "FirstHalf",
-      });
+        setForm({
+          leaveType: "",
+          startDate: "",
+          endDate: "",
+          reason: "",
+          duration: "Full Day",
+          session: "FirstHalf",
+        });
 
-      setTouched({ leaveType: false, startDate: false, endDate: false });
+        setTouched({ leaveType: false, startDate: false, endDate: false, reason: false });
 
-      onClose();
-    } else {
-      toast.error(res.message || "Something went wrong");
+        onClose();
+      } else {
+        toast.error(res.message || "Something went wrong");
+      }
+    } catch (err: any) {
+      // Fallback error handling
+      const msg =
+        err?.data?.message ||
+        "Failed to submit leave request. Please try again.";
+
+      toast.error(msg);
     }
+  };
 
-  } catch (err: any) {
-    // Fallback error handling
-    const msg =
-      err?.data?.message ||
-      "Failed to submit leave request. Please try again.";
-
-    toast.error(msg);
-  }
-};
-  
   const accentBlue = "#2563EB";
   const accentBlueSoft = isDark ? alpha("#2563EB", 0.15) : "#EFF6FF";
   const accentBlueBorder = isDark ? alpha("#2563EB", 0.5) : "#BFDBFE";
@@ -517,190 +492,6 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
                     )}
                   </TextField>
                 </Box>
-
-                {/* Duration Toggle */}
-                <Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.75,
-                      mb: 1.5,
-                    }}
-                  >
-                    <Typography sx={fieldLabelSx} style={{ marginBottom: 0 }}>
-                      Duration
-                    </Typography>
-                    <Tooltip
-                      title="Half day leave applies to a single calendar day only"
-                      placement="right"
-                      arrow
-                    >
-                      <InfoOutlinedIcon
-                        sx={{
-                          fontSize: 13,
-                          color: isDark ? "rgba(255,255,255,0.25)" : "#CBD5E1",
-                          cursor: "help",
-                        }}
-                      />
-                    </Tooltip>
-                  </Box>
-                  <Stack direction="row" spacing={1.5}>
-                    {(["Full Day", "Half Day"] as DurationType[]).map((d) => {
-                      const active = form.duration === d;
-                      return (
-                        <Box
-                          key={d}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={active}
-                          aria-label={d === "Full Day" ? "Full Day" : "Half Day"}
-                          onClick={() => handleDurationChange(d)}
-                          onKeyDown={(e) =>
-                            e.key === "Enter" && handleDurationChange(d)
-                          }
-                          sx={selectionCardSx(active)}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Box>
-                              <Typography
-                                sx={{
-                                  fontSize: "0.85rem",
-                                  fontWeight: active ? 700 : 500,
-                                  color: active
-                                    ? accentBlue
-                                    : isDark
-                                      ? "rgba(255,255,255,0.6)"
-                                      : "#374151",
-                                  lineHeight: 1.4,
-                                }}
-                              >
-                                {d === "Full Day" ? "Full Day" : "Half Day"}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontSize: "0.72rem",
-                                  color: isDark
-                                    ? "rgba(255,255,255,0.3)"
-                                    : "#9CA3AF",
-                                  mt: 0.25,
-                                }}
-                              >
-                                {d === "Full Day"
-                                  ? "Entire working day"
-                                  : "Morning or afternoon"}
-                              </Typography>
-                            </Box>
-                            {active && (
-                              <CheckCircleOutlineRoundedIcon
-                                sx={{
-                                  fontSize: 18,
-                                  color: accentBlue,
-                                  ml: 1,
-                                  flexShrink: 0,
-                                }}
-                              />
-                            )}
-                          </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                </Box>
-
-                {/* Half Day Session */}
-                <Collapse in={isHalfDay} unmountOnExit>
-                  <Box>
-                    <Typography sx={fieldLabelSx}>Session</Typography>
-                    <Stack direction="row" spacing={1.5}>
-                      {SESSION_OPTIONS.map((s) => {
-                        const active = form.session === s.value;
-                        return (
-                          <Box
-                            key={s.value}
-                            role="button"
-                            tabIndex={0}
-                            aria-pressed={active}
-                            aria-label={s.label}
-                            onClick={() =>
-                              setForm((f) => ({ ...f, session: s.value }))
-                            }
-                            onKeyDown={(e) =>
-                              e.key === "Enter" &&
-                              setForm((f) => ({ ...f, session: s.value }))
-                            }
-                            sx={selectionCardSx(active)}
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1.25,
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  width: 32,
-                                  height: 32,
-                                  borderRadius: "8px",
-                                  bgcolor: active
-                                    ? alpha(accentBlue, 0.15)
-                                    : isDark
-                                      ? "rgba(255,255,255,0.05)"
-                                      : "#F3F4F6",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  color: active
-                                    ? accentBlue
-                                    : isDark
-                                      ? "rgba(255,255,255,0.4)"
-                                      : "#6B7280",
-                                  transition: "all 0.2s ease",
-                                  flexShrink: 0,
-                                }}
-                              >
-                                {s.icon}
-                              </Box>
-                              <Box>
-                                <Typography
-                                  sx={{
-                                    fontSize: "0.82rem",
-                                    fontWeight: active ? 700 : 500,
-                                    color: active
-                                      ? accentBlue
-                                      : isDark
-                                        ? "rgba(255,255,255,0.7)"
-                                        : "#374151",
-                                    lineHeight: 1.3,
-                                  }}
-                                >
-                                  {s.label}
-                                </Typography>
-                                <Typography
-                                  sx={{
-                                    fontSize: "0.7rem",
-                                    color: isDark
-                                      ? "rgba(255,255,255,0.3)"
-                                      : "#9CA3AF",
-                                  }}
-                                >
-                                  {s.sub}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Box>
-                        );
-                      })}
-                    </Stack>
-                  </Box>
-                </Collapse>
               </Stack>
             </Box>
 
@@ -853,18 +644,9 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
                   }}
                 >
                   <Typography sx={fieldLabelSx} style={{ marginBottom: 0 }}>
-                    Reason
-                    <Box
-                      component="span"
-                      sx={{
-                        ml: 1,
-                        textTransform: "none",
-                        letterSpacing: 0,
-                        fontWeight: 400,
-                        color: isDark ? "rgba(255,255,255,0.25)" : "#D1D5DB",
-                      }}
-                    >
-                      (optional)
+                    Reason{" "}
+                    <Box component="span" sx={{ color: "#EF4444", ml: 0.3 }}>
+                      *
                     </Box>
                   </Typography>
                   <Typography
@@ -889,6 +671,11 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
                   size="small"
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                  onBlur={() => setTouched((t) => ({ ...t, reason: true }))}
+                  error={touched.reason && !form.reason.trim()}
+                  helperText={
+                    touched.reason && !form.reason.trim() ? "Reason is required" : ""
+                  }
                   placeholder="Briefly explain why you need this leave…"
                   inputProps={{
                     maxLength: 300,
@@ -900,7 +687,7 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
                       ...inputSx["& .MuiOutlinedInput-root"],
                       alignItems: "flex-start",
                     },
-                    "& textarea": { resize: "vertical", minHeight: 72 },
+                    "& textarea": { resize: "vertical", minHeight: 10 },
                   }}
                 />
               </Box>
@@ -1005,432 +792,3 @@ export default function ApplyLeaveDrawer({ open, onClose }: Props) {
     </Drawer>
   );
 }
-
-// import {
-//   Drawer,
-//   Box,
-//   Typography,
-//   Stack,
-//   TextField,
-//   MenuItem,
-//   Button,
-//   IconButton,
-//   Divider,
-//   CircularProgress,
-//   Chip,
-//   Alert,
-//   Collapse,
-//   Tooltip,
-// } from "@mui/material";
-// import { useState, useMemo } from "react";
-// import CloseIcon from "@mui/icons-material/Close";
-// import WbSunnyRoundedIcon from "@mui/icons-material/WbSunnyRounded";
-// import NightsStayRoundedIcon from "@mui/icons-material/NightsStayRounded";
-// import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-// import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-// import { useApplyLeaveMutation, useGetLeaveTypesQuery } from "../api/leave.api";
-
-// interface Props {
-//   open: boolean;
-//   onClose: () => void;
-// }
-
-// type DurationType = "FullDay" | "HalfDay";
-// type HalfDaySession = "FirstHalf" | "SecondHalf";
-
-// const SESSION_OPTIONS: { value: HalfDaySession; label: string }[] = [
-//   {
-//     value: "FirstHalf",
-//     label: "First Half",
-//     // icon: <WbSunnyRoundedIcon sx={{ fontSize: 18 }} />,
-//     // desc: "Morning session",
-//   },
-//   {
-//     value: "SecondHalf",
-//     label: "Second Half",
-//     // icon: <NightsStayRoundedIcon sx={{ fontSize: 18 }} />,
-//     // desc: "Afternoon session",
-//   },
-// ];
-
-// function getDayCount(start: string, end: string, duration: DurationType): number | null {
-//   if (!start || !end) return null;
-//   const s = new Date(start);
-//   const e = new Date(end);
-//   if (e < s) return null;
-//   const diff = Math.floor((e.getTime() - s.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-//   return duration === "HalfDay" ? 0.5 : diff;
-// }
-
-// export default function ApplyLeaveDrawer({ open, onClose }: Props) {
-//   const [applyLeave, { isLoading, isError, error }] = useApplyLeaveMutation();
-//   const { data: leaveTypes = [], isLoading: typesLoading } = useGetLeaveTypesQuery();
-
-//   const [form, setForm] = useState({
-//     leaveType: "",
-//     startDate: "",
-//     endDate: "",
-//     reason: "",
-//     duration: "FullDay" as DurationType,
-//     session: "FirstHalf" as HalfDaySession,
-//   });
-
-//   const isHalfDay = form.duration === "HalfDay";
-
-//   const dayCount = useMemo(
-//     () => getDayCount(form.startDate, form.endDate, form.duration),
-//     [form.startDate, form.endDate, form.duration]
-//   );
-
-//   const isEndBeforeStart =
-//     form.startDate && form.endDate && new Date(form.endDate) < new Date(form.startDate);
-
-//   const canSubmit =
-//     !isLoading &&
-//     form.leaveType &&
-//     form.startDate &&
-//     (isHalfDay || form.endDate) &&
-//     !isEndBeforeStart;
-
-//   const handleDurationChange = (val: DurationType) => {
-//     setForm((f) => ({
-//       ...f,
-//       duration: val,
-//       // For half day, force endDate = startDate
-//       endDate: val === "HalfDay" ? f.startDate : f.endDate,
-//     }));
-//   };
-
-//   const handleStartDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-//     const val = e.target.value;
-//     setForm((f) => ({
-//       ...f,
-//       startDate: val,
-//       // For half day, keep end = start
-//       endDate: f.duration === "HalfDay" ? val : f.endDate,
-//     }));
-//   };
-
-//   const handleSubmit = async () => {
-//     try {
-//       await applyLeave({
-//         leaveType: form.leaveType,
-//         startDate: form.startDate,
-//         endDate: isHalfDay ? form.startDate : form.endDate,
-//         reason: form.reason,
-//         leaveDuration: form.duration,
-//         ...(isHalfDay && { session: form.session }),
-//       }).unwrap();
-//       setForm({ leaveType: "", startDate: "", endDate: "", reason: "", duration: "FullDay", session: "FirstHalf" });
-//       onClose();
-//     } catch {
-//       // error handled via isError
-//     }
-//   };
-
-//   return (
-//     <Drawer
-//       anchor="right"
-//       open={open}
-//       onClose={onClose}
-//       PaperProps={{
-//         sx: {
-//           width: { xs: "100vw", sm: 480 },
-//           bgcolor: "background.paper",
-//           backgroundImage: "none",
-//         },
-//       }}
-//     >
-//       <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-
-//         {/* ── HEADER ── */}
-//         <Box
-//           sx={{
-//             px: 3,
-//             pt: 3,
-//             pb: 1,
-//             background: (t) =>
-//               t.palette.mode === "dark"
-//                 ? "linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%)"
-//                 : "linear-gradient(135deg, #f0f7ff 0%, #e8f4fd 100%)",
-//             borderBottom: "1px solid",
-//             borderColor: "divider",
-//           }}
-//         >
-//           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-//             <Box>
-//               <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-//                 <Box
-//                   sx={{
-//                     width: 36,
-//                     height: 36,
-//                     borderRadius: 2,
-//                     bgcolor: "primary.main",
-//                     display: "flex",
-//                     alignItems: "center",
-//                     justifyContent: "center",
-//                     boxShadow: "0 4px 12px rgba(25, 118, 210, 0.3)",
-//                   }}
-//                 >
-//                   <CalendarMonthRoundedIcon sx={{ color: "#fff", fontSize: 20 }} />
-//                 </Box>
-//                 <Typography variant="h6" fontWeight={700} letterSpacing="-0.3px">
-//                   Apply for Leave
-//                 </Typography>
-//               </Box>
-//               <Typography variant="body2" color="text.secondary" sx={{ pl: "44px" }}>
-//                 Submit a new leave request for approval
-//               </Typography>
-//             </Box>
-//             <IconButton onClick={onClose} size="small" sx={{ mt: -0.5 }}>
-//               <CloseIcon fontSize="small" />
-//             </IconButton>
-//           </Box>
-//         </Box>
-
-//         {/* ── BODY ── */}
-//         <Box sx={{ flexGrow: 1, overflowY: "auto", p: 3 }}>
-//           <Stack spacing={3}>
-
-//             {/* Error alert */}
-//             <Collapse in={isError}>
-//               <Alert severity="error" variant="outlined" sx={{ borderRadius: 2 }}>
-//                 {(error as any)?.data?.message ?? "Failed to submit. Please try again."}
-//               </Alert>
-//             </Collapse>
-
-//             {/* Leave Type */}
-//             <Box>
-//               <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: "block", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-//                 Leave Type
-//               </Typography>
-//               <TextField
-//                 select
-//                 fullWidth
-//                 size="small"
-//                 value={form.leaveType}
-//                 onChange={(e) => setForm({ ...form, leaveType: e.target.value })}
-//                 placeholder="Select leave type"
-//                 SelectProps={{ displayEmpty: true }}
-//                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-//               >
-//                 <MenuItem value="" disabled>
-//                   <Typography color="text.disabled">Select leave type</Typography>
-//                 </MenuItem>
-//                 {typesLoading ? (
-//                   <MenuItem disabled>
-//                     <CircularProgress size={14} sx={{ mr: 1 }} /> Loading...
-//                   </MenuItem>
-//                 ) : (
-//                   leaveTypes.map((item) => (
-//                     <MenuItem key={item.leaveType} value={item.leaveType}>
-//                       {item.leaveType}
-//                     </MenuItem>
-//                   ))
-//                 )}
-//               </TextField>
-//             </Box>
-
-//             {/* Duration Toggle */}
-//             <Box>
-//               <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1.5 }}>
-//                 <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ textTransform: "uppercase", letterSpacing: "0.6px" }}>
-//                   Duration
-//                 </Typography>
-//                 <Tooltip title="Half day leave applies to a single day only" placement="right">
-//                   <InfoOutlinedIcon sx={{ fontSize: 14, color: "text.disabled", cursor: "help" }} />
-//                 </Tooltip>
-//               </Box>
-//               <Stack direction="row" spacing={1.5}>
-//                 {(["FullDay", "HalfDay"] as DurationType[]).map((d) => (
-//                   <Box
-//                     key={d}
-//                     onClick={() => handleDurationChange(d)}
-//                     sx={{
-//                       flex: 1,
-//                       py: 1.5,
-//                       px: 2,
-//                       borderRadius: 2.5,
-//                       border: "2px solid",
-//                       borderColor: form.duration === d ? "primary.main" : "divider",
-//                       bgcolor: form.duration === d ? "primary.50" : "background.default",
-//                       cursor: "pointer",
-//                       transition: "all 0.18s ease",
-//                       textAlign: "center",
-//                       "&:hover": {
-//                         borderColor: "primary.light",
-//                         bgcolor: "primary.50",
-//                       },
-//                     }}
-//                   >
-//                     <Typography
-//                       variant="body2"
-//                       fontWeight={form.duration === d ? 700 : 500}
-//                       color={form.duration === d ? "primary.main" : "text.secondary"}
-//                     >
-//                       {d === "FullDay" ? "Full Day" : "Half Day"}
-//                     </Typography>
-//                     <Typography variant="caption" color="text.disabled">
-//                       {d === "FullDay" ? "Entire working day" : "Morning or afternoon"}
-//                     </Typography>
-//                   </Box>
-//                 ))}
-//               </Stack>
-//             </Box>
-
-//             {/* Half Day Session Selector */}
-//             <Collapse in={isHalfDay}>
-//               <Box>
-//                 <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1.5, display: "block", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-//                   Session
-//                 </Typography>
-//                 <Stack direction="row" spacing={1.5}>
-//                   {SESSION_OPTIONS.map((s) => (
-//                     <Box
-//                       key={s.value}
-//                       onClick={() => setForm((f) => ({ ...f, session: s.value }))}
-//                       sx={{
-//                         flex: 1,
-//                         display: "flex",
-//                         alignItems: "center",
-//                         gap: 1.5,
-//                         py: 1.5,
-//                         px: 2,
-//                         borderRadius: 2.5,
-//                         border: "2px solid",
-//                         borderColor: form.session === s.value ? "primary.main" : "divider",
-//                         bgcolor: form.session === s.value ? "primary.50" : "background.default",
-//                         cursor: "pointer",
-//                         transition: "all 0.18s ease",
-//                         "&:hover": { borderColor: "primary.light", bgcolor: "primary.50" },
-//                       }}
-//                     >
-
-//                       <Box>
-//                         <Typography
-//                           variant="body2"
-//                           fontWeight={form.session === s.value ? 700 : 500}
-//                           color={form.session === s.value ? "primary.main" : "text.secondary"}
-//                         >
-//                           {s.label}
-//                         </Typography>
-
-//                       </Box>
-//                     </Box>
-//                   ))}
-//                 </Stack>
-//               </Box>
-//             </Collapse>
-
-//             {/* Date Fields */}
-//             <Box>
-//               <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: "block", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-//                 {isHalfDay ? "Date" : "Date Range"}
-//               </Typography>
-//               <Stack direction="row" spacing={2}>
-//                 <TextField
-//                   fullWidth
-//                   type="date"
-//                   label="Start Date"
-//                   size="small"
-//                   value={form.startDate}
-//                   InputLabelProps={{ shrink: true }}
-//                   onChange={handleStartDateChange}
-//                   inputProps={{ min: new Date().toISOString().split("T")[0] }}
-//                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-//                 />
-//                 {!isHalfDay && (
-//                   <TextField
-//                     fullWidth
-//                     type="date"
-//                     label="End Date"
-//                     size="small"
-//                     value={form.endDate}
-//                     InputLabelProps={{ shrink: true }}
-//                     onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-//                     inputProps={{ min: form.startDate || new Date().toISOString().split("T")[0] }}
-//                     error={!!isEndBeforeStart}
-//                     helperText={isEndBeforeStart ? "End date must be after start date" : ""}
-//                     sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-//                   />
-//                 )}
-//               </Stack>
-
-//               {/* Duration Summary Chip */}
-//               {dayCount !== null && dayCount > 0 && (
-//                 <Box sx={{ mt: 1.5 }}>
-//                   <Chip
-//                     size="small"
-//                     label={`${dayCount} ${dayCount === 1 ? "day" : dayCount === 0.5 ? "half day" : "days"} of leave`}
-//                     color="primary"
-//                     variant="outlined"
-//                     sx={{ borderRadius: 1.5, fontWeight: 600, fontSize: 12 }}
-//                   />
-//                 </Box>
-//               )}
-//             </Box>
-
-//             {/* Reason */}
-//             <Box>
-//               <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ mb: 1, display: "block", textTransform: "uppercase", letterSpacing: "0.6px" }}>
-//                 Reason <Typography component="span" variant="caption" color="text.disabled">(Optional)</Typography>
-//               </Typography>
-//               <TextField
-//                 fullWidth
-//                 multiline
-//                 rows={3}
-//                 size="small"
-//                 value={form.reason}
-//                 onChange={(e) => setForm({ ...form, reason: e.target.value })}
-//                 placeholder="Briefly explain why you need this leave..."
-//                 inputProps={{ maxLength: 300 }}
-//                 helperText={`${form.reason.length}/300`}
-//                 FormHelperTextProps={{ sx: { textAlign: "right", mr: 0 } }}
-//                 sx={{ "& .MuiOutlinedInput-root": { borderRadius: 2 } }}
-//               />
-//             </Box>
-
-//           </Stack>
-//         </Box>
-
-//         {/* ── FOOTER ── */}
-//         <Box
-//           sx={{
-//             px: 3,
-//             py: 2.5,
-//             borderTop: "1px solid",
-//             borderColor: "divider",
-//             bgcolor: "background.default",
-//             display: "flex",
-//             justifyContent: "flex-end",
-//             gap: 1.5,
-//           }}
-//         >
-//           <Button
-//             variant="outlined"
-//             color="inherit"
-//             onClick={onClose}
-//             sx={{ borderRadius: 2, px: 3, fontWeight: 600 }}
-//           >
-//             Cancel
-//           </Button>
-//           <Button
-//             variant="contained"
-//             disabled={!canSubmit}
-//             onClick={handleSubmit}
-//             startIcon={isLoading ? <CircularProgress size={16} color="inherit" /> : null}
-//             sx={{
-//               borderRadius: 2,
-//               px: 4,
-//               fontWeight: 700,
-//               boxShadow: "0 4px 12px rgba(25, 118, 210, 0.25)",
-//               "&:hover": { boxShadow: "0 6px 16px rgba(25, 118, 210, 0.35)" },
-//             }}
-//           >
-//             {isLoading ? "Submitting..." : "Submit Request"}
-//           </Button>
-//         </Box>
-//       </Box>
-//     </Drawer>
-//   );
-// }

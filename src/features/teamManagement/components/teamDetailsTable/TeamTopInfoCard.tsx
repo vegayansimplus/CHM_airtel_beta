@@ -143,14 +143,14 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
             {teamName}
           </Typography>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: "3px" }}>
-            <LeadIcon color={theme.palette.text.disabled} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: "5px" }}>
+            <LeadIcon color={theme.palette.text.secondary} />
             <Typography
               noWrap
               sx={{
-                fontSize: "10px",
-                color: "text.disabled",
-                lineHeight: 1.25,
+                // fontSize: "10px",
+                color: "text.enabled",
+                lineHeight: 1,
               }}
             >
               {overview.teamLead ?? "Not assigned"}

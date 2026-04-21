@@ -419,8 +419,8 @@ export const UserLogs: React.FC = () => {
             py: 1.5,
             borderBottom: "1px solid",
             borderColor: "divider",
-            background:
-              "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,0.4) 100%)",
+            // background:
+            //   "linear-gradient(180deg, rgba(248,250,252,1) 0%, rgba(241,245,249,0.4) 100%)",
           }}
         >
           <Stack
@@ -559,9 +559,9 @@ export const UserLogs: React.FC = () => {
         </Box>
 
         {/* Table */}
-        <TableContainer>
-          <Table size="small">
-            <TableHead>
+        <TableContainer sx={{height: "calc(100vh - 270px)"}}>
+          <Table size="small" stickyHeader>
+            <TableHead sx={{ borderBottom: "2px solid", borderColor: "divider" }}>
               <TableRow
                 sx={{
                   "& th": {
