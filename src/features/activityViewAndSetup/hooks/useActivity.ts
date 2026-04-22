@@ -7,7 +7,6 @@ import {
   setFilters,
   resetFilters,
   setCurrentPage,
-  createActivity,
   updateActivityStatus,
   deleteActivity,
   savePhase,
@@ -28,19 +27,13 @@ import {
 } from "../selectors/activity.selectors";
 import type {
   ActivityFilters,
-  CreateActivityForm,
   ActivityPhases,
   ActivityStatus,
 } from "../types/activity.types";
 
-// ─────────────────────────────────────────────
-//  Primary hook — combines all activity state
-// ─────────────────────────────────────────────
-
 export const useActivity = () => {
   const dispatch = useAppDispatch();
 
-  // ── Selectors ────────────────────────────────────────────────────────────
   const paginatedActivities = useAppSelector(selectPaginatedActivities);
   const filteredActivities = useAppSelector(selectFilteredActivities);
   const filters = useAppSelector(selectFilters);
@@ -53,64 +46,64 @@ export const useActivity = () => {
   const snackbar = useAppSelector(selectSnackbar);
   const stats = useAppSelector(selectActivityStats);
 
-  // ── Actions ───────────────────────────────────────────────────────────────
   const goToList = useCallback(() => dispatch(setViewMode("list")), [dispatch]);
-  const goToCreate = useCallback(() => dispatch(setViewMode("create")), [dispatch]);
+  const goToCreate = useCallback(
+    () => dispatch(setViewMode("create")),
+    [dispatch],
+  );
 
+  // Pass ANY object into Redux to track it
   const openConfigure = useCallback(
-    (id: string) => dispatch(selectActivity(id)),
-    [dispatch]
+    (payload: any) => dispatch(selectActivity(payload)),
+    [dispatch],
   );
 
   const changePhaseTab = useCallback(
     (tab: string) => dispatch(setActivePhaseTab(tab)),
-    [dispatch]
+    [dispatch],
   );
-
   const updateFilters = useCallback(
     (partial: Partial<ActivityFilters>) => dispatch(setFilters(partial)),
-    [dispatch]
+    [dispatch],
   );
-
   const clearFilters = useCallback(() => dispatch(resetFilters()), [dispatch]);
-
   const changePage = useCallback(
     (page: number) => dispatch(setCurrentPage(page)),
-    [dispatch]
-  );
-
-  const handleCreate = useCallback(
-    (form: CreateActivityForm) => dispatch(createActivity(form)),
-    [dispatch]
+    [dispatch],
   );
 
   const handleUpdateStatus = useCallback(
     (id: string, status: ActivityStatus) =>
       dispatch(updateActivityStatus({ id, status })),
-    [dispatch]
+    [dispatch],
   );
-
   const handleDelete = useCallback(
     (id: string) => dispatch(deleteActivity(id)),
-    [dispatch]
+    [dispatch],
   );
 
   const handleSavePhase = useCallback(
     (
       activityId: string,
       phaseKey: keyof ActivityPhases,
-      data: Partial<ActivityPhases[keyof ActivityPhases]>
+      data: Partial<ActivityPhases[keyof ActivityPhases]>,
     ) => dispatch(savePhase({ activityId, phaseKey, data })),
-    [dispatch]
+    [dispatch],
   );
 
   const handleCloseSnackbar = useCallback(
     () => dispatch(closeSnackbar()),
-    [dispatch]
+    [dispatch],
+  );
+
+  const showSnackbar = useCallback(
+    (message: string, severity: "success" | "error" = "success") => {
+      // If you have a showSnackbar action, add it here. Otherwise rely on savePhase's built in snackbar.
+    },
+    [],
   );
 
   return {
-    // State
     paginatedActivities,
     filteredActivities,
     filters,
@@ -122,8 +115,6 @@ export const useActivity = () => {
     activePhaseTab,
     snackbar,
     stats,
-
-    // Actions
     goToList,
     goToCreate,
     openConfigure,
@@ -131,10 +122,10 @@ export const useActivity = () => {
     updateFilters,
     clearFilters,
     changePage,
-    handleCreate,
     handleUpdateStatus,
     handleDelete,
     handleSavePhase,
     handleCloseSnackbar,
+    showSnackbar,
   };
 };

@@ -1,702 +1,704 @@
-import React, { useState } from "react";
+import React, { useMemo } from "react";
 import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
+import {
+  Alert,
   Box,
   Button,
-  Chip,
-  Grid,
+  CircularProgress,
   IconButton,
-  InputAdornment,
-  MenuItem,
   Paper,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  TextField,
   Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
-import SearchIcon from "@mui/icons-material/Search";
-import SearchOffIcon from "@mui/icons-material/SearchOff";
 import EditIcon from "@mui/icons-material/Edit";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import DeleteIcon from "@mui/icons-material/Delete";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import BlockIcon from "@mui/icons-material/Block";
-import ClearIcon from "@mui/icons-material/Clear";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 
 import { useActivity } from "../../hooks/useActivity";
-import { ImpactChip, StatusChip } from "./shared/ActivityShared";
-import {
-  CHANGE_IMPACT_OPTIONS,
-  DOMAIN_OPTIONS,
-  STATUS_OPTIONS,
-} from "../../data/activity.mock";
-import type { Activity } from "../../types/activity.types";
+import { useGetActivityViewQuery } from "../../api/acitivityApiSlice";
 
-// ─────────────────────────────────────────────
-//  Stats Cards Row
-// ─────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-const StatsRow: React.FC = () => {
-  const { stats } = useActivity();
+interface ActivityViewRow {
+  activityId: number;
+  activityName: string;
+  changeImpact: string;
+  chmDomain: number;
+  chmSubDomain: number;
+  createdAt: string;
+  createdBy: string;
+  domain: string;
+  layer: string;
+  planType: string;
+  status: string;
+  vendorOem: string;
+}
+
+interface Props {
+  subDomainID?: number;
+}
+
+// ─── Inline badges ────────────────────────────────────────────────────────────
+
+const IMPACT_COLOR: Record<string, { fg: string; bg: string }> = {
+  Low: { fg: "#065f46", bg: "#d1fae5" },
+  Medium: { fg: "#92400e", bg: "#fef3c7" },
+  High: { fg: "#c2410c", bg: "#ffedd5" },
+  Critical: { fg: "#991b1b", bg: "#fee2e2" },
+};
+
+const STATUS_COLOR: Record<string, { fg: string; bg: string; dot: string }> = {
+  Active: { fg: "#065f46", bg: "#d1fae5", dot: "#10b981" },
+  Inactive: { fg: "#374151", bg: "#f3f4f6", dot: "#9ca3af" },
+  Draft: { fg: "#1e40af", bg: "#dbeafe", dot: "#3b82f6" },
+  Pending: { fg: "#92400e", bg: "#fef3c7", dot: "#f59e0b" },
+};
+
+const badge: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  padding: "1px 7px",
+  borderRadius: 4,
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: "0.03em",
+  whiteSpace: "nowrap",
+};
+
+const ImpactBadge: React.FC<{ value: string }> = ({ value }) => {
+  const c = IMPACT_COLOR[value] ?? { fg: "#374151", bg: "#f3f4f6" };
+  return (
+    <span style={{ ...badge, color: c.fg, backgroundColor: c.bg }}>
+      {value || "—"}
+    </span>
+  );
+};
+
+const StatusBadge: React.FC<{ value: string }> = ({ value }) => {
+  const c = STATUS_COLOR[value] ?? {
+    fg: "#374151",
+    bg: "#f3f4f6",
+    dot: "#9ca3af",
+  };
+  return (
+    <span style={{ ...badge, color: c.fg, backgroundColor: c.bg, gap: 5 }}>
+      <span
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: "50%",
+          backgroundColor: c.dot,
+          flexShrink: 0,
+        }}
+      />
+      {value || "—"}
+    </span>
+  );
+};
+
+// ─── Stats strip ──────────────────────────────────────────────────────────────
+
+const StatsStrip: React.FC<{ rows: ActivityViewRow[] }> = ({ rows }) => {
   const theme = useTheme();
-  const cards = [
+
+  const stats = useMemo(
+    () => ({
+      total: rows.length,
+      active: rows.filter((r) => r.status === "Active").length,
+      draft: rows.filter((r) => r.status === "Draft").length,
+      pending: rows.filter((r) => r.status === "Pending").length,
+      highImpact: rows.filter((r) =>
+        ["High", "Critical"].includes(r.changeImpact),
+      ).length,
+    }),
+    [rows],
+  );
+
+  const items = [
     { label: "Total", value: stats.total, color: theme.palette.primary.main },
-    { label: "Active", value: stats.active, color: theme.palette.success.main },
-    { label: "Draft", value: stats.draft, color: theme.palette.text.secondary },
-    {
-      label: "Pending",
-      value: stats.pending,
-      color: theme.palette.warning.main,
-    },
-    {
-      label: "High Impact",
-      value: stats.highImpact,
-      color: theme.palette.error.main,
-    },
+    { label: "Active", value: stats.active, color: "#10b981" },
+    { label: "Draft", value: stats.draft, color: "#6b7280" },
+    { label: "Pending", value: stats.pending, color: "#f59e0b" },
+    { label: "High Impact", value: stats.highImpact, color: "#ef4444" },
   ];
-  return (
-    <Grid container spacing={1.5} sx={{ mb: 2.25 }}>
-      {cards.map((c) => (
-        <Grid
-          // item xs={6} sm={4} md={2.4}
-          size={{ xs: 6, sm: 4, md: 2.4 }}
-          key={c.label}
-        >
-          <Paper
-            elevation={0}
-            sx={{
-              p: 1.5,
-              textAlign: "center",
-              borderRadius: 3,
-              border: `1px solid ${alpha(
-                c.color,
-                theme.palette.mode === "dark" ? 0.35 : 0.25,
-              )}`,
-              backgroundColor: alpha(
-                c.color,
-                theme.palette.mode === "dark" ? 0.14 : 0.08,
-              ),
-              boxShadow:
-                theme.palette.mode === "dark"
-                  ? "0 10px 30px rgba(0,0,0,0.28)"
-                  : theme.shadows[1],
-            }}
-          >
-            <Typography
-              sx={{
-                fontSize: 22,
-                fontWeight: 700,
-                color: c.color,
-                lineHeight: 1.2,
-              }}
-            >
-              {c.value}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {c.label}
-            </Typography>
-          </Paper>
-        </Grid>
-      ))}
-    </Grid>
-  );
-};
-
-// ─────────────────────────────────────────────
-//  Filter Bar
-// ─────────────────────────────────────────────
-
-const FilterBar: React.FC = () => {
-  const { filters, updateFilters, clearFilters } = useActivity();
-  const theme = useTheme();
-  const [showFilters, setShowFilters] = useState(false);
-
-  const hasActive = Boolean(
-    filters.search ||
-      filters.domain ||
-      filters.status ||
-      filters.changeImpact,
-  );
-
-  return (
-    <Paper
-      variant="outlined"
-      sx={{
-        mb: 2,
-        p: 1.5,
-        borderRadius: 3,
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? "rgba(255,255,255,0.03)"
-            : theme.palette.grey[50],
-        borderColor: theme.palette.divider,
-      }}
-    >
-      <Box
-        sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}
-      >
-        {/* Search */}
-        <TextField
-          size="small"
-          placeholder="Search activities…"
-          value={filters.search}
-          onChange={(e) => updateFilters({ search: e.target.value })}
-          sx={{ minWidth: 240, flexGrow: 1 }}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
-              </InputAdornment>
-            ),
-            endAdornment: filters.search ? (
-              <InputAdornment position="end">
-                <IconButton
-                  size="small"
-                  onClick={() => updateFilters({ search: "" })}
-                >
-                  <ClearIcon fontSize="small" />
-                </IconButton>
-              </InputAdornment>
-            ) : null,
-          }}
-        />
-
-        {/* Filter toggle */}
-        <Button
-          size="small"
-          variant={showFilters ? "contained" : "outlined"}
-          startIcon={<FilterListIcon />}
-          onClick={() => setShowFilters((p) => !p)}
-          color={hasActive ? "primary" : "inherit"}
-        >
-          Filters{" "}
-          {hasActive
-            ? `(${[
-                filters.search,
-                filters.domain,
-                filters.status,
-                filters.changeImpact,
-              ].filter(Boolean).length})`
-            : ""}
-        </Button>
-
-        {hasActive && (
-          <Button
-            size="small"
-            variant="text"
-            onClick={clearFilters}
-            startIcon={<ClearIcon />}
-          >
-            Clear
-          </Button>
-        )}
-      </Box>
-
-      {showFilters && (
-        <Box sx={{ display: "flex", gap: 1.5, mt: 1.25, flexWrap: "wrap" }}>
-          <TextField
-            select
-            size="small"
-            label="Domain"
-            value={filters.domain}
-            onChange={(e) => updateFilters({ domain: e.target.value })}
-            sx={{ minWidth: 130 }}
-          >
-            <MenuItem value="">All</MenuItem>
-            {DOMAIN_OPTIONS.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            select
-            size="small"
-            label="Status"
-            value={filters.status}
-            onChange={(e) => updateFilters({ status: e.target.value })}
-            sx={{ minWidth: 130 }}
-          >
-            {STATUS_OPTIONS.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label || "All"}
-              </MenuItem>
-            ))}
-          </TextField>
-
-          <TextField
-            select
-            size="small"
-            label="Change impact"
-            value={filters.changeImpact}
-            onChange={(e) => updateFilters({ changeImpact: e.target.value })}
-            sx={{ minWidth: 140 }}
-          >
-            <MenuItem value="">All</MenuItem>
-            {CHANGE_IMPACT_OPTIONS.map((o) => (
-              <MenuItem key={o.value} value={o.value}>
-                {o.label}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Box>
-      )}
-    </Paper>
-  );
-};
-
-// ─────────────────────────────────────────────
-//  Phases count badge
-// ─────────────────────────────────────────────
-
-const PhasesBadge: React.FC<{ phases: Activity["phases"] }> = ({ phases }) => {
-  const configured = Object.values(phases).filter((p) => {
-    return Object.values(p).some(
-      (v) => v !== "" && v !== null && v !== undefined,
-    );
-  }).length;
-
-  const theme = useTheme();
-  const main =
-    configured === 6
-      ? theme.palette.success.main
-      : configured > 0
-        ? theme.palette.warning.main
-        : theme.palette.grey[600];
-
-  return (
-    <Chip
-      label={`${configured}/6`}
-      size="small"
-      variant="filled"
-      sx={{
-        fontWeight: 800,
-        fontSize: 11,
-        borderRadius: 999,
-        bgcolor: alpha(main, theme.palette.mode === "dark" ? 0.22 : 0.12),
-        color: main,
-        border: `1px solid ${alpha(
-          main,
-          theme.palette.mode === "dark" ? 0.55 : 0.32,
-        )}`,
-      }}
-    />
-  );
-};
-
-// ─────────────────────────────────────────────
-//  Pagination
-// ─────────────────────────────────────────────
-
-const PaginationRow: React.FC = () => {
-  const {
-    currentPage,
-    totalPages,
-    totalCount,
-    changePage,
-  } = useActivity();
-
-  const start = (currentPage - 1) * 5 + 1;
-  const end = Math.min(currentPage * 5, totalCount);
 
   return (
     <Box
       sx={{
         display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        px: 1,
-        pt: 1,
-        flexWrap: "wrap",
-        gap: 1,
+        mb: 1.5,
+        borderRadius: 2,
+        overflow: "hidden",
+        border: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
       }}
     >
-      <Typography variant="caption" color="text.secondary">
-        Showing {start}–{end} of {totalCount} activities
-      </Typography>
-      <Box sx={{ display: "flex", gap: 0.5 }}>
-        {[
-          "«",
-          "‹",
-          ...Array.from({ length: totalPages }, (_, i) => String(i + 1)),
-          "›",
-          "»",
-        ].map((label, idx) => {
-          const isNum = !isNaN(Number(label));
-          const pageNum = Number(label);
-          const disabled =
-            (label === "«" || label === "‹") && currentPage === 1
-              ? true
-              : (label === "›" || label === "»") && currentPage === totalPages
-                ? true
-                : false;
-
-          const onClick = () => {
-            if (label === "«") changePage(1);
-            else if (label === "‹") changePage(Math.max(1, currentPage - 1));
-            else if (label === "›")
-              changePage(Math.min(totalPages, currentPage + 1));
-            else if (label === "»") changePage(totalPages);
-            else if (isNum) changePage(pageNum);
-          };
-
-          return (
-            <Button
-              key={idx}
-              size="small"
-              variant={
-                isNum && pageNum === currentPage ? "contained" : "outlined"
-              }
-              disabled={disabled}
-              onClick={onClick}
+      {items.map((item, i) => (
+        <Box
+          key={item.label}
+          sx={{
+            flex: 1,
+            px: 2,
+            py: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            borderRight:
+              i < items.length - 1
+                ? `1px solid ${theme.palette.divider}`
+                : "none",
+            transition: "background-color 150ms",
+            "&:hover": { backgroundColor: alpha(item.color, 0.04) },
+          }}
+        >
+          <Box
+            sx={{
+              width: 3,
+              height: 28,
+              borderRadius: 2,
+              backgroundColor: item.color,
+              flexShrink: 0,
+            }}
+          />
+          <Box>
+            <Typography
               sx={{
-                minWidth: 32,
-                px: 1,
-                py: 0.25,
-                fontSize: 12,
-                borderRadius: 999,
+                fontSize: 17,
                 fontWeight: 700,
+                lineHeight: 1.1,
+                color: item.color,
               }}
             >
-              {label}
-            </Button>
-          );
-        })}
-      </Box>
+              {item.value}
+            </Typography>
+            <Typography
+              sx={{
+                fontSize: 10,
+                color: "text.secondary",
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              {item.label}
+            </Typography>
+          </Box>
+        </Box>
+      ))}
     </Box>
   );
 };
 
-// ─────────────────────────────────────────────
-//  Main Activity List
-// ─────────────────────────────────────────────
+// ─── Main ─────────────────────────────────────────────────────────────────────
 
-export const ActivityList: React.FC = () => {
-  const {
-    paginatedActivities,
-    goToCreate,
-    openConfigure,
-    handleUpdateStatus,
-    handleDelete,
-    filters,
-    clearFilters,
-  } = useActivity();
+export const ActivityList: React.FC<Props> = ({ subDomainID }) => {
+  const { goToCreate, openConfigure, handleUpdateStatus, handleDelete } =
+    useActivity();
   const theme = useTheme();
-  const hasActiveFilters = Boolean(
-    filters.search ||
-      filters.domain ||
-      filters.status ||
-      filters.changeImpact,
+  const isDark = theme.palette.mode === "dark";
+
+  const {
+    data: apiRows = [],
+    isLoading,
+    isFetching,
+    isError,
+    error,
+    refetch,
+  } = useGetActivityViewQuery(
+    { subDomainID },
+    { skip: subDomainID === undefined },
   );
 
-  const cols = [
-    "Activity Name",
-    "CHM Domain",
-    "Domain",
-    "Plan Type",
-    "Vendor OEM",
-    "Phases",
-    "Change Impact",
-    "Status",
-    "Actions",
-  ];
+  // ── Columns ───────────────────────────────────────────────────────────────
 
-  return (
-    <Box>
-      {/* Header */}
+  const columns = useMemo<MRT_ColumnDef<ActivityViewRow>[]>(
+    () => [
+      {
+        accessorKey: "activityName",
+        header: "Activity",
+        size: 190,
+        minSize: 140,
+        Cell: ({ row }) => (
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 12,
+                fontWeight: 600,
+                lineHeight: 1.3,
+                color: "primary.main",
+                cursor: "pointer",
+                "&:hover": { textDecoration: "underline" },
+              }}
+              onClick={() => openConfigure(row.original.activityId)}
+            >
+              {row.original.activityName}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "domain",
+        header: "Domain",
+        size: 100,
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontSize: 12 }}>
+            {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "layer",
+        header: "Layer",
+        size: 100,
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+            {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "planType",
+        header: "Plan",
+        size: 80,
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontSize: 12 }}>
+            {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "vendorOem",
+        header: "Vendor / OEM",
+        size: 110,
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontSize: 12 }}>
+            {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "changeImpact",
+        header: "Impact",
+        size: 90,
+        filterVariant: "select",
+        filterSelectOptions: ["Low", "Medium", "High", "Critical"],
+        Cell: ({ cell }) => <ImpactBadge value={cell.getValue<string>()} />,
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        size: 90,
+        filterVariant: "select",
+        filterSelectOptions: ["Active", "Inactive", "Draft", "Pending"],
+        Cell: ({ cell }) => <StatusBadge value={cell.getValue<string>()} />,
+      },
+     {
+        id: "actions",
+        header: "Actions",
+        size: 108,
+        enableSorting: true,
+        enableColumnFilter: true,
+        enableHiding: true,
+        muiTableHeadCellProps: { align: "center" },
+        muiTableBodyCellProps: { align: "center" },
+        Cell: ({ row }) => {
+          const r = row.original;
+          const iconBtn = (color: string) => ({
+            p: "3px",
+            borderRadius: 1,
+            "&:hover": { backgroundColor: alpha(color, 0.1) },
+          });
+          return (
+            <Box sx={{ display: "flex", gap: 0.25, justifyContent: "center" }}>
+              <Tooltip title="View phases" placement="top">
+                <IconButton
+                  size="small"
+                  onClick={() => openConfigure(r)} // Pass FULL OBJECT here
+                  sx={{
+                    ...iconBtn(theme.palette.primary.main),
+                    color: "text.secondary",
+                  }}
+                >
+                  <VisibilityIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Edit" placement="top">
+                <IconButton
+                  size="small"
+                  onClick={() => openConfigure(r)} // Pass FULL OBJECT here
+                  sx={{
+                    ...iconBtn(theme.palette.primary.main),
+                    color: "text.secondary",
+                  }}
+                >
+                  <EditIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Tooltip>
+              {r.status !== "Active" ? (
+                <Tooltip title="Activate" placement="top">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleUpdateStatus(String(r.activityId), "Active")}
+                    sx={{ ...iconBtn("#10b981"), color: "#10b981" }}
+                  >
+                    <CheckCircleOutlineIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Tooltip>
+              ) : (
+                <Tooltip title="Deactivate" placement="top">
+                  <IconButton
+                    size="small"
+                    onClick={() => handleUpdateStatus(String(r.activityId), "Inactive")}
+                    sx={{ ...iconBtn("#f59e0b"), color: "#f59e0b" }}
+                  >
+                    <BlockIcon sx={{ fontSize: 14 }} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              <Tooltip title="Delete" placement="top">
+                <IconButton
+                  size="small"
+                  onClick={() => handleDelete(String(r.activityId))}
+                  sx={{
+                    ...iconBtn(theme.palette.error.main),
+                    color: "error.main",
+                  }}
+                >
+                  <DeleteIcon sx={{ fontSize: 14 }} />
+                </IconButton>
+              </Tooltip>
+            </Box>
+          );
+        },
+      },
+    ],
+    [theme, openConfigure, handleUpdateStatus, handleDelete],
+  );
+
+  // ──( MRT table instance )────────────────────────────────────────────────────
+
+  const table = useMaterialReactTable({
+    columns,
+    data: apiRows,
+    state: {
+      isLoading,
+      showProgressBars: isFetching && !isLoading,
+    },
+
+    // compact density locked in
+    initialState: {
+      density: "compact",
+      pagination: { pageSize: 10, pageIndex: 0 },
+      showGlobalFilter: true,
+      // columnVisibility: {
+      //   chmDomain: false,
+      //   chmSubDomain: false,
+      //   createdAt: false,
+      //   createdBy: false,
+      // },
+    },
+
+    enableDensityToggle: true, // keep it compact always
+    // enableColumnResizing: true,
+    // columnResizeMode: "onChange",
+    enableStickyHeader: true,
+    enableFacetedValues: true,
+    enableRowVirtualization: apiRows.length > 80,
+    positionGlobalFilter: "left",
+    paginationDisplayMode: "pages",
+
+    renderToolbarInternalActions: () => (
+      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Tooltip title="Refresh">
+          <span>
+            <IconButton
+              size="small"
+              onClick={refetch}
+              disabled={isFetching}
+              sx={{ p: "5px" }}
+            >
+              <RefreshIcon sx={{ fontSize: 17 }} />
+            </IconButton>
+          </span>
+        </Tooltip>
+        <Button
+          variant="contained"
+          size="small"
+          startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+          onClick={goToCreate}
+          disableElevation
+          sx={{
+            fontSize: 12,
+            py: 0.5,
+            px: 1.5,
+            borderRadius: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+        >
+          New
+        </Button>
+      </Box>
+    ),
+
+    // ── MUI slot overrides ────────────────────────────────────────────────
+    muiTablePaperProps: {
+      elevation: 0,
+      variant: "outlined",
+      sx: {
+        borderRadius: 2,
+        borderColor: theme.palette.divider,
+        overflow: "auto",
+      },
+    },
+    muiTableContainerProps: {
+      sx: {
+        maxHeight: "calc(100vh - 360px)",
+        minHeight: 240,
+      },
+    },
+    muiTableHeadCellProps: {
+      sx: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: "text.secondary",
+        py: 0.75,
+        backgroundColor: isDark
+          ? alpha(theme.palette.primary.main, 0.12)
+          : theme.palette.grey[50],
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      },
+    },
+    muiTableBodyCellProps: {
+      sx: {
+        py: "1px",
+        fontSize: 12,
+        // borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
+      },
+    },
+    muiTableBodyRowProps: {
+      sx: {
+        "&:hover td": {
+          backgroundColor: alpha(
+            theme.palette.primary.main,
+            isDark ? 0.08 : 0.04,
+          ),
+        },
+        transition: "background-color 100ms ease",
+      },
+    },
+    muiTopToolbarProps: {
+      sx: {
+        px: 1.5,
+        py: 0.75,
+        minHeight: 46,
+        borderBottom: `1px solid ${theme.palette.divider}`,
+        backgroundColor: theme.palette.background.paper,
+        "& .MuiTextField-root": { minWidth: 200 },
+      },
+    },
+    muiBottomToolbarProps: {
+      sx: {
+        borderTop: `1px solid ${theme.palette.divider}`,
+        backgroundColor: isDark
+          ? "rgba(255,255,255,0.02)"
+          : theme.palette.grey[50],
+        // minHeight: 42,
+        px: 1,
+      },
+    },
+    muiPaginationProps: {
+      shape: "rounded",
+      size: "small",
+      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
+    },
+    muiSearchTextFieldProps: {
+      size: "small",
+      placeholder: "Search…",
+      variant: "outlined",
+      sx: {
+        "& .MuiOutlinedInput-root": {
+          fontSize: 12,
+          borderRadius: 1.5,
+          height: 30,
+        },
+      },
+    },
+    muiLinearProgressProps: {
+      color: "primary",
+      sx: { height: 2 },
+    },
+    muiSkeletonProps: {
+      height: 22,
+      sx: { borderRadius: 1 },
+    },
+    muiFilterTextFieldProps: {
+      size: "small",
+      sx: {
+        "& .MuiOutlinedInput-root": { fontSize: 12 },
+        mt: 0.5,
+      },
+    },
+
+    // ── Empty state ────────────────────────────────────────────────────────
+    renderEmptyRowsFallback: () => (
       <Box
         sx={{
           display: "flex",
+          flexDirection: "column",
           alignItems: "center",
-          justifyContent: "space-between",
-          mb: 2,
-          flexWrap: "wrap",
           gap: 1,
+          py: 5,
         }}
       >
-        <Typography variant="h6" fontWeight={600}>
-          Activities
+        <InfoOutlinedIcon sx={{ fontSize: 34, color: "text.disabled" }} />
+        <Typography variant="body2" fontWeight={600} color="text.secondary">
+          No activities found
+        </Typography>
+        <Typography variant="caption" color="text.disabled">
+          {subDomainID
+            ? "Try adjusting your search or filters."
+            : "Select a Sub Domain to load data."}
         </Typography>
         <Button
-          variant="contained"
+          variant="outlined"
+          size="small"
           startIcon={<AddIcon />}
           onClick={goToCreate}
-          size="small"
+          sx={{
+            mt: 0.5,
+            fontSize: 12,
+            textTransform: "none",
+            borderRadius: 1.5,
+          }}
         >
           Create activity
         </Button>
       </Box>
+    ),
+  });
 
-      <StatsRow />
-      <FilterBar />
+  // ── Guard: no subdomain ───────────────────────────────────────────────────
 
-      {/* Table */}
-      <TableContainer
-        component={Paper}
-        variant="outlined"
-        sx={{
-          borderRadius: 3,
-          overflow: "hidden",
-          borderColor: theme.palette.divider,
-          backgroundColor: theme.palette.background.paper,
-        }}
-      >
-        <Table size="small">
-          <TableHead>
-            <TableRow
-              sx={{
-                backgroundColor:
-                  theme.palette.mode === "dark"
-                    ? alpha(theme.palette.primary.main, 0.20)
-                    : theme.palette.grey[50],
-              }}
-            >
-              {cols.map((c) => (
-                <TableCell
-                  key={c}
-                  sx={{
-                    fontWeight: 800,
-                    fontSize: 12,
-                    whiteSpace: "nowrap",
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  {c}
-                </TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {paginatedActivities.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={cols.length}
-                  align="center"
-                  sx={{ py: 5, px: 2 }}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      gap: 1.5,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 48,
-                        height: 48,
-                        borderRadius: 3,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        backgroundColor: alpha(
-                          theme.palette.primary.main,
-                          theme.palette.mode === "dark" ? 0.16 : 0.1,
-                        ),
-                        color: theme.palette.primary.main,
-                        border: `1px solid ${alpha(
-                          theme.palette.primary.main,
-                          theme.palette.mode === "dark" ? 0.35 : 0.22,
-                        )}`,
-                      }}
-                    >
-                      <SearchOffIcon />
-                    </Box>
-
-                    <Typography
-                      variant="h6"
-                      sx={{ fontWeight: 800, lineHeight: 1.1 }}
-                    >
-                      {hasActiveFilters
-                        ? "No matching activities"
-                        : "No activities found"}
-                    </Typography>
-
-                    <Typography variant="body2" color="text.secondary">
-                      {hasActiveFilters
-                        ? "Try clearing filters or adjusting your search."
-                        : "Create your first activity and start configuring phases."}
-                    </Typography>
-
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {hasActiveFilters && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<ClearIcon />}
-                          onClick={clearFilters}
-                        >
-                          Clear filters
-                        </Button>
-                      )}
-
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<AddIcon />}
-                        onClick={goToCreate}
-                      >
-                        Create activity
-                      </Button>
-                    </Box>
-                  </Box>
-                </TableCell>
-              </TableRow>
-            ) : (
-              paginatedActivities.map((row: any) => (
-                <TableRow
-                  key={row.id}
-                  hover
-                  sx={{
-                    "&:hover td": {
-                      backgroundColor: alpha(
-                        theme.palette.primary.main,
-                        theme.palette.mode === "dark" ? 0.16 : 0.06,
-                      ),
-                    },
-                    transition: "background-color 120ms ease",
-                  }}
-                >
-                  <TableCell>
-                    <Typography
-                      variant="body2"
-                      fontWeight={500}
-                      noWrap
-                      title={row.activityName}
-                      sx={{
-                        cursor: "pointer",
-                        color: theme.palette.primary.main,
-                      }}
-                      onClick={() => openConfigure(row.id)}
-                    >
-                      {row.activityName}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {row.id}
-                    </Typography>
-                  </TableCell>
-                  <TableCell
-                    sx={{ fontSize: 13, whiteSpace: "nowrap" }}
-                  >
-                    {row.chmDomain}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13, whiteSpace: "nowrap" }}>
-                    {row.domain}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13, whiteSpace: "nowrap" }}>
-                    {row.planType}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: 13, whiteSpace: "nowrap" }}>
-                    {row.vendorOEM}
-                  </TableCell>
-                  <TableCell>
-                    <PhasesBadge phases={row.phases} />
-                  </TableCell>
-                  <TableCell>
-                    <ImpactChip impact={row.changeImpact} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusChip status={row.status} />
-                  </TableCell>
-                  <TableCell>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        gap: 0.25,
-                        "& .MuiIconButton-root": {
-                          borderRadius: 2,
-                          border: "1px solid transparent",
-                          "&:hover": {
-                            backgroundColor: alpha(
-                              theme.palette.primary.main,
-                              theme.palette.mode === "dark" ? 0.18 : 0.1,
-                            ),
-                            borderColor: alpha(
-                              theme.palette.primary.main,
-                              theme.palette.mode === "dark" ? 0.35 : 0.22,
-                            ),
-                          },
-                        },
-                      }}
-                    >
-                      <Tooltip title="View / Edit phases">
-                        <IconButton
-                          size="small"
-                          onClick={() => openConfigure(row.id)}
-                        >
-                          <VisibilityIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="Edit activity">
-                        <IconButton
-                          size="small"
-                          onClick={() => openConfigure(row.id)}
-                        >
-                          <EditIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                      {row.status !== "Active" ? (
-                        <Tooltip title="Activate">
-                          <IconButton
-                            size="small"
-                            color="success"
-                            onClick={() => handleUpdateStatus(row.id, "Active")}
-                          >
-                            <CheckCircleOutlineIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title="Deactivate">
-                          <IconButton
-                            size="small"
-                            color="warning"
-                            onClick={() =>
-                              handleUpdateStatus(row.id, "Inactive")
-                            }
-                          >
-                            <BlockIcon fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                      <Tooltip title="Delete">
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => handleDelete(row.id)}
-                        >
-                          <DeleteIcon fontSize="small" />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+  if (subDomainID === undefined) {
+    return (
+      <Box>
         <Box
           sx={{
-            p: 1.25,
-            borderTop: `1px solid ${theme.palette.divider}`,
-            backgroundColor:
-              theme.palette.mode === "dark"
-                ? "rgba(255,255,255,0.02)"
-                : theme.palette.grey[50],
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
           }}
         >
-          <PaginationRow />
+          <Typography variant="subtitle1" fontWeight={700}>
+            Activities
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={goToCreate}
+            disableElevation
+            sx={{
+              fontSize: 12,
+              textTransform: "none",
+              borderRadius: 1.5,
+              fontWeight: 600,
+            }}
+          >
+            New Activity
+          </Button>
         </Box>
-      </TableContainer>
+        <Paper
+          variant="outlined"
+          sx={{ p: 5, borderRadius: 2, textAlign: "center" }}
+        >
+          <InfoOutlinedIcon
+            sx={{ fontSize: 36, color: "text.disabled", mb: 1 }}
+          />
+          <Typography variant="body2" fontWeight={600} gutterBottom>
+            Select a Sub Domain
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            Use the filters above to pick a Sub Domain and load its activities.
+          </Typography>
+        </Paper>
+      </Box>
+    );
+  }
+
+  // ── Guard: API error ──────────────────────────────────────────────────────
+
+  if (isError) {
+    return (
+      <Box>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 1.5,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700}>
+            Activities
+          </Typography>
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon />}
+            onClick={goToCreate}
+            disableElevation
+            sx={{
+              fontSize: 12,
+              textTransform: "none",
+              borderRadius: 1.5,
+              fontWeight: 600,
+            }}
+          >
+            New Activity
+          </Button>
+        </Box>
+        <Alert
+          severity="error"
+          sx={{ borderRadius: 2 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              startIcon={<RefreshIcon />}
+              onClick={refetch}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {(error as any)?.data?.message ??
+            "Failed to load activities. Please try again."}
+        </Alert>
+      </Box>
+    );
+  }
+
+  // ── Main render ───────────────────────────────────────────────────────────
+
+  return (
+    <Box>
+      {!isLoading && apiRows.length > 0 && <StatsStrip rows={apiRows} />}
+      <MaterialReactTable table={table} />
     </Box>
   );
 };

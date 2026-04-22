@@ -22,6 +22,7 @@ export const api = createApi({
     "CrqReview",
     "MopCreateView",
     "MopValidateView",
-    "LoginDetails"
+    "LoginDetails",
+    "Activity"
   ],
 });
