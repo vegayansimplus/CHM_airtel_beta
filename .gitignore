@@ -11,7 +11,7 @@ node_modules
 dist
 dist-ssr
 *.local
-vocab.tsx
+vocab.txt
 
 # Editor directories and files
 .vscode/*
