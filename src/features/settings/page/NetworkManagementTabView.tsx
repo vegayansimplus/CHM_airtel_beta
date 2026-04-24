@@ -1,56 +1,39 @@
 import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
-import React, { type JSX, Suspense, useEffect, useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
-import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 
-interface RosterGeneratorTabProps {
-  setDynamicHeaderText: (text: string) => void;
-  setDynamicHeaderIcon: (icon: JSX.Element) => void;
-}
-
-const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
-  setDynamicHeaderText,
-  setDynamicHeaderIcon,
-}) => {
+const NetworkManagementTabView: React.FC = () => {
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
   const bg = useTabColorTokens(theme);
+
   if (!user) return null;
 
+  /* ================= ACTIVE TAB DETECTION ================= */
+
   const activeTab = useMemo(() => {
-    const segments = location.pathname.split("/");
-    const lastSegment = segments[segments.length - 1];
+    const path = location.pathname;
 
-    //  ensure correct tab detection
-    if (["rostergeneration"].includes(lastSegment)) {
-      return lastSegment;
+    if (path.includes("networkfreezsetting")) {
+      return "networkfreezsetting";
     }
 
-    return "rostergeneration"; // default fallback
+    if (path.includes("adminsetting")) {
+      return "adminsetting";
+    }
+
+    return "adminsetting"; // default
   }, [location.pathname]);
-
-  /* ================= HEADER CONTROL ================= */
-
-  useEffect(() => {
-    switch (activeTab) {
-      case "rostergeneration":
-        setDynamicHeaderText("Shift Scheduler");
-        break;
-    }
-
-    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
-  }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
-
-  /* ================= UI ================= */
 
   return (
     <Box
       sx={{
-        // backgroundColor: theme.palette.background.paper,
-        backgroundColor: bg.accentDim,
+        backgroundColor: bg.isDark
+          ? bg.accentDim
+          : theme.palette.background.paper,
         maxWidth: "100%",
         height: "auto",
         pl: 8,
@@ -66,7 +49,6 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
               : "#f1f1f1",
         },
         "&::-webkit-scrollbar-thumb": {
-          backgroundColor: theme.palette.primary.main,
           borderRadius: 4,
         },
       }}
@@ -80,21 +62,17 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
             theme.palette.mode === "dark"
               ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
               : "linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4))",
-
           backdropFilter: "blur(18px)",
           WebkitBackdropFilter: "blur(18px)",
-
           border: `1px ${
             theme.palette.mode === "dark"
               ? "rgba(255,255,255,0.08)"
               : "rgba(255,255,255,0.6)"
           }`,
-
           boxShadow:
             theme.palette.mode === "dark"
               ? "0 8px 32px rgba(0,0,0,0.45)"
               : "0 8px 32px rgba(0,0,0,0.08)",
-
           transition: "all 0.3s ease",
         }}
       >
@@ -130,10 +108,19 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
             },
           }}
         >
+          {/* ✅ TAB 1 */}
           <Tab
-            label="Shift Scheduler"
-            value="rostergeneration" //  must match route
-            to="rostergeneration" //  must match route
+            label="Network Freeze Setting"
+            value="networkfreezsetting"
+            to="networkfreezsetting"
+            component={Link}
+          />
+
+          {/* ✅ TAB 2 */}
+          <Tab
+            label="Admin Setting"
+            value="adminsetting"
+            to="adminsetting"
             component={Link}
           />
         </Tabs>
@@ -141,7 +128,7 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "65vh" }}>
+      <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
         <Suspense
           fallback={
             <Box
@@ -163,4 +150,4 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
   );
 };
 
-export default RosterGeneratorTab;
+export default NetworkManagementTabView;

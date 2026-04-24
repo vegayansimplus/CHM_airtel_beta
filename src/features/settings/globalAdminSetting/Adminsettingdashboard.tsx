@@ -28,11 +28,29 @@ import { useTabColorTokens } from "../../../style/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Role = "SUPER_ADMIN" | "TEAM_LEAD" | "TEAM_MEMBER" | "SPECIFIC_USER";
-type Permission = "VIEW" | "CREATE" | "UPDATE" | "DELETE" | "APPROVE" | "REJECT";
+type Permission =
+  | "VIEW"
+  | "CREATE"
+  | "UPDATE"
+  | "DELETE"
+  | "APPROVE"
+  | "REJECT";
 type FilterRole = Role | "ALL";
 
-const ROLES: Role[] = ["SUPER_ADMIN", "TEAM_LEAD", "TEAM_MEMBER", "SPECIFIC_USER"];
-const PERMISSIONS: Permission[] = ["VIEW", "CREATE", "UPDATE", "DELETE", "APPROVE", "REJECT"];
+const ROLES: Role[] = [
+  "SUPER_ADMIN",
+  "TEAM_LEAD",
+  "TEAM_MEMBER",
+  "SPECIFIC_USER",
+];
+const PERMISSIONS: Permission[] = [
+  "VIEW",
+  "CREATE",
+  "UPDATE",
+  "DELETE",
+  "APPROVE",
+  "REJECT",
+];
 
 interface Feature {
   id: string;
@@ -81,10 +99,10 @@ const DASHBOARDS: DashboardModule[] = [
     id: "d2",
     name: "Roster Management",
     features: [
-      { id: "f6",  name: "View roster" },
-      { id: "f7",  name: "Create shift" },
-      { id: "f8",  name: "Edit shift" },
-      { id: "f9",  name: "Delete shift" },
+      { id: "f6", name: "View roster" },
+      { id: "f7", name: "Create shift" },
+      { id: "f8", name: "Edit shift" },
+      { id: "f9", name: "Delete shift" },
       { id: "f10", name: "Approve shift" },
       { id: "f11", name: "Reject shift" },
     ],
@@ -126,7 +144,14 @@ const fullPerms = (): UserPerms => {
   const out: UserPerms = {};
   DASHBOARDS.forEach((d) =>
     d.features.forEach((f) => {
-      out[f.id] = { VIEW: true, CREATE: true, UPDATE: true, DELETE: true, APPROVE: true, REJECT: true };
+      out[f.id] = {
+        VIEW: true,
+        CREATE: true,
+        UPDATE: true,
+        DELETE: true,
+        APPROVE: true,
+        REJECT: true,
+      };
     }),
   );
   return out;
@@ -136,12 +161,26 @@ const leadPerms = (): UserPerms => {
   const out: UserPerms = {};
   DASHBOARDS.slice(0, 3).forEach((d) =>
     d.features.forEach((f) => {
-      out[f.id] = { VIEW: true, CREATE: true, UPDATE: true, DELETE: false, APPROVE: true, REJECT: true };
+      out[f.id] = {
+        VIEW: true,
+        CREATE: true,
+        UPDATE: true,
+        DELETE: false,
+        APPROVE: true,
+        REJECT: true,
+      };
     }),
   );
   DASHBOARDS.slice(3).forEach((d) =>
     d.features.forEach((f) => {
-      out[f.id] = { VIEW: true, CREATE: false, UPDATE: false, DELETE: false, APPROVE: false, REJECT: false };
+      out[f.id] = {
+        VIEW: true,
+        CREATE: false,
+        UPDATE: false,
+        DELETE: false,
+        APPROVE: false,
+        REJECT: false,
+      };
     }),
   );
   return out;
@@ -151,7 +190,14 @@ const memberPerms = (): UserPerms => {
   const out: UserPerms = {};
   DASHBOARDS.forEach((d) =>
     d.features.forEach((f) => {
-      out[f.id] = { VIEW: true, CREATE: false, UPDATE: false, DELETE: false, APPROVE: false, REJECT: false };
+      out[f.id] = {
+        VIEW: true,
+        CREATE: false,
+        UPDATE: false,
+        DELETE: false,
+        APPROVE: false,
+        REJECT: false,
+      };
     }),
   );
   return out;
@@ -159,66 +205,151 @@ const memberPerms = (): UserPerms => {
 
 // ─── Initial Users ────────────────────────────────────────────────────────────
 const INITIAL_USERS: User[] = [
-  { id: "u1", name: "Pankaj Sharma",   email: "pankaj@acme.com", team: "Operations",  role: "SUPER_ADMIN",   isGlobal: true,  isCustom: false, perms: fullPerms(),   av: "PS", avColor: "blue"   },
-  { id: "u2", name: "Riya Mehta",      email: "riya@acme.com",   team: "Operations",  role: "TEAM_LEAD",     isGlobal: false, isCustom: false, perms: leadPerms(),   av: "RM", avColor: "teal"   },
-  { id: "u3", name: "Arjun Nair",      email: "arjun@acme.com",  team: "Operations",  role: "TEAM_MEMBER",   isGlobal: false, isCustom: false, perms: memberPerms(), av: "AN", avColor: "purple" },
-  { id: "u4", name: "Sneha Kulkarni",  email: "sneha@acme.com",  team: "Engineering", role: "TEAM_LEAD",     isGlobal: false, isCustom: false, perms: leadPerms(),   av: "SK", avColor: "coral"  },
-  { id: "u5", name: "Dev Patil",       email: "dev@acme.com",    team: "Engineering", role: "TEAM_MEMBER",   isGlobal: false, isCustom: false, perms: memberPerms(), av: "DP", avColor: "purple" },
-  { id: "u6", name: "Kavya Reddy",     email: "kavya@acme.com",  team: "Finance",     role: "SPECIFIC_USER", isGlobal: false, isCustom: true,  perms: memberPerms(), av: "KR", avColor: "amber"  },
-  { id: "u7", name: "Rohan Iyer",      email: "rohan@acme.com",  team: "Finance",     role: "TEAM_MEMBER",   isGlobal: false, isCustom: false, perms: memberPerms(), av: "RI", avColor: "teal"   },
+  {
+    id: "u1",
+    name: "Pankaj Sharma",
+    email: "pankaj@acme.com",
+    team: "Operations",
+    role: "SUPER_ADMIN",
+    isGlobal: true,
+    isCustom: false,
+    perms: fullPerms(),
+    av: "PS",
+    avColor: "blue",
+  },
+  {
+    id: "u2",
+    name: "Riya Mehta",
+    email: "riya@acme.com",
+    team: "Operations",
+    role: "TEAM_LEAD",
+    isGlobal: false,
+    isCustom: false,
+    perms: leadPerms(),
+    av: "RM",
+    avColor: "teal",
+  },
+  {
+    id: "u3",
+    name: "Arjun Nair",
+    email: "arjun@acme.com",
+    team: "Operations",
+    role: "TEAM_MEMBER",
+    isGlobal: false,
+    isCustom: false,
+    perms: memberPerms(),
+    av: "AN",
+    avColor: "purple",
+  },
+  {
+    id: "u4",
+    name: "Sneha Kulkarni",
+    email: "sneha@acme.com",
+    team: "Engineering",
+    role: "TEAM_LEAD",
+    isGlobal: false,
+    isCustom: false,
+    perms: leadPerms(),
+    av: "SK",
+    avColor: "coral",
+  },
+  {
+    id: "u5",
+    name: "Dev Patil",
+    email: "dev@acme.com",
+    team: "Engineering",
+    role: "TEAM_MEMBER",
+    isGlobal: false,
+    isCustom: false,
+    perms: memberPerms(),
+    av: "DP",
+    avColor: "purple",
+  },
+  {
+    id: "u6",
+    name: "Kavya Reddy",
+    email: "kavya@acme.com",
+    team: "Finance",
+    role: "SPECIFIC_USER",
+    isGlobal: false,
+    isCustom: true,
+    perms: memberPerms(),
+    av: "KR",
+    avColor: "amber",
+  },
+  {
+    id: "u7",
+    name: "Rohan Iyer",
+    email: "rohan@acme.com",
+    team: "Finance",
+    role: "TEAM_MEMBER",
+    isGlobal: false,
+    isCustom: false,
+    perms: memberPerms(),
+    av: "RI",
+    avColor: "teal",
+  },
 ];
 
 // ─── Design Tokens ────────────────────────────────────────────────────────────
 const roleLabel: Record<Role, string> = {
-  SUPER_ADMIN:   "Super Admin",
-  TEAM_LEAD:     "Team Lead",
-  TEAM_MEMBER:   "Team Member",
+  SUPER_ADMIN: "Super Admin",
+  TEAM_LEAD: "Team Lead",
+  TEAM_MEMBER: "Team Member",
   SPECIFIC_USER: "Specific User",
 };
 
 // Role chip colors — pastel bg + dark text from same family
 const roleChipColors: Record<Role, { bg: string; color: string }> = {
-  SUPER_ADMIN:   { bg: "#B5D4F4", color: "#0C447C" },
-  TEAM_LEAD:     { bg: "#9FE1CB", color: "#085041" },
-  TEAM_MEMBER:   { bg: "#CECBF6", color: "#3C3489" },
+  SUPER_ADMIN: { bg: "#B5D4F4", color: "#0C447C" },
+  TEAM_LEAD: { bg: "#9FE1CB", color: "#085041" },
+  TEAM_MEMBER: { bg: "#CECBF6", color: "#3C3489" },
   SPECIFIC_USER: { bg: "#FAC775", color: "#633806" },
 };
 
 // Scope badge (inside accordions)
 const scopeBadgeColors = {
   global: { bg: "#E6F1FB", color: "#0C447C" },
-  team:   { bg: "#EEEDFE", color: "#3C3489" },
+  team: { bg: "#EEEDFE", color: "#3C3489" },
   custom: { bg: "#FAEEDA", color: "#633806" },
 };
 
 const avatarColors: Record<User["avColor"], { bg: string; color: string }> = {
-  blue:   { bg: "#B5D4F4", color: "#0C447C" },
-  teal:   { bg: "#9FE1CB", color: "#085041" },
-  coral:  { bg: "#F5C4B3", color: "#712B13" },
+  blue: { bg: "#B5D4F4", color: "#0C447C" },
+  teal: { bg: "#9FE1CB", color: "#085041" },
+  coral: { bg: "#F5C4B3", color: "#712B13" },
   purple: { bg: "#CECBF6", color: "#3C3489" },
-  amber:  { bg: "#FAC775", color: "#633806" },
+  amber: { bg: "#FAC775", color: "#633806" },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
 export const AdminSettingDashboard: React.FC = () => {
-  const theme  = useTheme();
-  const bg     = useTabColorTokens(theme);
+  const theme = useTheme();
+  const bg = useTabColorTokens(theme);
   const isDark = theme.palette.mode === "dark";
 
-  const [users,       setUsers]       = useState<User[]>(JSON.parse(JSON.stringify(INITIAL_USERS)));
-  const [selectedId,  setSelectedId]  = useState<string>("u1");
-  const [search,      setSearch]      = useState("");
-  const [filterRole,  setFilterRole]  = useState<FilterRole>("ALL");
-  const [changed,     setChanged]     = useState<Record<string, boolean>>({});
-  const [isSavedMsg,  setIsSavedMsg]  = useState(false);
+  const [users, setUsers] = useState<User[]>(
+    JSON.parse(JSON.stringify(INITIAL_USERS)),
+  );
+  const [selectedId, setSelectedId] = useState<string>("u1");
+  const [search, setSearch] = useState("");
+  const [filterRole, setFilterRole] = useState<FilterRole>("ALL");
+  const [changed, setChanged] = useState<Record<string, boolean>>({});
+  const [isSavedMsg, setIsSavedMsg] = useState(false);
 
-  const selectedUser = useMemo(() => users.find((u) => u.id === selectedId), [users, selectedId]);
-  const hasChanges   = !!changed[selectedId];
+  const selectedUser = useMemo(
+    () => users.find((u) => u.id === selectedId),
+    [users, selectedId],
+  );
+  const hasChanges = !!changed[selectedId];
 
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      const q     = search.toLowerCase();
-      const matchQ = u.name.toLowerCase().includes(q) || u.email.toLowerCase().includes(q) || u.team.toLowerCase().includes(q);
+      const q = search.toLowerCase();
+      const matchQ =
+        u.name.toLowerCase().includes(q) ||
+        u.email.toLowerCase().includes(q) ||
+        u.team.toLowerCase().includes(q);
       const matchR = filterRole === "ALL" || u.role === filterRole;
       return matchQ && matchR;
     });
@@ -230,17 +361,26 @@ export const AdminSettingDashboard: React.FC = () => {
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id !== selectedId) return u;
-        const updated = { ...u, role: newRole, isGlobal: newRole === "SUPER_ADMIN", isCustom: newRole === "SPECIFIC_USER" };
-        if (newRole === "SUPER_ADMIN")    updated.perms = fullPerms();
+        const updated = {
+          ...u,
+          role: newRole,
+          isGlobal: newRole === "SUPER_ADMIN",
+          isCustom: newRole === "SPECIFIC_USER",
+        };
+        if (newRole === "SUPER_ADMIN") updated.perms = fullPerms();
         else if (newRole === "TEAM_LEAD") updated.perms = leadPerms();
-        else                              updated.perms = memberPerms();
+        else updated.perms = memberPerms();
         return updated;
       }),
     );
     setChanged((prev) => ({ ...prev, [selectedId]: true }));
   };
 
-  const handlePermChange = (featureId: string, perm: Permission, checked: boolean) => {
+  const handlePermChange = (
+    featureId: string,
+    perm: Permission,
+    checked: boolean,
+  ) => {
     if (!selectedUser) return;
     setUsers((prev) =>
       prev.map((u) => {
@@ -270,7 +410,7 @@ export const AdminSettingDashboard: React.FC = () => {
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <CommonContainerWithoutTab>
+    <>
       <Box
         sx={{
           display: "flex",
@@ -294,7 +434,9 @@ export const AdminSettingDashboard: React.FC = () => {
           }}
         >
           {/* Sidebar Header */}
-          <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+          <Box
+            sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}
+          >
             <Typography
               sx={{
                 fontSize: 11,
@@ -332,7 +474,9 @@ export const AdminSettingDashboard: React.FC = () => {
                 return (
                   <Chip
                     key={r}
-                    label={r === "ALL" ? "All" : roleLabel[r as Role].split(" ")[0]}
+                    label={
+                      r === "ALL" ? "All" : roleLabel[r as Role].split(" ")[0]
+                    }
                     onClick={() => setFilterRole(r)}
                     size="small"
                     sx={{
@@ -360,10 +504,10 @@ export const AdminSettingDashboard: React.FC = () => {
           {/* User list */}
           <Box sx={{ flex: 1, overflowY: "auto", p: 0.75 }}>
             {filteredUsers.map((u) => {
-              const isSelected  = u.id === selectedId;
-              const hasUnsaved  = changed[u.id];
-              const avColors    = avatarColors[u.avColor];
-              const chipColors  = roleChipColors[u.role];
+              const isSelected = u.id === selectedId;
+              const hasUnsaved = changed[u.id];
+              const avColors = avatarColors[u.avColor];
+              const chipColors = roleChipColors[u.role];
 
               return (
                 <Box
@@ -430,7 +574,10 @@ export const AdminSettingDashboard: React.FC = () => {
                         />
                       )}
                     </Typography>
-                    <Typography noWrap sx={{ fontSize: 11, color: "text.secondary" }}>
+                    <Typography
+                      noWrap
+                      sx={{ fontSize: 11, color: "text.secondary" }}
+                    >
                       {u.team}
                     </Typography>
                   </Box>
@@ -484,7 +631,7 @@ export const AdminSettingDashboard: React.FC = () => {
                     fontSize: 13,
                     fontWeight: 600,
                     backgroundColor: avatarColors[selectedUser.avColor].bg,
-                    color:           avatarColors[selectedUser.avColor].color,
+                    color: avatarColors[selectedUser.avColor].color,
                     flexShrink: 0,
                   }}
                 >
@@ -492,11 +639,20 @@ export const AdminSettingDashboard: React.FC = () => {
                 </Avatar>
 
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 15, fontWeight: 600, color: "text.primary" }}>
+                  <Typography
+                    sx={{
+                      fontSize: 15,
+                      fontWeight: 600,
+                      color: "text.primary",
+                    }}
+                  >
                     {selectedUser.name}
                   </Typography>
-                  <Typography sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}>
-                    {selectedUser.email}&nbsp;&nbsp;·&nbsp;&nbsp;{selectedUser.team}
+                  <Typography
+                    sx={{ fontSize: 11, color: "text.secondary", mt: 0.25 }}
+                  >
+                    {selectedUser.email}&nbsp;&nbsp;·&nbsp;&nbsp;
+                    {selectedUser.team}
                   </Typography>
                 </Box>
 
@@ -523,7 +679,11 @@ export const AdminSettingDashboard: React.FC = () => {
                   variant="contained"
                   onClick={handleSave}
                   disabled={!hasChanges && !isSavedMsg}
-                  startIcon={isSavedMsg ? <CheckCircle sx={{ fontSize: "16px !important" }} /> : undefined}
+                  startIcon={
+                    isSavedMsg ? (
+                      <CheckCircle sx={{ fontSize: "16px !important" }} />
+                    ) : undefined
+                  }
                   sx={{
                     height: 34,
                     px: 2.25,
@@ -553,7 +713,6 @@ export const AdminSettingDashboard: React.FC = () => {
 
               {/* Permissions area */}
               <Box sx={{ flex: 1, overflowY: "auto", p: { xs: 2, md: 2.5 } }}>
-
                 {/* Banners */}
                 {selectedUser.isGlobal && (
                   <Alert
@@ -569,7 +728,8 @@ export const AdminSettingDashboard: React.FC = () => {
                       },
                     }}
                   >
-                    Global access — Super Admin can access all features without restriction.
+                    Global access — Super Admin can access all features without
+                    restriction.
                   </Alert>
                 )}
 
@@ -581,13 +741,14 @@ export const AdminSettingDashboard: React.FC = () => {
                       "& .MuiAlert-message": { fontSize: 12 },
                     }}
                   >
-                    Custom view enabled — permissions are user-specific, not team-based.
+                    Custom view enabled — permissions are user-specific, not
+                    team-based.
                   </Alert>
                 )}
 
                 {/* Module accordions */}
                 {DASHBOARDS.map((db) => {
-                  const scopeKey    = getScopeKey(selectedUser);
+                  const scopeKey = getScopeKey(selectedUser);
                   const scopeColors = scopeBadgeColors[scopeKey];
 
                   return (
@@ -599,9 +760,15 @@ export const AdminSettingDashboard: React.FC = () => {
                       sx={{ mb: 1.5 }}
                     >
                       <AccordionSummary
-                        expandIcon={<ExpandMore sx={{ fontSize: 18, color: "text.secondary" }} />}
+                        expandIcon={
+                          <ExpandMore
+                            sx={{ fontSize: 18, color: "text.secondary" }}
+                          />
+                        }
                       >
-                        <Typography sx={{ fontSize: 13, fontWeight: 600, flex: 1 }}>
+                        <Typography
+                          sx={{ fontSize: 13, fontWeight: 600, flex: 1 }}
+                        >
                           {db.name}
                         </Typography>
                         <Chip
@@ -624,9 +791,15 @@ export const AdminSettingDashboard: React.FC = () => {
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell sx={{ width: "35%", py: 1.25 }}>Feature</TableCell>
+                              <TableCell sx={{ width: "35%", py: 1.25 }}>
+                                Feature
+                              </TableCell>
                               {PERMISSIONS.map((p) => (
-                                <TableCell key={p} align="center" sx={{ py: 1.25 }}>
+                                <TableCell
+                                  key={p}
+                                  align="center"
+                                  sx={{ py: 1.25 }}
+                                >
                                   {p.charAt(0) + p.slice(1).toLowerCase()}
                                 </TableCell>
                               ))}
@@ -638,7 +811,9 @@ export const AdminSettingDashboard: React.FC = () => {
                               const fp = selectedUser.perms[feat.id] || {};
                               return (
                                 <TableRow key={feat.id}>
-                                  <TableCell sx={{ fontWeight: 500, fontSize: 12 }}>
+                                  <TableCell
+                                    sx={{ fontWeight: 500, fontSize: 12 }}
+                                  >
                                     {feat.name}
                                   </TableCell>
                                   {PERMISSIONS.map((p) => (
@@ -648,7 +823,11 @@ export const AdminSettingDashboard: React.FC = () => {
                                         checked={Boolean(fp[p])}
                                         disabled={selectedUser.isGlobal}
                                         onChange={(e) =>
-                                          handlePermChange(feat.id, p, e.target.checked)
+                                          handlePermChange(
+                                            feat.id,
+                                            p,
+                                            e.target.checked,
+                                          )
                                         }
                                       />
                                     </TableCell>
@@ -674,11 +853,13 @@ export const AdminSettingDashboard: React.FC = () => {
                 color: "text.secondary",
               }}
             >
-              <Typography sx={{ fontSize: 14 }}>Select a user to manage permissions</Typography>
+              <Typography sx={{ fontSize: 14 }}>
+                Select a user to manage permissions
+              </Typography>
             </Box>
           )}
         </Box>
       </Box>
-    </CommonContainerWithoutTab>
+    </>
   );
 };

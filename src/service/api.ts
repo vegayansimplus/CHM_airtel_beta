@@ -23,6 +23,8 @@ export const api = createApi({
     "MopCreateView",
     "MopValidateView",
     "LoginDetails",
-    "Activity"
+    "Activity",
+    "Holiday",
+    "Plan"
   ],
 });

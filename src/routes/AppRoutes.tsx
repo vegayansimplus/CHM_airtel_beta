@@ -34,6 +34,10 @@ import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/Acti
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
 import { UserLogs } from "../features/userManagement/pages/UserLogs";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
+import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
+import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
+import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -189,9 +193,9 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
           <Route
-            path="activityviewandsetup"
+            path="planviewandsetup"
             // element={<ActivityViewAndSetupMain />}
-            element={<ActivityViewAndSetup />}
+            element={<PlanViewAndSetup />}
           />
           <Route
             path="action"
@@ -242,26 +246,24 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="usermang" element={<UserManagement />} />
           <Route path="userlogs" element={<UserLogs />} />
         </Route>
-
         <Route path="global-settings">
-          <Route path="globalsettings" element={<AdminSettingDashboard />} />
-        </Route>
-
-        {/* 
-        
           <Route
-              path="user-management"
-              element={
-                <PrivateRoute element={<UserManagementLayout />} />
-              }
-            >
-            <Route index element={<Navigate to="usermang" replace />} />
-            <Route path="usermang" element={<UserManagement />} />
-            <Route path="userlogs" element={<UserLogs />} />
-          </Route> 
-          
-        */}
+            element={<PrivateRoute element={<NetworkManagementTabView />} />}
+          >
+            {/* default tab */}
+            <Route
+              index
+              element={<Navigate to="networkfreezsetting" replace />}
+            />
 
+            {/* tab routes */}
+            <Route
+              path="networkfreezsetting"
+              element={<Holidayandnetworkschedulemanagermain />}
+            />
+            <Route path="adminsetting" element={<AdminSettingDashboard />} />
+          </Route>
+        </Route>
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>

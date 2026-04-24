@@ -73,7 +73,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     requiredModule: "User Management",
   },
   {
-    to: "/global-settings/globalsettings",
+    to: "/global-settings",
     text: "Global Settings",
     icon: <SettingsIcon />,
     requiredModule: "Global Settings",

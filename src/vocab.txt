@@ -112,21 +112,20 @@ Pristine
             Pungency - Sharpness
             Truculent - Akramak 
             Circuitous - Ghumavadaar 
-++++++++++++++++++++++++++++++++++++++++++++++
-Hapless     - unlucky 
-stealthily  - chupakese. 
-Caliginous  - In a secret or sneaky way
-Esurient    - bhukha or lalachi 
-Dastardly   - nich, kayaratapurn 
-Dereliction - Laparavahi, 
-Piquant     - tikha, chtapata, rochak 
-Salubrious  - healthy 
-Rampart     - kille ki divar, Suraksha divar
-Behoove     - Uchit hona, Avashyak hona 
-Dilate      - To expand or widen
-
-
-
+++++++++++++++++++++++++++++++++++++++++++++++++
++Hapless     - unlucky                          +
++stealthily  - chupakese. 
++Caliginous  - In a secret or sneaky way        +
++Esurient    - bhukha or lalachi               
++Dastardly   - nich, kayaratapurn               +
++Dereliction - Laparavahi, 
++Piquant     - tikha, chtapata, rochak          +
++Salubrious  - healthy 
++Rampart     - kille ki divar, Suraksha divar   +
++Behoove     - Uchit hona, Avashyak hona 
++Dilate      - To expand or widen               +
++++++++++++++++++++++++++++++++++++++++++++++++++
+    
 
 
 
