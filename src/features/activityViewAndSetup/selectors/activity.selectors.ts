@@ -83,3 +83,9 @@ export const selectActivityStats = createSelector(
     highImpact: activities.filter((a) => a.changeImpact === "High").length,
   })
 );
+
+export const selectSelectedPlan = (state: RootState) =>
+  state.activity.selectedPlan;
+
+export const selectPlanDialogOpen = (state: RootState) =>
+  state.activity.planDialogOpen;

@@ -5,6 +5,7 @@ import type {
   ActivityFilters,
   ActivityStatus,
 } from "../types/activity.types";
+import type { PlanViewRow } from "../../scheduler/sub-feature/planViewAndSetup/api/planApiSlice";
 
 interface ActivityState {
   activities: Activity[];
@@ -14,6 +15,9 @@ interface ActivityState {
   activePhaseTab: string;
   viewMode: "list" | "create" | "configure";
   snackbar: { open: boolean; message: string; severity: "success" | "error" };
+  // ── Plan dialog ──
+  selectedPlan: PlanViewRow | null;
+  planDialogOpen: boolean;
 }
 
 const initialFilters: ActivityFilters = {
@@ -24,13 +28,16 @@ const initialFilters: ActivityFilters = {
 };
 
 const initialState: ActivityState = {
-  activities: [], // 🚀 CLEAN START, NO MOCK DATA
+  activities: [],
   selectedActivityId: null,
   filters: initialFilters,
   currentPage: 1,
   activePhaseTab: "review",
   viewMode: "list",
   snackbar: { open: false, message: "", severity: "success" },
+  // ── Plan dialog ──
+  selectedPlan: null,
+  planDialogOpen: false,
 };
 
 const activitySlice = createSlice({
@@ -52,10 +59,9 @@ const activitySlice = createSlice({
       const id = String(row.activityId || row.id);
       const exists = state.activities.find((a) => String(a.id) === id);
 
-      // If Redux doesn't have this activity's phases tracked yet, track it now:
       if (!exists) {
         state.activities.push({
-          id: id,
+          id,
           activityName: row.activityName,
           chmDomain: row.chmDomain ?? "—",
           chmSubDomain: row.chmSubDomain ?? "—",
@@ -67,41 +73,13 @@ const activitySlice = createSlice({
           status: row.status || "Draft",
           createdAt: row.createdAt || new Date().toISOString().split("T")[0],
           updatedAt: new Date().toISOString().split("T")[0],
-          // Ensure phase forms don't crash
           phases: {
-            review: {
-              crqReviewShift: "",
-              crqReviewMinLevel: "",
-              crqReviewTimeMinutes: "",
-            },
-            impactAnalysis: {
-              impactAnalysisShift: "",
-              impactAnalysisMinLevel: "",
-              impactAnalysisTimeMinutes: "",
-            },
-            scheduling: {
-              schedulingShift: "",
-              schedulingLevel: "",
-              schedulingDurationMinutes: "",
-            },
-            mopCreation: {
-              mopCreationShift: "",
-              mopCreationMinLevel: "",
-              mopCreationTimeMinutes: "",
-            },
-            mopValidation: {
-              mopValidationShift: "",
-              mopValidationMinLevel: "",
-              mopValidationTimeMinutes: "",
-            },
-            execution: {
-              activityNWExecShift: "",
-              daysMargin: "",
-              reservationMargin: "",
-              activityTimeMinutes: "",
-              executionMinLevel: "",
-              rollbackTimeMinutes: "",
-            },
+            review: { crqReviewShift: "", crqReviewMinLevel: "", crqReviewTimeMinutes: "" },
+            impactAnalysis: { impactAnalysisShift: "", impactAnalysisMinLevel: "", impactAnalysisTimeMinutes: "" },
+            scheduling: { schedulingShift: "", schedulingLevel: "", schedulingDurationMinutes: "" },
+            mopCreation: { mopCreationShift: "", mopCreationMinLevel: "", mopCreationTimeMinutes: "" },
+            mopValidation: { mopValidationShift: "", mopValidationMinLevel: "", mopValidationTimeMinutes: "" },
+            execution: { activityNWExecShift: "", daysMargin: "", reservationMargin: "", activityTimeMinutes: "", executionMinLevel: "", rollbackTimeMinutes: "" },
           },
         } as Activity);
       }
@@ -110,6 +88,18 @@ const activitySlice = createSlice({
       state.viewMode = "configure";
       state.activePhaseTab = "review";
     },
+
+    // ── NEW: Plan dialog reducers ──────────────────────────────────────────
+    openPlanDialog(state, action: PayloadAction<PlanViewRow>) {
+      state.selectedPlan = action.payload;
+      state.planDialogOpen = true;
+    },
+
+    closePlanDialog(state) {
+      state.planDialogOpen = false;
+      state.selectedPlan = null;
+    },
+    // ─────────────────────────────────────────────────────────────────────
 
     setActivePhaseTab(state, action: PayloadAction<string>) {
       state.activePhaseTab = action.payload;
@@ -135,56 +125,42 @@ const activitySlice = createSlice({
         activityId: string;
         phaseKey: keyof ActivityPhases;
         data: Partial<ActivityPhases[keyof ActivityPhases]>;
-      }>,
+      }>
     ) {
       const idx = state.activities.findIndex(
-        (a) => String(a.id) === String(action.payload.activityId),
+        (a) => String(a.id) === String(action.payload.activityId)
       );
       if (idx !== -1) {
         (state.activities[idx].phases as any)[action.payload.phaseKey] = {
           ...(state.activities[idx].phases as any)[action.payload.phaseKey],
           ...action.payload.data,
         };
-        state.activities[idx].updatedAt = new Date()
-          .toISOString()
-          .split("T")[0];
-
+        state.activities[idx].updatedAt = new Date().toISOString().split("T")[0];
         if (state.activities[idx].status === "Draft") {
           state.activities[idx].status = "Pending";
         }
-        state.snackbar = {
-          open: true,
-          message: "Phase saved successfully!",
-          severity: "success",
-        };
+        state.snackbar = { open: true, message: "Phase saved successfully!", severity: "success" };
       }
     },
 
     updateActivityStatus(
       state,
-      action: PayloadAction<{ id: string; status: ActivityStatus }>,
+      action: PayloadAction<{ id: string; status: ActivityStatus }>
     ) {
       const idx = state.activities.findIndex(
-        (a) => String(a.id) === String(action.payload.id),
+        (a) => String(a.id) === String(action.payload.id)
       );
       if (idx !== -1) {
         state.activities[idx].status = action.payload.status;
-        state.activities[idx].updatedAt = new Date()
-          .toISOString()
-          .split("T")[0];
+        state.activities[idx].updatedAt = new Date().toISOString().split("T")[0];
       }
     },
 
-    // Kept to avoid breaking table UI
     deleteActivity(state, action: PayloadAction<string>) {
       state.activities = state.activities.filter(
-        (a) => String(a.id) !== String(action.payload),
+        (a) => String(a.id) !== String(action.payload)
       );
-      state.snackbar = {
-        open: true,
-        message: "Activity deleted locally.",
-        severity: "success",
-      };
+      state.snackbar = { open: true, message: "Activity deleted locally.", severity: "success" };
     },
 
     closeSnackbar(state) {
@@ -204,6 +180,8 @@ export const {
   deleteActivity,
   savePhase,
   closeSnackbar,
+  openPlanDialog,   // 
+  closePlanDialog,  // 
 } = activitySlice.actions;
 
 export default activitySlice.reducer;
