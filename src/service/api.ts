@@ -25,6 +25,7 @@ export const api = createApi({
     "LoginDetails",
     "Activity",
     "Holiday",
-    "Plan"
+    "Plan",
+    "ActivityPhase"
   ],
 });

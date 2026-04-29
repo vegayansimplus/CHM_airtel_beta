@@ -73,7 +73,9 @@ export const PlanViewAndSetup = () => {
           onClose={goToList}
           maxWidth="lg"
           fullWidth
-          PaperProps={{ sx: { borderRadius: 3, overflow: "hidden", minHeight: "85vh" } }}
+          PaperProps={{
+            sx: { borderRadius: 3, overflow: "hidden", minHeight: "85vh" },
+          }}
         >
           {viewMode === "configure" && <ConfigurePhases />}
         </Dialog>

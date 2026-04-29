@@ -3,7 +3,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions,
   Grid,
   Divider,
   Button,
@@ -20,7 +19,7 @@ import { type TransitionProps } from "@mui/material/transitions";
 import CloseIcon from "@mui/icons-material/Close";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import { type PlanViewRow } from "../api/planApiSlice"; // Adjust import path if needed
+import { type PlanViewRow } from "../api/planApiSlice"; 
 
 // Smooth Slide-up transition for the dialog
 const Transition = React.forwardRef(function Transition(
@@ -79,12 +78,12 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="md" // Slightly wider for a better dual-column layout
+      maxWidth="md" 
       fullWidth
       TransitionComponent={Transition}
       PaperProps={{
         sx: {
-          borderRadius: 3, // Modern rounded corners
+          borderRadius: 3, 
           backgroundImage: "none",
           boxShadow: isDark
             ? "0 24px 48px rgba(0,0,0,0.5)"

@@ -1,168 +1,37 @@
-import React, { useState } from "react";
+import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   Dialog,
-  DialogTitle,
   DialogContent,
-  IconButton,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   Box,
   Typography,
   TextField,
   MenuItem,
+  IconButton,
   Button,
-  Grid,
-  useTheme,
-  Divider,
-  Paper,
   Chip,
+  CircularProgress,
+  LinearProgress,
+  Tooltip,
 } from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import SaveIcon from "@mui/icons-material/Save";
 import CloseIcon from "@mui/icons-material/Close";
-import RateReviewIcon from "@mui/icons-material/RateReview";
-import AssessmentIcon from "@mui/icons-material/Assessment";
+import SaveIcon from "@mui/icons-material/Save";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import ArticleIcon from "@mui/icons-material/Article";
+import NoteAddIcon from "@mui/icons-material/NoteAdd";
 import FactCheckIcon from "@mui/icons-material/FactCheck";
-import BuildIcon from "@mui/icons-material/Build";
-import { alpha } from "@mui/material/styles";
-import type { PlanViewRow } from "../api/planApiSlice";
+import PlayArrowIcon from "@mui/icons-material/PlayArrow";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import {
+  useGetActivityPhaseViewQuery,
+  type PlanViewRow,
+} from "../api/planApiSlice";
 
-// ─── Static Data ──────────────────────────────────────────────────────────────
-
-const STATIC_ACTIVITIES = {
-  activity_1: {
-    activityId: "ACT001",
-    activityName: "5G LKF Upgrade",
-    basicInfo: {
-      chmDomain: "Network",
-      chmSubDomain: "RAN",
-      domain: "RAN",
-      layer: "Access",
-      planType: "Plan-A",
-      vendorOEM: "Nokia",
-      changeImpact: "High",
-    },
-    phases: {
-      review: {
-        auto: {
-          chmDomain: "Network",
-          domain: "RAN",
-          planType: "Plan-A",
-          vendorOEM: "Nokia",
-          changeImpact: "High",
-        },
-        config: { crqReviewShift: "Night", crqReviewTimeMinutes: 30 },
-      },
-      impactAnalysis: {
-        auto: {
-          chmDomain: "Network",
-          domain: "RAN",
-          planType: "Plan-A",
-          vendorOEM: "Nokia",
-        },
-        config: { impactShift: "General", minimumLevel: "L2", timeMinutes: 45 },
-      },
-      scheduling: {
-        auto: {
-          domain: "RAN",
-          layer: "Access",
-          vendor: "Nokia",
-          plan: "Plan-A",
-          changeImpact: "High",
-        },
-        config: { shift: "Night", level: "L3", durationMinutes: 60 },
-      },
-      mopCreation: {
-        config: { shift: "General", minimumLevel: "L2", timeMinutes: 90 },
-      },
-      mopValidation: {
-        config: { shift: "General", minimumLevel: "L3", timeMinutes: 60 },
-      },
-      execution: {
-        config: {
-          executionShift: "Night",
-          daysMargin: 2,
-          reservationMargin: 1,
-          activityTimeMinutes: 120,
-          minimumLevel: "L3",
-          rollbackTimeMinutes: 45,
-        },
-      },
-    },
-  },
-  activity_2: {
-    activityId: "ACT002",
-    activityName: "Fiber Cutover",
-    basicInfo: {
-      chmDomain: "Network",
-      chmSubDomain: "Transport",
-      domain: "Transport",
-      layer: "Core",
-      planType: "Plan-B",
-      vendorOEM: "STL",
-      changeImpact: "Medium",
-    },
-    phases: {
-      review: {
-        auto: {
-          chmDomain: "Network",
-          domain: "Transport",
-          planType: "Plan-B",
-          vendorOEM: "STL",
-          changeImpact: "Medium",
-        },
-        config: { crqReviewShift: "General", crqReviewTimeMinutes: 20 },
-      },
-      impactAnalysis: {
-        auto: {
-          chmDomain: "Network",
-          domain: "Transport",
-          planType: "Plan-B",
-          vendorOEM: "STL",
-        },
-        config: { impactShift: "General", minimumLevel: "L1", timeMinutes: 30 },
-      },
-      scheduling: {
-        auto: {
-          domain: "Transport",
-          layer: "Core",
-          vendor: "STL",
-          plan: "Plan-B",
-          changeImpact: "Medium",
-        },
-        config: { shift: "Evening", level: "L2", durationMinutes: 45 },
-      },
-      mopCreation: {
-        config: { shift: "General", minimumLevel: "L1", timeMinutes: 60 },
-      },
-      mopValidation: {
-        config: { shift: "General", minimumLevel: "L2", timeMinutes: 45 },
-      },
-      execution: {
-        config: {
-          executionShift: "Night",
-          daysMargin: 1,
-          reservationMargin: 1,
-          activityTimeMinutes: 90,
-          minimumLevel: "L2",
-          rollbackTimeMinutes: 30,
-        },
-      },
-    },
-  },
-};
-
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const SHIFTS = [
-  "General",
-  "Morning (06:00 - 14:00)",
-  "Evening (14:00 - 22:00)",
-  "Night (22:00 - 06:00)",
-];
+// ─── Constants ───────────────────────────────────────────────
+const SHIFTS = ["General", "Morning", "Evening", "Night"];
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
 const STAGE_KEYS = [
@@ -173,946 +42,259 @@ const STAGE_KEYS = [
   "mopValidation",
   "execution",
 ] as const;
-type StageKey = (typeof STAGE_KEYS)[number];
-type Activity = typeof STATIC_ACTIVITIES.activity_1;
 
-const STAGE_META: Record<
+type StageKey = (typeof STAGE_KEYS)[number];
+
+// ─── Phase Metadata ──────────────────────────────────────────
+const PHASE_META: Record<
   StageKey,
-  { label: string; icon: React.ReactNode; color: string; bg: string }
+  { label: string; desc: string; icon: React.ReactNode }
 > = {
   review: {
     label: "Review",
-    icon: <RateReviewIcon sx={{ fontSize: 14 }} />,
-    color: "#1e40af",
-    bg: "#dbeafe",
+    desc: "CRQ review shift and time allocation",
+    icon: <VisibilityIcon sx={{ fontSize: 16 }} />,
   },
   impactAnalysis: {
-    label: "Impact Analysis",
-    icon: <AssessmentIcon sx={{ fontSize: 14 }} />,
-    color: "#065f46",
-    bg: "#d1fae5",
+    label: "Impact analysis",
+    desc: "Assess impact scope, level and time needed",
+    icon: <WarningAmberIcon sx={{ fontSize: 16 }} />,
   },
   scheduling: {
     label: "Scheduling",
-    icon: <CalendarMonthIcon sx={{ fontSize: 14 }} />,
-    color: "#92400e",
-    bg: "#fef3c7",
+    desc: "Scheduling shift, level and duration window",
+    icon: <CalendarMonthIcon sx={{ fontSize: 16 }} />,
   },
   mopCreation: {
-    label: "MOP Creation",
-    icon: <ArticleIcon sx={{ fontSize: 14 }} />,
-    color: "#6b21a8",
-    bg: "#f3e8ff",
+    label: "MOP creation",
+    desc: "MOP document creation shift and level",
+    icon: <NoteAddIcon sx={{ fontSize: 16 }} />,
   },
   mopValidation: {
-    label: "MOP Validation",
-    icon: <FactCheckIcon sx={{ fontSize: 14 }} />,
-    color: "#0e7490",
-    bg: "#cffafe",
+    label: "MOP validation",
+    desc: "MOP validation shift, level and review time",
+    icon: <FactCheckIcon sx={{ fontSize: 16 }} />,
   },
   execution: {
     label: "Execution",
-    icon: <BuildIcon sx={{ fontSize: 14 }} />,
-    color: "#9a3412",
-    bg: "#ffedd5",
+    desc: "Full execution config — shift, margins and timing",
+    icon: <PlayArrowIcon sx={{ fontSize: 16 }} />,
   },
 };
 
-const IMPACT_STYLE: Record<string, { color: string; bg: string; dot: string }> =
-  {
-    High: { color: "#991b1b", bg: "#fee2e2", dot: "#ef4444" },
-    Medium: { color: "#92400e", bg: "#fef3c7", dot: "#f59e0b" },
-    Low: { color: "#065f46", bg: "#d1fae5", dot: "#10b981" },
-    Critical: { color: "#581c87", bg: "#f3e8ff", dot: "#a855f7" },
-  };
-
-// ─── Impact badge ─────────────────────────────────────────────────────────────
-
-const ImpactBadge: React.FC<{ value: string }> = ({ value }) => {
-  const s = IMPACT_STYLE[value] ?? {
-    color: "#374151",
-    bg: "#f3f4f6",
-    dot: "#9ca3af",
-  };
-  return (
-    <Box
-      component="span"
-      sx={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 0.5,
-        px: 1,
-        py: 0.25,
-        borderRadius: 1,
-        backgroundColor: s.bg,
-        color: s.color,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.02em",
-      }}
-    >
-      <Box
-        component="span"
-        sx={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          backgroundColor: s.dot,
-          flexShrink: 0,
-        }}
-      />
-      {value}
-    </Box>
-  );
+// ─── Field Definitions ───────────────────────────────────────
+type FieldDef = {
+  key: string;
+  label: string;
+  type?: "number";
+  options?: string[];
+  hint?: string;
 };
 
-// ─── Phase stepper tabs ───────────────────────────────────────────────────────
-
-const PhaseStepper: React.FC<{
-  active: number;
-  onChange: (i: number) => void;
-}> = ({ active, onChange }) => (
-  <Box
-    sx={{
-      display: "flex",
-      gap: 0.5,
-      px: 2,
-      py: 1.25,
-      overflowX: "auto",
-      borderBottom: "1px solid",
-      borderColor: "divider",
-      backgroundColor: "background.paper",
-      "&::-webkit-scrollbar": { height: 3 },
-    }}
-  >
-    {STAGE_KEYS.map((key, idx) => {
-      const meta = STAGE_META[key];
-      const isActive = active === idx;
-      return (
-        <Box
-          key={key}
-          onClick={() => onChange(idx)}
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            gap: 0.75,
-            px: 1.5,
-            py: 0.6,
-            borderRadius: 1.5,
-            cursor: "pointer",
-            flexShrink: 0,
-            backgroundColor: isActive ? meta.bg : "transparent",
-            color: isActive ? meta.color : "text.secondary",
-            border: "1.5px solid",
-            borderColor: isActive ? meta.color : "transparent",
-            transition: "all 0.15s ease",
-            "&:hover": {
-              backgroundColor: isActive ? meta.bg : "action.hover",
-              borderColor: isActive ? meta.color : "divider",
-            },
-          }}
-        >
-          <Box
-            sx={{
-              color: isActive ? meta.color : "text.disabled",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            {meta.icon}
-          </Box>
-          <Typography
-            sx={{
-              fontSize: 12,
-              fontWeight: isActive ? 700 : 500,
-              color: isActive ? meta.color : "text.secondary",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {meta.label}
-          </Typography>
-          {isActive && (
-            <Box
-              sx={{
-                width: 5,
-                height: 5,
-                borderRadius: "50%",
-                backgroundColor: meta.color,
-                flexShrink: 0,
-              }}
-            />
-          )}
-        </Box>
-      );
-    })}
-  </Box>
-);
-
-// ─── Auto-filled fields panel ─────────────────────────────────────────────────
-
-const AutoFields: React.FC<{ data: Record<string, string> }> = ({ data }) => (
-  <Box
-    sx={{
-      display: "flex",
-      flexWrap: "wrap",
-      gap: 0.75,
-      mb: 2,
-      p: 1.25,
-      borderRadius: 1.5,
-      backgroundColor: alpha("#1e40af", 0.04),
-      border: "1px solid",
-      borderColor: alpha("#1e40af", 0.12),
-    }}
-  >
-    <Typography
-      sx={{
-        width: "100%",
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.08em",
-        color: "#1e40af",
-        mb: 0.5,
-      }}
-    >
-      AUTO-FILLED — READ ONLY
-    </Typography>
-    {Object.entries(data).map(([key, val]) => (
-      <Box
-        key={key}
-        sx={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 0.5,
-          px: 1,
-          py: 0.3,
-          borderRadius: 1,
-          backgroundColor: alpha("#1e40af", 0.07),
-          border: "1px solid",
-          borderColor: alpha("#1e40af", 0.12),
-        }}
-      >
-        <Typography
-          sx={{
-            fontSize: 10,
-            color: "#1e40af",
-            textTransform: "capitalize",
-            opacity: 0.75,
-          }}
-        >
-          {key}:
-        </Typography>
-        <Typography sx={{ fontSize: 11, fontWeight: 700, color: "#1e3a8a" }}>
-          {val}
-        </Typography>
-      </Box>
-    ))}
-  </Box>
-);
-
-// ─── Compact form field wrapper ───────────────────────────────────────────────
-
-const fieldSx = {
-  "& .MuiInputBase-root": { fontSize: 12, borderRadius: 1.5 },
-  "& .MuiInputLabel-root": { fontSize: 12 },
-  "& .MuiInputBase-input": { py: "6px", px: "10px" },
+const FIELD_MAP: Record<StageKey, FieldDef[]> = {
+  review: [
+    { key: "crqReviewShift", label: "Shift", options: SHIFTS },
+    {
+      key: "crqReviewTimeMinutes",
+      label: "Time required (min)",
+      type: "number",
+      hint: "Typical: 30–120 min",
+    },
+  ],
+  impactAnalysis: [
+    { key: "impactShift", label: "Shift", options: SHIFTS },
+    { key: "minimumLevel", label: "Minimum level", options: LEVELS },
+    {
+      key: "timeMinutes",
+      label: "Time required (min)",
+      type: "number",
+      hint: "Typical: 30–90 min",
+    },
+  ],
+  scheduling: [
+    { key: "shift", label: "Shift", options: SHIFTS },
+    { key: "level", label: "Level", options: LEVELS },
+    {
+      key: "durationMinutes",
+      label: "Duration (min)",
+      type: "number",
+      hint: "Typical: 60–180 min",
+    },
+  ],
+  mopCreation: [
+    { key: "shift", label: "Shift", options: SHIFTS },
+    { key: "minimumLevel", label: "Minimum level", options: LEVELS },
+    {
+      key: "timeMinutes",
+      label: "Time required (min)",
+      type: "number",
+      hint: "Typical: 45–120 min",
+    },
+  ],
+  mopValidation: [
+    { key: "shift", label: "Shift", options: SHIFTS },
+    { key: "minimumLevel", label: "Minimum level", options: LEVELS },
+    {
+      key: "timeMinutes",
+      label: "Time required (min)",
+      type: "number",
+      hint: "Typical: 30–60 min",
+    },
+  ],
+  execution: [
+    { key: "executionShift", label: "Shift", options: SHIFTS },
+    { key: "minimumLevel", label: "Minimum level", options: LEVELS },
+    {
+      key: "daysMargin",
+      label: "Days margin",
+      type: "number",
+      hint: "Buffer days before execution",
+    },
+    {
+      key: "reservationMargin",
+      label: "Reservation margin",
+      type: "number",
+      hint: "Resource reservation buffer",
+    },
+    {
+      key: "activityTimeMinutes",
+      label: "Activity time (min)",
+      type: "number",
+      hint: "Total activity duration",
+    },
+    {
+      key: "rollbackTimeMinutes",
+      label: "Rollback time (min)",
+      type: "number",
+      hint: "Time to rollback if needed",
+    },
+  ],
 };
 
-// ─── Section label inside form ────────────────────────────────────────────────
+// ─── Transform ───────────────────────────────────────────────
+const transformActivity = (api: any) => ({
+  activityName: api.activityName,
+  phases: {
+    review: {
+      crqReviewShift: api?.phases?.review?.shift || "",
+      crqReviewTimeMinutes: api?.phases?.review?.requiredTimeMinutes || "",
+    },
+    impactAnalysis: {
+      impactShift: api?.phases?.impactAnalysis?.shift || "",
+      minimumLevel: api?.phases?.impactAnalysis?.minimumLevelRequirement || "",
+      timeMinutes: api?.phases?.impactAnalysis?.requiredTimeMinutes || "",
+    },
+    scheduling: {
+      shift: api?.phases?.scheduling?.shift || "",
+      level: api?.phases?.scheduling?.minimumLevelRequirement || "",
+      durationMinutes: api?.phases?.scheduling?.requiredTimeMinutes || "",
+    },
+    mopCreation: {
+      shift: api?.phases?.mopCreation?.shift || "",
+      minimumLevel: api?.phases?.mopCreation?.minimumLevelRequirement || "",
+      timeMinutes: api?.phases?.mopCreation?.requiredTimeMinutes || "",
+    },
+    mopValidation: {
+      shift: api?.phases?.mopValidation?.shift || "",
+      minimumLevel: api?.phases?.mopValidation?.minimumLevelRequirement || "",
+      timeMinutes: api?.phases?.mopValidation?.requiredTimeMinutes || "",
+    },
+    execution: {
+      executionShift: api?.phases?.execution?.shift || "",
+      minimumLevel: api?.phases?.execution?.minimumLevelRequirement || "",
+      daysMargin: api?.phases?.execution?.daysMargin || "",
+      reservationMargin: api?.phases?.execution?.reservationMargin || "",
+      activityTimeMinutes: api?.phases?.execution?.requiredTimeMinutes || "",
+      rollbackTimeMinutes: api?.phases?.execution?.rollbackTime || "",
+    },
+  },
+});
 
-const FormSection: React.FC<{ label: string; stageKey: StageKey }> = ({
-  label,
+// ─── Phase Form ──────────────────────────────────────────────
+const PhaseForm = ({
   stageKey,
+  config,
+  onChange,
+}: {
+  stageKey: StageKey;
+  config: Record<string, any>;
+  onChange: (key: string, val: string) => void;
 }) => {
-  const meta = STAGE_META[stageKey];
+  const meta = PHASE_META[stageKey];
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1.5 }}>
+    <Box>
       <Box
         sx={{
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 26,
-          height: 26,
-          borderRadius: 1,
-          backgroundColor: meta.bg,
-          color: meta.color,
-          flexShrink: 0,
+          alignItems: "flex-start",
+          gap: 1.5,
+          p: 1.5,
+          mb: 2.5,
+          bgcolor: "action.hover",
+          borderRadius: 2,
         }}
       >
-        {meta.icon}
+        <Box
+          sx={{
+            color: "primary.main",
+            mt: 0.2,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          {meta.icon}
+        </Box>
+        <Box>
+          <Typography fontWeight={500} fontSize={14}>
+            {meta.label}
+          </Typography>
+          <Typography fontSize={12} color="text.secondary">
+            {meta.desc}
+          </Typography>
+        </Box>
       </Box>
-      <Typography sx={{ fontSize: 13, fontWeight: 700, color: meta.color }}>
-        {label}
-      </Typography>
-      <Divider sx={{ flex: 1 }} />
-    </Box>
-  );
-};
 
-// ─── Save button ──────────────────────────────────────────────────────────────
-
-const SaveBtn: React.FC<{
-  label: string;
-  stageKey: StageKey;
-  onClick: () => void;
-}> = ({ label, stageKey, onClick }) => {
-  const meta = STAGE_META[stageKey];
-  return (
-    <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
-      <Button
-        variant="contained"
-        size="small"
-        startIcon={<SaveIcon sx={{ fontSize: 13 }} />}
-        onClick={onClick}
-        disableElevation
+      <Box
         sx={{
-          fontSize: 12,
-          textTransform: "none",
-          borderRadius: 1.5,
-          fontWeight: 600,
-          py: 0.6,
-          px: 2,
-          backgroundColor: meta.color,
-          "&:hover": { backgroundColor: meta.color, filter: "brightness(0.9)" },
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gap: 2,
         }}
       >
-        {label}
-      </Button>
-    </Box>
-  );
-};
-
-// ─── Phase Forms ──────────────────────────────────────────────────────────────
-
-const ReviewForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const phase = activity.phases.review;
-  const [config, setConfig] = useState(phase.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-      <FormSection label="Review Configuration" stageKey="review" />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="CRQ Review Shift"
-            value={config.crqReviewShift}
-            onChange={set("crqReviewShift")}
-            sx={fieldSx}
+        {FIELD_MAP[stageKey].map((f) => (
+          <Box
+            key={f.key}
+            sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}
           >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Review Time (min)"
-            value={config.crqReviewTimeMinutes}
-            onChange={set("crqReviewTimeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save Review"
-        stageKey="review"
-        onClick={() => console.log("Save Review", activity.activityId, config)}
-      />
-    </Box>
-  );
-};
-
-const ImpactAnalysisForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const phase = activity.phases.impactAnalysis;
-  const [config, setConfig] = useState(phase.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-      <FormSection
-        label="Impact Analysis Configuration"
-        stageKey="impactAnalysis"
-      />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Impact Shift"
-            value={config.impactShift}
-            onChange={set("impactShift")}
-            sx={fieldSx}
-          >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Minimum Level"
-            value={config.minimumLevel}
-            onChange={set("minimumLevel")}
-            sx={fieldSx}
-          >
-            {LEVELS.map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                {l}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Time (min)"
-            value={config.timeMinutes}
-            onChange={set("timeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save Impact Analysis"
-        stageKey="impactAnalysis"
-        onClick={() => console.log("Save Impact", activity.activityId, config)}
-      />
-    </Box>
-  );
-};
-
-const SchedulingForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const phase = activity.phases.scheduling;
-  const [config, setConfig] = useState(phase.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-      <FormSection label="Scheduling Configuration" stageKey="scheduling" />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Shift"
-            value={config.shift}
-            onChange={set("shift")}
-            sx={fieldSx}
-          >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Level"
-            value={config.level}
-            onChange={set("level")}
-            sx={fieldSx}
-          >
-            {LEVELS.map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                {l}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Duration (min)"
-            value={config.durationMinutes}
-            onChange={set("durationMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save Scheduling"
-        stageKey="scheduling"
-        onClick={() =>
-          console.log("Save Scheduling", activity.activityId, config)
-        }
-      />
-    </Box>
-  );
-};
-
-const MopCreationForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const [config, setConfig] = useState(activity.phases.mopCreation.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      <FormSection label="MOP Creation Configuration" stageKey="mopCreation" />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Shift"
-            value={config.shift}
-            onChange={set("shift")}
-            sx={fieldSx}
-          >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Minimum Level"
-            value={config.minimumLevel}
-            onChange={set("minimumLevel")}
-            sx={fieldSx}
-          >
-            {LEVELS.map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                {l}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Time (min)"
-            value={config.timeMinutes}
-            onChange={set("timeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save MOP Creation"
-        stageKey="mopCreation"
-        onClick={() =>
-          console.log("Save MOP Creation", activity.activityId, config)
-        }
-      />
-    </Box>
-  );
-};
-
-const MopValidationForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const [config, setConfig] = useState(activity.phases.mopValidation.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      <FormSection
-        label="MOP Validation Configuration"
-        stageKey="mopValidation"
-      />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Shift"
-            value={config.shift}
-            onChange={set("shift")}
-            sx={fieldSx}
-          >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Minimum Level"
-            value={config.minimumLevel}
-            onChange={set("minimumLevel")}
-            sx={fieldSx}
-          >
-            {LEVELS.map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                {l}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Time (min)"
-            value={config.timeMinutes}
-            onChange={set("timeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save MOP Validation"
-        stageKey="mopValidation"
-        onClick={() =>
-          console.log("Save MOP Validation", activity.activityId, config)
-        }
-      />
-    </Box>
-  );
-};
-
-const ExecutionForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const [config, setConfig] = useState(activity.phases.execution.config);
-  const set =
-    (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-      setConfig((p) => ({ ...p, [k]: e.target.value }));
-  return (
-    <Box>
-      <FormSection label="Execution Configuration" stageKey="execution" />
-      <Grid container spacing={2}>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Execution Shift"
-            value={config.executionShift}
-            onChange={set("executionShift")}
-            sx={fieldSx}
-          >
-            {SHIFTS.map((s) => (
-              <MenuItem key={s} value={s} sx={{ fontSize: 12 }}>
-                {s}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            select
-            fullWidth
-            size="small"
-            label="Minimum Level"
-            value={config.minimumLevel}
-            onChange={set("minimumLevel")}
-            sx={fieldSx}
-          >
-            {LEVELS.map((l) => (
-              <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                {l}
-              </MenuItem>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Days Margin"
-            value={config.daysMargin}
-            onChange={set("daysMargin")}
-            sx={fieldSx}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Reservation Margin"
-            value={config.reservationMargin}
-            onChange={set("reservationMargin")}
-            sx={fieldSx}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Activity Time (min)"
-            value={config.activityTimeMinutes}
-            onChange={set("activityTimeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Rollback Time (min)"
-            value={config.rollbackTimeMinutes}
-            onChange={set("rollbackTimeMinutes")}
-            sx={fieldSx}
-          />
-        </Grid>
-      </Grid>
-      <SaveBtn
-        label="Save Execution"
-        stageKey="execution"
-        onClick={() =>
-          console.log("Save Execution", activity.activityId, config)
-        }
-      />
-    </Box>
-  );
-};
-
-// ─── Phase content router ─────────────────────────────────────────────────────
-
-const PhaseContent: React.FC<{ stageKey: StageKey; activity: Activity }> = ({
-  stageKey,
-  activity,
-}) => {
-  switch (stageKey) {
-    case "review":
-      return <ReviewForm activity={activity} />;
-    case "impactAnalysis":
-      return <ImpactAnalysisForm activity={activity} />;
-    case "scheduling":
-      return <SchedulingForm activity={activity} />;
-    case "mopCreation":
-      return <MopCreationForm activity={activity} />;
-    case "mopValidation":
-      return <MopValidationForm activity={activity} />;
-    case "execution":
-      return <ExecutionForm activity={activity} />;
-    default:
-      return null;
-  }
-};
-
-// ─── Activity stage tabs ──────────────────────────────────────────────────────
-
-const ActivityStageTabs: React.FC<{ activity: Activity }> = ({ activity }) => {
-  const [activeTab, setActiveTab] = useState(0);
-  return (
-    <Box sx={{ width: "100%" }}>
-      <PhaseStepper active={activeTab} onChange={setActiveTab} />
-      <Box sx={{ p: 2.5, minHeight: 200 }}>
-        <PhaseContent stageKey={STAGE_KEYS[activeTab]} activity={activity} />
+            <TextField
+              select={!!f.options}
+              fullWidth
+              size="small"
+              type={f.type || "text"}
+              label={f.label}
+              value={config[f.key] ?? ""}
+              onChange={(e) => onChange(f.key, e.target.value)}
+              inputProps={f.type === "number" ? { min: 0 } : undefined}
+            >
+              {f.options?.map((o) => (
+                <MenuItem key={o} value={o}>
+                  {o}
+                </MenuItem>
+              ))}
+            </TextField>
+            {f.hint && (
+              <Typography fontSize={11} color="text.disabled" sx={{ pl: 0.5 }}>
+                {f.hint}
+              </Typography>
+            )}
+          </Box>
+        ))}
       </Box>
     </Box>
   );
 };
 
-// ─── Accordion list ───────────────────────────────────────────────────────────
-
-const ActivityAccordionList: React.FC = () => {
-  const theme = useTheme();
-  const activities = Object.values(STATIC_ACTIVITIES);
-  const [expanded, setExpanded] = useState<string | false>(
-    activities[0].activityId,
-  );
-
-  return (
-    <>
-      {activities.map((activity, idx) => {
-        const isOpen = expanded === activity.activityId;
-        const impact = activity.basicInfo.changeImpact;
-        const impactStyle = IMPACT_STYLE[impact] ?? {
-          color: "#374151",
-          bg: "#f3f4f6",
-          dot: "#9ca3af",
-        };
-
-        return (
-          <Accordion
-            key={activity.activityId}
-            expanded={isOpen}
-            onChange={(_, exp) =>
-              setExpanded(exp ? activity.activityId : false)
-            }
-            variant="outlined"
-            sx={{
-              mb: 1.5,
-              borderRadius: "10px !important",
-              backgroundColor: "background.paper",
-              "&:before": { display: "none" },
-              border: "1.5px solid",
-              borderColor: isOpen ? "primary.main" : "divider",
-              boxShadow: isOpen
-                ? `0 2px 12px ${alpha(theme.palette.primary.main, 0.12)}`
-                : "none",
-              transition: "all 0.18s ease",
-            }}
-          >
-            <AccordionSummary
-              expandIcon={
-                <ExpandMoreIcon
-                  sx={{
-                    fontSize: 18,
-                    color: isOpen ? "primary.main" : "text.secondary",
-                  }}
-                />
-              }
-              sx={{
-                minHeight: 52,
-                px: 2,
-                backgroundColor: isOpen
-                  ? alpha(theme.palette.primary.main, 0.03)
-                  : "transparent",
-                borderRadius: "10px",
-                "& .MuiAccordionSummary-content": {
-                  my: 0,
-                  alignItems: "center",
-                  gap: 1.5,
-                },
-              }}
-            >
-              {/* Index badge */}
-              <Box
-                sx={{
-                  width: 24,
-                  height: 24,
-                  borderRadius: 1,
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  backgroundColor: isOpen
-                    ? alpha(theme.palette.primary.main, 0.12)
-                    : alpha(theme.palette.text.disabled, 0.08),
-                }}
-              >
-                <Typography
-                  sx={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: isOpen ? "primary.main" : "text.secondary",
-                  }}
-                >
-                  {idx + 1}
-                </Typography>
-              </Box>
-
-              {/* Name + meta */}
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    fontSize: 13,
-                    fontWeight: isOpen ? 700 : 600,
-                    color: isOpen ? "primary.main" : "text.primary",
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {activity.activityName}
-                </Typography>
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 1.5,
-                    mt: 0.25,
-                    flexWrap: "wrap",
-                    alignItems: "center",
-                  }}
-                >
-                  {[
-                    { k: "Domain", v: activity.basicInfo.domain },
-                    { k: "Layer", v: activity.basicInfo.layer },
-                    { k: "Vendor", v: activity.basicInfo.vendorOEM },
-                  ].map(({ k, v }) => (
-                    <Typography
-                      key={k}
-                      sx={{ fontSize: 11, color: "text.secondary" }}
-                    >
-                      <Box
-                        component="span"
-                        sx={{ color: "text.disabled", mr: 0.3 }}
-                      >
-                        {k}:
-                      </Box>
-                      {v}
-                    </Typography>
-                  ))}
-                </Box>
-              </Box>
-
-              {/* Badges */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 1,
-                  ml: "auto",
-                  flexShrink: 0,
-                  pr: 0.5,
-                }}
-              >
-                <Chip
-                  label={activity.activityId}
-                  size="small"
-                  sx={{
-                    fontSize: 10,
-                    height: 20,
-                    fontWeight: 600,
-                    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-                    color: "primary.main",
-                  }}
-                />
-                <ImpactBadge value={impact} />
-              </Box>
-            </AccordionSummary>
-
-            <AccordionDetails sx={{ p: 0 }}>
-              <Divider />
-              <ActivityStageTabs activity={activity} />
-            </AccordionDetails>
-          </Accordion>
-        );
-      })}
-    </>
-  );
-};
-
-// ─── Main Dialog ──────────────────────────────────────────────────────────────
-
+// ─── Main Dialog ─────────────────────────────────────────────
 interface Props {
   open: boolean;
   plan: PlanViewRow | null;
@@ -1120,15 +302,50 @@ interface Props {
 }
 
 export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
-  const theme = useTheme();
-  if (!plan) return null;
+  const { data, isLoading } = useGetActivityPhaseViewQuery(
+    { planId: plan?.planId ?? 0 },
+    { skip: !plan },
+  );
 
-  const impact = plan.changeImpact;
-  const impactStyle = IMPACT_STYLE[impact] ?? {
-    color: "#374151",
-    bg: "#f3f4f6",
-    dot: "#9ca3af",
+  const activity = useMemo(
+    () => (data ? transformActivity(data) : null),
+    [data],
+  );
+
+  const [activeIdx, setActiveIdx] = useState(0);
+  const [savedPhase, setSavedPhase] = useState<StageKey | null>(null);
+  const [configs, setConfigs] = useState<Record<StageKey, Record<string, any>>>(
+    () => Object.fromEntries(STAGE_KEYS.map((k) => [k, {}])) as any,
+  );
+
+  useEffect(() => {
+    if (activity) setConfigs(activity.phases as any);
+  }, [activity]);
+
+  const activeKey = STAGE_KEYS[activeIdx];
+
+  const isFilled = useCallback(
+    (key: StageKey) => Object.values(configs[key] ?? {}).some((v) => v !== ""),
+    [configs],
+  );
+
+  const filledCount = STAGE_KEYS.filter(isFilled).length;
+  const progress = Math.round((filledCount / STAGE_KEYS.length) * 100);
+
+  const handleChange = (field: string, value: string) => {
+    setConfigs((prev) => ({
+      ...prev,
+      [activeKey]: { ...prev[activeKey], [field]: value },
+    }));
   };
+
+  const handleSave = () => {
+    setSavedPhase(activeKey);
+    console.log("Saving", activeKey, configs[activeKey]);
+    setTimeout(() => setSavedPhase(null), 1800);
+  };
+
+  if (!plan) return null;
 
   return (
     <Dialog
@@ -1136,1016 +353,290 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
       onClose={onClose}
       fullWidth
       maxWidth="lg"
-      PaperProps={{
-        sx: { borderRadius: 3, minHeight: "75vh", overflow: "hidden" },
-      }}
+      // PaperProps={{
+      //   sx: { borderRadius: 3, overflow: "hidden" },
+      //   elevation: 4,
+      // }}
     >
       {/* ── Header ── */}
       <Box
         sx={{
-          px: 3,
-          py: 2,
+          px: 2.5,
+          py: 1.5,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
           borderBottom: "1px solid",
           borderColor: "divider",
-          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.06)} 0%, transparent 60%)`,
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
         }}
       >
-        <Box>
-          {/* Plan type pill */}
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          <AccessTimeIcon sx={{ fontSize: 18, color: "primary.main" }} />
+          <Typography fontWeight={500} fontSize={16}>
+            Plan #{plan.planId}
+          </Typography>
+          <Chip
+            label={plan.planType}
+            size="small"
+            color="info"
+            variant="outlined"
+            sx={{ height: 22, fontSize: 11, fontWeight: 500 }}
+          />
+        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ borderRadius: 2 }}>
+          <CloseIcon fontSize="small" />
+        </IconButton>
+      </Box>
+
+      {/* ── Activity bar ── */}
+      {activity && (
+        <Box
+          sx={{
+            px: 2.5,
+            py: 1,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            bgcolor: "action.hover",
+            borderBottom: "1px solid",
+            borderColor: "divider",
+          }}
+        >
+          <Typography fontSize={12} color="text.secondary">
+            Activity:
+          </Typography>
+          <Typography fontSize={13} fontWeight={500}>
+            {activity.activityName}
+          </Typography>
+          <Box flex={1} />
+          <Typography fontSize={11} color="text.disabled">
+            {filledCount} of {STAGE_KEYS.length} phases done
+          </Typography>
+        </Box>
+      )}
+
+      <DialogContent sx={{ p: 0, display: "flex", minHeight: 460 }}>
+        {isLoading ? (
+          <Box
+            sx={{
+              flex: 1,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <CircularProgress size={30} />
+          </Box>
+        ) : activity ? (
+          <>
+            {/* ── Sidebar ── */}
             <Box
               sx={{
-                px: 1.5,
-                py: 0.3,
-                borderRadius: 1,
-                backgroundColor: alpha(theme.palette.primary.main, 0.1),
-                border: "1px solid",
-                borderColor: alpha(theme.palette.primary.main, 0.2),
+                width: 200,
+                flexShrink: 0,
+                borderRight: "1px solid",
+                borderColor: "divider",
+                display: "flex",
+                flexDirection: "column",
+                py: 1.5,
               }}
             >
               <Typography
                 sx={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  color: "primary.main",
-                  letterSpacing: "0.05em",
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: "text.disabled",
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  px: 2,
+                  pb: 1,
                 }}
               >
-                PLAN #{plan.planId}
+                Phases
               </Typography>
-            </Box>
-            <ImpactBadge value={impact} />
-          </Box>
 
-          <Typography
-            sx={{
-              fontSize: 17,
-              fontWeight: 700,
-              color: "text.primary",
-              lineHeight: 1.2,
-            }}
-          >
-            {plan.planType}
-          </Typography>
+              {STAGE_KEYS.map((key, i) => {
+                const meta = PHASE_META[key];
+                const filled = isFilled(key);
+                const isActive = i === activeIdx;
+                return (
+                  <Tooltip key={key} title={meta.desc} placement="right" arrow>
+                    <Box
+                      onClick={() => setActiveIdx(i)}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.2,
+                        px: 2,
+                        py: 1.1,
+                        cursor: "pointer",
+                        borderLeft: "3px solid",
+                        borderColor: isActive ? "primary.main" : "transparent",
+                        bgcolor: isActive ? "primary.50" : "transparent",
+                        "&:hover": {
+                          bgcolor: isActive ? "primary.50" : "action.hover",
+                        },
+                        transition: "all 0.12s",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 30,
+                          height: 30,
+                          borderRadius: 1.5,
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          flexShrink: 0,
+                          bgcolor: isActive ? "primary.main" : "action.hover",
+                          color: isActive
+                            ? "primary.contrastText"
+                            : "text.secondary",
+                          transition: "all 0.12s",
+                        }}
+                      >
+                        {meta.icon}
+                      </Box>
+                      <Typography
+                        fontSize={13}
+                        fontWeight={isActive ? 500 : 400}
+                        color={isActive ? "primary.dark" : "text.secondary"}
+                        sx={{ flex: 1 }}
+                      >
+                        {meta.label}
+                      </Typography>
+                      {filled && (
+                        <CheckCircleIcon
+                          sx={{
+                            fontSize: 15,
+                            color: "success.main",
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                    </Box>
+                  </Tooltip>
+                );
+              })}
 
-          {/* Meta row */}
-          <Box sx={{ display: "flex", gap: 2, mt: 0.75, flexWrap: "wrap" }}>
-            {[
-              { label: "Domain", value: plan.domain },
-              { label: "Layer", value: plan.layer },
-              { label: "Vendor", value: plan.vendorOem },
-            ].map(({ label, value }) => (
-              <Box
-                key={label}
-                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-              >
-                <Typography sx={{ fontSize: 11, color: "text.disabled" }}>
-                  {label}:
-                </Typography>
-                <Typography
+              {/* Progress */}
+              <Box sx={{ mt: "auto", px: 2, pt: 2 }}>
+                <Box
                   sx={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: "text.secondary",
+                    display: "flex",
+                    justifyContent: "space-between",
+                    mb: 0.5,
                   }}
                 >
-                  {value}
-                </Typography>
+                  <Typography fontSize={11} color="text.disabled">
+                    Progress
+                  </Typography>
+                  <Typography
+                    fontSize={11}
+                    fontWeight={500}
+                    color="primary.main"
+                  >
+                    {progress}%
+                  </Typography>
+                </Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={progress}
+                  sx={{ height: 4, borderRadius: 99 }}
+                />
               </Box>
-            ))}
-          </Box>
-        </Box>
+            </Box>
 
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{
-            color: "text.secondary",
-            mt: -0.5,
-            "&:hover": {
-              backgroundColor: alpha(theme.palette.error.main, 0.08),
-              color: "error.main",
-            },
-          }}
-        >
-          <CloseIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Box>
+            {/* ── Form panel ── */}
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <Box sx={{ flex: 1, p: 3, overflowY: "auto" }}>
+                <PhaseForm
+                  stageKey={activeKey}
+                  config={configs[activeKey]}
+                  onChange={handleChange}
+                />
+              </Box>
 
-      {/* ── Body ── */}
-      <DialogContent sx={{ p: 2.5, backgroundColor: theme.palette.grey[50] }}>
-        <ActivityAccordionList />
+              {/* Prev / Next */}
+              <Box
+                sx={{
+                  px: 3,
+                  py: 1.5,
+                  borderTop: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Button
+                  size="small"
+                  disabled={activeIdx === 0}
+                  startIcon={<ChevronLeftIcon />}
+                  onClick={() => setActiveIdx((i) => i - 1)}
+                  sx={{ fontSize: 12, color: "primary.main" }}
+                >
+                  {activeIdx > 0
+                    ? PHASE_META[STAGE_KEYS[activeIdx - 1]].label
+                    : "Previous"}
+                </Button>
+                <Button
+                  size="small"
+                  disabled={activeIdx === STAGE_KEYS.length - 1}
+                  endIcon={<ChevronRightIcon />}
+                  onClick={() => setActiveIdx((i) => i + 1)}
+                  sx={{ fontSize: 12, color: "primary.main" }}
+                >
+                  {activeIdx < STAGE_KEYS.length - 1
+                    ? PHASE_META[STAGE_KEYS[activeIdx + 1]].label
+                    : "Next"}
+                </Button>
+              </Box>
+            </Box>
+          </>
+        ) : null}
       </DialogContent>
+
+      {/* ── Footer ── */}
+      <Box
+        sx={{
+          px: 2.5,
+          py: 1.5,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          display: "flex",
+          justifyContent: "flex-end",
+          gap: 1,
+          bgcolor: "action.hover",
+        }}
+      >
+        <Button size="small" onClick={onClose} sx={{ fontSize: 13 }}>
+          Cancel
+        </Button>
+        <Button
+          size="small"
+          variant="contained"
+          disableElevation
+          startIcon={
+            savedPhase === activeKey ? (
+              <CheckCircleIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <SaveIcon sx={{ fontSize: 16 }} />
+            )
+          }
+          onClick={handleSave}
+          color={savedPhase === activeKey ? "success" : "primary"}
+          sx={{ fontSize: 13, px: 2.5, borderRadius: 2 }}
+        >
+          {savedPhase === activeKey ? "Saved!" : "Save phase"}
+        </Button>
+      </Box>
     </Dialog>
   );
 };
-
-export default PlanDetailDialog;
-
-// ++++++++++++++++++++++++++++++++++++++++++++++++++Old view +++++++++++++++++++++++++++++++++++++++++++++++++
-// import React, { useState } from "react";
-// import {
-//   Dialog,
-//   DialogTitle,
-//   DialogContent,
-//   IconButton,
-//   Accordion,
-//   AccordionSummary,
-//   AccordionDetails,
-//   Box,
-//   Typography,
-//   Tabs,
-//   Tab,
-//   TextField,
-//   MenuItem,
-//   Button,
-//   Grid,
-//   useTheme,
-//   Divider,
-//   Paper,
-// } from "@mui/material";
-// import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-// import SaveIcon from "@mui/icons-material/Save";
-// import CloseIcon from "@mui/icons-material/Close";
-// import { alpha } from "@mui/material/styles";
-// import type { PlanViewRow } from "../api/planApiSlice";
-// // import type { PlanViewRow } from "../../api/planApiSlice";
-
-// // ─── Static Data ──────────────────────────────────────────────────────────────
-
-// const STATIC_ACTIVITIES = {
-//   activity_1: {
-//     activityId: "ACT001",
-//     activityName: "5G LKF Upgrade",
-//     basicInfo: {
-//       chmDomain: "Network",
-//       chmSubDomain: "RAN",
-//       domain: "RAN",
-//       layer: "Access",
-//       planType: "Plan-A",
-//       vendorOEM: "Nokia",
-//       changeImpact: "High",
-//     },
-//     phases: {
-//       review: {
-//         auto: {
-//           chmDomain: "Network",
-//           domain: "RAN",
-//           planType: "Plan-A",
-//           vendorOEM: "Nokia",
-//           changeImpact: "High",
-//         },
-//         config: { crqReviewShift: "Night", crqReviewTimeMinutes: 30 },
-//       },
-//       impactAnalysis: {
-//         auto: {
-//           chmDomain: "Network",
-//           domain: "RAN",
-//           planType: "Plan-A",
-//           vendorOEM: "Nokia",
-//         },
-//         config: { impactShift: "General", minimumLevel: "L2", timeMinutes: 45 },
-//       },
-//       scheduling: {
-//         auto: {
-//           domain: "RAN",
-//           layer: "Access",
-//           vendor: "Nokia",
-//           plan: "Plan-A",
-//           changeImpact: "High",
-//         },
-//         config: { shift: "Night", level: "L3", durationMinutes: 60 },
-//       },
-//       mopCreation: {
-//         config: { shift: "General", minimumLevel: "L2", timeMinutes: 90 },
-//       },
-//       mopValidation: {
-//         config: { shift: "General", minimumLevel: "L3", timeMinutes: 60 },
-//       },
-//       execution: {
-//         config: {
-//           executionShift: "Night",
-//           daysMargin: 2,
-//           reservationMargin: 1,
-//           activityTimeMinutes: 120,
-//           minimumLevel: "L3",
-//           rollbackTimeMinutes: 45,
-//         },
-//       },
-//     },
-//   },
-//   activity_2: {
-//     activityId: "ACT002",
-//     activityName: "Fiber Cutover",
-//     basicInfo: {
-//       chmDomain: "Network",
-//       chmSubDomain: "Transport",
-//       domain: "Transport",
-//       layer: "Core",
-//       planType: "Plan-B",
-//       vendorOEM: "STL",
-//       changeImpact: "Medium",
-//     },
-//     phases: {
-//       review: {
-//         auto: {
-//           chmDomain: "Network",
-//           domain: "Transport",
-//           planType: "Plan-B",
-//           vendorOEM: "STL",
-//           changeImpact: "Medium",
-//         },
-//         config: { crqReviewShift: "General", crqReviewTimeMinutes: 20 },
-//       },
-//       impactAnalysis: {
-//         auto: {
-//           chmDomain: "Network",
-//           domain: "Transport",
-//           planType: "Plan-B",
-//           vendorOEM: "STL",
-//         },
-//         config: { impactShift: "General", minimumLevel: "L1", timeMinutes: 30 },
-//       },
-//       scheduling: {
-//         auto: {
-//           domain: "Transport",
-//           layer: "Core",
-//           vendor: "STL",
-//           plan: "Plan-B",
-//           changeImpact: "Medium",
-//         },
-//         config: { shift: "Evening", level: "L2", durationMinutes: 45 },
-//       },
-//       mopCreation: {
-//         config: { shift: "General", minimumLevel: "L1", timeMinutes: 60 },
-//       },
-//       mopValidation: {
-//         config: { shift: "General", minimumLevel: "L2", timeMinutes: 45 },
-//       },
-//       execution: {
-//         config: {
-//           executionShift: "Night",
-//           daysMargin: 1,
-//           reservationMargin: 1,
-//           activityTimeMinutes: 90,
-//           minimumLevel: "L2",
-//           rollbackTimeMinutes: 30,
-//         },
-//       },
-//     },
-//   },
-// };
-
-// // ─── Dropdown options ─────────────────────────────────────────────────────────
-
-// const SHIFTS = [
-//   "General",
-//   "Morning (06:00 - 14:00)",
-//   "Evening (14:00 - 22:00)",
-//   "Night (22:00 - 06:00)",
-// ];
-// const LEVELS = ["L1", "L2", "L3", "L4"];
-// const STAGE_KEYS = [
-//   "review",
-//   "impactAnalysis",
-//   "scheduling",
-//   "mopCreation",
-//   "mopValidation",
-//   "execution",
-// ] as const;
-// const STAGE_LABELS: Record<(typeof STAGE_KEYS)[number], string> = {
-//   review: "Review",
-//   impactAnalysis: "Impact Analysis",
-//   scheduling: "Scheduling",
-//   mopCreation: "MOP Creation",
-//   mopValidation: "MOP Validation",
-//   execution: "Execution",
-// };
-
-// type StageKey = (typeof STAGE_KEYS)[number];
-// type Activity = typeof STATIC_ACTIVITIES.activity_1;
-
-// // ─── Shared: Auto-filled read-only chip row ───────────────────────────────────
-
-// const AutoFields: React.FC<{ data: Record<string, string> }> = ({ data }) => {
-//   const theme = useTheme();
-//   return (
-//     <Paper
-//       variant="outlined"
-//       sx={{
-//         p: 1.5,
-//         mb: 2.5,
-//         borderRadius: 2,
-//         backgroundColor: alpha(theme.palette.info.main, 0.04),
-//         borderColor: alpha(theme.palette.info.main, 0.2),
-//       }}
-//     >
-//       <Typography
-//         sx={{
-//           fontSize: 10,
-//           fontWeight: 700,
-//           color: "info.main",
-//           letterSpacing: "0.08em",
-//           mb: 1,
-//         }}
-//       >
-//         AUTO-FILLED (READ ONLY)
-//       </Typography>
-//       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-//         {Object.entries(data).map(([key, val]) => (
-//           <Box
-//             key={key}
-//             sx={{
-//               px: 1.5,
-//               py: 0.4,
-//               borderRadius: 1,
-//               backgroundColor: alpha(theme.palette.info.main, 0.08),
-//               border: `1px solid ${alpha(theme.palette.info.main, 0.15)}`,
-//               display: "flex",
-//               gap: 0.75,
-//               alignItems: "center",
-//             }}
-//           >
-//             <Typography
-//               sx={{
-//                 fontSize: 10,
-//                 color: "text.secondary",
-//                 textTransform: "capitalize",
-//               }}
-//             >
-//               {key}:
-//             </Typography>
-//             <Typography sx={{ fontSize: 11, fontWeight: 600 }}>
-//               {val}
-//             </Typography>
-//           </Box>
-//         ))}
-//       </Box>
-//     </Paper>
-//   );
-// };
-
-// // ─── Phase Forms ──────────────────────────────────────────────────────────────
-
-// const ReviewForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const phase = activity.phases.review;
-//   const [config, setConfig] = useState(phase.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="CRQ Review Shift"
-//             value={config.crqReviewShift}
-//             onChange={set("crqReviewShift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="CRQ Review Time (Minutes)"
-//             value={config.crqReviewTimeMinutes}
-//             onChange={set("crqReviewTimeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save Review", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save Review
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// const ImpactAnalysisForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const phase = activity.phases.impactAnalysis;
-//   const [config, setConfig] = useState(phase.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Impact Shift"
-//             value={config.impactShift}
-//             onChange={set("impactShift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Minimum Level"
-//             value={config.minimumLevel}
-//             onChange={set("minimumLevel")}
-//           >
-//             {LEVELS.map((l) => (
-//               <MenuItem key={l} value={l}>
-//                 {l}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Time (Minutes)"
-//             value={config.timeMinutes}
-//             onChange={set("timeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save Impact Analysis", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save Impact Analysis
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// const SchedulingForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const phase = activity.phases.scheduling;
-//   const [config, setConfig] = useState(phase.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       {phase.auto && <AutoFields data={phase.auto as Record<string, string>} />}
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Shift"
-//             value={config.shift}
-//             onChange={set("shift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Level"
-//             value={config.level}
-//             onChange={set("level")}
-//           >
-//             {LEVELS.map((l) => (
-//               <MenuItem key={l} value={l}>
-//                 {l}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Duration (Minutes)"
-//             value={config.durationMinutes}
-//             onChange={set("durationMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save Scheduling", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save Scheduling
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// const MopCreationForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const [config, setConfig] = useState(activity.phases.mopCreation.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Shift"
-//             value={config.shift}
-//             onChange={set("shift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Minimum Level"
-//             value={config.minimumLevel}
-//             onChange={set("minimumLevel")}
-//           >
-//             {LEVELS.map((l) => (
-//               <MenuItem key={l} value={l}>
-//                 {l}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Time (Minutes)"
-//             value={config.timeMinutes}
-//             onChange={set("timeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save MOP Creation", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save MOP Creation
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// const MopValidationForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const [config, setConfig] = useState(activity.phases.mopValidation.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Shift"
-//             value={config.shift}
-//             onChange={set("shift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Minimum Level"
-//             value={config.minimumLevel}
-//             onChange={set("minimumLevel")}
-//           >
-//             {LEVELS.map((l) => (
-//               <MenuItem key={l} value={l}>
-//                 {l}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Time (Minutes)"
-//             value={config.timeMinutes}
-//             onChange={set("timeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save MOP Validation", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save MOP Validation
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// const ExecutionForm: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const [config, setConfig] = useState(activity.phases.execution.config);
-//   const set =
-//     (k: keyof typeof config) => (e: React.ChangeEvent<HTMLInputElement>) =>
-//       setConfig((p) => ({ ...p, [k]: e.target.value }));
-
-//   return (
-//     <Box>
-//       <Grid container spacing={2.5}>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Execution Shift"
-//             value={config.executionShift}
-//             onChange={set("executionShift")}
-//           >
-//             {SHIFTS.map((s) => (
-//               <MenuItem key={s} value={s}>
-//                 {s}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             select
-//             fullWidth
-//             size="small"
-//             label="Minimum Level"
-//             value={config.minimumLevel}
-//             onChange={set("minimumLevel")}
-//           >
-//             {LEVELS.map((l) => (
-//               <MenuItem key={l} value={l}>
-//                 {l}
-//               </MenuItem>
-//             ))}
-//           </TextField>
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Days Margin"
-//             value={config.daysMargin}
-//             onChange={set("daysMargin")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Reservation Margin"
-//             value={config.reservationMargin}
-//             onChange={set("reservationMargin")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Activity Time (Minutes)"
-//             value={config.activityTimeMinutes}
-//             onChange={set("activityTimeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-//           <TextField
-//             fullWidth
-//             size="small"
-//             type="number"
-//             label="Rollback Time (Minutes)"
-//             value={config.rollbackTimeMinutes}
-//             onChange={set("rollbackTimeMinutes")}
-//           />
-//         </Grid>
-//         <Grid size={{ xs: 12 }}>
-//           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-//             <Button
-//               variant="contained"
-//               size="small"
-//               startIcon={<SaveIcon />}
-//               disableElevation
-//               onClick={() =>
-//                 console.log("Save Execution", activity.activityId, config)
-//               }
-//               sx={{ textTransform: "none", borderRadius: 1.5 }}
-//             >
-//               Save Execution
-//             </Button>
-//           </Box>
-//         </Grid>
-//       </Grid>
-//     </Box>
-//   );
-// };
-
-// // ─── Phase Tab Content router ─────────────────────────────────────────────────
-
-// const PhaseContent: React.FC<{ stageKey: StageKey; activity: Activity }> = ({
-//   stageKey,
-//   activity,
-// }) => {
-//   switch (stageKey) {
-//     case "review":
-//       return <ReviewForm activity={activity} />;
-//     case "impactAnalysis":
-//       return <ImpactAnalysisForm activity={activity} />;
-//     case "scheduling":
-//       return <SchedulingForm activity={activity} />;
-//     case "mopCreation":
-//       return <MopCreationForm activity={activity} />;
-//     case "mopValidation":
-//       return <MopValidationForm activity={activity} />;
-//     case "execution":
-//       return <ExecutionForm activity={activity} />;
-//     default:
-//       return null;
-//   }
-// };
-
-// // ─── Activity Tabs ────────────────────────────────────────────────────────────
-
-// const ActivityStageTabs: React.FC<{ activity: Activity }> = ({ activity }) => {
-//   const [activeTab, setActiveTab] = useState(0);
-
-//   return (
-//     <Box sx={{ width: "100%", pb: 2 }}>
-//       <Tabs
-//         value={activeTab}
-//         onChange={(_, val) => setActiveTab(val)}
-//         variant="scrollable"
-//         scrollButtons="auto"
-//         sx={{
-//           borderBottom: 1,
-//           borderColor: "divider",
-//           px: 2,
-//           "& .MuiTab-root": {
-//             textTransform: "none",
-//             fontWeight: 600,
-//             fontSize: 13,
-//           },
-//         }}
-//       >
-//         {STAGE_KEYS.map((key) => (
-//           <Tab key={key} label={STAGE_LABELS[key]} />
-//         ))}
-//       </Tabs>
-
-//       <Box sx={{ p: 2.5, minHeight: 240 }}>
-//         <PhaseContent stageKey={STAGE_KEYS[activeTab]} activity={activity} />
-//       </Box>
-//     </Box>
-//   );
-// };
-
-// // ─── Accordion list ───────────────────────────────────────────────────────────
-
-// const ActivityAccordionList: React.FC = () => {
-//   const theme = useTheme();
-//   const activities = Object.values(STATIC_ACTIVITIES);
-//   const [expanded, setExpanded] = useState<string | false>(
-//     activities[0].activityId,
-//   );
-
-//   const handleChange =
-//     (id: string) => (_: React.SyntheticEvent, isExpanded: boolean) => {
-//       setExpanded(isExpanded ? id : false);
-//     };
-
-//   return (
-//     <>
-//       {activities.map((activity) => {
-//         const isOpen = expanded === activity.activityId;
-//         return (
-//           <Accordion
-//             key={activity.activityId}
-//             expanded={isOpen}
-//             onChange={handleChange(activity.activityId)}
-//             variant="outlined"
-//             sx={{
-//               mb: 2,
-//               borderRadius: "8px !important",
-//               backgroundColor: "#fff",
-//               "&:before": { display: "none" },
-//               border: `1px solid ${isOpen ? theme.palette.primary.main : theme.palette.divider}`,
-//               boxShadow: isOpen
-//                 ? `0 4px 20px ${alpha(theme.palette.primary.main, 0.1)}`
-//                 : "none",
-//               transition: "all 0.2s ease-in-out",
-//             }}
-//           >
-//             <AccordionSummary
-//               expandIcon={<ExpandMoreIcon />}
-//               sx={{
-//                 backgroundColor: isOpen
-//                   ? alpha(theme.palette.primary.main, 0.04)
-//                   : "transparent",
-//                 borderRadius: "8px",
-//               }}
-//             >
-//               <Box
-//                 sx={{
-//                   display: "flex",
-//                   alignItems: "center",
-//                   gap: 2,
-//                   flexWrap: "wrap",
-//                 }}
-//               >
-//                 <Typography
-//                   variant="subtitle1"
-//                   fontWeight={isOpen ? 700 : 500}
-//                   color={isOpen ? "primary.main" : "text.primary"}
-//                 >
-//                   {isOpen ? "▼" : "▶"} {activity.activityName}
-//                 </Typography>
-//                 <Typography
-//                   variant="caption"
-//                   color="text.secondary"
-//                   sx={{ pt: 0.3 }}
-//                 >
-//                   Domain: {activity.basicInfo.domain} &nbsp;|&nbsp; Layer:{" "}
-//                   {activity.basicInfo.layer} &nbsp;|&nbsp; Vendor:{" "}
-//                   {activity.basicInfo.vendorOEM} &nbsp;|&nbsp; Impact:{" "}
-//                   {activity.basicInfo.changeImpact}
-//                 </Typography>
-//               </Box>
-//             </AccordionSummary>
-
-//             <AccordionDetails sx={{ p: 0 }}>
-//               <Divider />
-//               <ActivityStageTabs activity={activity} />
-//             </AccordionDetails>
-//           </Accordion>
-//         );
-//       })}
-//     </>
-//   );
-// };
-
-// // ─── Main Dialog ──────────────────────────────────────────────────────────────
-
-// interface Props {
-//   open: boolean;
-//   plan: PlanViewRow | null;
-//   onClose: () => void;
-// }
-
-// export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
-//   const theme = useTheme();
-
-//   if (!plan) return null;
-
-//   return (
-//     <Dialog
-//       open={open}
-//       onClose={onClose}
-//       fullWidth
-//       maxWidth="lg"
-//       PaperProps={{ sx: { borderRadius: 2, minHeight: "70vh" } }}
-//     >
-//       {/* ── Header ── */}
-//       <DialogTitle
-//         sx={{
-//           display: "flex",
-//           justifyContent: "space-between",
-//           alignItems: "flex-start",
-//           fontWeight: 700,
-//           borderBottom: `1px solid ${theme.palette.divider}`,
-//           pb: 1.5,
-//         }}
-//       >
-//         <Box>
-//           <Typography fontWeight={700} fontSize={16}>
-//             {plan.planType}
-//           </Typography>
-//           <Typography variant="caption" color="text.secondary">
-//             Plan #{plan.planId} &nbsp;|&nbsp; Domain: {plan.domain}
-//             &nbsp;|&nbsp; Layer: {plan.layer} &nbsp;|&nbsp; Vendor:{" "}
-//             {plan.vendorOem}
-//             &nbsp;|&nbsp; Impact: {plan.changeImpact}
-//           </Typography>
-//         </Box>
-//         <IconButton
-//           onClick={onClose}
-//           size="small"
-//           sx={{ color: "text.secondary", mt: -0.5 }}
-//         >
-//           <CloseIcon />
-//         </IconButton>
-//       </DialogTitle>
-
-//       {/* ── Body ── */}
-//       <DialogContent
-//         dividers
-//         sx={{ p: 3, backgroundColor: theme.palette.grey[50] }}
-//       >
-//         <ActivityAccordionList />
-//       </DialogContent>
-//     </Dialog>
-//   );
-// };
-
-// export default PlanDetailDialog;
