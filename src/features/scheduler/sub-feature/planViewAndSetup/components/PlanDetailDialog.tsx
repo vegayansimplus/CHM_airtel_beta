@@ -12,6 +12,8 @@ import {
   CircularProgress,
   LinearProgress,
   Tooltip,
+  Tab,
+  Tabs,
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import SaveIcon from "@mui/icons-material/Save";
@@ -25,12 +27,17 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
+import LayersIcon from "@mui/icons-material/Layers";
+import AddIcon from "@mui/icons-material/Add";
 import {
   useGetActivityPhaseViewQuery,
   type PlanViewRow,
+  type ActivityEntry,
+  type ActivityPhaseView,
 } from "../api/planApiSlice";
+import { AddIcCall } from "@mui/icons-material";
 
-// ─── Constants ───────────────────────────────────────────────
+// ─────────────────────────────── Constants ───────────────────────────────────
 const SHIFTS = ["General", "Morning", "Evening", "Night"];
 const LEVELS = ["L1", "L2", "L3", "L4"];
 
@@ -45,7 +52,7 @@ const STAGE_KEYS = [
 
 type StageKey = (typeof STAGE_KEYS)[number];
 
-// ─── Phase Metadata ──────────────────────────────────────────
+// ─── Phase metadata ───────────────────────────────────────────────────────────
 const PHASE_META: Record<
   StageKey,
   { label: string; desc: string; icon: React.ReactNode }
@@ -82,7 +89,7 @@ const PHASE_META: Record<
   },
 };
 
-// ─── Field Definitions ───────────────────────────────────────
+// ─── Field definitions ────────────────────────────────────────────────────────
 type FieldDef = {
   key: string;
   label: string;
@@ -99,6 +106,24 @@ const FIELD_MAP: Record<StageKey, FieldDef[]> = {
       label: "Time required (min)",
       type: "number",
       hint: "Typical: 30–120 min",
+    },
+    {
+      key: "daysMargin",
+      label: "Days margin",
+      type: "number",
+      hint: "Buffer days before review",
+    },
+    {
+      key: "reservationMargin",
+      label: "Reservation margin",
+      type: "number",
+      hint: "Resource reservation buffer",
+    },
+    {
+      key: "rollbackTimeMinutes",
+      label: "Rollback time (min)",
+      type: "number",
+      hint: "Time to rollback if needed",
     },
   ],
   impactAnalysis: [
@@ -171,46 +196,64 @@ const FIELD_MAP: Record<StageKey, FieldDef[]> = {
   ],
 };
 
-// ─── Transform ───────────────────────────────────────────────
-const transformActivity = (api: any) => ({
-  activityName: api.activityName,
+// ─── Transform one ActivityEntry into editable form state ─────────────────────
+const transformEntry = (entry: ActivityEntry) => ({
+  activityId: entry.activityId,
+  activityName: entry.activityName,
   phases: {
     review: {
-      crqReviewShift: api?.phases?.review?.shift || "",
-      crqReviewTimeMinutes: api?.phases?.review?.requiredTimeMinutes || "",
+      crqReviewShift: entry.phases.review?.shift ?? "",
+      crqReviewTimeMinutes: entry.phases.review?.requiredTimeMinutes ?? "",
+      daysMargin: entry.phases.review?.daysMargin ?? "",
+      reservationMargin: entry.phases.review?.reservationMargin ?? "",
+      rollbackTimeMinutes: entry.phases.review?.rollbackTime ?? "",
     },
     impactAnalysis: {
-      impactShift: api?.phases?.impactAnalysis?.shift || "",
-      minimumLevel: api?.phases?.impactAnalysis?.minimumLevelRequirement || "",
-      timeMinutes: api?.phases?.impactAnalysis?.requiredTimeMinutes || "",
+      impactShift: entry.phases.impactAnalysis?.shift ?? "",
+      minimumLevel: entry.phases.impactAnalysis?.minimumLevelRequirement ?? "",
+      timeMinutes: entry.phases.impactAnalysis?.requiredTimeMinutes ?? "",
     },
     scheduling: {
-      shift: api?.phases?.scheduling?.shift || "",
-      level: api?.phases?.scheduling?.minimumLevelRequirement || "",
-      durationMinutes: api?.phases?.scheduling?.requiredTimeMinutes || "",
+      shift: entry.phases.scheduling?.shift ?? "",
+      level: entry.phases.scheduling?.minimumLevelRequirement ?? "",
+      durationMinutes: entry.phases.scheduling?.requiredTimeMinutes ?? "",
     },
     mopCreation: {
-      shift: api?.phases?.mopCreation?.shift || "",
-      minimumLevel: api?.phases?.mopCreation?.minimumLevelRequirement || "",
-      timeMinutes: api?.phases?.mopCreation?.requiredTimeMinutes || "",
+      shift: entry.phases.mopCreation?.shift ?? "",
+      minimumLevel: entry.phases.mopCreation?.minimumLevelRequirement ?? "",
+      timeMinutes: entry.phases.mopCreation?.requiredTimeMinutes ?? "",
     },
     mopValidation: {
-      shift: api?.phases?.mopValidation?.shift || "",
-      minimumLevel: api?.phases?.mopValidation?.minimumLevelRequirement || "",
-      timeMinutes: api?.phases?.mopValidation?.requiredTimeMinutes || "",
+      shift: entry.phases.mopValidation?.shift ?? "",
+      minimumLevel: entry.phases.mopValidation?.minimumLevelRequirement ?? "",
+      timeMinutes: entry.phases.mopValidation?.requiredTimeMinutes ?? "",
     },
     execution: {
-      executionShift: api?.phases?.execution?.shift || "",
-      minimumLevel: api?.phases?.execution?.minimumLevelRequirement || "",
-      daysMargin: api?.phases?.execution?.daysMargin || "",
-      reservationMargin: api?.phases?.execution?.reservationMargin || "",
-      activityTimeMinutes: api?.phases?.execution?.requiredTimeMinutes || "",
-      rollbackTimeMinutes: api?.phases?.execution?.rollbackTime || "",
+      executionShift: entry.phases.execution?.shift ?? "",
+      minimumLevel: entry.phases.execution?.minimumLevelRequirement ?? "",
+      daysMargin: entry.phases.execution?.daysMargin ?? "",
+      reservationMargin: entry.phases.execution?.reservationMargin ?? "",
+      activityTimeMinutes: entry.phases.execution?.requiredTimeMinutes ?? "",
+      rollbackTimeMinutes: entry.phases.execution?.rollbackTime ?? "",
     },
   },
 });
 
-// ─── Phase Form ──────────────────────────────────────────────
+type TransformedActivity = ReturnType<typeof transformEntry>;
+
+// ─── Per-activity configs shape ───────────────────────────────────────────────
+// activityId -> StageKey -> field -> value
+type AllConfigs = Record<string, Record<StageKey, Record<string, any>>>;
+
+function buildInitialConfigs(activities: TransformedActivity[]): AllConfigs {
+  const result: AllConfigs = {};
+  for (const a of activities) {
+    result[a.activityId] = a.phases as Record<StageKey, Record<string, any>>;
+  }
+  return result;
+}
+
+// ─────────────────────────────── PhaseForm ───────────────────────────────────
 const PhaseForm = ({
   stageKey,
   config,
@@ -294,7 +337,41 @@ const PhaseForm = ({
   );
 };
 
-// ─── Main Dialog ─────────────────────────────────────────────
+// ─────────────────────────── BasicInfoBar ────────────────────────────────────
+const BasicInfoBar = ({ info }: { info: ActivityPhaseView["basicInfo"] }) => (
+  <Box
+    sx={{
+      px: 2.5,
+      py: 0.75,
+      display: "flex",
+      alignItems: "center",
+      flexWrap: "wrap",
+      gap: 2,
+      bgcolor: "action.hover",
+      borderBottom: "1px solid",
+      borderColor: "divider",
+    }}
+  >
+    {[
+      { label: "Domain", val: info.domain },
+      { label: "Layer", val: info.layer },
+      { label: "CHM", val: `${info.chmDomain} › ${info.chmSubDomain}` },
+      { label: "Vendor", val: info.vendorOem },
+      { label: "Impact", val: info.changeImpact },
+    ].map(({ label, val }) => (
+      <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+        <Typography fontSize={11} color="text.disabled">
+          {label}:
+        </Typography>
+        <Typography fontSize={11} fontWeight={500} color="text.secondary">
+          {val}
+        </Typography>
+      </Box>
+    ))}
+  </Box>
+);
+
+// ─────────────────────────────── Main Dialog ─────────────────────────────────
 interface Props {
   open: boolean;
   plan: PlanViewRow | null;
@@ -307,62 +384,100 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
     { skip: !plan },
   );
 
-  const activity = useMemo(
-    () => (data ? transformActivity(data) : null),
+  // All activities transformed to editable form state
+  const activities = useMemo<TransformedActivity[]>(
+    () => (data?.activities ?? []).map(transformEntry),
     [data],
   );
 
-  const [activeIdx, setActiveIdx] = useState(0);
+  // Which activity tab is active
+  const [activityIdx, setActivityIdx] = useState(0);
+  // Which phase is active
+  const [phaseIdx, setPhaseIdx] = useState(0);
+  // Save flash
   const [savedPhase, setSavedPhase] = useState<StageKey | null>(null);
-  const [configs, setConfigs] = useState<Record<StageKey, Record<string, any>>>(
-    () => Object.fromEntries(STAGE_KEYS.map((k) => [k, {}])) as any,
+
+  // Per-activity, per-phase form configs
+  const [allConfigs, setAllConfigs] = useState<AllConfigs>({});
+
+  // Sync from API data
+  useEffect(() => {
+    if (activities.length > 0) {
+      setAllConfigs(buildInitialConfigs(activities));
+      setActivityIdx(0);
+      setPhaseIdx(0);
+    }
+  }, [activities]);
+
+  const currentActivity = activities[activityIdx] ?? null;
+  const activeKey = STAGE_KEYS[phaseIdx];
+
+  // Configs for the currently selected activity
+  const currentConfigs: Record<StageKey, Record<string, any>> = useMemo(
+    () =>
+      currentActivity
+        ? (allConfigs[currentActivity.activityId] ??
+          (Object.fromEntries(STAGE_KEYS.map((k) => [k, {}])) as any))
+        : (Object.fromEntries(STAGE_KEYS.map((k) => [k, {}])) as any),
+    [allConfigs, currentActivity],
   );
 
-  useEffect(() => {
-    if (activity) setConfigs(activity.phases as any);
-  }, [activity]);
-
-  const activeKey = STAGE_KEYS[activeIdx];
-
   const isFilled = useCallback(
-    (key: StageKey) => Object.values(configs[key] ?? {}).some((v) => v !== ""),
-    [configs],
+    (key: StageKey) =>
+      Object.values(currentConfigs[key] ?? {}).some(
+        (v) => v !== "" && v !== null && v !== undefined,
+      ),
+    [currentConfigs],
   );
 
   const filledCount = STAGE_KEYS.filter(isFilled).length;
   const progress = Math.round((filledCount / STAGE_KEYS.length) * 100);
 
   const handleChange = (field: string, value: string) => {
-    setConfigs((prev) => ({
+    if (!currentActivity) return;
+    setAllConfigs((prev) => ({
       ...prev,
-      [activeKey]: { ...prev[activeKey], [field]: value },
+      [currentActivity.activityId]: {
+        ...prev[currentActivity.activityId],
+        [activeKey]: {
+          ...(prev[currentActivity.activityId]?.[activeKey] ?? {}),
+          [field]: value,
+        },
+      },
     }));
   };
 
   const handleSave = () => {
+    if (!currentActivity) return;
     setSavedPhase(activeKey);
-    console.log("Saving", activeKey, configs[activeKey]);
+    console.log(
+      "Saving",
+      currentActivity.activityId,
+      activeKey,
+      currentConfigs[activeKey],
+    );
     setTimeout(() => setSavedPhase(null), 1800);
+  };
+
+  // Reset phase selection when switching activity
+  const handleActivityChange = (_: React.SyntheticEvent, idx: number) => {
+    setActivityIdx(idx);
+    setPhaseIdx(0);
+    setSavedPhase(null);
   };
 
   if (!plan) return null;
 
+  const hasActivities = activities.length > 0;
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      fullWidth
-      maxWidth="lg"
-      // PaperProps={{
-      //   sx: { borderRadius: 3, overflow: "hidden" },
-      //   elevation: 4,
-      // }}
-    >
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg">
       {/* ── Header ── */}
       <Box
         sx={{
-          px: 2.5,
+          px: 1.5,
           py: 1.5,
+          // P:2,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -382,40 +497,95 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
             variant="outlined"
             sx={{ height: 22, fontSize: 11, fontWeight: 500 }}
           />
+
+          <Chip
+            icon={<AddIcon />}
+            label="Add New Activity"
+            size="small"
+            color="info"
+            variant="outlined"
+            sx={{ height: 22, fontSize: 11, fontWeight: 500 }}
+          />
         </Box>
         <IconButton size="small" onClick={onClose} sx={{ borderRadius: 2 }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      {/* ── Activity bar ── */}
-      {activity && (
+      {/* ── Basic info strip ── */}
+      {data?.basicInfo && <BasicInfoBar info={data.basicInfo} />}
+
+      {/* ── Activity tabs ── */}
+      {hasActivities && (
         <Box
           sx={{
             px: 2.5,
-            py: 1,
+            borderBottom: "1px solid",
+            borderColor: "divider",
             display: "flex",
             alignItems: "center",
             gap: 1,
-            bgcolor: "action.hover",
-            borderBottom: "1px solid",
-            borderColor: "divider",
           }}
         >
-          <Typography fontSize={12} color="text.secondary">
-            Activity:
-          </Typography>
-          <Typography fontSize={13} fontWeight={500}>
-            {activity.activityName}
-          </Typography>
-          <Box flex={1} />
-          <Typography fontSize={11} color="text.disabled">
-            {filledCount} of {STAGE_KEYS.length} phases done
-          </Typography>
+          <LayersIcon sx={{ fontSize: 14, color: "text.disabled", mr: 0.5 }} />
+          <Tabs
+            value={activityIdx}
+            onChange={handleActivityChange}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{
+              minHeight: 40,
+              "& .MuiTab-root": {
+                minHeight: 40,
+                fontSize: 12,
+                py: 0,
+                textTransform: "none",
+              },
+            }}
+          >
+            {activities.map((a) => {
+              // Count filled phases for this activity
+              const actConfigs =
+                allConfigs[a.activityId] ??
+                Object.fromEntries(STAGE_KEYS.map((k) => [k, {}]));
+              const filled = STAGE_KEYS.filter((k) =>
+                Object.values(actConfigs[k] ?? {}).some(
+                  (v) => v !== "" && v !== null && v !== undefined,
+                ),
+              ).length;
+              return (
+                <Tab
+                  key={a.activityId}
+                  label={
+                    <Box
+                      sx={{ display: "flex", alignItems: "center", gap: 0.75 }}
+                    >
+                      <span>{a.activityName}</span>
+                      <Chip
+                        label={`${filled}/${STAGE_KEYS.length}`}
+                        size="small"
+                        variant={
+                          filled === STAGE_KEYS.length ? "filled" : "outlined"
+                        }
+                        color={
+                          filled === STAGE_KEYS.length ? "success" : "default"
+                        }
+                        sx={{
+                          height: 16,
+                          fontSize: 10,
+                          "& .MuiChip-label": { px: 0.75 },
+                        }}
+                      />
+                    </Box>
+                  }
+                />
+              );
+            })}
+          </Tabs>
         </Box>
       )}
 
-      <DialogContent sx={{ p: 0, display: "flex", minHeight: 460 }}>
+      <DialogContent sx={{ p: 0, display: "flex", m: 2 }}>
         {isLoading ? (
           <Box
             sx={{
@@ -427,7 +597,7 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
           >
             <CircularProgress size={30} />
           </Box>
-        ) : activity ? (
+        ) : hasActivities && currentActivity ? (
           <>
             {/* ── Sidebar ── */}
             <Box
@@ -458,11 +628,11 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               {STAGE_KEYS.map((key, i) => {
                 const meta = PHASE_META[key];
                 const filled = isFilled(key);
-                const isActive = i === activeIdx;
+                const isActive = i === phaseIdx;
                 return (
                   <Tooltip key={key} title={meta.desc} placement="right" arrow>
                     <Box
-                      onClick={() => setActiveIdx(i)}
+                      onClick={() => setPhaseIdx(i)}
                       sx={{
                         display: "flex",
                         alignItems: "center",
@@ -559,7 +729,7 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               <Box sx={{ flex: 1, p: 3, overflowY: "auto" }}>
                 <PhaseForm
                   stageKey={activeKey}
-                  config={configs[activeKey]}
+                  config={currentConfigs[activeKey]}
                   onChange={handleChange}
                 />
               </Box>
@@ -577,30 +747,45 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               >
                 <Button
                   size="small"
-                  disabled={activeIdx === 0}
+                  disabled={phaseIdx === 0}
                   startIcon={<ChevronLeftIcon />}
-                  onClick={() => setActiveIdx((i) => i - 1)}
+                  onClick={() => setPhaseIdx((i) => i - 1)}
                   sx={{ fontSize: 12, color: "primary.main" }}
                 >
-                  {activeIdx > 0
-                    ? PHASE_META[STAGE_KEYS[activeIdx - 1]].label
+                  {phaseIdx > 0
+                    ? PHASE_META[STAGE_KEYS[phaseIdx - 1]].label
                     : "Previous"}
                 </Button>
                 <Button
                   size="small"
-                  disabled={activeIdx === STAGE_KEYS.length - 1}
+                  disabled={phaseIdx === STAGE_KEYS.length - 1}
                   endIcon={<ChevronRightIcon />}
-                  onClick={() => setActiveIdx((i) => i + 1)}
+                  onClick={() => setPhaseIdx((i) => i + 1)}
                   sx={{ fontSize: 12, color: "primary.main" }}
                 >
-                  {activeIdx < STAGE_KEYS.length - 1
-                    ? PHASE_META[STAGE_KEYS[activeIdx + 1]].label
+                  {phaseIdx < STAGE_KEYS.length - 1
+                    ? PHASE_META[STAGE_KEYS[phaseIdx + 1]].label
                     : "Next"}
                 </Button>
               </Box>
             </Box>
           </>
-        ) : null}
+        ) : (
+          !isLoading && (
+            <Box
+              sx={{
+                flex: 1,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Typography fontSize={13} color="text.disabled">
+                No activity data available
+              </Typography>
+            </Box>
+          )
+        )}
       </DialogContent>
 
       {/* ── Footer ── */}
@@ -611,31 +796,41 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
           borderTop: "1px solid",
           borderColor: "divider",
           display: "flex",
-          justifyContent: "flex-end",
-          gap: 1,
+          alignItems: "center",
+          justifyContent: "space-between",
           bgcolor: "action.hover",
         }}
       >
-        <Button size="small" onClick={onClose} sx={{ fontSize: 13 }}>
-          Cancel
-        </Button>
-        <Button
-          size="small"
-          variant="contained"
-          disableElevation
-          startIcon={
-            savedPhase === activeKey ? (
-              <CheckCircleIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <SaveIcon sx={{ fontSize: 16 }} />
-            )
-          }
-          onClick={handleSave}
-          color={savedPhase === activeKey ? "success" : "primary"}
-          sx={{ fontSize: 13, px: 2.5, borderRadius: 2 }}
-        >
-          {savedPhase === activeKey ? "Saved!" : "Save phase"}
-        </Button>
+        {/* Activity name label */}
+        <Typography fontSize={12} color="text.secondary">
+          {currentActivity
+            ? `${currentActivity.activityName} › ${PHASE_META[activeKey].label}`
+            : ""}
+        </Typography>
+
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Button size="small" onClick={onClose} sx={{ fontSize: 13 }}>
+            Cancel
+          </Button>
+          <Button
+            size="small"
+            variant="contained"
+            disableElevation
+            disabled={!currentActivity}
+            startIcon={
+              savedPhase === activeKey ? (
+                <CheckCircleIcon sx={{ fontSize: 16 }} />
+              ) : (
+                <SaveIcon sx={{ fontSize: 16 }} />
+              )
+            }
+            onClick={handleSave}
+            color={savedPhase === activeKey ? "success" : "primary"}
+            sx={{ fontSize: 13, px: 2.5, borderRadius: 2 }}
+          >
+            {savedPhase === activeKey ? "Saved!" : "Save phase"}
+          </Button>
+        </Box>
       </Box>
     </Dialog>
   );

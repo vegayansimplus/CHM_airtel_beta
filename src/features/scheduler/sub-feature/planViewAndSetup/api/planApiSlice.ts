@@ -24,46 +24,46 @@ export interface PlanViewQueryParams {
 }
 
 export interface PhaseConfig {
-  shift?: string;
-  minimumLevelRequirement?: string;
-  requiredTimeMinutes?: number;
-  daysMargin?: number;
-  reservationMargin?: number;
-  rollbackTime?: number;
+  shift?: string | null;
+  minimumLevelRequirement?: string | null;
+  requiredTimeMinutes?: number | null;
+  daysMargin?: number | null;
+  reservationMargin?: number | null;
+  rollbackTime?: number | null;
+}
+
+export interface ActivityEntry {
+  activityId: string;
+  activityName: string;
+  phases: {
+    review?: PhaseConfig | null;
+    impactAnalysis?: PhaseConfig | null;
+    scheduling?: PhaseConfig | null;
+    mopCreation?: PhaseConfig | null;
+    mopValidation?: PhaseConfig | null;
+    execution?: PhaseConfig | null;
+  };
 }
 
 export interface ActivityPhaseView {
-  activityId: string;
-  activityName: string;
-
+  activities: ActivityEntry[];
   basicInfo: {
+    chmDomain: string;
+    chmSubDomain: string;
     domain: string;
     layer: string;
     planType: string;
     vendorOem: string;
     changeImpact: string;
   };
-
-  phases: {
-    review?: PhaseConfig;
-    impactAnalysis?: PhaseConfig;
-    scheduling?: PhaseConfig;
-    mopCreation?: PhaseConfig;
-    mopValidation?: PhaseConfig;
-    execution?: PhaseConfig;
-  };
 }
+
 export const planApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getPlanView: builder.query<PlanViewRow[], PlanViewQueryParams>({
-      query: (params) => ({
-        url: "/plan/view",
-        method: "GET",
-        params,
-      }),
+      query: (params) => ({ url: "/plan/view", method: "GET", params }),
       providesTags: ["Plan"],
     }),
-
     getActivityPhaseView: builder.query<ActivityPhaseView, { planId: number }>({
       query: ({ planId }) => ({
         url: "/activity/phase-view",

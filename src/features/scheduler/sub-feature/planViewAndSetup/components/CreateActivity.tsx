@@ -1,34 +1,37 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   Alert,
-  Autocomplete,
   Box,
   Button,
   CircularProgress,
   Divider,
   FormControl,
-  FormHelperText,
   MenuItem,
   Select,
   Stack,
   TextField,
   Typography,
-  useTheme,
   DialogTitle,
   DialogContent,
   DialogActions,
   IconButton,
+  Chip,
+  Autocomplete,
+  Popper,
+  Paper,
 } from "@mui/material";
 import { alpha } from "@mui/material/styles";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import CloseIcon from "@mui/icons-material/Close";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 
 import { useActivity } from "../hooks/useActivity";
 import { useInsertActivityMutation } from "../../../../activityViewAndSetup/api/acitivityApiSlice";
 import { useOrgHierarchyFilters } from "../../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../../../orgHierarchy/hooks/useOrgHierarchyState";
 
+// ─── Constants ────────────────────────────────────────────────────────────────
 const LAYER_OPTIONS = [
   "Access",
   "Aggregation",
@@ -45,7 +48,7 @@ const PLAN_TYPE_OPTIONS = [
   "Decommission",
   "Maintenance",
 ];
-const VENDOR_OEM_OPTIONS = [
+const VENDOR_OEM_SUGGESTIONS = [
   "Huawei",
   "Nokia",
   "Ericsson",
@@ -56,81 +59,82 @@ const VENDOR_OEM_OPTIONS = [
   "STL",
   "Corning",
 ];
-const CHANGE_IMPACT_OPTIONS = ["Low", "Medium", "High", "Critical"] as const;
 
+const CHANGE_IMPACT_OPTIONS = [
+  { value: "Low",      color: "#639922", bg: "#EAF3DE", text: "#27500A" },
+  { value: "Medium",   color: "#BA7517", bg: "#FAEEDA", text: "#633806" },
+  { value: "High",     color: "#E24B4A", bg: "#FCEBEB", text: "#791F1F" },
+  { value: "Critical", color: "#534AB7", bg: "#EEEDFE", text: "#3C3489" },
+] as const;
+
+type ChangeImpact = (typeof CHANGE_IMPACT_OPTIONS)[number]["value"];
+
+// ─── Form state ───────────────────────────────────────────────────────────────
 interface FormValues {
   layer: string;
   planType: string;
   activityName: string;
-  vendorOem: string;
-  changeImpact: string;
+  vendorOem: string[]; // multi-tag
+  changeImpact: ChangeImpact | "";
 }
-type FormErrors = Partial<
-  Record<keyof FormValues | "chmDomain" | "chmSubDomain" | "domain", string>
->;
 
-const IMPACT_DOT: Record<string, string> = {
-  Low: "#10b981",
-  Medium: "#f59e0b",
-  High: "#ef4444",
-  Critical: "#7c3aed",
-};
+type FormErrors = Partial<Record<keyof FormValues | "chmDomain" | "chmSubDomain" | "domain", string>>;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+const sx = {
+  compactSelect: {
+    "& .MuiOutlinedInput-root": { borderRadius: 1.5, fontSize: 12, height: 34 },
+  },
+  compactInput: {
+    "& .MuiOutlinedInput-root": { borderRadius: 1.5, fontSize: 12, height: 34 },
+  },
+} as const;
 
 const SectionHeader: React.FC<{ title: string; subtitle?: string }> = ({
   title,
   subtitle,
-}) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{ mb: 2 }}>
-      <Typography
-        variant="caption"
-        sx={{
-          fontSize: 10,
-          fontWeight: 700,
-          letterSpacing: "0.1em",
-          textTransform: "uppercase",
-          color: theme.palette.primary.main,
-        }}
-      >
-        {title}
+}) => (
+  <Box sx={{ mb: 1.5 }}>
+    <Typography
+      sx={{
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.08em",
+        textTransform: "uppercase",
+        color: "success.main",
+      }}
+    >
+      {title}
+    </Typography>
+    {subtitle && (
+      <Typography sx={{ fontSize: 10, color: "text.disabled", mt: 0.25 }}>
+        {subtitle}
       </Typography>
-      {subtitle && (
-        <Typography
-          variant="caption"
-          display="block"
-          color="text.disabled"
-          sx={{ fontSize: 10, mt: 0.2 }}
-        >
-          {subtitle}
-        </Typography>
-      )}
-      <Divider
-        sx={{ mt: 0.75, borderColor: alpha(theme.palette.primary.main, 0.18) }}
-      />
-    </Box>
-  );
-};
+    )}
+    <Divider sx={{ mt: 0.75, borderColor: (t) => alpha(t.palette.success.main, 0.2) }} />
+  </Box>
+);
 
 const FieldRow: React.FC<{
   label: string;
   required?: boolean;
-  children: React.ReactNode;
-  error?: string;
   hint?: string;
-}> = ({ label, required, children, error, hint }) => (
+  error?: string;
+  children: React.ReactNode;
+}> = ({ label, required, hint, error, children }) => (
   <Box
     sx={{
       display: "grid",
-      gridTemplateColumns: "180px 1fr",
+      gridTemplateColumns: "160px minmax(0,1fr)",
       alignItems: "flex-start",
-      gap: 2,
-      minHeight: 40,
+      gap: 1.5,
+      mb: 1.25,
+      minHeight: 34,
     }}
   >
-    <Box sx={{ pt: 1.1 }}>
+    <Box sx={{ pt: "9px" }}>
       <Typography
-        variant="body2"
         sx={{
           fontSize: 12,
           fontWeight: 500,
@@ -140,16 +144,11 @@ const FieldRow: React.FC<{
       >
         {label}
         {required && (
-          <Box component="span" sx={{ color: "error.main", ml: 0.25 }}>
-            *
-          </Box>
+          <Box component="span" sx={{ color: "error.main", ml: 0.25 }}>*</Box>
         )}
       </Typography>
       {hint && (
-        <Typography
-          variant="caption"
-          sx={{ fontSize: 10, color: "text.disabled" }}
-        >
+        <Typography sx={{ fontSize: 10, color: "text.disabled", mt: 0.25 }}>
           {hint}
         </Typography>
       )}
@@ -157,63 +156,216 @@ const FieldRow: React.FC<{
     <Box>
       {children}
       {error && (
-        <FormHelperText error sx={{ mt: 0.25, fontSize: 10, ml: 0 }}>
-          {error}
-        </FormHelperText>
+        <Typography sx={{ fontSize: 10, color: "error.main", mt: 0.25, display: "flex", alignItems: "center", gap: 0.4 }}>
+          <ErrorOutlineIcon sx={{ fontSize: 11 }} /> {error}
+        </Typography>
       )}
     </Box>
   </Box>
 );
 
-const compactSelect = {
-  "& .MuiOutlinedInput-root": { borderRadius: 1.5, fontSize: 12, height: 34 },
-  "& .MuiInputLabel-root": { fontSize: 12 },
-};
-const compactTextField = {
-  "& .MuiOutlinedInput-root": { borderRadius: 1.5, fontSize: 12, height: 34 },
-  "& .MuiInputLabel-root": { fontSize: 12 },
+// ─── Vendor multi-tag input ───────────────────────────────────────────────────
+const VendorTagInput: React.FC<{
+  value: string[];
+  onChange: (v: string[]) => void;
+  error?: boolean;
+}> = ({ value, onChange, error }) => {
+  const [inputVal, setInputVal] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const addTag = (raw: string) => {
+    const trimmed = raw.trim().replace(/,+$/, "");
+    if (trimmed && !value.includes(trimmed)) {
+      onChange([...value, trimmed]);
+    }
+    setInputVal("");
+  };
+
+  const removeTag = (tag: string) => onChange(value.filter((v) => v !== tag));
+
+  return (
+    <Box
+      onClick={() => inputRef.current?.focus()}
+      sx={{
+        display: "flex",
+        flexWrap: "wrap",
+        alignItems: "center",
+        gap: 0.5,
+        minHeight: 34,
+        px: 1,
+        py: 0.5,
+        border: "1px solid",
+        borderColor: error ? "error.main" : "divider",
+        borderRadius: 1.5,
+        bgcolor: "background.paper",
+        cursor: "text",
+        "&:focus-within": {
+          borderColor: "primary.main",
+          boxShadow: (t) => `0 0 0 2px ${alpha(t.palette.primary.main, 0.12)}`,
+        },
+      }}
+    >
+      {value.map((tag) => (
+        <Chip
+          key={tag}
+          label={tag}
+          size="small"
+          onDelete={() => removeTag(tag)}
+          sx={{
+            height: 22,
+            fontSize: 11,
+            bgcolor: "info.50",
+            color: "info.800",
+            "& .MuiChip-deleteIcon": { fontSize: 13, color: "info.600" },
+          }}
+        />
+      ))}
+      <Autocomplete
+        freeSolo
+        options={VENDOR_OEM_SUGGESTIONS.filter((s) => !value.includes(s))}
+        inputValue={inputVal}
+        onInputChange={(_, v) => setInputVal(v)}
+        onChange={(_, v) => { if (v) { addTag(v as string); } }}
+        PopperComponent={(props) => (
+          <Popper {...props} style={{ width: 220, zIndex: 1400 }} />
+        )}
+        PaperComponent={(props) => (
+          <Paper {...props} sx={{ fontSize: 12, borderRadius: 1.5, mt: 0.5 }} />
+        )}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            inputRef={inputRef}
+            variant="standard"
+            placeholder={value.length === 0 ? "Type vendor, press Enter" : "Add more…"}
+            onKeyDown={(e) => {
+              if ((e.key === "Enter" || e.key === ",") && inputVal.trim()) {
+                e.preventDefault();
+                addTag(inputVal);
+              } else if (e.key === "Backspace" && inputVal === "" && value.length) {
+                onChange(value.slice(0, -1));
+              }
+            }}
+            InputProps={{
+              ...params.InputProps,
+              disableUnderline: true,
+              sx: { fontSize: 12, minWidth: 80 },
+            }}
+          />
+        )}
+        sx={{ flex: 1, minWidth: 80 }}
+      />
+    </Box>
+  );
 };
 
+// ─── Change impact selector ───────────────────────────────────────────────────
+const ImpactSelect: React.FC<{
+  value: ChangeImpact | "";
+  onChange: (v: ChangeImpact) => void;
+  error?: boolean;
+}> = ({ value, onChange, error }) => {
+  const selected = CHANGE_IMPACT_OPTIONS.find((o) => o.value === value);
+
+  return (
+    <FormControl fullWidth size="small" error={error} sx={sx.compactSelect}>
+      <Select
+        value={value}
+        displayEmpty
+        onChange={(e) => onChange(e.target.value as ChangeImpact)}
+        renderValue={(v) =>
+          v && selected ? (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: selected.color,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography sx={{ fontSize: 12 }}>{v}</Typography>
+            </Box>
+          ) : (
+            <Typography sx={{ fontSize: 12, color: "text.disabled" }}>
+              Select impact level
+            </Typography>
+          )
+        }
+      >
+        <MenuItem value="" disabled sx={{ fontSize: 12 }}>
+          Select impact level
+        </MenuItem>
+        {CHANGE_IMPACT_OPTIONS.map((opt) => (
+          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  bgcolor: opt.color,
+                  flexShrink: 0,
+                }}
+              />
+              <Typography sx={{ fontSize: 12 }}>{opt.value}</Typography>
+              <Chip
+                label={opt.value === "Critical" ? "P0" : opt.value === "High" ? "P1" : opt.value === "Medium" ? "P2" : "P3"}
+                size="small"
+                sx={{
+                  height: 16,
+                  fontSize: 10,
+                  bgcolor: opt.bg,
+                  color: opt.text,
+                  "& .MuiChip-label": { px: 0.75 },
+                  ml: "auto",
+                }}
+              />
+            </Box>
+          </MenuItem>
+        ))}
+      </Select>
+    </FormControl>
+  );
+};
+
+// ─── Main component ───────────────────────────────────────────────────────────
 export const CreateActivity: React.FC = () => {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
-
   const { goToList, openConfigure } = useActivity();
   const [insertActivity, { isLoading: isSaving }] = useInsertActivityMutation();
 
-  const { values: orgValues, handleChange: handleOrgChange } =
-    useOrgHierarchyState();
+  const { values: orgValues, handleChange: handleOrgChange } = useOrgHierarchyState();
   const { options: orgOptions } = useOrgHierarchyFilters(orgValues);
 
   const [form, setForm] = useState<FormValues>({
     layer: "",
     planType: "",
     activityName: "",
-    vendorOem: "",
+    vendorOem: [],
     changeImpact: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const setField = useCallback(
-    <K extends keyof FormValues>(key: K, value: string) => {
-      setForm((prev) => ({ ...prev, [key]: value }));
-      setErrors((prev) => ({ ...prev, [key]: undefined }));
-    },
-    [],
-  );
+  const setField = useCallback(<K extends keyof FormValues>(key: K, value: FormValues[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
+  }, []);
+
+  const clearOrgError = (key: keyof FormErrors) =>
+    setErrors((prev) => ({ ...prev, [key]: undefined }));
 
   const validate = (): boolean => {
     const next: FormErrors = {};
-    if (!orgValues.chmDomain) next.chmDomain = "CHM Domain is required";
-    if (!orgValues.subDomain) next.chmSubDomain = "CHM Sub-Domain is required";
-    if (!orgValues.domain) next.domain = "Domain is required";
-    if (!form.layer) next.layer = "Layer is required";
-    if (!form.planType) next.planType = "Plan Type is required";
-    if (!form.activityName.trim())
-      next.activityName = "Activity Name is required";
-    if (!form.vendorOem) next.vendorOem = "Vendor / OEM is required";
-    if (!form.changeImpact) next.changeImpact = "Change Impact is required";
+    if (!orgValues.chmDomain)       next.chmDomain    = "Required";
+    if (!orgValues.subDomain)       next.chmSubDomain  = "Required";
+    if (!orgValues.domain)          next.domain        = "Required";
+    if (!form.layer)                next.layer         = "Required";
+    if (!form.planType)             next.planType      = "Required";
+    if (!form.activityName.trim())  next.activityName  = "Activity name is required";
+    if (form.vendorOem.length === 0) next.vendorOem    = "Add at least one vendor";
+    if (!form.changeImpact)         next.changeImpact  = "Required";
     setErrors(next);
     return Object.keys(next).length === 0;
   };
@@ -226,62 +378,80 @@ export const CreateActivity: React.FC = () => {
       const domainName =
         orgOptions.domain?.find((d) => d.id === orgValues.domain)?.name ??
         String(orgValues.domain);
+
       const result = await insertActivity({
-        chmDomain: orgValues.chmDomain!,
+        chmDomain:    orgValues.chmDomain!,
         chmSubDomain: orgValues.subDomain!,
-        domain: domainName,
-        layer: form.layer,
-        planType: form.planType,
+        domain:       domainName,
+        layer:        form.layer,
+        planType:     form.planType,
         activityName: form.activityName.trim(),
-        vendorOem: form.vendorOem,
+        vendorOem:    form.vendorOem.join("/"),
         changeImpact: form.changeImpact,
       }).unwrap();
 
       const newId = result?.activityId ?? result?.id;
       if (newId) {
-        // Construct API-like object to pass directly to Redux Configure Screen
         openConfigure({
-          activityId: newId,
+          activityId:   newId,
           activityName: form.activityName.trim(),
-          chmDomain: orgValues.chmDomain,
+          chmDomain:    orgValues.chmDomain,
           chmSubDomain: orgValues.subDomain,
-          domain: domainName,
-          layer: form.layer,
-          planType: form.planType,
-          vendorOem: form.vendorOem,
+          domain:       domainName,
+          layer:        form.layer,
+          planType:     form.planType,
+          vendorOem:    form.vendorOem.join("/"),
           changeImpact: form.changeImpact,
-          status: "Draft",
+          status:       "Draft",
         });
       } else {
         goToList();
       }
     } catch (err: any) {
       setSubmitError(
-        err?.data?.message ??
-          err?.error ??
-          "Failed to create activity. Please try again.",
+        err?.data?.message ?? err?.error ?? "Failed to create activity. Please try again."
       );
     }
   };
+
+  const actNameLen = form.activityName.length;
 
   return (
     <>
       <DialogTitle
         sx={{
           m: 0,
-          p: 2,
+          px: 2.5,
+          py: 1.5,
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          <TuneIcon sx={{ fontSize: 20, color: "success.main" }} />
-          <Typography variant="subtitle1" fontWeight={700}>
-            Create Activity
-          </Typography>
+          <Box
+            sx={{
+              width: 30,
+              height: 30,
+              borderRadius: 1.5,
+              bgcolor: (t) => alpha(t.palette.success.main, 0.12),
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <TuneIcon sx={{ fontSize: 16, color: "success.main" }} />
+          </Box>
+          <Box>
+            <Typography sx={{ fontSize: 14, fontWeight: 500 }}>Create activity</Typography>
+            <Typography sx={{ fontSize: 11, color: "text.disabled" }}>
+              Define a new activity and configure its phases
+            </Typography>
+          </Box>
         </Box>
-        <IconButton size="small" onClick={goToList}>
+        <IconButton size="small" onClick={goToList} sx={{ borderRadius: 1.5 }}>
           <CloseIcon fontSize="small" />
         </IconButton>
       </DialogTitle>
@@ -289,271 +459,177 @@ export const CreateActivity: React.FC = () => {
       <DialogContent
         dividers
         sx={{
-          p: 3,
-          backgroundColor: isDark
-            ? alpha(theme.palette.success.main, 0.04)
-            : alpha(theme.palette.success.main, 0.02),
+          p: 2.5,
+          bgcolor: (t) => alpha(t.palette.success.main, 0.025),
         }}
       >
         {submitError && (
           <Alert
             severity="error"
             onClose={() => setSubmitError(null)}
-            sx={{ mb: 2, borderRadius: 2, fontSize: 12 }}
+            sx={{ mb: 2, borderRadius: 1.5, fontSize: 12 }}
           >
             {submitError}
           </Alert>
         )}
 
         <Stack spacing={0}>
+          {/* ── Section 1: Org scope ── */}
           <SectionHeader
-            title="Organizational Scope"
+            title="Organizational scope"
             subtitle="Determines which domain hierarchy this activity belongs to"
           />
-          <Stack spacing={1.5} sx={{ mb: 3 }}>
-            <FieldRow label="CHM Domain" required error={errors.chmDomain}>
-              <FormControl
-                fullWidth
-                size="small"
-                error={!!errors.chmDomain}
-                sx={compactSelect}
-              >
+          <Stack spacing={0} sx={{ mb: 2.5 }}>
+            <FieldRow label="CHM domain" required error={errors.chmDomain}>
+              <FormControl fullWidth size="small" error={!!errors.chmDomain} sx={sx.compactSelect}>
                 <Select
                   value={orgValues.chmDomain ?? ""}
                   displayEmpty
-                  onChange={(e) =>
-                    handleOrgChange(
-                      "chmDomain",
-                      Number(e.target.value) || undefined,
-                    )
-                  }
+                  onChange={(e) => {
+                    handleOrgChange("chmDomain", Number(e.target.value) || undefined);
+                    clearOrgError("chmDomain");
+                  }}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select CHM Domain
-                  </MenuItem>
+                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>Select CHM domain</MenuItem>
                   {orgOptions.chmDomain?.map((opt) => (
-                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>
-                      {opt.name}
-                    </MenuItem>
+                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </FieldRow>
-            <FieldRow
-              label="CHM Sub-Domain"
-              required
-              error={errors.chmSubDomain}
-            >
+
+            <FieldRow label="CHM sub-domain" required error={errors.chmSubDomain}>
               <FormControl
-                fullWidth
-                size="small"
+                fullWidth size="small"
                 error={!!errors.chmSubDomain}
                 disabled={!orgValues.chmDomain}
-                sx={compactSelect}
+                sx={sx.compactSelect}
               >
                 <Select
                   value={orgValues.subDomain ?? ""}
                   displayEmpty
-                  onChange={(e) =>
-                    handleOrgChange(
-                      "subDomain",
-                      Number(e.target.value) || undefined,
-                    )
-                  }
+                  onChange={(e) => {
+                    handleOrgChange("subDomain", Number(e.target.value) || undefined);
+                    clearOrgError("chmSubDomain");
+                  }}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select CHM Sub-Domain
-                  </MenuItem>
+                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>Select CHM sub-domain</MenuItem>
                   {orgOptions.subDomain?.map((opt) => (
-                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>
-                      {opt.name}
-                    </MenuItem>
+                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </FieldRow>
+
             <FieldRow label="Domain" required error={errors.domain}>
               <FormControl
-                fullWidth
-                size="small"
+                fullWidth size="small"
                 error={!!errors.domain}
                 disabled={!orgValues.subDomain}
-                sx={compactSelect}
+                sx={sx.compactSelect}
               >
                 <Select
                   value={orgValues.domain ?? ""}
                   displayEmpty
-                  onChange={(e) =>
-                    handleOrgChange(
-                      "domain",
-                      Number(e.target.value) || undefined,
-                    )
-                  }
+                  onChange={(e) => {
+                    handleOrgChange("domain", Number(e.target.value) || undefined);
+                    clearOrgError("domain");
+                  }}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select Domain
-                  </MenuItem>
+                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>Select domain</MenuItem>
                   {orgOptions.domain?.map((opt) => (
-                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>
-                      {opt.name}
-                    </MenuItem>
+                    <MenuItem key={opt.id} value={opt.id} sx={{ fontSize: 12 }}>{opt.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </FieldRow>
           </Stack>
 
+          {/* ── Section 2: Activity details ── */}
           <SectionHeader
-            title="Activity Details"
-            subtitle="Define the technical and operational parameters"
+            title="Activity details"
+            subtitle="Technical and operational parameters"
           />
-          <Stack spacing={1.5}>
+          <Stack spacing={0}>
             <FieldRow label="Layer" required error={errors.layer}>
-              <FormControl
-                fullWidth
-                size="small"
-                error={!!errors.layer}
-                sx={compactSelect}
-              >
+              <FormControl fullWidth size="small" error={!!errors.layer} sx={sx.compactSelect}>
                 <Select
                   value={form.layer}
                   displayEmpty
                   onChange={(e) => setField("layer", e.target.value)}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select Layer
-                  </MenuItem>
+                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>Select layer</MenuItem>
                   {LAYER_OPTIONS.map((l) => (
-                    <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>
-                      {l}
-                    </MenuItem>
+                    <MenuItem key={l} value={l} sx={{ fontSize: 12 }}>{l}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </FieldRow>
-            <FieldRow label="Plan Type" required error={errors.planType}>
-              <FormControl
-                fullWidth
-                size="small"
-                error={!!errors.planType}
-                sx={compactSelect}
-              >
+
+            <FieldRow label="Plan type" required error={errors.planType}>
+              <FormControl fullWidth size="small" error={!!errors.planType} sx={sx.compactSelect}>
                 <Select
                   value={form.planType}
                   displayEmpty
                   onChange={(e) => setField("planType", e.target.value)}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select Plan Type
-                  </MenuItem>
+                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>Select plan type</MenuItem>
                   {PLAN_TYPE_OPTIONS.map((p) => (
-                    <MenuItem key={p} value={p} sx={{ fontSize: 12 }}>
-                      {p}
-                    </MenuItem>
+                    <MenuItem key={p} value={p} sx={{ fontSize: 12 }}>{p}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </FieldRow>
-            <FieldRow
-              label="Activity Name"
-              required
-              error={errors.activityName}
-            >
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="e.g. 5G LKF Node Expansion"
-                value={form.activityName}
-                onChange={(e) => setField("activityName", e.target.value)}
-                error={!!errors.activityName}
-                inputProps={{ maxLength: 120 }}
-                sx={compactTextField}
-              />
-            </FieldRow>
-            <FieldRow label="Vendor / OEM" required error={errors.vendorOem}>
-              <Autocomplete
-                size="small"
-                options={VENDOR_OEM_OPTIONS}
-                value={form.vendorOem || null}
-                onChange={(_, v) => setField("vendorOem", v ?? "")}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Select or type vendor"
-                    error={!!errors.vendorOem}
-                    sx={compactTextField}
-                  />
-                )}
-                freeSolo
-                renderOption={(props, option) => (
-                  <MenuItem {...props} sx={{ fontSize: 12 }}>
-                    {option}
-                  </MenuItem>
-                )}
-              />
-            </FieldRow>
-            <FieldRow
-              label="Change Impact"
-              required
-              error={errors.changeImpact}
-              hint="Affects SLA and approval routing"
-            >
-              <FormControl
-                fullWidth
-                size="small"
-                error={!!errors.changeImpact}
-                sx={compactSelect}
-              >
-                <Select
-                  value={form.changeImpact}
-                  displayEmpty
-                  onChange={(e) => setField("changeImpact", e.target.value)}
-                  renderValue={(v) =>
-                    v ? (
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            backgroundColor: IMPACT_DOT[v] ?? "#9ca3af",
-                            flexShrink: 0,
-                          }}
-                        />
-                        <Typography sx={{ fontSize: 12 }}>{v}</Typography>
-                      </Box>
-                    ) : (
-                      <Typography sx={{ fontSize: 12, color: "text.disabled" }}>
-                        Select Impact Level
-                      </Typography>
-                    )
-                  }
+
+            <FieldRow label="Activity name" required error={errors.activityName}>
+              <Box>
+                <TextField
+                  fullWidth
+                  size="small"
+                  placeholder="e.g. 5G LKF node expansion"
+                  value={form.activityName}
+                  onChange={(e) => setField("activityName", e.target.value)}
+                  error={!!errors.activityName}
+                  inputProps={{ maxLength: 120 }}
+                  sx={sx.compactInput}
+                />
+                <Typography
+                  sx={{
+                    fontSize: 10,
+                    color: actNameLen > 100 ? "warning.main" : "text.disabled",
+                    textAlign: "right",
+                    mt: 0.25,
+                  }}
                 >
-                  <MenuItem value="" disabled sx={{ fontSize: 12 }}>
-                    Select Impact Level
-                  </MenuItem>
-                  {CHANGE_IMPACT_OPTIONS.map((impact) => (
-                    <MenuItem key={impact} value={impact} sx={{ fontSize: 12 }}>
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 1.5 }}
-                      >
-                        <Box
-                          sx={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: "50%",
-                            backgroundColor: IMPACT_DOT[impact],
-                            flexShrink: 0,
-                          }}
-                        />
-                        {impact}
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
+                  {actNameLen}/120
+                </Typography>
+              </Box>
+            </FieldRow>
+
+            <FieldRow label="Vendor / OEM" required error={errors.vendorOem}>
+              <Box>
+                <VendorTagInput
+                  value={form.vendorOem}
+                  onChange={(v) => setField("vendorOem", v)}
+                  error={!!errors.vendorOem}
+                />
+                <Typography sx={{ fontSize: 10, color: "text.disabled", mt: 0.25 }}>
+                  Multiple vendors allowed — press Enter or comma to add
+                </Typography>
+              </Box>
+            </FieldRow>
+
+            <FieldRow
+              label="Change impact"
+              required
+              hint="Affects SLA and approval routing"
+              error={errors.changeImpact}
+            >
+              <ImpactSelect
+                value={form.changeImpact}
+                onChange={(v) => setField("changeImpact", v)}
+                error={!!errors.changeImpact}
+              />
             </FieldRow>
           </Stack>
         </Stack>
@@ -561,11 +637,11 @@ export const CreateActivity: React.FC = () => {
 
       <DialogActions
         sx={{
-          px: 3,
-          py: 2,
-          backgroundColor: isDark
-            ? alpha(theme.palette.background.default, 0.4)
-            : theme.palette.grey[50],
+          px: 2.5,
+          py: 1.5,
+          borderTop: "1px solid",
+          borderColor: "divider",
+          bgcolor: "action.hover",
         }}
       >
         <Button
@@ -581,11 +657,9 @@ export const CreateActivity: React.FC = () => {
           size="small"
           disableElevation
           startIcon={
-            isSaving ? (
-              <CircularProgress size={12} color="inherit" />
-            ) : (
-              <SaveIcon sx={{ fontSize: 13 }} />
-            )
+            isSaving
+              ? <CircularProgress size={12} color="inherit" />
+              : <SaveIcon sx={{ fontSize: 14 }} />
           }
           onClick={handleSave}
           disabled={isSaving}
@@ -593,13 +667,13 @@ export const CreateActivity: React.FC = () => {
             fontSize: 12,
             textTransform: "none",
             borderRadius: 1.5,
-            fontWeight: 600,
+            fontWeight: 500,
             px: 2.5,
-            backgroundColor: "success.main",
-            "&:hover": { backgroundColor: "success.dark" },
+            bgcolor: "success.main",
+            "&:hover": { bgcolor: "success.dark" },
           }}
         >
-          {isSaving ? "Saving…" : "Save & Configure Phases"}
+          {isSaving ? "Saving…" : "Save & configure phases"}
         </Button>
       </DialogActions>
     </>
