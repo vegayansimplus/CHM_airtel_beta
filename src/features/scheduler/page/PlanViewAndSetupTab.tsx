@@ -1,13 +1,21 @@
 import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
-// import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 
+// interface PlanViewAndSetupTabProps {
+//   setDynamicHeaderText: (text: string) => void;
+//   setDynamicHeaderIcon: (icon: JSX.Element) => void;
+// }
 
-
-const SchedulerMainTab: React.FC = () => {
+const PlanViewAndSetupTab: React.FC = (
+  {
+    //   setDynamicHeaderText,
+    //   setDynamicHeaderIcon,
+  },
+) => {
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
@@ -21,35 +29,18 @@ const SchedulerMainTab: React.FC = () => {
     const path = location.pathname;
 
     //  handle nested routes also
-    // if (path.includes("planviewandsetup")) {
-    //   return "planviewandsetup";
-    // }
-
-    if (path.includes("crqWorkflow")) {
-      return "crqWorkflow";
+    if (path.includes("planviewandsetup")) {
+      return "planviewandsetup";
     }
 
-    return "crqWorkflow"; // default
+    if (path.includes("taskconfig")) {
+      return "taskconfig";
+    }
+
+    return "planviewandsetup"; // default
   }, [location.pathname]);
 
   /* ================= HEADER CONTROL ================= */
-
-  // useEffect(() => {
-  //   switch (activeTab) {
-  //     case "crqWorkflow":
-  //       setDynamicHeaderText("Shift Scheduler");
-  //       break;
-
-  //     case "planviewandsetup":
-  //       setDynamicHeaderText("Plan View & Setup");
-  //       break;
-
-  //     default:
-  //       setDynamicHeaderText("Shift Scheduler");
-  //   }
-
-  //   setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
-  // }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ================= UI ================= */
 
@@ -135,21 +126,22 @@ const SchedulerMainTab: React.FC = () => {
         >
           {/*  TAB 1 */}
           <Tab
-            label="Shift Scheduler"
-            value="crqWorkflow"
-            to="crqWorkflow"
-            component={Link}
-          />
-
-          {/*  TAB 2 */}
-          {/* <Tab
             label="Plan View & Setup"
             value="planviewandsetup"
             to="planviewandsetup"
             component={Link}
-          /> */}
+          />
+          {/*  TAB 2 */}
+          <Tab
+            label="Task Config"
+            value="taskconfig"
+            to="taskconfig"
+            component={Link}
+          />
         </Tabs>
       </Box>
+
+      {/* ================= HEADER ================= */}
 
       {/* ================= CONTENT ================= */}
 
@@ -175,4 +167,4 @@ const SchedulerMainTab: React.FC = () => {
   );
 };
 
-export default SchedulerMainTab;
+export default PlanViewAndSetupTab;

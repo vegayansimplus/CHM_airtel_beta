@@ -28,16 +28,19 @@ import { CrqDetailedView } from "../features/scheduler/components/plan-and-inven
 // import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
 import UserManagement from "../features/userManagement/components/UserManagement";
-import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
+// import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
 // import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 // import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
 import { UserLogs } from "../features/userManagement/pages/UserLogs";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
-import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
+// import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup";
+import { PlanVIewAndSetupMainPage } from "../features/scheduler/sub-feature/planViewAndSetup/PlanVIewAndSetupMainPage";
+import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
+import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -179,24 +182,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         </Route>
         <Route
           path="scheduler"
-          element={
-            <PrivateRoute
-              element={
-                <SchedulerMainTab
-                  setDynamicHeaderText={setDynamicHeaderText}
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
-                />
-              }
-            />
-          }
+          element={<PrivateRoute element={<SchedulerMainTab />} />}
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
-          <Route
-            path="planviewandsetup"
-            // element={<ActivityViewAndSetupMain />}
-            element={<PlanViewAndSetup />}
-          />
+          {/* <Route path="planviewandsetup" element={<PlanViewAndSetup />} /> */}
           <Route
             path="action"
             element={
@@ -208,6 +198,16 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
 
           <Route path="crqWorkflow/:crqNo" element={<CrqDetailedView />} />
         </Route>
+        <Route
+          path="scheduler"
+          element={<PrivateRoute element={<PlanViewAndSetupTab />} />}
+        >
+          <Route path="planviewandsetup" element={<PlanViewAndSetup />} />
+         <Route path="taskconfig" element={<TaskConfigMain />} /> 
+        </Route>
+
+        
+
 
         <Route
           path="generateroster"

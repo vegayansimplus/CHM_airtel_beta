@@ -12,7 +12,7 @@ export const CommonContainerWithoutTab = ({
   return (
     <Box
       sx={{
-        marginTop: "40px",
+        marginTop: "50px",
         marginLeft: "60px",
         marginRight: "10px",
         maxWidth: "100%",
