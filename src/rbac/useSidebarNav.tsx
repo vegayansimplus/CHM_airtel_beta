@@ -1,4 +1,3 @@
-// src/rbac/useSidebarNav.ts
 import { useMemo, type ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
@@ -17,7 +16,7 @@ import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { usePermission } from "./usePermission";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
-import ChecklistIcon from "@mui/icons-material/Checklist";
+// import ChecklistIcon from "@mui/icons-material/Checklist";
 export interface NavItem {
   to: string;
   text: string;
@@ -58,7 +57,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
     to: "/scheduler",
     text: "Scheduler",
     icon: <FilterTiltShift />,
-    requiredModule: "Role-Based Access Control",
+    requiredModule: "Scheduler",
     children: [
       {
         // Default child — matches /scheduler AND /scheduler/crqWorkflow (and detail pages)
