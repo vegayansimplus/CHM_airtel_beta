@@ -23,7 +23,6 @@ import {
 } from "@mui/material";
 import { Search, ExpandMore, CheckCircle } from "@mui/icons-material";
 
-import { CommonContainerWithoutTab } from "../../../components/common/ContainerWithoutTab";
 import { useTabColorTokens } from "../../../style/theme";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

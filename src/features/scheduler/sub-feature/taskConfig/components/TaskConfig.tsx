@@ -35,6 +35,7 @@ import {
   Snackbar,
   Alert,
   type AlertColor,
+  CircularProgress,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
@@ -418,8 +419,23 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export const TaskConfig: React.FC = () => {
-  const [data, setData] = useState<TaskData[]>(INITIAL_DATA);
+interface TaskConfigProps {
+  data?: {
+    crqValidation: boolean;
+    employeeLevel: "L2" | "L3" | "L4";
+    employeeName: string;
+    impactAnalysis: boolean;
+    mopCreation: boolean;
+    mopValidation: boolean;
+    networkExecution: boolean;
+    olmId: string;
+    schedulingApprovals: boolean;
+  }[];
+  isLoading?: boolean;
+}
+
+export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoading }) => {
+  const [data, setData] = useState<TaskData[]>([]);
   const [search, setSearch] = useState<string>("");
   const [levelFilter, setLevelFilter] = useState<EmployeeLevel | "All">("All");
   const [addOpen, setAddOpen] = useState<boolean>(false);
@@ -428,6 +444,35 @@ export const TaskConfig: React.FC = () => {
     message: "",
     severity: "success",
   });
+
+  useEffect(() => {
+    if (propData) {
+      const mappedData: TaskData[] = propData.map((item, index) => ({
+        id: index + 1,
+        olmId: item.olmId,
+        employeeName: item.employeeName,
+        employeeLevel: item.employeeLevel,
+        roll: "Onroll", // Default since not in API
+        crqValidation: item.crqValidation,
+        impactAnalysis: item.impactAnalysis,
+        mopCreation: item.mopCreation,
+        mopValidation: item.mopValidation,
+        schedulingApprovals: item.schedulingApprovals,
+        networkExecution: item.networkExecution,
+      }));
+      setData(mappedData);
+    } else {
+      setData([]);
+    }
+  }, [propData]);
+  // const [search, setSearch] = useState<string>("");
+  // const [levelFilter, setLevelFilter] = useState<EmployeeLevel | "All">("All");
+  // const [addOpen, setAddOpen] = useState<boolean>(false);
+  // const [snack, setSnack] = useState<SnackState>({
+  //   open: false,
+  //   message: "",
+  //   severity: "success",
+  // });
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -680,64 +725,64 @@ export const TaskConfig: React.FC = () => {
         ),
       })),
       // ── Access Column ──
-      {
-        id: "access",
-        header: "Access",
-        size: 80,
-        enableSorting: false,
-        Cell: ({ row }: { row: MRT_Row<TaskData> }) => (
-          <AccessBar percent={getAccessPercent(row.original)} />
-        ),
-      },
-      // ── Actions Column ──
-      {
-        id: "actions",
-        header: "Actions",
-        size: 80,
-        enableSorting: false,
-        Cell: ({ row }: { row: MRT_Row<TaskData> }) => {
-          const allEnabled = ALL_TASK_KEYS.every((k) => row.original[k]);
-          return (
-            <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
-              <Tooltip
-                title={allEnabled ? "Disable all tasks" : "Enable all tasks"}
-                placement="top"
-                arrow
-              >
-                <IconButton
-                  size="small"
-                  onClick={() => handleEnableAll(row.original.id)}
-                  sx={{
-                    color: allEnabled ? "error.light" : "success.main",
-                    p: 0.5,
-                  }}
-                >
-                  {allEnabled ? (
-                    <DoNotDisturbAltIcon fontSize="small" />
-                  ) : (
-                    <CheckCircleOutlineIcon fontSize="small" />
-                  )}
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Remove employee" placement="top" arrow>
-                <IconButton
-                  size="small"
-                  onClick={() =>
-                    handleDelete(row.original.id, row.original.employeeName)
-                  }
-                  sx={{
-                    color: "text.disabled",
-                    p: 0.5,
-                    "&:hover": { color: "error.main" },
-                  }}
-                >
-                  <DeleteOutlineIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Box>
-          );
-        },
-      },
+      // {
+      //   id: "access",
+      //   header: "Access",
+      //   size: 80,
+      //   enableSorting: false,
+      //   Cell: ({ row }: { row: MRT_Row<TaskData> }) => (
+      //     <AccessBar percent={getAccessPercent(row.original)} />
+      //   ),
+      // },
+      // // ── Actions Column ──
+      // {
+      //   id: "actions",
+      //   header: "Actions",
+      //   size: 80,
+      //   enableSorting: false,
+      //   Cell: ({ row }: { row: MRT_Row<TaskData> }) => {
+      //     const allEnabled = ALL_TASK_KEYS.every((k) => row.original[k]);
+      //     return (
+      //       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
+      //         <Tooltip
+      //           title={allEnabled ? "Disable all tasks" : "Enable all tasks"}
+      //           placement="top"
+      //           arrow
+      //         >
+      //           <IconButton
+      //             size="small"
+      //             onClick={() => handleEnableAll(row.original.id)}
+      //             sx={{
+      //               color: allEnabled ? "error.light" : "success.main",
+      //               p: 0.5,
+      //             }}
+      //           >
+      //             {allEnabled ? (
+      //               <DoNotDisturbAltIcon fontSize="small" />
+      //             ) : (
+      //               <CheckCircleOutlineIcon fontSize="small" />
+      //             )}
+      //           </IconButton>
+      //         </Tooltip>
+      //         <Tooltip title="Remove employee" placement="top" arrow>
+      //           <IconButton
+      //             size="small"
+      //             onClick={() =>
+      //               handleDelete(row.original.id, row.original.employeeName)
+      //             }
+      //             sx={{
+      //               color: "text.disabled",
+      //               p: 0.5,
+      //               "&:hover": { color: "error.main" },
+      //             }}
+      //           >
+      //             <DeleteOutlineIcon fontSize="small" />
+      //           </IconButton>
+      //         </Tooltip>
+      //       </Box>
+      //     );
+      //   },
+      // },
     ],
     [data, handleToggle, handleEnableAll, handleDelete],
   );
@@ -826,6 +871,14 @@ export const TaskConfig: React.FC = () => {
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ p: 1 }}>
