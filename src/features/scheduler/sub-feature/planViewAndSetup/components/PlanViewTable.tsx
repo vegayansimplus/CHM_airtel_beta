@@ -22,7 +22,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import { useActivity } from "../hooks/useActivity";
 import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
-import { PlanEditDialog } from "./PlanEditDialog"; 
+import { PlanEditDialog } from "./PlanEditDialog";
+import { Delete } from "@mui/icons-material";
 
 interface Props {
   verticalId?: number;
@@ -121,9 +122,8 @@ export const PlanViewTable: React.FC<Props> = ({
     setSelectedRowData(null);
   };
 
- const handleSaveEdit = async (updatedData: PlanViewRow) => {
+  const handleSaveEdit = async (updatedData: PlanViewRow) => {
     console.log("Data to save:", updatedData);
-    
   };
 
   // ── Columns ───────────────────────────────────────────────────────────────
@@ -223,15 +223,30 @@ export const PlanViewTable: React.FC<Props> = ({
     enableRowActions: true,
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
-      <Tooltip title="Edit Row">
+      <Box>
+        <Tooltip title="Edit Row">
+          <IconButton
+            size="small"
+            onClick={() => handleOpenEdit(row.original)}
+            sx={{ color: "text.secondary" }}
+          >
+            <EditOutlinedIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+
+         <Tooltip title="Delete Row">
         <IconButton
           size="small"
           onClick={() => handleOpenEdit(row.original)}
           sx={{ color: "text.secondary" }}
         >
-          <EditOutlinedIcon fontSize="small" />
+          <Delete fontSize="small" sx={{color:"red"}}/>
         </IconButton>
+
+        
       </Tooltip>
+      
+      </Box>
     ),
 
     renderToolbarInternalActions: () => (

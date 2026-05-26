@@ -605,68 +605,7 @@ export default function UserManagement() {
         }}
       >
         {/* Top Header Bar */}
-        <Box
-          sx={{
-            bgcolor: "#1a1a2e",
-            color: "white",
-            px: { xs: 2, md: 4 },
-            py: 2,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
-          }}
-        >
-          <Stack direction="row" alignItems="center" gap={1.5}>
-            <Box
-              sx={{
-                width: 34,
-                height: 34,
-                borderRadius: 2,
-                bgcolor: "#e94560",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <People sx={{ fontSize: 18 }} />
-            </Box>
-            <Typography
-              variant="h6"
-              fontWeight={800}
-              sx={{ letterSpacing: "-0.3px" }}
-            >
-              UserHub
-            </Typography>
-          </Stack>
-          <Stack direction="row" gap={1.5}>
-            <Button
-              startIcon={<UploadFile />}
-              variant="outlined"
-              size="small"
-              sx={{
-                color: "white",
-                borderColor: "rgba(255,255,255,0.25)",
-                "&:hover": {
-                  borderColor: "white",
-                  bgcolor: "rgba(255,255,255,0.08)",
-                },
-              }}
-            >
-              Import Excel
-            </Button>
-            <Button
-              startIcon={<PersonAdd />}
-              variant="contained"
-              size="small"
-              onClick={() => setAddOpen(true)}
-              sx={{ bgcolor: "#e94560", "&:hover": { bgcolor: "#c73652" } }}
-            >
-              Add User
-            </Button>
-          </Stack>
-        </Box>
-
+     
         {/* Page Body */}
         <Box sx={{ mx: "auto", p: 2 }}>
           {/* Page Title */}

@@ -58,6 +58,28 @@ export interface ActivityPhaseView {
   };
 }
 
+export interface InsertPhaseConfig {
+  shift: string;
+  minimumLevelRequirement: string;
+  requiredTimeMinutes: number;
+  daysMargin: number;
+  reservationMargin: number;
+  rollbackTime: number;
+  assignedToTeam: number;
+}
+
+export interface AddActivityRequest {
+  planId: number;
+  activityName: string;
+
+  crqReview: InsertPhaseConfig;
+  impactAnalysis: InsertPhaseConfig;
+  scheduling: InsertPhaseConfig;
+  mopCreate: InsertPhaseConfig;
+  mopValidate: InsertPhaseConfig;
+  crqExecution: InsertPhaseConfig;
+}
+
 export const planApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getPlanView: builder.query<PlanViewRow[], PlanViewQueryParams>({
@@ -72,7 +94,16 @@ export const planApi = api.injectEndpoints({
       }),
       providesTags: ["ActivityPhase"],
     }),
+    addActivity: builder.mutation<any, AddActivityRequest>({
+      query: (body) => ({
+        url: "/activity/insert",
+        method: "POST",
+        body,
+      }),
+
+      invalidatesTags: ["ActivityPhase"],
+    }),
   }),
 });
 
-export const { useGetPlanViewQuery, useGetActivityPhaseViewQuery } = planApi;
+export const { useGetPlanViewQuery, useGetActivityPhaseViewQuery, useAddActivityMutation } = planApi;

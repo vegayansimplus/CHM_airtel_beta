@@ -14,15 +14,11 @@ import {
   styled,
   Chip,
   Avatar,
-  IconButton,
   Tooltip,
   TextField,
-  InputAdornment,
   Button,
-  ButtonGroup,
   Stack,
   Paper,
-  LinearProgress,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -37,11 +33,8 @@ import {
   type AlertColor,
   CircularProgress,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import DoNotDisturbAltIcon from "@mui/icons-material/DoNotDisturbAlt";
-import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
+import { useUpdateTaskConfigMutation } from "../api/taskConfigApi";
+
 import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import LockOpenOutlinedIcon from "@mui/icons-material/LockOpenOutlined";
@@ -66,6 +59,7 @@ type TaskKey = keyof TaskFlags;
 interface TaskData extends TaskFlags {
   id: number;
   olmId: string;
+  userId?: number;
   employeeName: string;
   employeeLevel: EmployeeLevel;
   roll: EmployeeRole;
@@ -118,61 +112,6 @@ const TASK_COLUMNS: TaskColumnMeta[] = [
 
 const ALL_TASK_KEYS: TaskKey[] = TASK_COLUMNS.map((c) => c.key);
 
-const INITIAL_DATA: TaskData[] = [
-  {
-    id: 1,
-    olmId: "B0093363",
-    employeeName: "Prasann Shrivastava",
-    employeeLevel: "L4",
-    roll: "Onroll",
-    crqValidation: true,
-    impactAnalysis: true,
-    mopCreation: true,
-    mopValidation: true,
-    schedulingApprovals: true,
-    networkExecution: true,
-  },
-  {
-    id: 2,
-    olmId: "B0266821",
-    employeeName: "Harsh Yadav",
-    employeeLevel: "L3",
-    roll: "Onroll",
-    crqValidation: true,
-    impactAnalysis: false,
-    mopCreation: true,
-    mopValidation: true,
-    schedulingApprovals: false,
-    networkExecution: true,
-  },
-  {
-    id: 3,
-    olmId: "B0312445",
-    employeeName: "Anita Sharma",
-    employeeLevel: "L2",
-    roll: "Contract",
-    crqValidation: false,
-    impactAnalysis: false,
-    mopCreation: true,
-    mopValidation: false,
-    schedulingApprovals: false,
-    networkExecution: true,
-  },
-  {
-    id: 4,
-    olmId: "B0198732",
-    employeeName: "Rohan Mehta",
-    employeeLevel: "L3",
-    roll: "Onroll",
-    crqValidation: true,
-    impactAnalysis: true,
-    mopCreation: false,
-    mopValidation: false,
-    schedulingApprovals: true,
-    networkExecution: false,
-  },
-];
-
 const DEFAULT_ADD_FORM: AddEmployeeForm = {
   employeeName: "",
   olmId: "",
@@ -190,15 +129,10 @@ const getInitials = (name: string): string =>
     .slice(0, 2)
     .toUpperCase();
 
-const getAccessPercent = (row: TaskData): number =>
-  Math.round(
-    (ALL_TASK_KEYS.filter((k) => row[k]).length / ALL_TASK_KEYS.length) * 100,
-  );
-
 const generateOlmId = (): string =>
   "B0" + String(Math.floor(100000 + Math.random() * 900000));
 
-let nextId = INITIAL_DATA.length + 1;
+// let nextId = INITIAL_DATA.length + 1;
 
 // ─── Styled Components ────────────────────────────────────────────────────────
 
@@ -275,39 +209,6 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
       </Typography>
     </Box>
   </Paper>
-);
-
-const AccessBar: React.FC<{ percent: number }> = ({ percent }) => (
-  <Box sx={{ minWidth: 60 }}>
-    <Typography
-      sx={{
-        fontSize: 11,
-        color: "text.secondary",
-        mb: 0.25,
-        textAlign: "right",
-      }}
-    >
-      {percent}%
-    </Typography>
-    <LinearProgress
-      variant="determinate"
-      value={percent}
-      sx={{
-        height: 4,
-        borderRadius: 99,
-        bgcolor: "action.hover",
-        "& .MuiLinearProgress-bar": {
-          borderRadius: 99,
-          bgcolor:
-            percent === 100
-              ? "success.main"
-              : percent === 0
-                ? "error.light"
-                : "primary.main",
-        },
-      }}
-    />
-  </Box>
 );
 
 // ─── Add Employee Dialog ──────────────────────────────────────────────────────
@@ -421,6 +322,7 @@ const AddEmployeeDialog: React.FC<AddEmployeeDialogProps> = ({
 
 interface TaskConfigProps {
   data?: {
+    userId: number;
     crqValidation: boolean;
     employeeLevel: "L2" | "L3" | "L4";
     employeeName: string;
@@ -434,10 +336,13 @@ interface TaskConfigProps {
   isLoading?: boolean;
 }
 
-export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoading }) => {
+export const TaskConfig: React.FC<TaskConfigProps> = ({
+  data: propData,
+  isLoading,
+}) => {
   const [data, setData] = useState<TaskData[]>([]);
-  const [search, setSearch] = useState<string>("");
-  const [levelFilter, setLevelFilter] = useState<EmployeeLevel | "All">("All");
+  const [search] = useState<string>("");
+  const [levelFilter] = useState<EmployeeLevel | "All">("All");
   const [addOpen, setAddOpen] = useState<boolean>(false);
   const [snack, setSnack] = useState<SnackState>({
     open: false,
@@ -450,6 +355,7 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
       const mappedData: TaskData[] = propData.map((item, index) => ({
         id: index + 1,
         olmId: item.olmId,
+        userId: item.userId,
         employeeName: item.employeeName,
         employeeLevel: item.employeeLevel,
         roll: "Onroll", // Default since not in API
@@ -465,14 +371,8 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
       setData([]);
     }
   }, [propData]);
-  // const [search, setSearch] = useState<string>("");
-  // const [levelFilter, setLevelFilter] = useState<EmployeeLevel | "All">("All");
-  // const [addOpen, setAddOpen] = useState<boolean>(false);
-  // const [snack, setSnack] = useState<SnackState>({
-  //   open: false,
-  //   message: "",
-  //   severity: "success",
-  // });
+
+  const [updateTaskConfig] = useUpdateTaskConfigMutation();
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
@@ -490,14 +390,42 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
   // ── Mutation Handlers ──────────────────────────────────────────────────────
 
   const handleToggle = useCallback(
-    (rowId: number, columnKey: TaskKey): void => {
+    async (rowId: number, columnKey: TaskKey): Promise<void> => {
+      const row = data.find((r) => r.id === rowId);
+      if (!row) return;
+
+      const currentValue = row[columnKey];
+      const updatedValue = !currentValue;
+      const affectedUserId = row.userId;
+
       setData((prev) =>
-        prev.map((row) =>
-          row.id === rowId ? { ...row, [columnKey]: !row[columnKey] } : row,
+        prev.map((r) =>
+          r.id === rowId ? { ...r, [columnKey]: updatedValue } : r,
         ),
       );
+
+      if (affectedUserId === undefined || affectedUserId === 0) {
+        showSnack(`Cannot update task config for unsaved employee.`, "warning");
+        return;
+      }
+
+      try {
+        await updateTaskConfig({
+          affectedUserId,
+          colName: columnKey,
+          newValue: String(updatedValue),
+        }).unwrap();
+        showSnack(`${columnKey} updated successfully.`);
+      } catch (error) {
+        setData((prev) =>
+          prev.map((r) =>
+            r.id === rowId ? { ...r, [columnKey]: currentValue } : r,
+          ),
+        );
+        showSnack(`Failed to update ${columnKey}.`, "error");
+      }
     },
-    [],
+    [data, updateTaskConfig],
   );
 
   const handleEnableAll = useCallback((rowId: number): void => {
@@ -521,8 +449,9 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
 
   const handleAdd = useCallback((form: AddEmployeeForm): void => {
     const newRow: TaskData = {
-      id: nextId++,
+      id: data.length + 1,
       olmId: form.olmId,
+      userId: 0,
       employeeName: form.employeeName,
       employeeLevel: form.employeeLevel,
       roll: form.roll,
@@ -724,65 +653,6 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
           </Box>
         ),
       })),
-      // ── Access Column ──
-      // {
-      //   id: "access",
-      //   header: "Access",
-      //   size: 80,
-      //   enableSorting: false,
-      //   Cell: ({ row }: { row: MRT_Row<TaskData> }) => (
-      //     <AccessBar percent={getAccessPercent(row.original)} />
-      //   ),
-      // },
-      // // ── Actions Column ──
-      // {
-      //   id: "actions",
-      //   header: "Actions",
-      //   size: 80,
-      //   enableSorting: false,
-      //   Cell: ({ row }: { row: MRT_Row<TaskData> }) => {
-      //     const allEnabled = ALL_TASK_KEYS.every((k) => row.original[k]);
-      //     return (
-      //       <Box sx={{ display: "flex", gap: 0.5, justifyContent: "center" }}>
-      //         <Tooltip
-      //           title={allEnabled ? "Disable all tasks" : "Enable all tasks"}
-      //           placement="top"
-      //           arrow
-      //         >
-      //           <IconButton
-      //             size="small"
-      //             onClick={() => handleEnableAll(row.original.id)}
-      //             sx={{
-      //               color: allEnabled ? "error.light" : "success.main",
-      //               p: 0.5,
-      //             }}
-      //           >
-      //             {allEnabled ? (
-      //               <DoNotDisturbAltIcon fontSize="small" />
-      //             ) : (
-      //               <CheckCircleOutlineIcon fontSize="small" />
-      //             )}
-      //           </IconButton>
-      //         </Tooltip>
-      //         <Tooltip title="Remove employee" placement="top" arrow>
-      //           <IconButton
-      //             size="small"
-      //             onClick={() =>
-      //               handleDelete(row.original.id, row.original.employeeName)
-      //             }
-      //             sx={{
-      //               color: "text.disabled",
-      //               p: 0.5,
-      //               "&:hover": { color: "error.main" },
-      //             }}
-      //           >
-      //             <DeleteOutlineIcon fontSize="small" />
-      //           </IconButton>
-      //         </Tooltip>
-      //       </Box>
-      //     );
-      //   },
-      // },
     ],
     [data, handleToggle, handleEnableAll, handleDelete],
   );
@@ -795,7 +665,7 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
     enableColumnActions: false,
     enableSorting: true,
     enablePagination: false,
-    enableRowSelection: true,
+    enableRowSelection: false,
     initialState: { density: "compact" },
     muiTablePaperProps: {
       elevation: 0,
@@ -829,52 +699,52 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({ data: propData, isLoadin
         textAlign: "center",
       },
     },
-    renderTopToolbarCustomActions: () => (
-      <Box
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          flexWrap: "wrap",
-          py: 0.5,
-        }}
-      >
-        {table.getSelectedRowModel().rows.length > 0 && (
-          <>
-            <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-              {table.getSelectedRowModel().rows.length} selected:
-            </Typography>
-            <Button
-              size="small"
-              variant="outlined"
-              color="success"
-              startIcon={<LockOpenOutlinedIcon />}
-              onClick={() => handleBulkAction(table, true)}
-              sx={{ fontSize: 12, py: 0.25 }}
-            >
-              Enable all
-            </Button>
-            <Button
-              size="small"
-              variant="outlined"
-              color="error"
-              startIcon={<LockOutlinedIcon />}
-              onClick={() => handleBulkAction(table, false)}
-              sx={{ fontSize: 12, py: 0.25 }}
-            >
-              Disable all
-            </Button>
-          </>
-        )}
-      </Box>
-    ),
+    // renderTopToolbarCustomActions: () => (
+    //   <Box
+    //     sx={{
+    //       display: "flex",
+    //       alignItems: "center",
+    //       gap: 1,
+    //       flexWrap: "wrap",
+    //       py: 0.5,
+    //     }}
+    //   >
+    //     {table.getSelectedRowModel().rows.length > 0 && (
+    //       <>
+    //         <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
+    //           {table.getSelectedRowModel().rows.length} selected:
+    //         </Typography>
+    //         <Button
+    //           size="small"
+    //           variant="outlined"
+    //           color="success"
+    //           startIcon={<LockOpenOutlinedIcon />}
+    //           onClick={() => handleBulkAction(table, true)}
+    //           sx={{ fontSize: 12, py: 0.25 }}
+    //         >
+    //           Enable all
+    //         </Button>
+    //         <Button
+    //           size="small"
+    //           variant="outlined"
+    //           color="error"
+    //           startIcon={<LockOutlinedIcon />}
+    //           onClick={() => handleBulkAction(table, false)}
+    //           sx={{ fontSize: 12, py: 0.25 }}
+    //         >
+    //           Disable all
+    //         </Button>
+    //       </>
+    //     )}
+    //   </Box>
+    // ),
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+      <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
         <CircularProgress />
       </Box>
     );

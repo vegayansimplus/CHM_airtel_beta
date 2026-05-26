@@ -1,6 +1,7 @@
 import { api } from "../../../../../service/api";
 
 type TaskDataFromApi = {
+  userId: number;
   crqValidation: boolean;
   employeeLevel: "L2" | "L3" | "L4";
   employeeName: string;
@@ -14,13 +15,37 @@ type TaskDataFromApi = {
 
 export const taskConfigApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getTaskConfigView: builder.query<TaskDataFromApi[], { subDomainId: number }>({
-      query: ({ subDomainId }) => ({
-        url: `/schedular/task-config?subDomainId=${subDomainId}`,
+    getTaskConfigView: builder.query<
+      TaskDataFromApi[],
+      { domainId: number; subDomainId: number }
+    >({
+      query: ({ domainId, subDomainId }) => ({
+        url: `/schedular/task-config?domainId=${domainId}&subDomainId=${subDomainId}`,
         method: "GET",
       }),
+      providesTags: ["TaskConfig"],
+    }),
+
+    updateTaskConfig: builder.mutation<
+      { status: string; message: string },
+      {
+        affectedUserId: string | number;
+        colName: string;
+        newValue: string;
+      }
+    >({
+      query: ({ affectedUserId, colName, newValue }) => ({
+        url: "/schedular/task-config/update",
+        method: "PATCH",
+        params: {
+          affectedUserId,
+          colName,
+          newValue,
+        },
+      }),
+      invalidatesTags: ["TaskConfig"],
     }),
   }),
 });
 
-export const { useGetTaskConfigViewQuery } = taskConfigApi;
+export const { useGetTaskConfigViewQuery, useUpdateTaskConfigMutation } = taskConfigApi;

@@ -26,7 +26,10 @@ export const api = createApi({
     "Activity",
     "Holiday",
     "Plan",
-    "ActivityPhase"
+    "ActivityPhase",
+    "TaskConfig",
+    "GlobalSettingsPermission",
+    
   ],
 });
    

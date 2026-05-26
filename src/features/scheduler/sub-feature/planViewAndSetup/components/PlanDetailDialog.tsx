@@ -36,6 +36,7 @@ import {
   type ActivityPhaseView,
 } from "../api/planApiSlice";
 import { AddIcCall } from "@mui/icons-material";
+import AddActivityDialog from "./AddActivityDialog";
 
 // ─────────────────────────────── Constants ───────────────────────────────────
 const SHIFTS = ["General", "Morning", "Evening", "Night"];
@@ -400,6 +401,9 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
   // Per-activity, per-phase form configs
   const [allConfigs, setAllConfigs] = useState<AllConfigs>({});
 
+  // +++++++++++++++++++++++++++++++++++++++
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+
   // Sync from API data
   useEffect(() => {
     if (activities.length > 0) {
@@ -499,12 +503,13 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
           />
 
           <Chip
+            clickable
+            onClick={() => setOpenAddDialog(true)}
             icon={<AddIcon />}
             label="Add New Activity"
             size="small"
-            color="info"
+            color="primary"
             variant="outlined"
-            sx={{ height: 22, fontSize: 11, fontWeight: 500 }}
           />
         </Box>
         <IconButton size="small" onClick={onClose} sx={{ borderRadius: 2 }}>
@@ -832,6 +837,13 @@ export const PlanDetailDialog: React.FC<Props> = ({ open, plan, onClose }) => {
           </Button>
         </Box>
       </Box>
+      {plan && (
+        <AddActivityDialog
+          open={openAddDialog}
+          onClose={() => setOpenAddDialog(false)}
+          plan={plan}
+        />
+      )}
     </Dialog>
   );
 };

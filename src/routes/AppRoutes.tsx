@@ -33,7 +33,7 @@ import UserManagement from "../features/userManagement/components/UserManagement
 // import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
 import { UserLogs } from "../features/userManagement/pages/UserLogs";
-import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+// import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
 // import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
@@ -41,6 +41,10 @@ import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndS
 import { PlanVIewAndSetupMainPage } from "../features/scheduler/sub-feature/planViewAndSetup/PlanVIewAndSetupMainPage";
 import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
+import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
+import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+// import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
+// import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -85,7 +89,9 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route path="/home" element={<HomeDashboard />} />
+          {/* <Route path="/home" element={<HomeDashboard />} /> */}
+          {/* ModernHomeDashboard */}
+          <Route path="/home" element={<ModernHomeDashboard />} />
           <Route
             path="/homedashboard"
             // element={<Dashboard />}
