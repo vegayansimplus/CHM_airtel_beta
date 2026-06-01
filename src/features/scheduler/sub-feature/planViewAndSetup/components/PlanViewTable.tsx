@@ -22,14 +22,20 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 
 import { useActivity } from "../hooks/useActivity";
 import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
-import { PlanEditDialog } from "./PlanEditDialog";
-import { Delete } from "@mui/icons-material";
+import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
+// import { PlanAddDialog } from "./PlanAddDialog";
+import DeleteIcon from "@mui/icons-material/Delete";
+import { PlanAddDialog } from "./PlanAddDialog";
 
 interface Props {
   verticalId?: number;
   functionId?: number;
   domainId?: number;
   subDomainId?: number;
+  chmDomainOptions?: FilterOption[];
+  chmSubDomainOptions?: FilterOption[];
+  selectedChmDomain?: number;
+  selectedChmSubDomain?: number;
 }
 
 // ── Badges ─────────────────────────────────────────────────────────────────
@@ -80,8 +86,13 @@ export const PlanViewTable: React.FC<Props> = ({
   functionId,
   domainId,
   subDomainId,
+  chmDomainOptions = [],
+  chmSubDomainOptions = [],
+  selectedChmDomain,
+  selectedChmSubDomain,
 }) => {
-  const { goToCreate, handleOpenPlanDialog } = useActivity();
+  const { handleOpenPlanDialog } = useActivity();
+  const [addPlanDialogOpen, setAddPlanDialogOpen] = useState(false);
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -126,6 +137,14 @@ export const PlanViewTable: React.FC<Props> = ({
     console.log("Data to save:", updatedData);
   };
 
+  const handleAddPlanSuccess = () => {
+    refetch();
+  };
+
+  const handleOpenAddPlanDialog = () => setAddPlanDialogOpen(true);
+  const handleCloseAddPlanDialog = () => setAddPlanDialogOpen(false);
+
+
   // ── Columns ───────────────────────────────────────────────────────────────
 
   const columns = useMemo<MRT_ColumnDef<PlanViewRow>[]>(
@@ -150,8 +169,8 @@ export const PlanViewTable: React.FC<Props> = ({
         ),
       },
       {
-        accessorKey: "domain",
-        header: "Domain",
+        accessorKey: "networkDomain",
+        header: "Network Domain",
         size: 100,
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12 }}>
@@ -170,7 +189,7 @@ export const PlanViewTable: React.FC<Props> = ({
         ),
       },
       {
-        accessorKey: "vendorOem",
+        accessorKey: "planVendor",
         header: "Vendor / OEM",
         size: 160,
         Cell: ({ cell }) => (
@@ -223,7 +242,7 @@ export const PlanViewTable: React.FC<Props> = ({
     enableRowActions: true,
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
-      <Box>
+      <Box sx={{ display: "flex", gap: 0.5 }}>
         <Tooltip title="Edit Row">
           <IconButton
             size="small"
@@ -234,18 +253,15 @@ export const PlanViewTable: React.FC<Props> = ({
           </IconButton>
         </Tooltip>
 
-         <Tooltip title="Delete Row">
-        <IconButton
-          size="small"
-          onClick={() => handleOpenEdit(row.original)}
-          sx={{ color: "text.secondary" }}
-        >
-          <Delete fontSize="small" sx={{color:"red"}}/>
-        </IconButton>
-
-        
-      </Tooltip>
-      
+        <Tooltip title="Delete Row">
+          <IconButton
+            size="small"
+            onClick={() => console.log("Delete:", row.original.planId)}
+            sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}
+          >
+            <DeleteIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
       </Box>
     ),
 
@@ -267,7 +283,7 @@ export const PlanViewTable: React.FC<Props> = ({
           variant="contained"
           size="small"
           startIcon={<AddIcon sx={{ fontSize: 14 }} />}
-          onClick={goToCreate}
+          onClick={handleOpenAddPlanDialog}
           disableElevation
           sx={{
             fontSize: 12,
@@ -278,7 +294,7 @@ export const PlanViewTable: React.FC<Props> = ({
             fontWeight: 600,
           }}
         >
-          New
+          New Plan
         </Button>
       </Box>
     ),
@@ -370,11 +386,30 @@ export const PlanViewTable: React.FC<Props> = ({
         <Typography variant="body2" fontWeight={600} color="text.secondary">
           No plans found
         </Typography>
-        <Typography variant="caption" color="text.disabled">
+        <Typography variant="caption" color="text.disabled" sx={{ mb: 2 }}>
           {subDomainId
             ? "Try adjusting your search or filters."
             : "Select a Sub Domain to load data."}
         </Typography>
+        {subDomainId && (
+          <Button
+            variant="contained"
+            size="small"
+            startIcon={<AddIcon sx={{ fontSize: 14 }} />}
+            onClick={handleOpenAddPlanDialog}
+            disableElevation
+            sx={{
+              fontSize: 12,
+              py: 0.5,
+              px: 1.5,
+              borderRadius: 1.5,
+              textTransform: "none",
+              fontWeight: 600,
+            }}
+          >
+            Add First Plan
+          </Button>
+        )}
       </Box>
     ),
   });
@@ -432,6 +467,19 @@ export const PlanViewTable: React.FC<Props> = ({
         onClose={handleCloseEdit}
         data={selectedRowData}
         onSave={handleSaveEdit}
+        chmDomainOptions={chmDomainOptions}
+        chmSubDomainOptions={chmSubDomainOptions}
+      />
+
+      {/* Add Plan Dialog Component */}
+      <PlanAddDialog
+        open={addPlanDialogOpen}
+        onClose={handleCloseAddPlanDialog}
+        onSuccess={handleAddPlanSuccess}
+        chmDomainOptions={chmDomainOptions}
+        chmSubDomainOptions={chmSubDomainOptions}
+        selectedChmDomain={selectedChmDomain}
+        selectedChmSubDomain={selectedChmSubDomain}
       />
     </>
   );

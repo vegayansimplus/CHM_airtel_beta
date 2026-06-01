@@ -9,6 +9,8 @@ interface ActivityState {
   // Plan dialog
   selectedPlan: PlanViewRow | null;
   planDialogOpen: boolean;
+  // Add Plan dialog
+  addPlanDialogOpen: boolean;
 }
 
 const initialState: ActivityState = {
@@ -17,6 +19,7 @@ const initialState: ActivityState = {
   snackbar: { open: false, message: "", severity: "success" },
   selectedPlan: null,
   planDialogOpen: false,
+  addPlanDialogOpen: false,
 };
 
 const activitySlice = createSlice({
@@ -44,6 +47,14 @@ const activitySlice = createSlice({
       state.selectedPlan = null;
     },
 
+    openAddPlanDialog(state) {
+      state.addPlanDialogOpen = true;
+    },
+
+    closeAddPlanDialog(state) {
+      state.addPlanDialogOpen = false;
+    },
+
     showSnackbar(
       state,
       action: PayloadAction<{ message: string; severity: "success" | "error" }>
@@ -62,6 +73,8 @@ export const {
   setActivePhaseTab,
   openPlanDialog,
   closePlanDialog,
+  openAddPlanDialog,
+  closeAddPlanDialog,
   showSnackbar,
   closeSnackbar,
 } = activitySlice.actions;

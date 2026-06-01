@@ -3,7 +3,8 @@ import { Box, Typography } from "@mui/material";
 import { MoreHorizOutlined } from "@mui/icons-material";
 import type { useTabColorTokens } from "../../../../style/theme";
 import type { RolePermissionViewModel, PermissionModel } from "../Globalsettingapislice";
-import PermChip from "./PermChip";
+import PermChip from "./Permchip";
+// import PermChip from "./PermChip";
 
 interface SubModuleCardProps {
   row: RolePermissionViewModel;

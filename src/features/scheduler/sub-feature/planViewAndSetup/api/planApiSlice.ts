@@ -3,15 +3,28 @@ import { api } from "../../../../../service/api";
 export interface PlanViewRow {
   changeImpact: string;
   chmDomain: string;
-  chmSubDomain: string;
-  createdAt: string;
-  createdBy: string;
-  domain: string;
+  chmDomainId?: number;
+  chmSubDomain: string | null;
+  chmSubDomainId?: number;
   layer: string;
+  networkDomain: string;
+  planId: number;
+  planType: string;
+  planVendor: string;
+  status: string;
+}
+
+export interface UpdatePlanRequest {
+  actorUserId: number;
   planId: number;
   planType: string;
   status: string;
-  vendorOem: string;
+  chmDomainId: number;
+  chmSubDomain: number;
+  networkDomain: string;
+  layer: string;
+  planVendor: string;
+  changeImpact: string;
 }
 
 export interface PlanViewQueryParams {
@@ -80,6 +93,16 @@ export interface AddActivityRequest {
   crqExecution: InsertPhaseConfig;
 }
 
+export interface AddPlanRequest {
+  chmDomain: number;
+  chmSubDomain: number;
+  networkDomain: string;
+  layer: string;
+  planType: string;
+  vendorOem: string;
+  changeImpact: string;
+}
+
 export const planApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getPlanView: builder.query<PlanViewRow[], PlanViewQueryParams>({
@@ -100,10 +123,25 @@ export const planApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-
       invalidatesTags: ["ActivityPhase"],
+    }),
+    updatePlan: builder.mutation<any, UpdatePlanRequest>({
+      query: (body) => ({
+        url: "/activity/updateplan",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Plan"],
+    }),
+    addPlan: builder.mutation<any, AddPlanRequest>({
+      query: (body) => ({
+        url: "/insertplan",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["Plan"],
     }),
   }),
 });
 
-export const { useGetPlanViewQuery, useGetActivityPhaseViewQuery, useAddActivityMutation } = planApi;
+export const { useGetPlanViewQuery, useGetActivityPhaseViewQuery, useAddActivityMutation, useUpdatePlanMutation, useAddPlanMutation } = planApi;

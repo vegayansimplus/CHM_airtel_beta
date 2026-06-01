@@ -14,12 +14,22 @@ import {
   Slide,
   useTheme,
   alpha,
+  MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { type TransitionProps } from "@mui/material/transitions";
 import CloseIcon from "@mui/icons-material/Close";
 import EditNoteOutlinedIcon from "@mui/icons-material/EditNoteOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
-import { type PlanViewRow } from "../api/planApiSlice"; 
+import { toast } from "react-toastify";
+import { type PlanViewRow, useUpdatePlanMutation } from "../api/planApiSlice";
+import { authStorage } from "../../../../../app/store/auth.storage";
+
+export interface FilterOption {
+  label: string;
+  value: number;
+} 
 
 // Smooth Slide-up transition for the dialog
 const Transition = React.forwardRef(function Transition(
@@ -36,6 +46,13 @@ interface PlanEditDialogProps {
   onClose: () => void;
   onSave: (updatedData: PlanViewRow) => void;
   data: PlanViewRow | null;
+  chmDomainOptions?: FilterOption[];
+  chmSubDomainOptions?: FilterOption[];
+}
+
+interface FormDataState extends PlanViewRow {
+  chmDomainId?: number;
+  chmSubDomainId?: number;
 }
 
 export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
@@ -43,36 +60,102 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
   onClose,
   onSave,
   data,
+  chmDomainOptions = [],
+  chmSubDomainOptions = [],
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
-  // Local state to hold the form data being edited
-  const [formData, setFormData] = useState<PlanViewRow | null>(null);
+  const [formData, setFormData] = useState<FormDataState | null>(null);
+  const [updatePlan, { isLoading: isUpdating }] = useUpdatePlanMutation();
+  const loggedUser = authStorage.getUser();
+
+  // CHANGE_IMPACT options
+  const CHANGE_IMPACT_OPTIONS = ["SA", "NSA"];
 
   useEffect(() => {
     if (data) {
-      setFormData({ ...data });
+      // Match chmDomain string to its ID from options
+      const matchedDomainId = chmDomainOptions.find(
+        (opt) => opt.label === data.chmDomain,
+      )?.value;
+
+      // Match chmSubDomain string to its ID from options
+      const matchedSubDomainId = chmSubDomainOptions.find(
+        (opt) => opt.label === data.chmSubDomain,
+      )?.value;
+
+      setFormData({
+        ...data,
+        chmDomainId: matchedDomainId,
+        chmSubDomainId: matchedSubDomainId,
+      });
     } else {
       setFormData(null);
     }
-  }, [data, open]);
+  }, [data, open, chmDomainOptions, chmSubDomainOptions]);
 
   if (!data || !formData) return null;
 
-  const handleChange = (key: keyof PlanViewRow, value: string) => {
+  const handleChange = (key: keyof FormDataState, value: any) => {
     setFormData((prev) => (prev ? { ...prev, [key]: value } : null));
   };
 
-  const handleSaveClick = () => {
+  const handleSaveClick = async () => {
     if (formData) {
-      onSave(formData);
-      onClose();
+      try {
+        const updatePayload = {
+          actorUserId: loggedUser?.id ?? 0,
+          planId: formData.planId,
+          planType: formData.planType,
+          status: formData.status,
+          chmDomainId: formData.chmDomainId ?? 0,
+          chmSubDomain: formData.chmSubDomainId ?? 0,
+          networkDomain: formData.networkDomain,
+          layer: formData.layer,
+          planVendor: formData.planVendor,
+          changeImpact: formData.changeImpact,
+        };
+
+        const res = await updatePlan(updatePayload).unwrap();
+        // Show toast notification on success
+        try {
+          const msg = (res && (res.message || (res.data && res.data.message))) || "Plan Updated Successfully";
+          toast.success(msg);
+        } catch (e) {
+          toast.success("Plan Updated Successfully");
+        }
+        onSave(formData);
+        onClose();
+      } catch (error) {
+        console.error("Failed to update plan:", error);
+        // Attempt to show an error toast
+        try {
+          // Try to extract message from common error shapes
+          const errMsg = (error as any)?.data?.message || (error as any)?.message || "Failed to update plan";
+          toast.error(errMsg);
+        } catch (e) {
+          toast.error("Failed to update plan");
+        }
+      }
     }
   };
 
   // Define fields that shouldn't be editable by the user
-  const readOnlyFields = ["id", "planId", "createdAt", "updatedAt"];
+  const readOnlyFields = ["id", "planId", "createdAt", "updatedAt", "createdBy"];
+
+  // Fields that are dropdown selects
+  const dropdownFields: Record<string, FilterOption[]> = {
+    chmDomain: chmDomainOptions,
+    chmSubDomain: chmSubDomainOptions,
+    changeImpact: CHANGE_IMPACT_OPTIONS.map((v) => ({ label: v, value: v as any })),
+  };
+
+  // Map display fields to actual form data keys
+  const fieldMapping: Record<string, keyof FormDataState> = {
+    chmDomain: "chmDomainId",
+    chmSubDomain: "chmSubDomainId",
+  };
 
   return (
     <Dialog
@@ -154,7 +237,23 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
         <Grid container spacing={3}>
           {Object.entries(formData).map(([key, value]) => {
             const isReadOnly = readOnlyFields.includes(key);
-            const label = key.replace(/([A-Z])/g, " $1").trim(); // camelCase to Title Case
+            const isDropdown =
+              key === "chmDomain" ||
+              key === "chmSubDomain" ||
+              key === "changeImpact";
+
+            if (key === "chmDomainId" || key === "chmSubDomainId") return null; // Skip IDs
+
+            const displayKey =
+              key === "chmDomainId"
+                ? "chmDomain"
+                : key === "chmSubDomainId"
+                  ? "chmSubDomain"
+                  : key;
+
+            const label = displayKey
+              .replace(/([A-Z])/g, " $1")
+              .trim(); // camelCase to Title Case
 
             return (
               <Grid size={{ xs: 12, sm: 6 }} key={key}>
@@ -170,34 +269,85 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                 >
                   {label}
                 </Typography>
-                <TextField
-                  fullWidth
-                  disabled={isReadOnly}
-                  size="small"
-                  variant="outlined"
-                  placeholder={`Enter ${label.toLowerCase()}`}
-                  value={value !== null && value !== undefined ? value : ""}
-                  onChange={(e) =>
-                    handleChange(key as keyof PlanViewRow, e.target.value)
-                  }
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      bgcolor: isReadOnly
-                        ? alpha(theme.palette.action.disabledBackground, 0.5)
-                        : theme.palette.background.paper,
-                      transition: "all 0.2s ease-in-out",
-                      "&:hover fieldset": {
-                        borderColor: isReadOnly
-                          ? "transparent"
-                          : theme.palette.primary.main,
+
+                {isDropdown ? (
+                  <TextField
+                    select
+                    fullWidth
+                    disabled={isReadOnly}
+                    size="small"
+                    variant="outlined"
+                    value={
+                      key === "chmDomain"
+                        ? formData.chmDomainId ?? ""
+                        : key === "chmSubDomain"
+                          ? formData.chmSubDomainId ?? ""
+                          : value ?? ""
+                    }
+                    onChange={(e) =>
+                      handleChange(
+                        key === "chmDomain"
+                          ? "chmDomainId"
+                          : key === "chmSubDomain"
+                            ? "chmSubDomainId"
+                            : (key as keyof FormDataState),
+                        e.target.value,
+                      )
+                    }
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        bgcolor: isReadOnly
+                          ? alpha(theme.palette.action.disabledBackground, 0.5)
+                          : theme.palette.background.paper,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover fieldset": {
+                          borderColor: isReadOnly
+                            ? "transparent"
+                            : theme.palette.primary.main,
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderWidth: "1.5px",
+                        },
                       },
-                      "&.Mui-focused fieldset": {
-                        borderWidth: "1.5px",
+                    }}
+                  >
+                    {dropdownFields[displayKey]?.map((option) => (
+                      <MenuItem key={option.value} value={option.value}>
+                        {option.label}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                ) : (
+                  <TextField
+                    fullWidth
+                    disabled={isReadOnly}
+                    size="small"
+                    variant="outlined"
+                    placeholder={`Enter ${label.toLowerCase()}`}
+                    value={value !== null && value !== undefined ? value : ""}
+                    onChange={(e) =>
+                      handleChange(key as keyof FormDataState, e.target.value)
+                    }
+                    sx={{
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                        bgcolor: isReadOnly
+                          ? alpha(theme.palette.action.disabledBackground, 0.5)
+                          : theme.palette.background.paper,
+                        transition: "all 0.2s ease-in-out",
+                        "&:hover fieldset": {
+                          borderColor: isReadOnly
+                            ? "transparent"
+                            : theme.palette.primary.main,
+                        },
+                        "&.Mui-focused fieldset": {
+                          borderWidth: "1.5px",
+                        },
                       },
-                    },
-                  }}
-                />
+                    }}
+                  />
+                )}
               </Grid>
             );
           })}
@@ -222,6 +372,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
           onClick={onClose}
           variant="text"
           color="inherit"
+          disabled={isUpdating}
           sx={{ fontWeight: 600, px: 3, borderRadius: 2 }}
         >
           Cancel
@@ -230,7 +381,14 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
           onClick={handleSaveClick}
           variant="contained"
           color="primary"
-          startIcon={<SaveOutlinedIcon />}
+          startIcon={
+            isUpdating ? (
+              <CircularProgress size={20} />
+            ) : (
+              <SaveOutlinedIcon />
+            )
+          }
+          disabled={isUpdating}
           disableElevation
           sx={{
             fontWeight: 600,
@@ -239,7 +397,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
             textTransform: "none",
           }}
         >
-          Save Changes
+          {isUpdating ? "Saving..." : "Save Changes"}
         </Button>
       </Box>
     </Dialog>

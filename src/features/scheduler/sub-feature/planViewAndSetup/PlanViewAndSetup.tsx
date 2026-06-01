@@ -50,6 +50,10 @@ export const PlanViewAndSetup = () => {
           functionId={values.teamFunction}
           domainId={values.domain}
           subDomainId={values.subDomain}
+          chmDomainOptions={options.domain}
+          chmSubDomainOptions={options.subDomain}
+          selectedChmDomain={values.domain}
+          selectedChmSubDomain={values.subDomain}
         />
 
         <PlanDetailDialog

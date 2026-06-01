@@ -6,6 +6,8 @@ import {
   closePlanDialog,
   showSnackbar as showSnackbarAction,
   closeSnackbar,
+  openAddPlanDialog,
+  closeAddPlanDialog,
 } from "../slices/activity.slice";
 import {
   selectViewMode,
@@ -57,6 +59,16 @@ export const useActivity = () => {
     [dispatch]
   );
 
+  const handleOpenAddPlanDialog = useCallback(
+    () => dispatch(openAddPlanDialog()),
+    [dispatch]
+  );
+
+  const handleCloseAddPlanDialog = useCallback(
+    () => dispatch(closeAddPlanDialog()),
+    [dispatch]
+  );
+
   const handleCloseSnackbar = useCallback(
     () => dispatch(closeSnackbar()),
     [dispatch]
@@ -83,6 +95,9 @@ export const useActivity = () => {
     // Plan dialog
     handleOpenPlanDialog,
     handleClosePlanDialog,
+    // Add Plan dialog
+    handleOpenAddPlanDialog,
+    handleCloseAddPlanDialog,
     // Snackbar
     handleCloseSnackbar,
     handleShowSnackbar,

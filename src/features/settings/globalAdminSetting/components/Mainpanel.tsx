@@ -16,8 +16,9 @@ import type { useTabColorTokens } from "../../../../style/theme";
 import type { RolePermissionViewModel, PermissionModel } from "../Globalsettingapislice";
 import { ROLE_LABEL } from "./Constants";
 import type { LocalRole, LocalModule } from "./GlobalSettingTypes";
-import PermissionsErrorState from "./PermissionsErrorState";
-import SubModuleCard from "./SubModuleCard";
+import PermissionsErrorState from "./Permissionserrorstate";
+import SubModuleCard from "./Submodulecard";
+
 // import type { PermissionModel, RolePermissionViewModel } from "./Globalsettingapislice";
 // import type { useTabColorTokens } from "../../../style/theme";
 // import { ROLE_LABEL } from "./constants";
