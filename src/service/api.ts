@@ -29,7 +29,7 @@ export const api = createApi({
     "ActivityPhase",
     "TaskConfig",
     "GlobalSettingsPermission",
-    
+    "ShiftDropdown"
   ],
 });
    

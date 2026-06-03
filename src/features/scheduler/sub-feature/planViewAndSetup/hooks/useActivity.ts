@@ -29,55 +29,52 @@ export const useActivity = () => {
   const selectedPlan = useAppSelector(selectSelectedPlan);
   const planDialogOpen = useAppSelector(selectPlanDialogOpen);
 
-  const goToList = useCallback(
-    () => dispatch(setViewMode("list")),
-    [dispatch]
-  );
+  const goToList = useCallback(() => dispatch(setViewMode("list")), [dispatch]);
 
   const goToCreate = useCallback(
     () => dispatch(setViewMode("create")),
-    [dispatch]
+    [dispatch],
   );
 
   const goToConfigure = useCallback(
     () => dispatch(setViewMode("configure")),
-    [dispatch]
+    [dispatch],
   );
 
   const changePhaseTab = useCallback(
     (tab: string) => dispatch(setActivePhaseTab(tab)),
-    [dispatch]
+    [dispatch],
   );
 
   const handleOpenPlanDialog = useCallback(
     (plan: PlanViewRow) => dispatch(openPlanDialog(plan)),
-    [dispatch]
+    [dispatch],
   );
 
   const handleClosePlanDialog = useCallback(
     () => dispatch(closePlanDialog()),
-    [dispatch]
+    [dispatch],
   );
 
   const handleOpenAddPlanDialog = useCallback(
     () => dispatch(openAddPlanDialog()),
-    [dispatch]
+    [dispatch],
   );
 
   const handleCloseAddPlanDialog = useCallback(
     () => dispatch(closeAddPlanDialog()),
-    [dispatch]
+    [dispatch],
   );
 
   const handleCloseSnackbar = useCallback(
     () => dispatch(closeSnackbar()),
-    [dispatch]
+    [dispatch],
   );
 
   const handleShowSnackbar = useCallback(
     (message: string, severity: "success" | "error" = "success") =>
       dispatch(showSnackbarAction({ message, severity })),
-    [dispatch]
+    [dispatch],
   );
 
   return {

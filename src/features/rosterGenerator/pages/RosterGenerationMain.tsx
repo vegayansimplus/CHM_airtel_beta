@@ -1,82 +1,229 @@
-import { Box, useTheme } from "@mui/material";
+import { Box, Tab, Tabs, Typography, useTheme } from "@mui/material";
+import { useState } from "react";
 import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState"; 
-import { AppStepper } from "../../../components/ui/AppStepper/AppStepper";
-import { useStepper } from "../../../hooks/useStepper";
-import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
-import NoteAddOutlinedIcon from "@mui/icons-material/NoteAddOutlined";
-
-import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
-import type { IStep } from "../../../components/ui/AppStepper/types";
+import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useTabColorTokens } from "../../../style/theme";
-import { WeeklyDayScheduleMain } from "./WeeklyDayScheduleMain";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import {
+  GoldenGridScreen,
+  Week7PreviewScreen,
+} from "../components/RosterCycleScreens";
 
-const WORKFLOW_STEPS: IStep[] = [
+const TABS = [
   {
-    id: 1,
-    label: "Weekly schedule",
-    icon: <Inventory2OutlinedIcon fontSize="small" />,
+    id: "golden",
+    label: "Golden set roster",
+    icon: <LayersOutlinedIcon sx={{ fontSize: 15 }} />,
   },
   {
-    id: 2,
-    label: "Sat& Sun schedule",
-    icon: <MonitorHeartOutlinedIcon fontSize="small" />,
+    id: "week7",
+    label: "Week 7 preview",
+    icon: <CalendarMonthOutlinedIcon sx={{ fontSize: 15 }} />,
   },
-  {
-    id:3,
-    label:"Member Preferences",
-    icon: <NoteAddOutlinedIcon fontSize="small" />
-  }
 ];
 
 export const RosterGenerationMain = () => {
-  // Existing Hook Logic
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
-  // Initialize Stepper (Setting default to 1 -> "Plan & inventory")
-  const { activeStep, goToStep } = useStepper(0, WORKFLOW_STEPS.length);
+  const isDark = tk.isDark;
+
+  const [activeTab, setActiveTab] = useState(0);
 
   return (
-    <Box sx={{ p: { xs: 1, md: 0 } }}>
-      {/* Top Stepper Card */}
-      <OrgHierarchyFilters
-        role={roleName}
-        values={values}
-        options={options}
-        onChange={handleChange}
-      />
-
-      <Box
-        sx={{
-          // mb: 1.5,
-          pt: 2,
-          overflow: "auto",
-          // border: `1px solid ${tk.accentDim}`,
-          borderRadius: tk.radiusL,
-          transition: "background .18s, transform .16s",
-        }}
-      >
-        <AppStepper
-          // sx={{}}
-          steps={WORKFLOW_STEPS}
-          activeStep={activeStep}
-          onStepClick={goToStep}
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        overflow: "hidden",
+        bgcolor: tk.bg,
+      }}
+    >
+      {/* ── Filters ── */}
+      <Box sx={{ flexShrink: 0, px: 1.5, pt: 1, pb: 0.75 }}>
+        <OrgHierarchyFilters
+          role={roleName}
+          values={values}
+          options={options}
+          onChange={handleChange}
         />
       </Box>
 
-      
-      {/* {activeStep === 0 && <h1>CRQ Assignment</h1>} */}
-      {activeStep === 0 && <WeeklyDayScheduleMain/>}
-      {activeStep === 1 && <h1>Saturday & Sunday Schedule</h1>}
-      {activeStep === 2 && <h1>Member Preferences</h1>}
-  
+      {/* ── Tab bar + content card ── */}
+      <Box
+        sx={{
+          flex: 1,
+          mx: 1.5,
+          mb: 1.5,
+          display: "flex",
+          flexDirection: "column",
+          border: `1px solid ${tk.border}`,
+          borderRadius: tk.radiusL,
+          overflow: "hidden",
+          bgcolor: tk.surface,
+          minHeight: 0,
+        }}
+      >
+        {/* Tab strip */}
+        <Box
+          sx={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "stretch",
+            borderBottom: `1px solid ${tk.border}`,
+            bgcolor: isDark ? "rgba(255,255,255,0.02)" : "rgba(13,27,42,0.015)",
+            px: 1,
+            pt: 0.5,
+            gap: 0.5,
+          }}
+        >
+          {TABS.map((tab, i) => {
+            const isActive = activeTab === i;
+            const accentColor = i === 0 ? tk.accent : tk.success;
+            const accentDim = i === 0 ? tk.accentDim : tk.successDim;
 
+            return (
+              <Box
+                key={tab.id}
+                onClick={() => setActiveTab(i)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.75,
+                  px: 1.5,
+                  py: 0.9,
+                  cursor: "pointer",
+                  borderRadius: "8px 8px 0 0",
+                  borderBottom: isActive
+                    ? `2px solid ${accentColor}`
+                    : "2px solid transparent",
+                  bgcolor: isActive ? tk.surface : "transparent",
+                  transition: "all .15s",
+                  "&:hover": {
+                    bgcolor: isActive ? tk.surface : accentDim,
+                  },
+                  // Active tab pops above the strip border
+                  mb: isActive ? "-1px" : 0,
+                  zIndex: isActive ? 1 : 0,
+                  position: "relative",
+                }}
+              >
+                {/* Dot indicator */}
+                <Box
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    bgcolor: isActive ? accentColor : tk.textDim,
+                    transition: "background .15s",
+                    flexShrink: 0,
+                  }}
+                />
+
+                {/* Icon */}
+                <Box
+                  sx={{
+                    color: isActive ? accentColor : tk.textSecondary,
+                    display: "flex",
+                    alignItems: "center",
+                    transition: "color .15s",
+                  }}
+                >
+                  {tab.icon}
+                </Box>
+
+                {/* Label */}
+                <Typography
+                  sx={{
+                    fontSize: 12,
+                    fontWeight: isActive ? 600 : 400,
+                    color: isActive ? accentColor : tk.textSecondary,
+                    lineHeight: 1,
+                    whiteSpace: "nowrap",
+                    transition: "all .15s",
+                    letterSpacing: isActive ? "0.01em" : 0,
+                  }}
+                >
+                  {tab.label}
+                </Typography>
+
+                {/* Active underline pill — subtle glow accent */}
+                {isActive && (
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      bottom: -1,
+                      left: "50%",
+                      transform: "translateX(-50%)",
+                      width: "60%",
+                      height: 2,
+                      borderRadius: "2px 2px 0 0",
+                      bgcolor: accentColor,
+                      opacity: 0.35,
+                    }}
+                  />
+                )}
+              </Box>
+            );
+          })}
+
+          {/* Right-side meta info */}
+          <Box sx={{ flex: 1 }} />
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              pr: 0.5,
+              pb: 0.5,
+            }}
+          >
+            <Typography
+              sx={{
+                fontSize: 10,
+                color: tk.textDim,
+                fontWeight: 500,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+              }}
+            >
+              {activeTab === 0 ? "Roster cycle view" : "7-day schedule preview"}
+            </Typography>
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: activeTab === 0 ? tk.accent : tk.success,
+                opacity: 0.6,
+              }}
+            />
+          </Box>
+        </Box>
+
+        {/* ── Tab content ── */}
+        <Box sx={{ flex: 1, overflow: "auto", minHeight: 0 }}>
+          {activeTab === 0 && (
+            <GoldenGridScreen
+              teamId={values.teamFunction}
+              subTeamId={values.subDomain}
+            />
+          )}
+          {activeTab === 1 && (
+            <Week7PreviewScreen
+              teamId={values.teamFunction}
+              subTeamId={values.subDomain}
+            />
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 };
