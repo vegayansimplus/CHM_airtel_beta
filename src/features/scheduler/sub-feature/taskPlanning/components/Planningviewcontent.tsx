@@ -1,7 +1,10 @@
+import { Box } from "@mui/material"
 
 
 export const Planningviewcontent = () => {
   return (
-    <div>Planningviewcontent</div>
+    <Box>
+    
+    </Box>
   )
 }
