@@ -75,6 +75,13 @@ const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskconfig", "/scheduler/planviewandsetup"],
       },
+      {
+        to: "/scheduler/taskplanning",
+        text: "Task Planning",
+        icon: <SchemaIcon />,
+        requiredModule: "Role-Based Access Control",
+        matchPaths: ["/scheduler/taskplanning"],
+      },
     ],
   },
   {

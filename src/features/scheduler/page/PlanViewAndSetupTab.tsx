@@ -36,6 +36,10 @@ const PlanViewAndSetupTab: React.FC = (
     if (path.includes("taskconfig")) {
       return "taskconfig";
     }
+    // taskplanning
+    if (path.includes("taskplanning")) {
+      return "taskplanning";
+    }
 
     return "planviewandsetup"; // default
   }, [location.pathname]);
@@ -136,6 +140,13 @@ const PlanViewAndSetupTab: React.FC = (
             label="Task Config"
             value="taskconfig"
             to="taskconfig"
+            component={Link}
+          />
+          {/*  TAB 3 */}
+          <Tab
+            label="Task Planning"
+            value="taskplanning"
+            to="taskplanning"
             component={Link}
           />
         </Tabs>

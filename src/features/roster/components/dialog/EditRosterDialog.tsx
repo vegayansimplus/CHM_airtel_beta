@@ -1,25 +1,25 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Typography,
+  alpha,
   Box,
-  IconButton,
-  Stack,
+  Button,
+  CircularProgress,
   Divider,
+  Drawer,
+  FormControl,
+  IconButton,
+  InputLabel,
+  MenuItem,
+  Select,
+  Stack,
   TextField,
+  Typography,
+  useTheme,
 } from "@mui/material";
-import CloseIcon from "@mui/icons-material/Close";
-import EventNoteIcon from "@mui/icons-material/EventNote";
 import BadgeIcon from "@mui/icons-material/Badge";
+import CloseIcon from "@mui/icons-material/Close";
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
+import EventNoteIcon from "@mui/icons-material/EventNote";
 import dayjs from "dayjs";
 import { shiftColorMap } from "../../constant/shiftColors";
 
@@ -47,32 +47,27 @@ export const EditRosterDialog = ({
   saving = false,
   shiftOptions,
 }: EditRosterDialogProps) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [selectedShift, setSelectedShift] = useState<number>(0);
   const [assignActivity, setAssignActivity] = useState<number | "">("");
   const [availableMinutes, setAvailableMinutes] = useState<number | "">("");
-  // const [assignActivity, setAssignActivity] = useState<number>(0);
-  // const [availableMinutes, setAvailableMinutes] = useState<number>(0);
   const [reason, setReason] = useState("");
 
-  /**
-   * Initialize dialog values from roster data
-   */ useEffect(() => {
+  useEffect(() => {
     if (!open || !editData) return;
 
     setSelectedShift(editData.shift?.shiftId ?? 0);
-
     setAssignActivity(
       editData.shift?.assignActCount !== undefined
         ? editData.shift.assignActCount
         : "",
     );
-
     setAvailableMinutes(
       editData.shift?.availableMins !== undefined
         ? editData.shift.availableMins
         : "",
     );
-
     setReason("");
   }, [open, editData]);
 
@@ -82,12 +77,10 @@ export const EditRosterDialog = ({
     if (!editData) return;
 
     if (!isReasonValid) {
-      // parent will display error message
       return;
     }
 
     if (selectedShift === 0) {
-      // validation handled by parent or through disabling button
       return;
     }
 
@@ -101,297 +94,449 @@ export const EditRosterDialog = ({
         reason.trim(),
       );
     } catch (error) {
-      // nothing else to do here, parent will provide toast
       console.error("Edit dialog save failed", error);
     }
   };
 
   if (!editData) return null;
 
+  const accent = theme.palette.primary.main;
+  const borderColor = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
+  const subtleBg = isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC";
+  const selectedShiftOption = shiftOptions.find(
+    (option) => option.shiftId === selectedShift,
+  );
+  const selectedShiftStyle = selectedShiftOption
+    ? shiftColorMap.get(selectedShiftOption.shiftRange.charAt(0)) || {
+        color: "#475569",
+        background: "#F1F5F9",
+      }
+    : null;
+
+  const sectionTitleSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1,
+    mb: 1.5,
+    color: "text.secondary",
+    fontSize: "0.7rem",
+    fontWeight: 700,
+    letterSpacing: "0.08em",
+    textTransform: "uppercase" as const,
+    "&::after": {
+      content: '""',
+      flex: 1,
+      height: "1px",
+      bgcolor: borderColor,
+    },
+  };
+
+  const inputSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: 2,
+      bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#FFFFFF",
+      "&:hover .MuiOutlinedInput-notchedOutline": {
+        borderColor: alpha(accent, 0.65),
+      },
+    },
+  };
+
+  const numberInputProps = { min: 0 };
+  const preventNegativeNumberInput = (
+    event: React.KeyboardEvent<HTMLInputElement>,
+  ) => {
+    if (["e", "E", "+", "-"].includes(event.key)) {
+      event.preventDefault();
+    }
+  };
+
   return (
-    <Dialog
+    <Drawer
+      anchor="right"
       open={open}
       onClose={onClose}
-      maxWidth="xs"
-      fullWidth
+      transitionDuration={{ enter: 260, exit: 200 }}
       PaperProps={{
+        elevation: 0,
         sx: {
-          borderRadius: 3,
-          boxShadow: "0px 8px 24px rgba(149, 157, 165, 0.2)",
+          width: { xs: "100vw", sm: 460 },
+          bgcolor: "background.paper",
+          backgroundImage: "none",
+          borderLeft: "1px solid",
+          borderColor,
+          boxShadow: isDark
+            ? "-24px 0 64px rgba(0,0,0,0.55)"
+            : "-24px 0 64px rgba(15,23,42,0.12)",
         },
       }}
     >
-      {/* HEADER */}
-      <DialogTitle
-        sx={{
-          m: 0,
-          p: 2,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Stack direction="row" spacing={1} alignItems="center">
-          <EditCalendarIcon color="primary" />
-          <Typography variant="h6" fontWeight={600}>
-            Modify Shift
-          </Typography>
-        </Stack>
-
-        <IconButton
-          onClick={onClose}
-          size="small"
-          sx={{ color: "text.secondary" }}
-        >
-          <CloseIcon fontSize="small" />
-        </IconButton>
-      </DialogTitle>
-
-      <Divider />
-
-      <DialogContent sx={{ p: 3 }}>
-        {/* CONTEXT CARD */}
+      <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
         <Box
           sx={{
-            bgcolor: "#F8FAFC",
-            border: "1px solid #E2E8F0",
-            borderRadius: 2,
-            p: 2,
-            mb: 3,
+            px: 3,
+            pt: 3,
+            pb: 2.5,
+            borderBottom: "1px solid",
+            borderColor,
           }}
         >
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Box
-                sx={{
-                  p: 0.5,
-                  bgcolor: "#EFF6FF",
-                  borderRadius: 1,
-                  display: "flex",
-                }}
+          <Stack direction="row" alignItems="flex-start" spacing={1.75}>
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#FFFFFF",
+                bgcolor: accent,
+                boxShadow: `0 10px 24px ${alpha(accent, 0.28)}`,
+                flexShrink: 0,
+              }}
+            >
+              <EditCalendarIcon sx={{ fontSize: 22 }} />
+            </Box>
+
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography fontSize="1.05rem" fontWeight={700} lineHeight={1.3}>
+                Modify Shift
+              </Typography>
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mt: 0.35 }}
               >
-                <EventNoteIcon sx={{ fontSize: 18, color: "#2563EB" }} />
-              </Box>
+                Update roster details for the selected employee.
+              </Typography>
+            </Box>
 
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Shift Date
-                </Typography>
-
-                <Typography variant="body2" fontWeight={600}>
-                  {dayjs(editData.date).format("dddd, MMM D, YYYY")}
-                </Typography>
-              </Box>
-            </Stack>
-
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Box
-                sx={{
-                  p: 0.5,
-                  bgcolor: "#F5F3FF",
-                  borderRadius: 1,
-                  display: "flex",
-                }}
-              >
-                <BadgeIcon sx={{ fontSize: 18, color: "#7C3AED" }} />
-              </Box>
-
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Employee ID
-                </Typography>
-
-                <Typography variant="body2" fontWeight={600}>
-                  {editData.userId}
-                </Typography>
-              </Box>
-            </Stack>
+            <IconButton
+              onClick={onClose}
+              size="small"
+              aria-label="Close edit roster drawer"
+              sx={{
+                width: 32,
+                height: 32,
+                border: "1px solid",
+                borderColor,
+                borderRadius: 1.5,
+                color: "text.secondary",
+                "&:hover": {
+                  bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6",
+                  color: "text.primary",
+                },
+              }}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
           </Stack>
         </Box>
 
-        {/* SHIFT DROPDOWN */}
-        <Typography
-          variant="subtitle2"
-          fontWeight={600}
-          color="text.primary"
-          sx={{ mb: 1 }}
+        <Box
+          sx={{
+            flex: 1,
+            overflowY: "auto",
+            px: 3,
+            py: 3,
+            "&::-webkit-scrollbar": { width: 6 },
+            "&::-webkit-scrollbar-thumb": {
+              bgcolor: isDark ? "rgba(255,255,255,0.12)" : "#CBD5E1",
+              borderRadius: 8,
+            },
+          }}
         >
-          Assign New Shift
-        </Typography>
+          <Typography sx={sectionTitleSx}>Roster Context</Typography>
 
-        {/* Select shift logic  */}
-        <FormControl fullWidth size="medium">
-          <InputLabel id="shift-select-label">Select Shift</InputLabel>
-
-          <Select
-            labelId="shift-select-label"
-            value={selectedShift}
-            label="Select Shift"
-            onChange={(e) => setSelectedShift(Number(e.target.value))}
-            renderValue={(value) => {
-              const shift = shiftOptions.find((opt) => opt.shiftId === value);
-
-              if (!shift) return "Select Shift";
-
-              const shiftCode = shift.shiftRange;
-
-              const shiftStyle = shiftColorMap.get(shiftCode.charAt(0)) || {
-                color: "#475569",
-                background: "#F1F5F9",
-              };
-
-              return (
-                <Stack direction="row" alignItems="center" spacing={1}>
-                  <Box
-                    sx={{
-                      width: 10,
-                      height: 10,
-                      borderRadius: "50%",
-                      bgcolor: shiftStyle.color,
-                    }}
-                  />
-
-                  <Typography variant="body2" fontWeight={500}>
-                    {shiftCode}
-                  </Typography>
-                </Stack>
-              );
+          <Box
+            sx={{
+              bgcolor: subtleBg,
+              border: "1px solid",
+              borderColor,
+              borderRadius: 2,
+              p: 2,
+              mb: 3,
             }}
           >
-            {shiftOptions.map((shift) => {
-              const shiftCode = shift.shiftRange;
-
-              const shiftStyle = shiftColorMap.get(shiftCode.charAt(0)) || {
-                color: "#475569",
-                background: "#F1F5F9",
-              };
-
-              return (
-                <MenuItem
-                  key={shift.shiftId}
-                  value={shift.shiftId}
-                  sx={{ py: 1.5 }}
+            <Stack spacing={1.5}>
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box
+                  sx={{
+                    p: 0.75,
+                    bgcolor: alpha("#2563EB", isDark ? 0.16 : 0.1),
+                    borderRadius: 1.5,
+                    display: "flex",
+                  }}
                 >
-                  <Stack direction="row" alignItems="center" spacing={1.5}>
+                  <EventNoteIcon sx={{ fontSize: 18, color: "#2563EB" }} />
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Shift Date
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {dayjs(editData.date).format("dddd, MMM D, YYYY")}
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Stack direction="row" spacing={1.5} alignItems="center">
+                <Box
+                  sx={{
+                    p: 0.75,
+                    bgcolor: alpha("#7C3AED", isDark ? 0.16 : 0.1),
+                    borderRadius: 1.5,
+                    display: "flex",
+                  }}
+                >
+                  <BadgeIcon sx={{ fontSize: 18, color: "#7C3AED" }} />
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Employee ID
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {editData.userId}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+          </Box>
+
+          <Typography sx={sectionTitleSx}>Shift Details</Typography>
+
+          {selectedShiftOption && selectedShiftStyle && (
+            <Box
+              sx={{
+                mb: 2,
+                p: 1.5,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: alpha(selectedShiftStyle.color, 0.25),
+                bgcolor: alpha(selectedShiftStyle.color, isDark ? 0.12 : 0.08),
+              }}
+            >
+              <Stack direction="row" spacing={1.25} alignItems="center">
+                <Box
+                  sx={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    bgcolor: selectedShiftStyle.color,
+                    boxShadow: `0 0 0 3px ${alpha(
+                      selectedShiftStyle.color,
+                      0.16,
+                    )}`,
+                    flexShrink: 0,
+                  }}
+                />
+                <Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Current selection
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700}>
+                    {selectedShiftOption.shiftRange}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Box>
+          )}
+
+          <Typography
+            variant="subtitle2"
+            fontWeight={700}
+            color="text.primary"
+            sx={{ mb: 1 }}
+          >
+            Assign New Shift
+          </Typography>
+
+          <FormControl fullWidth size="small" sx={inputSx}>
+            <InputLabel id="shift-select-label">Select Shift</InputLabel>
+            <Select
+              labelId="shift-select-label"
+              value={selectedShift}
+              label="Select Shift"
+              onChange={(e) => setSelectedShift(Number(e.target.value))}
+              renderValue={(value) => {
+                const shift = shiftOptions.find((opt) => opt.shiftId === value);
+
+                if (!shift) return "Select Shift";
+
+                const shiftCode = shift.shiftRange;
+                const shiftStyle = shiftColorMap.get(shiftCode.charAt(0)) || {
+                  color: "#475569",
+                  background: "#F1F5F9",
+                };
+
+                return (
+                  <Stack direction="row" alignItems="center" spacing={1}>
                     <Box
                       sx={{
-                        width: 12,
-                        height: 12,
+                        width: 10,
+                        height: 10,
                         borderRadius: "50%",
                         bgcolor: shiftStyle.color,
-                        boxShadow: `0 0 0 2px ${shiftStyle.background}`,
                       }}
                     />
-
                     <Typography variant="body2" fontWeight={500}>
                       {shiftCode}
                     </Typography>
                   </Stack>
-                </MenuItem>
-              );
-            })}
-          </Select>
-        </FormControl>
+                );
+              }}
+            >
+              {shiftOptions.map((shift) => {
+                const shiftCode = shift.shiftRange;
+                const shiftStyle = shiftColorMap.get(shiftCode.charAt(0)) || {
+                  color: "#475569",
+                  background: "#F1F5F9",
+                };
 
-        {/* Assign Activity */}
-        <Box sx={{ mt: 2 }}>
-          <TextField
-            label="Assign Activity Count"
-            fullWidth
-            size="small"
-            type="number"
-            value={assignActivity}
-            inputProps={{ min: 0 }}
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-"].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onChange={(e) => {
-              const val = e.target.value;
+                return (
+                  <MenuItem
+                    key={shift.shiftId}
+                    value={shift.shiftId}
+                    sx={{ py: 1.25 }}
+                  >
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <Box
+                        sx={{
+                          width: 12,
+                          height: 12,
+                          borderRadius: "50%",
+                          bgcolor: shiftStyle.color,
+                          boxShadow: `0 0 0 2px ${shiftStyle.background}`,
+                        }}
+                      />
+                      <Typography variant="body2" fontWeight={500}>
+                        {shiftCode}
+                      </Typography>
+                    </Stack>
+                  </MenuItem>
+                );
+              })}
+            </Select>
+          </FormControl>
 
-              if (val === "") {
-                setAssignActivity("");
-                return;
-              }
+          <Stack direction={{ xs: "column", sm: "row" }} spacing={2} mt={2}>
+            <TextField
+              label="Assign Activity Count"
+              fullWidth
+              size="small"
+              type="number"
+              value={assignActivity}
+              inputProps={numberInputProps}
+              sx={inputSx}
+              onKeyDown={preventNegativeNumberInput}
+              onChange={(e) => {
+                const val = e.target.value;
 
-              const num = Number(val);
-              if (!isNaN(num) && num >= 0) {
-                setAssignActivity(num);
+                if (val === "") {
+                  setAssignActivity("");
+                  return;
+                }
+
+                const num = Number(val);
+                if (!isNaN(num) && num >= 0) {
+                  setAssignActivity(num);
+                }
+              }}
+            />
+
+            <TextField
+              label="Available Minutes"
+              fullWidth
+              size="small"
+              type="number"
+              value={availableMinutes}
+              inputProps={numberInputProps}
+              sx={inputSx}
+              onKeyDown={preventNegativeNumberInput}
+              onChange={(e) => {
+                const val = e.target.value;
+
+                if (val === "") {
+                  setAvailableMinutes("");
+                  return;
+                }
+
+                const num = Number(val);
+                if (!isNaN(num) && num >= 0) {
+                  setAvailableMinutes(num);
+                }
+              }}
+            />
+          </Stack>
+
+          <Box sx={{ mt: 2.5 }}>
+            <Typography sx={sectionTitleSx}>Change Reason</Typography>
+            <TextField
+              label="Reason"
+              fullWidth
+              size="small"
+              required
+              multiline
+              minRows={3}
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              error={!isReasonValid && reason !== ""}
+              helperText={
+                !isReasonValid && reason !== "" ? "Reason is required" : ""
               }
-            }}
-          />
+              sx={inputSx}
+            />
+          </Box>
         </Box>
-        {/* Available Minutes */}
-        <Box sx={{ mt: 2 }}>
-          <TextField
-            label="Available Minutes"
-            fullWidth
-            size="small"
-            type="number"
-            value={availableMinutes}
-            inputProps={{ min: 0 }}
-            onKeyDown={(e) => {
-              if (["e", "E", "+", "-"].includes(e.key)) {
-                e.preventDefault();
-              }
-            }}
-            onChange={(e) => {
-              const val = e.target.value;
 
-              if (val === "") {
-                setAvailableMinutes("");
-                return;
-              }
+        <Divider />
 
-              const num = Number(val);
-              if (!isNaN(num) && num >= 0) {
-                setAvailableMinutes(num);
-              }
-            }}
-          />
-        </Box>
-        {/* Reason */}
-        <Box sx={{ mt: 2 }}>
-          <TextField
-            label="Reason"
-            fullWidth
-            size="small"
-            required
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            error={!isReasonValid && reason !== ""}
-            helperText={
-              !isReasonValid && reason !== "" ? "Reason is required" : ""
-            }
-          />
-        </Box>
-      </DialogContent>
-
-      <Divider />
-
-      {/* ACTIONS */}
-      <DialogActions sx={{ p: 2, px: 3, bgcolor: "#F8FAFC" }}>
-        <Button
-          onClick={onClose}
-          variant="text"
-          color="inherit"
-          sx={{ fontWeight: 600, color: "text.secondary" }}
+        <Box
+          sx={{
+            px: 3,
+            py: 2,
+            bgcolor: isDark ? "rgba(0,0,0,0.18)" : "#F8FAFC",
+            display: "flex",
+            alignItems: { xs: "stretch", sm: "center" },
+            justifyContent: "space-between",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 2,
+            borderTop: "1px solid",
+            borderColor,
+          }}
         >
-          Cancel
-        </Button>
+          <Typography variant="caption" color="text.secondary">
+            Reason is required before updating.
+          </Typography>
 
-        <Button
-          onClick={handleSave}
-          variant="contained"
-          color="primary"
-          disableElevation
-          sx={{ fontWeight: 600, borderRadius: 1.5, px: 3 }}
-          disabled={selectedShift === 0 || saving || !isReasonValid}
-        >
-          {saving ? "Updating..." : "Confirm Update"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+          <Stack direction="row" spacing={1.25} justifyContent="flex-end">
+            <Button
+              onClick={onClose}
+              variant="outlined"
+              color="inherit"
+              sx={{ fontWeight: 600, borderRadius: 1.5, px: 2.25 }}
+            >
+              Cancel
+            </Button>
+
+            <Button
+              onClick={handleSave}
+              variant="contained"
+              color="primary"
+              disableElevation
+              startIcon={
+                saving ? <CircularProgress color="inherit" size={16} /> : null
+              }
+              sx={{ fontWeight: 700, borderRadius: 1.5, px: 3 }}
+              disabled={selectedShift === 0 || saving || !isReasonValid}
+            >
+              {saving ? "Updating..." : "Confirm Update"}
+            </Button>
+          </Stack>
+        </Box>
+      </Box>
+    </Drawer>
   );
 };

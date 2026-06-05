@@ -1,3 +1,6 @@
+// give me this two components in two saprate components and improve ui view and I want more user interactive view and 
+// give me overflow best view, in current view overflow is looks like transparent it override another component view.
+
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Alert,

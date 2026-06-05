@@ -1,4 +1,10 @@
-
+/**
+ * roster-shared.jsx
+ * ─────────────────────────────────────────────────────────
+ * Shared types, constants, utilities, and sub-components
+ * used by GoldenGridScreen and Week7PreviewScreen.
+ * ─────────────────────────────────────────────────────────
+ */
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import {
   Alert, Box, Button, Card, Chip, Dialog, DialogActions,

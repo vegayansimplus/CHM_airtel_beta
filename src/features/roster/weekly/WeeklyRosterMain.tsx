@@ -119,19 +119,19 @@ export const WeeklyRosterMain = ({ domainId, subDomainId }: any) => {
 
   const [searchTerm, setSearchTerm] = useState("");
   // const users = data?.data ?? [];
-const users = useMemo(() => {
-  const allUsers = data?.data ?? [];
+  const users = useMemo(() => {
+    const allUsers = data?.data ?? [];
 
-  if (!searchTerm?.trim()) return allUsers;
+    if (!searchTerm?.trim()) return allUsers;
 
-  const keyword = searchTerm.toLowerCase();
+    const keyword = searchTerm.toLowerCase();
 
-  return allUsers.filter((user: any) => {
-    const searchableText = JSON.stringify(user).toLowerCase();
+    return allUsers.filter((user: any) => {
+      const searchableText = JSON.stringify(user).toLowerCase();
 
-    return searchableText.includes(keyword);
-  });
-}, [data, searchTerm]);
+      return searchableText.includes(keyword);
+    });
+  }, [data, searchTerm]);
   const weekDates = useMemo(() => {
     return Array.from({ length: 7 }, (_, i) =>
       weekStart.add(i, "day").format("YYYY-MM-DD"),
@@ -379,7 +379,6 @@ const users = useMemo(() => {
       </Box>
     );
   }
-
 
   return (
     <Box

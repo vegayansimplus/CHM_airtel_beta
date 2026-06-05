@@ -151,7 +151,7 @@ export const RosterShiftCell = ({
                 alignItems: "center",
                 justifyContent: "center",
                 fontWeight: 800,
-                fontSize: "0.7rem",
+                fontSize: "0.6rem",
                 ...(isOff && { bgcolor: isDarkMode ? "#475569" : "#CBD5E1" }),
               }}
             >
@@ -180,7 +180,7 @@ export const RosterShiftCell = ({
           {/* 2. CENTER: Text Info */}
           <Stack sx={{ flexGrow: 1, minWidth: 0, pr: 1.5 }}>
             <Typography
-              fontSize="0.8rem"
+              fontSize="0.6rem"
               fontWeight={700}
               noWrap
               sx={{
@@ -188,7 +188,7 @@ export const RosterShiftCell = ({
                 lineHeight: 1.2,
               }}
             >
-              {title}
+              {title} 
             </Typography>
             <Typography
               fontSize="0.65rem"

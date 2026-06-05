@@ -43,6 +43,7 @@ import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab"
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 
@@ -210,6 +211,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route path="planviewandsetup" element={<PlanViewAndSetup />} />
          <Route path="taskconfig" element={<TaskConfigMain />} /> 
+         <Route path="taskplanning" element={<TaskPlanningMain />} />
         </Route>
 
         

@@ -7,10 +7,8 @@ import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchySt
 import { useTabColorTokens } from "../../../style/theme";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-import {
-  GoldenGridScreen,
-  Week7PreviewScreen,
-} from "../components/RosterCycleScreens";
+import { Week7PreviewScreen } from "../components/RosterCycleScreens";
+import GoldenGridScreen from "../components/Goldengridscreen";
 
 const TABS = [
   {

@@ -196,7 +196,17 @@ Skirmish - choti ladhaii,
 Knave - beiman vekti, Rogue, Scoundrel,
 Wanton - laparavah (Reckless, Arbitrary)
 Pompous - ghamandi (Arrogant, Pretentious, Haughty)
-
++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Churn - uthal puthal, badalav
+Impute - arop lagana, dosh dena (attribute)
+Inexorable - atal, impossible to stop ,(Relentless, Impacable)
+Quixotic - avevharik, (idelistic, Impractical, Unrealistic)
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Role: Write command prompt 
+I have code in reactjs jsx but I want to conver it into the 
+typescript and mui inside the reactjs vite , and I want roster view 
+(Monthly and weekly) how I can achive this give me implemenation in 
+my code 
 
 
 
