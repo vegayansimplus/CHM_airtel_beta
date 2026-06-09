@@ -201,12 +201,20 @@ Churn - uthal puthal, badalav
 Impute - arop lagana, dosh dena (attribute)
 Inexorable - atal, impossible to stop ,(Relentless, Impacable)
 Quixotic - avevharik, (idelistic, Impractical, Unrealistic)
-++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Role: Write command prompt 
-I have code in reactjs jsx but I want to conver it into the 
-typescript and mui inside the reactjs vite , and I want roster view 
-(Monthly and weekly) how I can achive this give me implemenation in 
-my code 
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+1) Invidious - anyapurn, dveshpurn (Resenful, Discriminatory, Prejudicial)
+2) Perjure -jhuti gavahi dena(Lie , falsify)
+3) Pergury (Noun)- Act of lying 
+4) Alibi - a statemenet (During crime I was at somewhere else)
+5) Extrolling - atyadhik prashansa karana, (Elogizing, Lauding, Glorify)
+6) Affectation - dikhava, banava(Pretence, Showiness, Artificially )
+7) Woebegone - dukhi, nirash (Forlorn, Melancholic, Despondent)
+8) Adulation -chamchagiri karana (Flattery , praise, Worship)
+9) Querulous -shikayat karane vala , (Petulant, Captious, Grumbling)
+10) Desultory - asnghatit, aniyamit(Aimless, Random, Unsystematic) 
+11) Rumpus - hangama, shor-sharaba (Uproar, Turmoil, Pandemonium ) 
+12) Vilify - badanam karana , (Defame, slander, Malign)
+
 
 
 

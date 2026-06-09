@@ -19,10 +19,11 @@ import {
 } from "@mui/material";
 import { CRQSubmission } from "./components/Crqsubmission";
 import { Slotassignmentviewnew } from "./components/Slotassignmentviewnew";
-import { Planningviewcontent } from "./components/Planningviewcontent";
+// import { Planningviewcontent } from "./components/Planningviewcontent";
 import { memo, useCallback, useState } from "react";
 import React from "react";
 import CommonContainer from "../../../../components/common/CommonContainer";
+import Planningviewcontent from "./components/Planningviewcontent";
 
 // ── Animations ────────────────────────────────────────────────────────────────
 
@@ -336,7 +337,7 @@ export const TaskPlanningViewMain: React.FC = memo(() => {
   const ActiveComponent = STEP_CONFIG[activeStep].component;
 
   return (
-    <CommonContainer>
+    <>
       <Stack
         direction={isMobile ? "column" : "row"}
         spacing={isMobile ? 1.5 : 2}
@@ -347,9 +348,9 @@ export const TaskPlanningViewMain: React.FC = memo(() => {
           {/* Header */}
           <Box
             sx={{
-              px: 1,
-              pb: 1.5,
-              mb: 0.5,
+              // px: 1,
+              // pb: 1.5,
+              // mb: 0.5,
               borderBottom: `1px solid ${t.border}`,
               display: isMobile ? "none" : "block",
             }}
@@ -368,7 +369,7 @@ export const TaskPlanningViewMain: React.FC = memo(() => {
             {/* Mini progress bar */}
             <Box
               sx={{
-                mt: 1,
+                // mt: 1,
                 height: 4,
                 borderRadius: 4,
                 background: t.dotTrack,
@@ -512,7 +513,7 @@ export const TaskPlanningViewMain: React.FC = memo(() => {
               {/* Panel body */}
               <Box
                 sx={{
-                  p: { xs: 1.5, md: 2 },
+                  p: { xs: 0.5, md:0.5 },
                   animation: `${fadeUp} 0.35s ease`,
                 }}
               >
@@ -522,7 +523,7 @@ export const TaskPlanningViewMain: React.FC = memo(() => {
           </Box>
         </Fade>
       </Stack>
-    </CommonContainer>
+    </>
   );
 });
 
