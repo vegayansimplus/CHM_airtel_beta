@@ -1,3 +1,5 @@
+// give me proper UI for this 
+
 import { useEffect, useState } from "react";
 import {
   alpha,
@@ -23,8 +25,6 @@ import EventNoteIcon from "@mui/icons-material/EventNote";
 import dayjs from "dayjs";
 import { shiftColorMap } from "./shiftColorMap";
 import { DatePillStrip } from "./Datepillstrip";
-// import { shiftColorMap } from "../../constant/shiftColors";
-// import { DatePillStrip } from "../DatePillStrip";
 
 interface EditRosterDialogProps {
   open: boolean;
@@ -40,9 +40,7 @@ interface EditRosterDialogProps {
   ) => Promise<{ status?: string; message?: string } | void>;
   saving?: boolean;
   shiftOptions: { shiftId: number; shiftRange: string }[];
-  /** All dates in the current view period — drives the pill strip */
   weekDates?: string[];
-  /** Full user list — used to look up shift codes per date for the pill strip */
   allUsers?: any[];
 }
 
@@ -404,6 +402,7 @@ export const EditRosterDialog = ({
               disabled={selectedShift === 0 || saving || !isReasonValid}
             >
               {saving ? "Updating..." : "Confirm Update"}
+              sujit thorat
             </Button>
           </Stack>
         </Box>

@@ -1,3 +1,4 @@
+// Employee column — sticky is taking too much space give me correct UI
 import { useMemo, useState } from "react";
 import {
   Box,
@@ -476,19 +477,19 @@ export const WeeklyRosterMain = ({
                 {/* Employee column — sticky */}
                 <TableCell
                   sx={{
-                    width: 200,
-                    minWidth: 200,
+                    width: 160, 
+                    minWidth: 160, 
+                    maxWidth: 160, 
                     position: "sticky",
                     left: 0,
                     zIndex: 20,
                     bgcolor: theme.palette.background.paper,
                     borderBottom: `1px solid ${isDark ? "rgba(255,255,255,.06)" : "#F0F0F2"}`,
                     py: "10px",
-                    px: "12px",
+                    px: "8px", // ← was 12px, reduced to reclaim space
                   }}
                 >
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <FilterListIcon fontSize="small" />
                     <Typography fontSize="0.75rem" fontWeight={600}>
                       Employees {!hasError && !isLoading && `(${users.length})`}
                     </Typography>
