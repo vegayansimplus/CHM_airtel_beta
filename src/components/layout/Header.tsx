@@ -24,7 +24,9 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import { tokens, ColorModeContext } from "../../style/theme";
 import { useBgColor } from "../../context/BgColorContext";
 import { useNavigate } from "react-router";
-import VegayanLogo from "../../assets/images/logo_vega.png";
+// import VegayanLogo from "../../assets/images/logo_vega.png";
+// vegayan_logo.png
+import VegayanLogo from "../../assets/images/vegayan_logo.png";
 import AirtelLog from "../../assets/images/airtel3.png";
 import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
@@ -153,7 +155,7 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Right — Bell + user menu */}
         <Box display="flex" alignItems="center" gap="8px">
-          <img src={VegayanLogo} alt="Logo" width={30} />
+          <img src={VegayanLogo} alt="Logo" width={100} />
 
           <NotificationBell onViewAll={() => navigate("/notifications")} />
 

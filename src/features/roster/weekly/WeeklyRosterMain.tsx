@@ -15,7 +15,6 @@ import {
   Snackbar,
   useTheme,
 } from "@mui/material";
-import FilterListIcon from "@mui/icons-material/FilterList";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import dayjs from "dayjs";
 import isoWeek from "dayjs/plugin/isoWeek";
@@ -41,7 +40,7 @@ import { ShiftLegend } from "../components/ShiftLegend";
 
 dayjs.extend(isoWeek);
 
-/* ─── Types ─────────────────────────────────────────────────────────────── */
+/* ─── Types ─── */
 interface SwapCell {
   userId: string;
   date: string;

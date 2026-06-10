@@ -120,7 +120,9 @@ const GlassCard: React.FC<{
       p: 2,
       borderRadius: colors.radiusL ?? "12px",
       border: `1px solid ${accent ? `${accent}33` : colors.border}`,
-      bgcolor: colors.isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.6)",
+      bgcolor: colors.isDark
+        ? "rgba(255,255,255,0.02)"
+        : "rgba(255,255,255,0.6)",
       backdropFilter: "blur(8px)",
       position: "relative",
       overflow: "hidden",
@@ -299,7 +301,12 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
           </Avatar>
           <Box>
             <Typography
-              sx={{ fontSize: 15, fontWeight: 800, color: colors.textPrimary, lineHeight: 1.2 }}
+              sx={{
+                fontSize: 15,
+                fontWeight: 800,
+                color: colors.textPrimary,
+                lineHeight: 1.2,
+              }}
             >
               Previous CRQ Status
             </Typography>
@@ -348,7 +355,12 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
               >
                 CRQ Status
               </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.8} sx={{ mb: 1 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.8}
+                sx={{ mb: 1 }}
+              >
                 {crqMeta.pulse && (
                   <FiberManualRecordIcon
                     sx={{
@@ -362,7 +374,9 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                     }}
                   />
                 )}
-                <Typography sx={{ fontSize: 16, fontWeight: 800, color: crqMeta.fg }}>
+                <Typography
+                  sx={{ fontSize: 16, fontWeight: 800, color: crqMeta.fg }}
+                >
                   {crqData.crqStatus ?? "N/A"}
                 </Typography>
               </Stack>
@@ -395,7 +409,12 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
               >
                 Review Status
               </Typography>
-              <Stack direction="row" alignItems="center" spacing={0.8} sx={{ mb: 1 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.8}
+                sx={{ mb: 1 }}
+              >
                 {reviewMeta.pulse && (
                   <FiberManualRecordIcon
                     sx={{
@@ -405,7 +424,9 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                     }}
                   />
                 )}
-                <Typography sx={{ fontSize: 16, fontWeight: 800, color: reviewMeta.fg }}>
+                <Typography
+                  sx={{ fontSize: 16, fontWeight: 800, color: reviewMeta.fg }}
+                >
                   {crqData.crqReviewStatus ?? "N/A"}
                 </Typography>
               </Stack>
@@ -547,7 +568,9 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                 </Typography>
                 <Typography sx={{ fontSize: 10, color: colors.textDim }}>
                   {crqData.activityPlanStartDate
-                    ? new Date(crqData.activityPlanStartDate).toLocaleDateString("en-IN", {
+                    ? new Date(
+                        crqData.activityPlanStartDate,
+                      ).toLocaleDateString("en-IN", {
                         day: "2-digit",
                         month: "short",
                         year: "numeric",
@@ -620,11 +643,14 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                 </Typography>
                 <Typography sx={{ fontSize: 10, color: colors.textDim }}>
                   {crqData.activityPlanEndDate
-                    ? new Date(crqData.activityPlanEndDate).toLocaleDateString("en-IN", {
-                        day: "2-digit",
-                        month: "short",
-                        year: "numeric",
-                      })
+                    ? new Date(crqData.activityPlanEndDate).toLocaleDateString(
+                        "en-IN",
+                        {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        },
+                      )
                     : "—"}
                 </Typography>
               </Box>
