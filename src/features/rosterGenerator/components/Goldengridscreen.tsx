@@ -13,20 +13,17 @@ import {
   Button,
   Card,
   Chip,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Divider,
-  FormControlLabel,
   IconButton,
   InputBase,
   LinearProgress,
   Slider,
   Snackbar,
   Stack,
-  Switch,
   Table,
   TableBody,
   TableCell,
@@ -40,8 +37,14 @@ import {
   useTheme,
   CircularProgress,
 } from "@mui/material";
-// import { useGetGoldenSetQuery } from "../api/RosterGenerationApiSlice";
 import type { GoldenSetApiRow } from "../types/goldenSet.types";
+
+// ── Components ────────────────────────────────────────────────────────────────
+import RosterFilterDrawer, {
+  type FilterState,
+  type SortConfig,
+  type SortField,
+} from "./RosterFilterDrawer";
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
 import BarChartIcon from "@mui/icons-material/BarChart";
@@ -53,12 +56,8 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
-import PersonIcon from "@mui/icons-material/Person";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import SearchIcon from "@mui/icons-material/Search";
-import SwapVertIcon from "@mui/icons-material/SwapVert";
-import TuneIcon from "@mui/icons-material/Tune";
 import { useGetGoldenSetQuery } from "../api/rosterGenerationApiSlice";
 
 export interface GoldenSetEmployee {
@@ -89,32 +88,6 @@ interface ShiftSummary {
   loadPct: number;
 }
 
-type SortField =
-  | "name"
-  | "olmid"
-  | "role"
-  | "level"
-  | "work"
-  | "night"
-  | "off"
-  | "load";
-
-interface SortConfig {
-  field: SortField;
-  dir: "asc" | "desc";
-}
-
-interface FilterState {
-  query: string;
-  levels: string[];
-  roles: string[];
-  shiftCodes: string[];
-  workRange: [number, number];
-  nightRange: [number, number];
-  showHighLoad: boolean;
-  showLowRest: boolean;
-}
-
 interface TabColorTokens {
   isDark: boolean;
   accent: string;
@@ -137,7 +110,6 @@ interface GoldenGridScreenProps {
   subTeamId?: number | string;
 }
 
-// ── Sub-component prop types ──────────────────────────────────────────────────
 interface LevelBadgeProps {
   level: string;
 }
@@ -159,27 +131,11 @@ interface BrushBarProps {
   onSelect: (code: string) => void;
 }
 
-interface ValidationStripProps {
-  emps: GoldenSetEmployee[];
-}
-
 interface AnalyticsModalProps {
   open: boolean;
   emps: GoldenSetEmployee[];
   onClose: () => void;
 }
-
-interface FilterPanelProps {
-  open: boolean;
-  filter: FilterState;
-  allRoles: string[];
-  onApply: (f: FilterState) => void;
-  onClose: () => void;
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Theme tokens (inline fallback — swap with your real import if needed)
-// ═════════════════════════════════════════════════════════════════════════════
 
 function useTabColorTokens(theme: Theme): TabColorTokens {
   const isDark = theme.palette.mode === "dark";
@@ -201,12 +157,7 @@ function useTabColorTokens(theme: Theme): TabColorTokens {
   };
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Constants
-// ═════════════════════════════════════════════════════════════════════════════
-
 const TOTAL_COLS = 42;
-const ALL_LEVELS: string[] = ["L1", "L2", "L3", "L4"];
 const CELL_W = 42;
 const CELL_H = 28;
 const EMP_COL_W = 230;
@@ -245,16 +196,9 @@ const LEVEL_META: Record<string, LevelMeta> = {
   L4: { bg: "#FDF4FF", text: "#7E22CE", solid: "#A855F7" },
 };
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Shift color map
-// ═════════════════════════════════════════════════════════════════════════════
-
 const shiftColorMap = new Map<string, ShiftColor>([
   ["Leave", { background: "#FEF2F2", color: "#B91C1C", border: "#FCA5A5" }],
-  [
-    "New Joinee",
-    { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" },
-  ],
+  ["New Joinee", { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" }],
   ["N", { background: "#EEF2FF", color: "#3730A3", border: "#818CF8" }],
   ["A", { background: "#F5F3FF", color: "#6B21A8", border: "#C4B5FD" }],
   ["B", { background: "#ECFEFF", color: "#155E75", border: "#67E8F9" }],
@@ -278,18 +222,8 @@ function getShiftColor(code: string): ShiftColor {
   );
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// API Data Transformer
-// ═════════════════════════════════════════════════════════════════════════════
-
-/**
- * Transform API response data (GoldenSetApiRow) to component format (GoldenSetEmployee)
- * Converts week/day columns (W1D1, W1D2, etc.) into a flat 42-element shifts array
- */
 function transformApiRowToEmployee(row: GoldenSetApiRow): GoldenSetEmployee {
   const shifts: string[] = [];
-
-  // Extract shifts from W1D1 through W6D7 (42 total days)
   for (let week = 1; week <= 6; week++) {
     for (let day = 1; day <= 7; day++) {
       const key = `W${week}D${day}` as keyof GoldenSetApiRow;
@@ -297,7 +231,6 @@ function transformApiRowToEmployee(row: GoldenSetApiRow): GoldenSetEmployee {
       shifts.push(typeof shiftCode === "string" ? shiftCode : "");
     }
   }
-
   return {
     prefId: row.prefId,
     name: row.employeeName,
@@ -308,18 +241,11 @@ function transformApiRowToEmployee(row: GoldenSetApiRow): GoldenSetEmployee {
   };
 }
 
-/**
- * Batch transform API rows to employees
- */
 function transformApiDataToEmployees(
   apiRows: GoldenSetApiRow[],
 ): GoldenSetEmployee[] {
   return apiRows.map(transformApiRowToEmployee);
 }
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Utils
-// ═════════════════════════════════════════════════════════════════════════════
 
 function initials(name: string): string {
   return name
@@ -372,10 +298,6 @@ function spanTotals(
   return map;
 }
 
-// ═════════════════════════════════════════════════════════════════════════════
-// Default filter factory
-// ═════════════════════════════════════════════════════════════════════════════
-
 const defaultFilter = (): FilterState => ({
   query: "",
   levels: [],
@@ -386,10 +308,6 @@ const defaultFilter = (): FilterState => ({
   showHighLoad: false,
   showLowRest: false,
 });
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Sub-components
-// ═════════════════════════════════════════════════════════════════════════════
 
 function LevelBadge({ level }: LevelBadgeProps): React.ReactElement {
   const c: LevelMeta = LEVEL_META[level] ?? {
@@ -810,505 +728,6 @@ function AnalyticsModal({
   );
 }
 
-function FilterPanel({
-  open,
-  filter,
-  allRoles,
-  onApply,
-  onClose,
-}: FilterPanelProps): React.ReactElement {
-  const theme = useTheme();
-  const tk = useTabColorTokens(theme);
-  const [local, setLocal] = useState<FilterState>(filter);
-
-  React.useEffect(() => setLocal(filter), [filter, open]);
-
-  const update = (patch: Partial<FilterState>): void =>
-    setLocal((p) => ({ ...p, ...patch }));
-  const toggleArr = (arr: string[], val: string): string[] =>
-    arr.includes(val) ? arr.filter((x) => x !== val) : [...arr, val];
-
-  return (
-    <Collapse in={open}>
-      <Card
-        variant="outlined"
-        sx={{
-          borderRadius: tk.radiusL,
-          overflow: "visible",
-          position: "relative",
-          zIndex: 20,
-          borderColor: tk.border,
-          mb: 1.5,
-          boxShadow: tk.isDark
-            ? "0 8px 32px rgba(0,0,0,0.5)"
-            : "0 8px 32px rgba(13,27,42,0.12)",
-          bgcolor: tk.surface,
-        }}
-      >
-        {/* Header */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          sx={{
-            px: 2.5,
-            py: 1.5,
-            borderBottom: `1px solid ${tk.border}`,
-            background: tk.isDark
-              ? "linear-gradient(135deg,rgba(24,95,165,0.06),rgba(15,110,86,0.03))"
-              : "linear-gradient(135deg,rgba(24,95,165,0.04),rgba(15,110,86,0.02))",
-          }}
-        >
-          <TuneIcon sx={{ fontSize: 16, color: tk.accent, mr: 1 }} />
-          <Typography
-            sx={{
-              fontSize: 13,
-              fontWeight: 750,
-              letterSpacing: "-0.01em",
-              color: tk.textPrimary,
-            }}
-          >
-            Advanced Filters
-          </Typography>
-          <Box flex={1} />
-          <Button
-            size="small"
-            startIcon={<RestartAltIcon sx={{ fontSize: 14 }} />}
-            onClick={() => {
-              setLocal(defaultFilter());
-              onApply(defaultFilter());
-            }}
-            sx={{
-              fontSize: 11,
-              textTransform: "none",
-              color: tk.textSecondary,
-              mr: 0.5,
-            }}
-          >
-            Reset
-          </Button>
-          <IconButton
-            size="small"
-            onClick={onClose}
-            sx={{
-              bgcolor: tk.isDark
-                ? "rgba(255,255,255,0.05)"
-                : "rgba(0,0,0,0.04)",
-              borderRadius: tk.radius,
-            }}
-          >
-            <CloseIcon sx={{ fontSize: 15 }} />
-          </IconButton>
-        </Stack>
-
-        <Box
-          sx={{
-            p: 2.5,
-            display: "grid",
-            gridTemplateColumns: {
-              xs: "1fr",
-              sm: "1fr 1fr",
-              md: "repeat(4,1fr)",
-            },
-            gap: 2.5,
-          }}
-        >
-          {/* Level filter */}
-          <Box>
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.25,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Level
-            </Typography>
-            <Stack gap={0.75}>
-              {ALL_LEVELS.map((lv) => {
-                const c: LevelMeta = LEVEL_META[lv] ?? {
-                  bg: "#F1F5F9",
-                  text: "#475569",
-                  solid: "#64748B",
-                };
-                const active = local.levels.includes(lv);
-                return (
-                  <Box
-                    key={lv}
-                    onClick={() =>
-                      update({ levels: toggleArr(local.levels, lv) })
-                    }
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: tk.radius,
-                      cursor: "pointer",
-                      border: "1.5px solid",
-                      borderColor: active ? alpha(c.solid, 0.5) : tk.border,
-                      bgcolor: active ? alpha(c.solid, 0.08) : "transparent",
-                      transition: "all 0.15s",
-                      "&:hover": {
-                        borderColor: alpha(c.solid, 0.4),
-                        bgcolor: alpha(c.solid, 0.05),
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: 10,
-                        height: 10,
-                        borderRadius: "50%",
-                        bgcolor: c.solid,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: 12.5,
-                        fontWeight: 600,
-                        color: active ? c.text : tk.textPrimary,
-                        flex: 1,
-                      }}
-                    >
-                      {lv}
-                    </Typography>
-                    {active && (
-                      <CheckIcon sx={{ fontSize: 14, color: c.solid }} />
-                    )}
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Box>
-
-          {/* Role filter */}
-          <Box>
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.25,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Role
-            </Typography>
-            <Stack gap={0.75}>
-              {allRoles.map((role) => {
-                const active = local.roles.includes(role);
-                return (
-                  <Box
-                    key={role}
-                    onClick={() =>
-                      update({ roles: toggleArr(local.roles, role) })
-                    }
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      px: 1.5,
-                      py: 1,
-                      borderRadius: tk.radius,
-                      cursor: "pointer",
-                      border: "1.5px solid",
-                      borderColor: active ? tk.accentBorder : tk.border,
-                      bgcolor: active ? tk.accentDim : "transparent",
-                      transition: "all 0.15s",
-                      "&:hover": {
-                        borderColor: tk.accentBorder,
-                        bgcolor: tk.accentDim,
-                      },
-                    }}
-                  >
-                    <PersonIcon
-                      sx={{
-                        fontSize: 14,
-                        color: active ? tk.accent : tk.textDim,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        fontWeight: 550,
-                        color: active ? tk.accent : tk.textPrimary,
-                        flex: 1,
-                      }}
-                      noWrap
-                    >
-                      {role.replace(/_/g, " ")}
-                    </Typography>
-                    {active && (
-                      <CheckIcon sx={{ fontSize: 14, color: tk.accent }} />
-                    )}
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Box>
-
-          {/* Shift code filter */}
-          <Box>
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.25,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Has Shift
-            </Typography>
-            <Stack gap={0.75}>
-              {SHIFT_CODES.map((code) => {
-                const sc = getShiftColor(code);
-                const active = local.shiftCodes.includes(code);
-                return (
-                  <Box
-                    key={code}
-                    onClick={() =>
-                      update({ shiftCodes: toggleArr(local.shiftCodes, code) })
-                    }
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 1,
-                      px: 1.5,
-                      py: 0.85,
-                      borderRadius: tk.radius,
-                      cursor: "pointer",
-                      border: "1.5px solid",
-                      borderColor: active ? sc.border : tk.border,
-                      bgcolor: active
-                        ? alpha(sc.background, 0.8)
-                        : "transparent",
-                      transition: "all 0.15s",
-                      "&:hover": { borderColor: sc.border },
-                    }}
-                  >
-                    <ShiftPill code={code} size="sm" />
-                    <Typography
-                      sx={{
-                        fontSize: 12,
-                        fontWeight: 550,
-                        color: tk.textPrimary,
-                        flex: 1,
-                      }}
-                    >
-                      {SHIFT_META[code]?.label ?? code}
-                    </Typography>
-                    {active && (
-                      <CheckIcon sx={{ fontSize: 14, color: sc.color }} />
-                    )}
-                  </Box>
-                );
-              })}
-            </Stack>
-          </Box>
-
-          {/* Range sliders + flags */}
-          <Box>
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.75,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Work Days
-            </Typography>
-            <Slider
-              value={local.workRange}
-              onChange={(_, v) => update({ workRange: v as [number, number] })}
-              min={0}
-              max={TOTAL_COLS}
-              valueLabelDisplay="auto"
-              size="small"
-              sx={{ mb: 0.75 }}
-            />
-            <Typography
-              sx={{
-                fontSize: 11,
-                color: tk.textSecondary,
-                fontFamily: MONO,
-                fontWeight: 600,
-              }}
-            >
-              {local.workRange[0]}–{local.workRange[1]} days
-            </Typography>
-
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.75,
-                mt: 2.5,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Night Shifts
-            </Typography>
-            <Slider
-              value={local.nightRange}
-              onChange={(_, v) => update({ nightRange: v as [number, number] })}
-              min={0}
-              max={TOTAL_COLS}
-              valueLabelDisplay="auto"
-              size="small"
-              sx={{ mb: 0.75 }}
-            />
-            <Typography
-              sx={{
-                fontSize: 11,
-                color: tk.textSecondary,
-                fontFamily: MONO,
-                fontWeight: 600,
-              }}
-            >
-              {local.nightRange[0]}–{local.nightRange[1]} nights
-            </Typography>
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography
-              sx={{
-                fontSize: 10.5,
-                fontWeight: 700,
-                color: tk.textSecondary,
-                mb: 1.25,
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-              }}
-            >
-              Compliance Flags
-            </Typography>
-            <Stack gap={0.5}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    size="small"
-                    checked={local.showHighLoad}
-                    onChange={(e) => update({ showHighLoad: e.target.checked })}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: 12, color: tk.textPrimary }}>
-                    High night load only
-                  </Typography>
-                }
-              />
-              <FormControlLabel
-                control={
-                  <Switch
-                    size="small"
-                    checked={local.showLowRest}
-                    onChange={(e) => update({ showLowRest: e.target.checked })}
-                  />
-                }
-                label={
-                  <Typography sx={{ fontSize: 12, color: tk.textPrimary }}>
-                    Low rest violations only
-                  </Typography>
-                }
-              />
-            </Stack>
-          </Box>
-        </Box>
-
-        {/* Filter footer */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          gap={1.5}
-          flexWrap="wrap"
-          sx={{
-            px: 2.5,
-            py: 1.75,
-            borderTop: `1px solid ${tk.border}`,
-            bgcolor: tk.isDark
-              ? "rgba(255,255,255,0.015)"
-              : "rgba(13,27,42,0.015)",
-          }}
-        >
-          <Stack direction="row" alignItems="center" gap={0.75}>
-            <SwapVertIcon sx={{ fontSize: 15, color: tk.textSecondary }} />
-            <Typography
-              sx={{ fontSize: 11.5, fontWeight: 650, color: tk.textSecondary }}
-            >
-              Sort:
-            </Typography>
-          </Stack>
-          {(
-            [
-              "name",
-              "olmid",
-              "role",
-              "level",
-              "work",
-              "night",
-              "off",
-              "load",
-            ] as SortField[]
-          ).map((f) => (
-            <Chip
-              key={f}
-              label={f.charAt(0).toUpperCase() + f.slice(1)}
-              size="small"
-              variant="outlined"
-              sx={{
-                fontSize: 11,
-                height: 26,
-                fontWeight: 600,
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
-            />
-          ))}
-          <Box flex={1} />
-          <Button
-            size="small"
-            variant="contained"
-            disableElevation
-            onClick={() => {
-              onApply(local);
-              onClose();
-            }}
-            sx={{
-              fontSize: 12,
-              textTransform: "none",
-              px: 3,
-              height: 34,
-              borderRadius: tk.radius,
-              fontWeight: 650,
-              background: `linear-gradient(135deg,${theme.palette.primary.main},${theme.palette.info.main})`,
-            }}
-          >
-            Apply Filters
-          </Button>
-        </Stack>
-      </Card>
-    </Collapse>
-  );
-}
-
-// ═════════════════════════════════════════════════════════════════════════════
-// Main GoldenGridScreen
-// ═════════════════════════════════════════════════════════════════════════════
-
 export default function GoldenGridScreen({
   teamId,
   subTeamId,
@@ -1317,7 +736,6 @@ export default function GoldenGridScreen({
   const tk = useTabColorTokens(theme);
 
   // ── API Integration ──────────────────────────────────────────────────────
-  // Use subDomainId from props, fallback to 0 if not provided
   const subDomainId =
     typeof subTeamId === "string" ? parseInt(subTeamId, 10) : (subTeamId ?? 0);
   const {
@@ -1326,7 +744,6 @@ export default function GoldenGridScreen({
     error,
   } = useGetGoldenSetQuery({ subDomainId });
 
-  // ── Transform API data to component format ────────────────────────────────
   const allEmps = useMemo<GoldenSetEmployee[]>(() => {
     if (!apiResponse?.data || !Array.isArray(apiResponse.data)) {
       return [];
@@ -1507,20 +924,18 @@ export default function GoldenGridScreen({
     setToast("CSV exported successfully");
   }, [filtered, getShifts]);
 
-  // ── Derived colors ────────────────────────────────────────────────────────
   const nightColor = getShiftColor("N").color;
   const offColor = getShiftColor("W").color;
 
   const headerBg = tk.surface2;
   const weekHeaderBg = tk.isDark
     ? "rgba(24,95,165,0.13)"
-    : "rgba(24,95,165,0.07)"; // blue-tinted
+    : "rgba(24,95,165,0.07)";
   const dayHeaderBg = tk.isDark
     ? "rgba(15,110,86,0.10)"
-    : "rgba(15,110,86,0.05)"; // green-tinted
-  const empColBg = tk.isDark ? "rgba(30,30,46,1)" : "rgba(248,250,252,1)"; // neutral solid
-  // ── Shared sx helpers ─────────────────────────────────────────────────────
-  // Base for ALL header cells (sticky top)
+    : "rgba(15,110,86,0.05)";
+  const empColBg = tk.isDark ? "rgba(30,30,46,1)" : "rgba(248,250,252,1)";
+
   const baseHeadSx = {
     position: "sticky" as const,
     whiteSpace: "nowrap" as const,
@@ -1541,15 +956,6 @@ export default function GoldenGridScreen({
     BODY: 1,
   };
 
-  // Row 1 — Week group headers  (top: 0)
-  // const weekHeadSx = {
-  //   ...baseHeadSx,
-  //   top: 0,
-  //   zIndex: 5,
-  //   bgcolor: `${weekHeaderBg} !important`,
-  //   borderBottom: `1px solid ${tk.border} !important`,
-  // };
-
   const weekHeadSx = {
     ...baseHeadSx,
     position: "sticky",
@@ -1558,16 +964,8 @@ export default function GoldenGridScreen({
     bgcolor: `${theme.palette.background.paper} !important`,
     borderBottom: `1px solid ${tk.border} !important`,
   };
-  // Row 2 — Day-of-week labels  (top: ~28px, height of row-1)
-  const WEEK_ROW_H = 28; // px — adjust if your row renders taller
-  // const dayHeadSx = {
-  //   ...baseHeadSx,
-  //   top: WEEK_ROW_H,
-  //   zIndex: 4,
-  //   bgcolor: `${dayHeaderBg} !important`,
-  //   borderBottom: `2px solid ${tk.border} !important`,
-  // };
 
+  const WEEK_ROW_H = 28;
   const dayHeadSx = {
     ...baseHeadSx,
     position: "sticky",
@@ -1576,6 +974,7 @@ export default function GoldenGridScreen({
     bgcolor: `${theme.palette.background.paper} !important`,
     borderBottom: `2px solid ${tk.border} !important`,
   };
+
   const stickyCellSx = {
     position: "sticky",
     left: 0,
@@ -1591,6 +990,7 @@ export default function GoldenGridScreen({
     py: "4px",
     px: "14px",
   };
+
   const dayCellSx = (i: number) => {
     const d = i % 7;
     const w = Math.floor(i / 7);
@@ -1613,23 +1013,17 @@ export default function GoldenGridScreen({
     };
   };
 
-  // ════════════════════════════════════════════════════════════════════════════
-  // Render
-  // ════════════════════════════════════════════════════════════════════════════
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
+        <Stack alignItems="center" gap={2}>
+          <CircularProgress />
+          <Typography>Loading roster data...</Typography>
+        </Stack>
+      </Box>
+    );
+  }
 
-  // Show loading state
-  // if (isLoading) {
-  //   return (
-  //     <Box sx={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
-  //       <Stack alignItems="center" gap={2}>
-  //         <CircularProgress />
-  //         <Typography>Loading roster data...</Typography>
-  //       </Stack>
-  //     </Box>
-  //   );
-  // }
-
-  // Show error state
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
@@ -1647,7 +1041,6 @@ export default function GoldenGridScreen({
     );
   }
 
-  // Show empty state
   if (!allEmps || allEmps.length === 0) {
     return (
       <Box sx={{ p: 3 }}>
@@ -1669,8 +1062,8 @@ export default function GoldenGridScreen({
         height: "100%",
         maxHeight: "100%",
         overflow: "hidden",
-        p: 0.5,
-        gap: 0.5,
+        p: 1.5,
+        gap: 1,
         bgcolor: tk.bg,
         "@keyframes tkPulse": {
           "0%,100%": { opacity: 1 },
@@ -1731,13 +1124,13 @@ export default function GoldenGridScreen({
           )}
         </Stack>
 
-        {/* Filter toggle */}
+        {/* Filter Drawer Trigger */}
         <Badge badgeContent={activeFilters || undefined} color="primary">
           <Button
             size="small"
             variant={filterOpen ? "contained" : "outlined"}
             startIcon={<FilterListIcon sx={{ fontSize: 15 }} />}
-            onClick={() => setFilterOpen((v) => !v)}
+            onClick={() => setFilterOpen(true)}
             disableElevation
             sx={{
               fontSize: 12,
@@ -1756,7 +1149,7 @@ export default function GoldenGridScreen({
           gap={0.5}
           sx={{ display: { xs: "none", md: "flex" } }}
         >
-          {(["name", "work", "night", "load"] as SortField[]).map((f) => (
+          {(["name", "work", "night"] as SortField[]).map((f) => (
             <Chip
               key={f}
               label={f.charAt(0).toUpperCase() + f.slice(1)}
@@ -1853,13 +1246,15 @@ export default function GoldenGridScreen({
         </Tooltip>
       </Stack>
 
-      {/* ── Filter panel ── */}
-      <FilterPanel
+      {/* ── Separate Drawer Component Integration ── */}
+      <RosterFilterDrawer
         open={filterOpen}
+        onClose={() => setFilterOpen(false)}
         filter={filter}
         allRoles={allRoles}
         onApply={setFilter}
-        onClose={() => setFilterOpen(false)}
+        sort={sort}
+        onSortChange={setSort}
       />
 
       {/* ── Main grid card ── */}
@@ -1956,7 +1351,6 @@ export default function GoldenGridScreen({
               "& .MuiTableCell-stickyHeader": {
                 backgroundColor: `${theme.palette.background.paper} !important`,
               },
-
               "& .sticky-corner": {
                 left: 0,
                 zIndex: 9999,
@@ -1974,14 +1368,11 @@ export default function GoldenGridScreen({
                     top: 0,
                     left: 0,
                     zIndex: Z_INDEX.HEADER_CORNER,
-
                     width: EMP_COL_W,
                     minWidth: EMP_COL_W,
                     maxWidth: EMP_COL_W,
-
                     bgcolor: `${empColBg} !important`,
                     textAlign: "left",
-
                     borderBottom: `2px solid ${tk.border} !important`,
                     borderRight: `1.5px solid ${tk.border} !important`,
                   }}
@@ -1997,14 +1388,12 @@ export default function GoldenGridScreen({
                       ...weekHeadSx,
                       fontSize: 10,
                       fontWeight: 700,
-
                       letterSpacing: ".06em",
                       textTransform: "uppercase",
                       borderLeft:
                         w > 0
                           ? `2.5px solid ${alpha(theme.palette.text.primary, 0.12)}`
                           : undefined,
-
                       bgcolor: `${
                         w % 2 === 1
                           ? tk.isDark
@@ -2020,7 +1409,7 @@ export default function GoldenGridScreen({
                 ))}
 
                 {/* Summary column headers */}
-                {(["Work", "N", "OFF", "Load"] as const).map((h, i) => (
+                {(["Work", "N", "OFF"] as const).map((h, i) => (
                   <TableCell
                     key={h}
                     rowSpan={2}
@@ -2057,7 +1446,6 @@ export default function GoldenGridScreen({
                           d === 0 && w > 0
                             ? `2.5px solid ${alpha(theme.palette.text.primary, 0.12)}`
                             : undefined,
-                        // weekend tint blended on top of dayHeaderBg
                         bgcolor: `${
                           d >= 5
                             ? tk.isDark
@@ -2207,7 +1595,6 @@ export default function GoldenGridScreen({
                                   ...(editing && {
                                     "&:hover": {
                                       position: "relative",
-
                                       boxShadow: `0 0 0 2.5px ${tk.accent},0 2px 12px ${tk.accentDim}`,
                                       borderColor: `${tk.accent} !important`,
                                       filter: "brightness(0.93) saturate(1.2)",
@@ -2278,56 +1665,6 @@ export default function GoldenGridScreen({
                       >
                         {s.off}
                       </TableCell>
-                      <TableCell
-                        sx={{
-                          fontFamily: MONO,
-                          textAlign: "center",
-                          fontSize: 11,
-                          bgcolor: tk.isDark
-                            ? "rgba(255,255,255,0.01)"
-                            : "rgba(0,0,0,0.008)",
-                          px: "8px",
-                        }}
-                      >
-                        <Stack direction="row" alignItems="center" gap={0.75}>
-                          <Box
-                            sx={{
-                              display: "inline-flex",
-                              height: 5,
-                              borderRadius: "4px",
-                              overflow: "hidden",
-                              width: 48,
-                              bgcolor: "action.hover",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: `${s.loadPct}%`,
-                                height: "100%",
-                                borderRadius: "4px",
-                                bgcolor:
-                                  s.loadPct > 78
-                                    ? "warning.main"
-                                    : s.loadPct > 60
-                                      ? "primary.main"
-                                      : "success.main",
-                                transition: "width 0.3s",
-                              }}
-                            />
-                          </Box>
-                          <Typography
-                            sx={{
-                              fontSize: 9.5,
-                              fontFamily: MONO,
-                              fontWeight: 700,
-                              color: tk.textSecondary,
-                              minWidth: 26,
-                            }}
-                          >
-                            {s.loadPct}%
-                          </Typography>
-                        </Stack>
-                      </TableCell>
                     </TableRow>
                   );
                 })
@@ -2355,7 +1692,6 @@ export default function GoldenGridScreen({
                       : "3px 0 8px -2px rgba(13,27,42,0.1)",
                     borderRight: `1.5px solid ${tk.border} !important`,
                     bgcolor: `${empColBg} !important`,
-                    // bgcolor: `red !important`,
                   }}
                 >
                   Staffed / Day
@@ -2384,7 +1720,6 @@ export default function GoldenGridScreen({
                           d === 0 && w > 0
                             ? `2.5px solid ${alpha(theme.palette.text.primary, 0.12)}`
                             : undefined,
-                        //  bgcolor: `red !important`,
                       }}
                     >
                       <Typography
@@ -2407,7 +1742,7 @@ export default function GoldenGridScreen({
                 })}
 
                 <TableCell
-                  colSpan={4}
+                  colSpan={3}
                   sx={{
                     position: "sticky",
                     bottom: 0,
