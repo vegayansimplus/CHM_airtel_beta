@@ -5,7 +5,6 @@ import {
   Button,
   Card,
   Chip,
-  CircularProgress,
   Collapse,
   Dialog,
   DialogActions,
@@ -120,7 +119,7 @@ const API_SHIFT_MAP: Record<string, ShiftCode> = {
 const toShiftCode = (raw: string): ShiftCode =>
   API_SHIFT_MAP[raw?.toUpperCase()] ?? "G";
 
-// ─── Colour palettes ──────────────────────────────────────────────────────
+// ─── Colour palettes ──
 const SHIFT_COLORS: Record<
   ShiftCode,
   {

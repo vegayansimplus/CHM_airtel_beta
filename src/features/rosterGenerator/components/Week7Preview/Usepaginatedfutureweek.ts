@@ -1,117 +1,112 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useLazyGetFutureWeekQuery, type FutureWeekRow } from "../../api/rosterGenerationApiSlice";
-const PAGE_SIZE = 10;
 
-export interface PaginatedFutureWeekResult {
-  rows: FutureWeekRow[];
-  total: number | null;
-  isoWeek: number | null;
-  isoYear: number | null;
-  isFetching: boolean;
-  isError: boolean;
-  hasMore: boolean;
-  loadMore: () => void;
-  refetch: () => void;
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { NormalisedEmployee } from "../../types/Futureweek.types";
+import { useLazyGetFutureWeekQuery } from "../../api/rosterGenerationApiSlice";
+import { normaliseRows } from "../../util/Futureweek.utils";
+
+const PAGE_SIZE = 50;
+
+export interface PaginatedFutureWeekState {
+  employees:     NormalisedEmployee[];
+  isoWeek:       number;
+  isoYear:       number;
+  totalEmployees: number;
+  isLoading:     boolean;
+  isFetchingMore: boolean;
+  isError:       boolean;
+  /** Trigger an initial load or reload for a new subDomainId */
+  load: (subDomainId: number) => void;
 }
 
-export function usePaginatedFutureWeek(
-  subDomainId: number
-): PaginatedFutureWeekResult {
-  const [rows, setRows] = useState<FutureWeekRow[]>([]);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState<number | null>(null);
-  const [isoWeek, setIsoWeek] = useState<number | null>(null);
-  const [isoYear, setIsoYear] = useState<number | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
-  const [isError, setIsError] = useState(false);
+export function usePaginatedFutureWeek(): PaginatedFutureWeekState {
+  const [triggerFetch, { isFetching, isError }] = useLazyGetFutureWeekQuery();
 
-  // Guard against stale async callbacks when subDomainId changes
-  const fetchIdRef = useRef(0);
+  const [employees,      setEmployees]      = useState<NormalisedEmployee[]>([]);
+  const [isoWeek,        setIsoWeek]        = useState(0);
+  const [isoYear,        setIsoYear]        = useState(0);
+  const [totalEmployees, setTotalEmployees] = useState(0);
+  const [isLoading,      setIsLoading]      = useState(false);
+  const [isFetchingMore, setIsFetchingMore] = useState(false);
 
-  const [trigger] = useLazyGetFutureWeekQuery();
+  // Guards against stale async closures when subDomainId changes mid-flight
+  const activeSubDomainRef = useRef<number | null>(null);
 
-  const hasMore = total === null || rows.length < total;
+  const load = useCallback(
+    async (subDomainId: number) => {
+      activeSubDomainRef.current = subDomainId;
 
-  // ------------------------------------------------------------------
-  // Core fetch — accepts a pageNumber and an optional reset flag.
-  // Uses fetchIdRef to discard responses from a previous subDomain.
-  // ------------------------------------------------------------------
-  const fetchPage = useCallback(
-    async (pageNumber: number, reset = false) => {
-      if (isFetching) return;
+      // ── Reset state for the new domain ────────────────────────────────────
+      setEmployees([]);
+      setIsoWeek(0);
+      setIsoYear(0);
+      setTotalEmployees(0);
+      setIsLoading(true);
+      setIsFetchingMore(false);
 
-      const fetchId = ++fetchIdRef.current;
-
-      setIsFetching(true);
-      setIsError(false);
+      let page = 1;
+      const accumulated: NormalisedEmployee[] = [];
 
       try {
-        const result = await trigger({
-          subDomainId,
-          pageNumber,
-          pageSize: PAGE_SIZE,
-        }).unwrap();
+        while (true) {
+          // Bail out if a newer load() call has superseded us
+          if (activeSubDomainRef.current !== subDomainId) return;
 
-        // Discard if a newer fetch has started (e.g. subDomainId changed)
-        if (fetchId !== fetchIdRef.current) return;
+          const isFirstPage = page === 1;
 
-        setTotal(result.totalEmployees);
-        setIsoWeek(result.isoWeek ?? null);
-        setIsoYear(result.isoYear ?? null);
-        setRows((prev) => (reset ? result.data : [...prev, ...result.data]));
-        setPage(pageNumber);
+          const result = await triggerFetch({
+            subDomainId,
+            pageNumber: page,
+            pageSize:   PAGE_SIZE,
+          }).unwrap();
+
+          // Guard again after the await resolves
+          if (activeSubDomainRef.current !== subDomainId) return;
+
+          const normalised = normaliseRows(result.data ?? []);
+          accumulated.push(...normalised);
+
+          // Persist week meta from first page
+          if (isFirstPage) {
+            setIsoWeek(result.isoWeek);
+            setIsoYear(result.isoYear);
+            setTotalEmployees(result.totalEmployees);
+            setIsLoading(false);
+          }
+
+          // Stream rows into state after each page so the UI updates progressively
+          setEmployees([...accumulated]);
+
+          const done =
+            result.data.length < PAGE_SIZE ||
+            accumulated.length >= result.totalEmployees;
+
+          if (done) {
+            setIsFetchingMore(false);
+            break;
+          }
+
+          // More pages to fetch
+          setIsFetchingMore(true);
+          page++;
+        }
       } catch {
-        if (fetchId !== fetchIdRef.current) return;
-        setIsError(true);
-      } finally {
-        if (fetchId === fetchIdRef.current) setIsFetching(false);
+        if (activeSubDomainRef.current === subDomainId) {
+          setIsLoading(false);
+          setIsFetchingMore(false);
+        }
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [subDomainId, trigger]
-    // Intentionally omit isFetching from deps — we read it as a gate
-    // but don't want to recreate fetchPage every render
+    [triggerFetch],
   );
 
-  // ------------------------------------------------------------------
-  // Reset + initial load whenever subDomainId changes
-  // ------------------------------------------------------------------
-  useEffect(() => {
-    setRows([]);
-    setPage(1);
-    setTotal(null);
-    setIsoWeek(null);
-    setIsoYear(null);
-    setIsError(false);
-    fetchPage(1, true);
-  }, [subDomainId]);
-
-  // ------------------------------------------------------------------
-  // Public callbacks
-  // ------------------------------------------------------------------
-  const loadMore = useCallback(() => {
-    if (!isFetching && hasMore) {
-      fetchPage(page + 1, false);
-    }
-  }, [fetchPage, hasMore, isFetching, page]);
-
-  const refetch = useCallback(() => {
-    setRows([]);
-    setPage(1);
-    setTotal(null);
-    setIsError(false);
-    fetchPage(1, true);
-  }, [fetchPage]);
-
   return {
-    rows,
-    total,
+    employees,
     isoWeek,
     isoYear,
-    isFetching,
+    totalEmployees,
+    isLoading,
+    isFetchingMore,
     isError,
-    hasMore,
-    loadMore,
-    refetch,
+    load,
   };
 }

@@ -1,1010 +1,487 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
-  Alert,
+  alpha,
   Badge,
   Box,
   Button,
-  Card,
   Chip,
+  CircularProgress,
   IconButton,
   Snackbar,
+  Alert,
   Stack,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from "@mui/material";
-import EditIcon from "@mui/icons-material/EditOutlined";
-import BarChartIcon from "@mui/icons-material/BarChartOutlined";
-import CloseIcon from "@mui/icons-material/Close";
+import VerifiedOutlinedIcon from "@mui/icons-material/VerifiedOutlined";
+import GroupsOutlinedIcon from "@mui/icons-material/GroupsOutlined";
+import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
+import UndoOutlinedIcon from "@mui/icons-material/UndoOutlined";
 import CheckIcon from "@mui/icons-material/Check";
-import DownloadIcon from "@mui/icons-material/FileDownloadOutlined";
-import TuneIcon from "@mui/icons-material/Tune";
-import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
-import NavigateNextIcon from "@mui/icons-material/NavigateNext";
-import TodayIcon from "@mui/icons-material/Today";
 
-import {
-  ALL_ROLES,
-  EMPLOYEES,
-  SHIFT_ORDER,
-  TODAY,
-  buildWeekGrid,
-  type Employee,
-  type FilterState,
-  type ShiftCode,
-} from "../../types/Gridtypes";
-import {
-  addDays,
-  applyFilters,
-  countActiveFilters,
-  defaultFilter,
-  empSummary,
-  fmtShort,
-  isoWeek,
-  mondayOf,
-} from "../../util/Gridutils";
-import { BrushBar, SearchBox, ShiftLegend } from "./Gridsharedui";
-import { FilterDrawer, FilterTriggerButton } from "./Filterdrawer";
-import { RosterGrid } from "./Rostergrid";
-import { AnalyticsModal } from "./Analyticsmodal";
-// import { FilterDrawer, FilterTriggerButton } from "./Gridtoolbar";
-// import { AnalyticsModal } from "./AnalyticsModal";
-// import { RosterGrid } from "./RosterGrid";
-// import type { FilterState } from "./Gridtypes";
+import { FutureWeekGrid } from "./FutureWeekGrid";
+import type { PendingChangesMap } from "./FutureWeekGrid";
+import { usePaginatedFutureWeek } from "./Usepaginatedfutureweek";
+import { ShiftLegend } from "./Gridsharedui";
+import { isoWeekLabel } from "../../util/Futureweek.utils";
+import { ShiftChip } from "./Shiftchip";
+import type { ShiftCode } from "../../types/Futureweek.types";
+import { SHIFT_CODES } from "../../util/Goldensetutils";
+import { useUpdateFutureWeekBatchMutation } from "../../api/rosterGenerationApiSlice";
 
-// ─── Validation strip ──────────────────────────────────────────────────────────
-function ValidationStrip({
-  emps,
-  grid,
-}: {
-  emps: Employee[];
-  grid: Record<string, ShiftCode[]>;
-}) {
-  const nightHeavy = emps.filter((e) => empSummary(grid[e.id] ?? []).n > 2);
-  const lowRest = emps.filter((e) => empSummary(grid[e.id] ?? []).off >= 3);
-  const ok = Math.max(emps.length - nightHeavy.length - lowRest.length, 0);
-
-  return (
-    <Stack direction="row" gap={1} flexWrap="wrap" alignItems="center">
-      <Chip
-        size="small"
-        color="success"
-        icon={<CheckIcon sx={{ fontSize: "13px !important" }} />}
-        label={`${ok} balanced`}
-        sx={{ height: 24, fontSize: 11, fontWeight: 650, borderRadius: "6px" }}
-      />
-      <Chip
-        size="small"
-        color={nightHeavy.length ? "warning" : "default"}
-        label={`${nightHeavy.length} high night load`}
-        sx={{ height: 24, fontSize: 11, fontWeight: 650, borderRadius: "6px" }}
-      />
-      <Chip
-        size="small"
-        color={lowRest.length ? "error" : "default"}
-        label={`${lowRest.length} low rest`}
-        sx={{ height: 24, fontSize: 11, fontWeight: 650, borderRadius: "6px" }}
-      />
-      <Typography
-        variant="caption"
-        color="text.secondary"
-        sx={{ ml: "auto", fontSize: 10.5 }}
-      >
-        Night &gt;2 = High · OFF ≥3 = Low Rest
-      </Typography>
-    </Stack>
-  );
+interface GridscreenMainProps {
+  subDomainId: number | string | undefined;
 }
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
-export default function RosterScreen() {
+const MONO = "'Roboto Mono', 'Fira Mono', monospace";
+
+export default function GridscreenMain({ subDomainId }: GridscreenMainProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+  const accent = theme.palette.primary.main;
+  const accentDim = alpha(accent, 0.08);
+  const accentBorder = alpha(accent, 0.35);
 
-  // ── Week navigation ──────────────────────────────────────────────────────
-  const [weekStart, setWeekStart] = useState<Date>(() => mondayOf(TODAY));
-  const dates = useMemo(
-    () => Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)),
-    [weekStart],
-  );
-  const weekLabel = `${fmtShort(dates[0])} – ${fmtShort(dates[6])}`;
-
-  const goToWeek = useCallback((delta: number) => {
-    setWeekStart((d) => addDays(d, delta * 7));
-  }, []);
-  const goToToday = useCallback(() => setWeekStart(mondayOf(TODAY)), []);
-
-  // ── Employees + grid ─────────────────────────────────────────────────────
-  // In production: replace EMPLOYEES and buildWeekGrid with your API data
-  const allEmps: Employee[] = EMPLOYEES;
-  const allRoles = useMemo(
-    () => Array.from(new Set(allEmps.map((e) => e.role))),
-    [allEmps],
-  );
-
-  // local grid — editable copy
-  const [localGrid, setLocalGrid] = useState<Record<string, ShiftCode[]>>(() =>
-    buildWeekGrid(allEmps),
-  );
-
-  // Saved snapshot for discard
-  const savedGridRef = useRef<Record<string, ShiftCode[]>>(localGrid);
-
-  // ── Filter state ─────────────────────────────────────────────────────────
-  const [filter, setFilter] = useState<FilterState>(defaultFilter());
-  const [filterOpen, setFilterOpen] = useState(false);
-  const activeFilterCount = countActiveFilters(filter);
-
-  const filteredEmps = useMemo(
-    () => applyFilters(allEmps, localGrid, filter),
-    [allEmps, localGrid, filter],
-  );
-
-  // ── Edit mode ────────────────────────────────────────────────────────────
   const [editing, setEditing] = useState(false);
-  const [brush, setBrush] = useState<ShiftCode>("A");
+  const [brush, setBrush] = useState<ShiftCode>("G");
+  const [toast, setToast] = useState<{ msg: string; severity: "success" | "error" } | null>(null);
   const paintingRef = useRef(false);
 
-  // Stop painting on mouse up anywhere
+  // ── Pending-changes state (lives here so Save has access) ─────────────────
+  const [pendingChanges, setPendingChanges] = useState<PendingChangesMap>({});
+  const pendingCount = Object.keys(pendingChanges).length;
+  // Ref to clear grid's internal state after save
+  const clearPendingRef = useRef<(() => void) | null>(null);
+
+  const {
+    employees,
+    isoWeek,
+    isoYear,
+    totalEmployees,
+    isLoading,
+    isFetchingMore,
+    isError,
+    load,
+  } = usePaginatedFutureWeek();
+
+  const [updateBatch, { isLoading: isSaving }] = useUpdateFutureWeekBatchMutation();
+
   useEffect(() => {
-    const end = () => {
-      paintingRef.current = false;
-    };
-    window.addEventListener("mouseup", end);
-    return () => window.removeEventListener("mouseup", end);
+    if (subDomainId !== undefined && subDomainId !== null && subDomainId !== "") {
+      load(Number(subDomainId));
+    }
+  }, [subDomainId, load]);
+
+  const weekLabel = isoWeek > 0 ? isoWeekLabel(isoYear, isoWeek) : "";
+  const loaded = employees.length;
+
+  const handleMouseUp = useCallback(() => {
+    paintingRef.current = false;
   }, []);
 
-  const handleCellChange = useCallback(
-    (empId: string, colIdx: number, code: ShiftCode) => {
-      setLocalGrid((prev) => {
-        const row = [...(prev[empId] ?? [])];
-        row[colIdx] = code;
-        return { ...prev, [empId]: row };
-      });
-    },
-    [],
-  );
-
-  const handleEnterEdit = useCallback(() => {
-    // Snapshot current grid for discard
-    savedGridRef.current = JSON.parse(JSON.stringify(localGrid));
-    setEditing(true);
-  }, [localGrid]);
-
-  const handleDiscardEdits = useCallback(() => {
-    setLocalGrid(savedGridRef.current);
-    setEditing(false);
-    showToast("Changes discarded");
+  // Toggle edit mode; entering edit doesn't save, exiting doesn't auto-save either
+  const handleEditToggle = useCallback(() => {
+    setEditing((prev) => !prev);
   }, []);
 
-  const handleSave = useCallback(() => {
-    // In production: dispatch API call here
-    savedGridRef.current = JSON.parse(JSON.stringify(localGrid));
-    setEditing(false);
-    showToast("Schedule saved successfully");
-  }, [localGrid]);
+  // Discard all pending changes
+  const handleDiscard = useCallback(() => {
+    setPendingChanges({});
+    clearPendingRef.current?.();
+  }, []);
 
-  // ── Analytics ────────────────────────────────────────────────────────────
-  const [analyticsOpen, setAnalyticsOpen] = useState(false);
+  // Save: build batch payload from pendingChanges + employee userId, fire API
+  const handleSave = useCallback(async () => {
+    if (pendingCount === 0) return;
 
-  // ── Toast ────────────────────────────────────────────────────────────────
-  const [toast, setToast] = useState<string | null>(null);
-  const showToast = (msg: string) => setToast(msg);
-
-  // ── Export CSV ───────────────────────────────────────────────────────────
-  const handleExport = useCallback(() => {
-    const header = [
-      "ID",
-      "Name",
-      "Role",
-      "Level",
-      ...dates.map(fmtShort),
-      "Work",
-      "N",
-      "OFF",
-    ];
-    const rows = filteredEmps.map((e) => {
-      const row = localGrid[e.id] ?? [];
-      const s = empSummary(row);
-      return [e.id, e.name, e.role, e.level, ...row, s.work, s.n, s.off];
+    const payload = Object.entries(pendingChanges).map(([futureIdStr, shifts]) => {
+      const futureId = Number(futureIdStr);
+      const emp = employees.find((e) => e.futureId === futureId);
+      const [W7D1, W7D2, W7D3, W7D4, W7D5, W7D6, W7D7] = shifts;
+      return {
+        userId: emp?.userId ?? futureId, // fall back to futureId if userId not on type yet
+        year: isoYear,
+        week: isoWeek,
+        W7D1,
+        W7D2,
+        W7D3,
+        W7D4,
+        W7D5,
+        W7D6,
+        W7D7,
+      };
     });
-    const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `roster-w${isoWeek(weekStart)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast("CSV exported");
-  }, [filteredEmps, localGrid, dates, weekStart]);
 
-  // ── Search shortcut ───────────────────────────────────────────────────────
-  const handleSearchChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFilter((f) => ({ ...f, query: e.target.value }));
-    },
-    [],
-  );
-  const handleSearchClear = useCallback(() => {
-    setFilter((f) => ({ ...f, query: "" }));
-  }, []);
+    try {
+      await updateBatch(payload).unwrap();
+      setPendingChanges({});
+      clearPendingRef.current?.();
+      setToast({ msg: `${pendingCount} row${pendingCount > 1 ? "s" : ""} saved successfully`, severity: "success" });
+    } catch {
+      setToast({ msg: "Save failed — your changes are still pending", severity: "error" });
+    }
+  }, [pendingChanges, pendingCount, employees, isoYear, isoWeek, updateBatch]);
+
+  const toolbarBg = isDark
+    ? "linear-gradient(135deg,rgba(16,185,129,0.06),rgba(99,102,241,0.04))"
+    : "linear-gradient(135deg,rgba(16,185,129,0.03),rgba(99,102,241,0.02))";
+
+  const hasPending = pendingCount > 0;
 
   return (
     <Box
       sx={{
-        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        bgcolor: isDark ? "#0A111C" : "#F0F4FA",
+        height: "100%",
+        minHeight: 0,
         overflow: "hidden",
+        "@keyframes tkPulse": {
+          "0%,100%": { opacity: 1 },
+          "50%": { opacity: 0.35 },
+        },
       }}
+      onMouseUp={handleMouseUp}
     >
-      {/* ── Page header ──────────────────────────────────────────────── */}
+      {/* ── Error banner ──────────────────────────────────────────────────── */}
+      {isError && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            px: 2,
+            py: 1,
+            bgcolor: isDark ? "rgba(239,68,68,0.12)" : "rgba(239,68,68,0.06)",
+            borderBottom: `1px solid ${isDark ? "rgba(239,68,68,0.25)" : "rgba(239,68,68,0.15)"}`,
+          }}
+        >
+          <ErrorOutlineIcon sx={{ fontSize: 15, color: "error.main" }} />
+          <Typography sx={{ fontSize: 12, color: "error.main", fontWeight: 600 }}>
+            Failed to load schedule data. Check your network and try refreshing.
+          </Typography>
+        </Box>
+      )}
+
+      {/* ── Toolbar ───────────────────────────────────────────────────────── */}
       <Box
         sx={{
-          px: { xs: 2, md: 3 },
-          pt: 2.5,
-          pb: 0,
           flexShrink: 0,
+          px: 2,
+          py: 1.25,
+          borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.07)" : "rgba(13,27,42,0.07)"}`,
+          background: toolbarBg,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+          flexWrap: "wrap",
         }}
       >
-        <Stack
-          direction="row"
-          alignItems="center"
-          flexWrap="wrap"
-          gap={1.5}
-          sx={{ mb: 1.5 }}
+        <ShiftLegend />
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* ISO week badge */}
+        {weekLabel && (
+          <Chip
+            size="small"
+            icon={<VerifiedOutlinedIcon sx={{ fontSize: "12px !important" }} />}
+            label={weekLabel}
+            sx={{
+              height: 22,
+              fontSize: 10.5,
+              fontWeight: 650,
+              borderRadius: "6px",
+              bgcolor: isDark ? "rgba(16,185,129,0.14)" : "rgba(16,185,129,0.08)",
+              color: isDark ? "#6EE7B7" : "#065F46",
+              border: `1px solid ${isDark ? "rgba(16,185,129,0.3)" : "rgba(16,185,129,0.2)"}`,
+            }}
+          />
+        )}
+
+        {/* Employee count */}
+        {!isLoading && (
+          <Chip
+            size="small"
+            icon={<GroupsOutlinedIcon sx={{ fontSize: "12px !important" }} />}
+            label={
+              isFetchingMore
+                ? `${loaded} / ${totalEmployees} loaded…`
+                : `${loaded} employees`
+            }
+            sx={{ height: 22, fontSize: 10.5, fontWeight: 650, borderRadius: "6px" }}
+          />
+        )}
+
+        {/* Fetching-more spinner */}
+        {isFetchingMore && (
+          <Tooltip title="Loading remaining pages…" arrow>
+            <Stack direction="row" alignItems="center" gap={0.5}>
+              <CircularProgress size={12} thickness={5} />
+              <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
+                Fetching…
+              </Typography>
+            </Stack>
+          </Tooltip>
+        )}
+
+        {/* Edit toggle */}
+        <Button
+          size="small"
+          variant={editing ? "contained" : "outlined"}
+          color={editing ? "warning" : "inherit"}
+          startIcon={<EditOutlinedIcon sx={{ fontSize: 15 }} />}
+          onClick={handleEditToggle}
+          disableElevation
+          sx={{
+            fontSize: 12,
+            height: 30,
+            borderRadius: "8px",
+            fontWeight: 600,
+            textTransform: "none",
+          }}
         >
-          {/* Identity */}
-          <Box>
+          {editing ? "Done" : "Edit"}
+        </Button>
+      </Box>
+
+      {/* ── Paint mode brush bar + Save ──────────────────────────────────── */}
+      {editing && (
+        <Box
+          sx={{
+            flexShrink: 0,
+            px: 2,
+            py: 1.25,
+            borderBottom: `1px solid ${isDark ? "rgba(255,255,255,0.07)" : "rgba(13,27,42,0.07)"}`,
+            bgcolor: isDark ? "rgba(24,95,165,0.06)" : "rgba(24,95,165,0.025)",
+            display: "flex",
+            alignItems: "center",
+            gap: 1.5,
+            flexWrap: "wrap",
+          }}
+        >
+          {/* PAINT MODE badge */}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.25,
+              py: 0.5,
+              borderRadius: "6px",
+              bgcolor: accentDim,
+              border: `1px solid ${accentBorder}`,
+              flexShrink: 0,
+            }}
+          >
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: accent,
+                animation: "tkPulse 2s infinite",
+              }}
+            />
             <Typography
               sx={{
-                fontSize: 20,
-                fontWeight: 800,
-                letterSpacing: "-0.03em",
-                lineHeight: 1.1,
-                color: "text.primary",
+                fontSize: 11,
+                color: accent,
+                fontWeight: 700,
+                letterSpacing: "0.02em",
+                fontFamily: MONO,
               }}
             >
-              Roster
-            </Typography>
-            <Typography
-              sx={{
-                fontSize: 12,
-                color: "text.secondary",
-                fontWeight: 500,
-                mt: 0.2,
-              }}
-            >
-              {allEmps.length} employees · {weekLabel}
+              PAINT MODE
             </Typography>
           </Box>
 
-          {/* Week navigation */}
-          <Stack direction="row" alignItems="center" gap={0.5} sx={{ ml: 1 }}>
-            <IconButton
-              size="small"
-              onClick={() => goToWeek(-1)}
-              sx={{ borderRadius: "8px", border: 1, borderColor: "divider" }}
-            >
-              <NavigateBeforeIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-
-            <Box
-              sx={{
-                px: 1.5,
-                py: 0.5,
-                borderRadius: "8px",
-                border: 1,
-                borderColor: "divider",
-                bgcolor: "background.paper",
-                minWidth: 160,
-                textAlign: "center",
-              }}
-            >
-              <Typography sx={{ fontSize: 12, fontWeight: 650 }}>
-                W{isoWeek(weekStart)} · {weekLabel}
-              </Typography>
-            </Box>
-
-            <IconButton
-              size="small"
-              onClick={() => goToWeek(1)}
-              sx={{ borderRadius: "8px", border: 1, borderColor: "divider" }}
-            >
-              <NavigateNextIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-
-            <Tooltip title="Go to current week" arrow>
-              <IconButton
-                size="small"
-                onClick={goToToday}
-                sx={{ borderRadius: "8px", border: 1, borderColor: "divider" }}
+          {/* Shift brush selector */}
+          <Stack direction="row" gap={0.75} flexWrap="wrap">
+            {([...SHIFT_CODES] as unknown as ShiftCode[]).map((code) => (
+              <Box
+                key={code}
+                onClick={() => setBrush(code)}
+                sx={{ cursor: "pointer" }}
               >
-                <TodayIcon sx={{ fontSize: 16 }} />
-              </IconButton>
-            </Tooltip>
+                <ShiftChip code={code} size="md" active={brush === code} />
+              </Box>
+            ))}
           </Stack>
+
+          {/* Hint text */}
+          <Typography
+            sx={{
+              fontSize: 10.5,
+              color: isDark ? "rgba(255,255,255,0.35)" : "rgba(13,27,42,0.4)",
+              fontStyle: "italic",
+              display: { xs: "none", md: "block" },
+            }}
+          >
+            Hover &amp; drag to paint cells
+          </Typography>
 
           <Box sx={{ flex: 1 }} />
 
-          {/* Showing count */}
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              display: { xs: "none", sm: "block" },
-            }}
-          >
-            Showing{" "}
-            <strong style={{ color: theme.palette.text.primary }}>
-              {filteredEmps.length}
-            </strong>{" "}
-            of {allEmps.length}
-          </Typography>
-
-          {/* Actions */}
-          <SearchBox
-            value={filter.query}
-            onChange={handleSearchChange}
-            onClear={handleSearchClear}
-          />
-
-          <FilterTriggerButton
-            activeCount={activeFilterCount}
-            onClick={() => setFilterOpen(true)}
-          />
-
-          <Tooltip title="Export CSV" arrow>
-            <IconButton
-              size="small"
-              onClick={handleExport}
-              sx={{ borderRadius: "8px", border: 1, borderColor: "divider" }}
-            >
-              <DownloadIcon sx={{ fontSize: 18 }} />
-            </IconButton>
-          </Tooltip>
-
-          <Button
-            size="small"
-            variant="outlined"
-            startIcon={<BarChartIcon sx={{ fontSize: 15 }} />}
-            onClick={() => setAnalyticsOpen(true)}
-            sx={{
-              textTransform: "none",
-              fontSize: 12,
-              fontWeight: 650,
-              borderRadius: "8px",
-              height: 32,
-            }}
-          >
-            Analytics
-          </Button>
-
-          {editing ? (
-            <Stack direction="row" gap={0.75}>
-              <Button
-                size="small"
-                variant="outlined"
-                color="inherit"
-                startIcon={<CloseIcon sx={{ fontSize: 14 }} />}
-                onClick={handleDiscardEdits}
+          {/* ── Action buttons (right side) ─────────────────────────────── */}
+          <Stack direction="row" alignItems="center" gap={1}>
+            {/* Pending-changes summary pill */}
+            {hasPending && (
+              <Box
                 sx={{
-                  textTransform: "none",
-                  fontSize: 12,
-                  fontWeight: 650,
-                  borderRadius: "8px",
-                  height: 32,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  px: 1.25,
+                  py: 0.4,
+                  borderRadius: "20px",
+                  bgcolor: isDark ? "rgba(245,158,11,0.12)" : "rgba(245,158,11,0.08)",
+                  border: `1px solid ${isDark ? "rgba(245,158,11,0.35)" : "rgba(245,158,11,0.25)"}`,
                 }}
               >
-                Discard
-              </Button>
-              <Button
-                size="small"
-                variant="contained"
-                color="success"
-                disableElevation
-                startIcon={<CheckIcon sx={{ fontSize: 14 }} />}
-                onClick={handleSave}
-                sx={{
-                  textTransform: "none",
-                  fontSize: 12,
-                  fontWeight: 650,
-                  borderRadius: "8px",
-                  height: 32,
-                }}
-              >
-                Save
-              </Button>
-            </Stack>
-          ) : (
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<EditIcon sx={{ fontSize: 15 }} />}
-              onClick={handleEnterEdit}
-              sx={{
-                textTransform: "none",
-                fontSize: 12,
-                fontWeight: 650,
-                borderRadius: "8px",
-                height: 32,
-              }}
-            >
-              Edit
-            </Button>
-          )}
-        </Stack>
-      </Box>
+                <Box
+                  sx={{
+                    width: 5,
+                    height: 5,
+                    borderRadius: "50%",
+                    bgcolor: "warning.main",
+                    animation: "tkPulse 1.8s infinite",
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: isDark ? "#FCD34D" : "#92400E",
+                    fontFamily: MONO,
+                  }}
+                >
+                  {pendingCount} unsaved
+                </Typography>
+              </Box>
+            )}
 
-      {/* ── Main content ──────────────────────────────────────────────── */}
+            {/* Discard button — only when there are pending changes */}
+            {hasPending && (
+              <Tooltip title="Discard all unsaved changes" arrow>
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  startIcon={<UndoOutlinedIcon sx={{ fontSize: 14 }} />}
+                  onClick={handleDiscard}
+                  disabled={isSaving}
+                  sx={{
+                    fontSize: 11.5,
+                    height: 30,
+                    borderRadius: "8px",
+                    fontWeight: 600,
+                    textTransform: "none",
+                    borderColor: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.18)",
+                    color: "text.secondary",
+                    "&:hover": {
+                      borderColor: "error.main",
+                      color: "error.main",
+                      bgcolor: isDark ? "rgba(239,68,68,0.07)" : "rgba(239,68,68,0.04)",
+                    },
+                  }}
+                >
+                  Discard
+                </Button>
+              </Tooltip>
+            )}
+
+            {/* Save button */}
+            <Tooltip
+              title={hasPending ? `Save ${pendingCount} changed row${pendingCount > 1 ? "s" : ""}` : "No changes to save"}
+              arrow
+            >
+              <span>
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={
+                    isSaving ? (
+                      <CircularProgress size={13} thickness={5} sx={{ color: "inherit" }} />
+                    ) : (
+                      <SaveOutlinedIcon sx={{ fontSize: 15 }} />
+                    )
+                  }
+                  onClick={handleSave}
+                  disabled={!hasPending || isSaving}
+                  disableElevation
+                  sx={{
+                    fontSize: 12,
+                    height: 30,
+                    borderRadius: "8px",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    minWidth: 90,
+                    // Glow when ready
+                    ...(hasPending && !isSaving && {
+                      boxShadow: `0 0 0 3px ${alpha(accent, 0.22)}`,
+                      "&:hover": {
+                        boxShadow: `0 0 0 4px ${alpha(accent, 0.3)}`,
+                      },
+                    }),
+                    transition: "box-shadow 0.2s",
+                  }}
+                >
+                  {isSaving ? "Saving…" : "Save Changes"}
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
+        </Box>
+      )}
+
+      {/* ── Grid ──────────────────────────────────────────────────────────── */}
       <Box
         sx={{
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          px: { xs: 2, md: 3 },
-          pb: 2,
-          gap: 1.25,
           minHeight: 0,
+          overflow: "hidden",
         }}
       >
-        {/* Grid card */}
-        <Card
-          variant="outlined"
-          sx={{
-            flex: 1,
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: "14px",
-            overflow: "hidden",
-            borderColor: isDark ? alpha("#fff", 0.07) : alpha("#000", 0.07),
-            boxShadow: isDark
-              ? "0 4px 32px rgba(0,0,0,0.5)"
-              : "0 2px 20px rgba(13,27,42,0.08)",
-            minHeight: 0,
-          }}
-        >
-          {/* Card toolbar */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            flexWrap="wrap"
-            gap={1.5}
-            sx={{
-              px: 2,
-              py: 1.25,
-              borderBottom: 1,
-              borderColor: "divider",
-              flexShrink: 0,
-              background: isDark
-                ? "linear-gradient(135deg,rgba(24,95,165,0.06),rgba(99,102,241,0.04))"
-                : "linear-gradient(135deg,rgba(24,95,165,0.03),rgba(99,102,241,0.02))",
-            }}
-          >
-            <ShiftLegend />
-            <Box sx={{ flex: 1 }} />
-            <Chip
-              size="small"
-              color="success"
-              variant="outlined"
-              icon={<CheckIcon sx={{ fontSize: "11px !important" }} />}
-              label="Cyclical Rotation"
-              sx={{
-                height: 22,
-                fontSize: 10.5,
-                fontWeight: 650,
-                borderRadius: "6px",
-              }}
-            />
-          </Stack>
-
-          {/* Paint brush bar (edit mode only) */}
-          {editing && <BrushBar brush={brush} onSelect={setBrush} />}
-
-          {/* The grid */}
-          <RosterGrid
-            emps={filteredEmps}
-            grid={localGrid}
-            dates={dates}
-            editing={editing}
-            brush={brush}
-            paintingRef={paintingRef}
-            onCellChange={handleCellChange}
-          />
-        </Card>
-
-        {/* Validation strip */}
-        <Card
-          variant="outlined"
-          sx={{
-            borderRadius: "10px",
-            px: 2,
-            py: 1,
-            flexShrink: 0,
-            borderColor: isDark ? alpha("#fff", 0.06) : alpha("#000", 0.06),
-          }}
-        >
-          <ValidationStrip emps={allEmps} grid={localGrid} />
-        </Card>
+        <FutureWeekGrid
+          employees={employees}
+          isoYear={isoYear}
+          isoWeek={isoWeek}
+          isLoading={isLoading}
+          totalEmployees={totalEmployees}
+          editing={editing}
+          brush={brush}
+          paintingRef={paintingRef}
+          onPendingChanges={setPendingChanges}
+          clearPendingRef={clearPendingRef}
+        />
       </Box>
 
-      {/* ── Filter Drawer ────────────────────────────────────────────── */}
-      <FilterDrawer
-        open={filterOpen}
-        filter={filter}
-        allRoles={allRoles}
-        onApply={setFilter}
-        onClose={() => setFilterOpen(false)}
-      />
-
-      {/* ── Analytics Modal ──────────────────────────────────────────── */}
-      <AnalyticsModal
-        open={analyticsOpen}
-        grid={localGrid}
-        emps={filteredEmps}
-        dates={dates}
-        onClose={() => setAnalyticsOpen(false)}
-      />
-
-      {/* ── Toast ───────────────────────────────────────────────────── */}
+      {/* ── Toast ─────────────────────────────────────────────────────────── */}
       <Snackbar
         open={!!toast}
-        autoHideDuration={2600}
+        autoHideDuration={2800}
         onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          severity="success"
+          severity={toast?.severity ?? "success"}
           variant="filled"
-          icon={<CheckIcon />}
-          onClose={() => setToast(null)}
-          sx={{ alignItems: "center", borderRadius: "10px" }}
+          icon={toast?.severity === "success" ? <CheckIcon /> : undefined}
+          sx={{ alignItems: "center", borderRadius: "12px" }}
         >
-          {toast}
+          {toast?.msg}
         </Alert>
       </Snackbar>
     </Box>
   );
 }
 
-// import { useEffect, useMemo, useState } from "react";
-// import {
-//   Box,
-//   Button,
-//   Snackbar,
-//   Stack,
-//   Typography,
-//   useTheme,
-// } from "@mui/material";
-// import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-// import RestartAltIcon from "@mui/icons-material/RestartAlt";
-// import LayersIcon from "@mui/icons-material/LayersOutlined";
-// import {
-//   TOTAL_COLS,
-//   type FilterState,
-//   type GridScreenProps,
-// } from "../../types/Gridtypes";
-// import {
-//   applyFilters,
-//   buildFromApi,
-//   computeWeekStart,
-//   countActiveFilters,
-//   defaultFilter,
-//   addDays,
-// } from "../../util/Gridutils";
-// // import { usePaginatedFutureWeek } from "../../hooks/usePaginatedFutureWeek";
-// import { ShiftLegend } from "./Gridsharedui";
-// import { GridToolbar } from "./Gridtoolbar";
-// import { RosterGrid } from "./Rostergrid";
-// import { FilterPanel } from "./Filterpanel";
-// import { usePaginatedFutureWeek } from "./Usepaginatedfutureweek";
 
-// export default function GridscreenMain({ subDomainId }: GridScreenProps) {
-//   const theme = useTheme();
-//   const isDark = theme.palette.mode === "dark";
-
-//   // ── Normalise subDomainId ────────────────────────────────────────────────
-//   const parsedSubDomainId =
-//     typeof subDomainId === "string"
-//       ? parseInt(subDomainId, 10)
-//       : (subDomainId ?? 0);
-
-//   // ── Paginated API ────────────────────────────────────────────────────────
-//   // All fetching, accumulation, and load-more logic lives in this hook.
-//   // GridscreenMain just renders what the hook exposes.
-//   const {
-//     rows,        // accumulated FutureWeekRow[] (grows page by page)
-//     total,       // totalEmployees from server
-//     isFetching,
-//     isError,
-//     hasMore,
-//     loadMore,
-//     refetch,
-//   } = usePaginatedFutureWeek(parsedSubDomainId);
-
-//   // ── Derived data ─────────────────────────────────────────────────────────
-//   // buildFromApi + computeWeekStart run whenever rows grows.
-//   // Because rows only ever appends, React memoises cheaply.
-//   const { emps, grid, allRoles, weekStart } = useMemo(() => {
-//     const built = buildFromApi(rows);
-//     return { ...built, weekStart: computeWeekStart(rows) };
-//   }, [rows]);
-
-//   const dates = useMemo(
-//     () => Array.from({ length: TOTAL_COLS }, (_, i) => addDays(weekStart, i)),
-//     [weekStart]
-//   );
-
-//   // ── UI state ─────────────────────────────────────────────────────────────
-//   const [filter, setFilter] = useState<FilterState>(defaultFilter());
-//   const [filterOpen, setFilterOpen] = useState(false);
-//   const [snack, setSnack] = useState<string | null>(null);
-
-//   // Placeholders — wire up real dialogs as needed
-//   const [, setEditOpen] = useState(false);
-//   const [, setAnalyticsOpen] = useState(false);
-
-//   // Reset range sliders when the week changes (new subDomain / refetch)
-//   useEffect(() => {
-//     setFilter((f) => ({
-//       ...f,
-//       workRange: [0, TOTAL_COLS],
-//       nightRange: [0, TOTAL_COLS],
-//     }));
-//   }, [weekStart]);
-
-//   // ── Filtered view ─────────────────────────────────────────────────────────
-//   // Filters apply to emps that are already loaded.
-//   // As more pages load, filteredEmps automatically grows.
-//   const filteredEmps = useMemo(
-//     () => applyFilters(emps, grid, filter),
-//     [emps, grid, filter]
-//   );
-
-//   const activeFilterCount = useMemo(
-//     () => countActiveFilters(filter),
-//     [filter]
-//   );
-
-//   // ── Error state ───────────────────────────────────────────────────────────
-//   // Only show the full error screen when the very first page fails (rows empty).
-//   // Subsequent page errors are shown inline via the sentinel.
-//   if (isError && rows.length === 0) {
-//     return (
-//       <Box
-//         sx={{
-//           display: "flex",
-//           flexDirection: "column",
-//           alignItems: "center",
-//           justifyContent: "center",
-//           height: "100%",
-//           gap: 2,
-//         }}
-//       >
-//         <WarningAmberIcon sx={{ fontSize: 40, color: "error.main" }} />
-//         <Typography
-//           sx={{ fontSize: 14, fontWeight: 600, color: "text.primary" }}
-//         >
-//           Failed to load roster
-//         </Typography>
-//         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-//           Check network or API.
-//         </Typography>
-//         <Button
-//           variant="outlined"
-//           size="small"
-//           startIcon={<RestartAltIcon />}
-//           onClick={refetch}
-//           sx={{ textTransform: "none" }}
-//         >
-//           Retry
-//         </Button>
-//       </Box>
-//     );
-//   }
-
-//   // ── Render ────────────────────────────────────────────────────────────────
-//   return (
-//     <Box
-//       sx={{
-//         display: "flex",
-//         flexDirection: "column",
-//         height: "100%",
-//         maxHeight: `calc(100vh - 218px)`,
-//         overflow: "hidden",
-//         bgcolor: "background.default",
-//       }}
-//     >
-//       {/* ── STICKY TOOLBAR ────────────────────────────────────────────────── */}
-//       <GridToolbar
-//         filter={filter}
-//         activeFilterCount={activeFilterCount}
-//         weekStart={weekStart}
-//         filterOpen={filterOpen}
-//         filteredEmps={filteredEmps}
-//         grid={grid}
-//         onFilterChange={setFilter}
-//         onFilterToggle={() => setFilterOpen((v) => !v)}
-//         onAnalyticsOpen={() => setAnalyticsOpen(true)}
-//         onEditOpen={() => setEditOpen(true)}
-//         onRefetch={refetch}
-//         onSnack={setSnack}
-//       />
-
-//       {/* ── FILTER PANEL ──────────────────────────────────────────────────── */}
-//       <Box sx={{ px: 2, flexShrink: 0 }}>
-//         <FilterPanel
-//           open={filterOpen}
-//           filter={filter}
-//           availableRoles={allRoles}
-//           onFilter={setFilter}
-//           onClose={() => setFilterOpen(false)}
-//         />
-//       </Box>
-
-//       {/* ── LEGEND + COUNT BAR ────────────────────────────────────────────── */}
-//       <Box
-//         sx={{
-//           px: 2,
-//           py: 1,
-//           display: "flex",
-//           alignItems: "center",
-//           gap: 2,
-//           flexShrink: 0,
-//           borderBottom: `1px solid ${theme.palette.divider}`,
-//         }}
-//       >
-//         <ShiftLegend />
-//         <Box flex={1} />
-//         <Stack direction="row" alignItems="center" gap={0.75}>
-//           <LayersIcon sx={{ fontSize: 13, color: "text.disabled" }} />
-//           <Typography
-//             sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 500 }}
-//           >
-//             {filteredEmps.length}
-//             {/* Show total once we know it */}
-//             {total !== null ? ` / ${total}` : ""} employees
-//             {/* Subtle indicator while more pages are being fetched */}
-//             {isFetching && rows.length > 0 && (
-//               <Box
-//                 component="span"
-//                 sx={{ ml: 1, color: "text.disabled", fontWeight: 400 }}
-//               >
-//                 · loading…
-//               </Box>
-//             )}
-//           </Typography>
-//         </Stack>
-//       </Box>
-
-//       {/* ── ROSTER GRID ───────────────────────────────────────────────────── */}
-//       {/*
-//         dimmed=true only during the initial page load (rows empty + fetching).
-//         Subsequent page fetches are invisible — the sentinel spinner handles feedback.
-//       */}
-//       <RosterGrid
-//         emps={filteredEmps}
-//         grid={grid}
-//         dates={dates}
-//         dimmed={isFetching && rows.length === 0}
-//         isFetchingMore={isFetching}
-//         hasMore={hasMore}
-//         totalCount={total}
-//         onLoadMore={loadMore}
-//       />
-
-//       {/* ── SNACKBAR ──────────────────────────────────────────────────────── */}
-//       <Snackbar
-//         open={!!snack}
-//         autoHideDuration={2000}
-//         onClose={() => setSnack(null)}
-//         message={snack}
-//         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-//       />
-//     </Box>
-//   );
-// }
-
-// // import { useEffect, useMemo, useState } from "react";
-// // import {
-// //   Box,
-// //   Button,
-// //   Snackbar,
-// //   Stack,
-// //   Typography,
-// //   useTheme,
-// // } from "@mui/material";
-// // import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-// // import RestartAltIcon from "@mui/icons-material/RestartAlt";
-// // import LayersIcon from "@mui/icons-material/LayersOutlined";
-// // import {
-// //   TOTAL_COLS,
-// //   type FilterState,
-// //   type GridScreenProps,
-// // } from "../../types/Gridtypes";
-// // import {
-// //   applyFilters,
-// //   buildFromApi,
-// //   computeWeekStart,
-// //   countActiveFilters,
-// //   defaultFilter,
-// //   addDays,
-// // } from "../../util/Gridutils";
-// // import { useGetFutureWeekQuery } from "../../api/rosterGenerationApiSlice";
-// // import { ShiftLegend } from "./Gridsharedui";
-// // import { GridToolbar } from "./Gridtoolbar";
-// // import { RosterGrid } from "./Rostergrid";
-// // import { FilterPanel } from "./Filterpanel";
-// // export default function GridscreenMain({ subDomainId }: GridScreenProps) {
-// //   const theme = useTheme();
-// //   const isDark = theme.palette.mode === "dark";
-
-// //   // ── API ─────────────────────────────────────────────────────────────────────
-// //   const parsedSubDomainId =
-// //     typeof subDomainId === "string"
-// //       ? parseInt(subDomainId, 10)
-// //       : (subDomainId ?? 0);
-
-// //   const {
-// //     data: apiData,
-// //     isLoading,
-// //     isError,
-// //     error,
-// //     refetch,
-// //   } = useGetFutureWeekQuery({ subDomainId: parsedSubDomainId });
-
-// //   // ── Derived data ─────────────────────────────────────────────────────────────
-// //   const { emps, grid, allRoles, weekStart } = useMemo(() => {
-// //     const rows = apiData?.data ?? [];
-// //     const built = buildFromApi(rows);
-// //     return { ...built, weekStart: computeWeekStart(rows) };
-// //   }, [apiData]);
-
-// //   const dates = useMemo(
-// //     () => Array.from({ length: TOTAL_COLS }, (_, i) => addDays(weekStart, i)),
-// //     [weekStart],
-// //   );
-
-// //   // ── UI state ─────────────────────────────────────────────────────────────────
-// //   const [filter, setFilter] = useState<FilterState>(defaultFilter());
-// //   const [filterOpen, setFilterOpen] = useState(false);
-// //   const [snack, setSnack] = useState<string | null>(null);
-
-// //   // placeholders — wire up real dialogs as needed
-// //   const [, setEditOpen] = useState(false);
-// //   const [, setAnalyticsOpen] = useState(false);
-
-// //   // Reset ranges when data changes
-// //   useEffect(() => {
-// //     setFilter((f) => ({
-// //       ...f,
-// //       workRange: [0, TOTAL_COLS],
-// //       nightRange: [0, TOTAL_COLS],
-// //     }));
-// //   }, [apiData]);
-
-// //   const filteredEmps = useMemo(
-// //     () => applyFilters(emps, grid, filter),
-// //     [emps, grid, filter],
-// //   );
-// //   const activeFilterCount = useMemo(() => countActiveFilters(filter), [filter]);
-
-// //   // ── Error state ───────────────────────────────────────────────────────────────
-// //   if (isError) {
-// //     return (
-// //       <Box
-// //         sx={{
-// //           display: "flex",
-// //           flexDirection: "column",
-// //           alignItems: "center",
-// //           justifyContent: "center",
-// //           height: "100%",
-// //           gap: 2,
-// //         }}
-// //       >
-// //         <WarningAmberIcon sx={{ fontSize: 40, color: "error.main" }} />
-// //         <Typography
-// //           sx={{ fontSize: 14, fontWeight: 600, color: "text.primary" }}
-// //         >
-// //           Failed to load roster
-// //         </Typography>
-// //         <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-// //           {(error as any)?.data?.message ?? "Check network or API."}
-// //         </Typography>
-// //         <Button
-// //           variant="outlined"
-// //           size="small"
-// //           startIcon={<RestartAltIcon />}
-// //           onClick={() => refetch()}
-// //           sx={{ textTransform: "none" }}
-// //         >
-// //           Retry
-// //         </Button>
-// //       </Box>
-// //     );
-// //   }
-
-// //   // ── Render ────────────────────────────────────────────────────────────────────
-// //   return (
-// //     /**
-// //      * Root: fills the parent container entirely.
-// //      * overflow: hidden keeps scrolling contained to the table only.
-// //      */
-// //     <Box
-// //       sx={{
-// //         display: "flex",
-// //         flexDirection: "column",
-// //         height: "100%",
-// //         maxHeight: `calc(100vh - 218px)`,
-// //         overflow: "hidden",
-// //         bgcolor: "background.default",
-// //       }}
-// //     >
-// //       {/* ── STICKY TOOLBAR ──────────────────────────────────────────────────── */}
-// //       <GridToolbar
-// //         filter={filter}
-// //         activeFilterCount={activeFilterCount}
-// //         weekStart={weekStart}
-// //         filterOpen={filterOpen}
-// //         filteredEmps={filteredEmps}
-// //         grid={grid}
-// //         onFilterChange={setFilter}
-// //         onFilterToggle={() => setFilterOpen((v) => !v)}
-// //         onAnalyticsOpen={() => setAnalyticsOpen(true)}
-// //         onEditOpen={() => setEditOpen(true)}
-// //         onRefetch={refetch}
-// //         onSnack={setSnack}
-// //       />
-
-// //       {/* ── FILTER PANEL (collapses below toolbar) ──────────────────────────── */}
-// //       <Box sx={{ px: 2, flexShrink: 0 }}>
-// //         <FilterPanel
-// //           open={filterOpen}
-// //           filter={filter}
-// //           availableRoles={allRoles}
-// //           onFilter={setFilter}
-// //           onClose={() => setFilterOpen(false)}
-// //         />
-// //       </Box>
-
-// //       {/* ── LEGEND + COUNT BAR ──────────────────────────────────────────────── */}
-// //       <Box
-// //         sx={{
-// //           px: 2,
-// //           py: 1,
-// //           display: "flex",
-// //           alignItems: "center",
-// //           gap: 2,
-// //           flexShrink: 0,
-// //           borderBottom: `1px solid ${theme.palette.divider}`,
-// //         }}
-// //       >
-// //         <ShiftLegend />
-// //         <Box flex={1} />
-// //         <Stack direction="row" alignItems="center" gap={0.75}>
-// //           <LayersIcon sx={{ fontSize: 13, color: "text.disabled" }} />
-// //           <Typography
-// //             sx={{ fontSize: 11.5, color: "text.secondary", fontWeight: 500 }}
-// //           >
-// //             {filteredEmps.length} / {emps.length} employees
-// //           </Typography>
-// //         </Stack>
-// //       </Box>
-
-// //       {/* ── ROSTER GRID (fills remaining space, scrolls internally) ─────────── */}
-// //       <RosterGrid emps={filteredEmps} grid={grid} dates={dates} />
-
-// //       {/* ── SNACKBAR ────────────────────────────────────────────────────────── */}
-// //       <Snackbar
-// //         open={!!snack}
-// //         autoHideDuration={2000}
-// //         onClose={() => setSnack(null)}
-// //         message={snack}
-// //         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-// //       />
-// //     </Box>
-// //   );
-// // }

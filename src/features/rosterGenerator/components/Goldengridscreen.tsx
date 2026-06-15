@@ -1013,16 +1013,16 @@ export default function GoldenGridScreen({
     };
   };
 
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
-        <Stack alignItems="center" gap={2}>
-          <CircularProgress />
-          <Typography>Loading roster data...</Typography>
-        </Stack>
-      </Box>
-    );
-  }
+  // if (isLoading) {
+  //   return (
+  //     <Box sx={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
+  //       <Stack alignItems="center" gap={2}>
+  //         <CircularProgress />
+  //         <Typography>Loading roster data...</Typography>
+  //       </Stack>
+  //     </Box>
+  //   );
+  // }
 
   if (error) {
     return (

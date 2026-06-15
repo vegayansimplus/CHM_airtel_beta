@@ -11,9 +11,10 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import GoldenGridScreen from "../components/Goldengridscreen";
 // import NoDataFound from "../assets/NoDataFound.svg"; // adjust path as needed
 
-import NoDataFound from "../../../assets/svg/NoDataFound.svg"; // adjust path as needed
-import GridScreen from "../components/RosterCycleScreens";
+import NoDataFound from "../../../assets/svg/Filter.svg"; // adjust path as needed
 import GridscreenMain from "../components/Week7Preview/GridscreenMain";
+// import GridScreen from "../components/RosterCycleScreens";
+// import GridscreenMain from "../components/Week7Preview/GridscreenMain";
 
 const TABS = [
   {
@@ -230,7 +231,7 @@ export const RosterGenerationMain = () => {
                 component="img"
                 src={NoDataFound}
                 alt="No data"
-                sx={{ width: 200, height: "auto", opacity: 0.9 }}
+                sx={{ width: "auto", height: "auto", opacity: 0.9 }}
               />
               <Typography
                 sx={{
@@ -239,9 +240,7 @@ export const RosterGenerationMain = () => {
                   fontWeight: 500,
                   textAlign: "center",
                 }}
-              >
-                Select a Sub Domain to view roster data
-              </Typography>
+              ></Typography>
             </Box>
           ) : (
             <>
@@ -252,10 +251,12 @@ export const RosterGenerationMain = () => {
                 />
               )}
               {activeTab === 1 && (
-                <GridscreenMain
-                  // teamId={values.teamFunction}
-                  subDomainId={values.subDomain}
-                />
+                // <GridscreenMain
+                //   // teamId={values.teamFunction}
+                //   subDomainId={values.subDomain}
+                // />
+
+                <GridscreenMain subDomainId={values.subDomain} />
               )}
             </>
           )}
