@@ -3,26 +3,28 @@ import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 
 interface ScrollSentinelProps {
-  /** Called once when the sentinel enters the viewport */
   onVisible: () => void;
-  isFetching: boolean;
-  hasMore: boolean;
-  /** Total loaded vs total available — shown when all rows are loaded */
-  loadedCount: number;
-  totalCount: number | null;
+  /** Pass the scrollable TableContainer ref so the observer uses it as root */
+  rootRef?: React.RefObject<HTMLElement | null>;
+  /** Prevent firing while a fetch is already in flight */
+  disabled?: boolean;
+  loadedCount?: number;
+  totalCount?: number | null;
 }
 
 /**
- * A zero-height sentinel row placed at the bottom of the table body.
- * An IntersectionObserver fires `onVisible` as soon as it enters view,
- * which triggers the next page fetch via usePaginatedFutureWeek.
+ * A zero-height sentinel placed at the bottom of the table body.
+ * IntersectionObserver fires `onVisible` when it enters the viewport,
+ * triggering the next page fetch.
  *
- * When hasMore is false it renders a quiet "all loaded" confirmation.
+ * FIX: The original component accepted `hasMore` / `isFetching` but then
+ * read a `rootRef` variable that was never in scope. This version takes
+ * `rootRef` as an explicit prop and uses `disabled` to gate firing.
  */
 export function ScrollSentinel({
   onVisible,
-  isFetching,
-  hasMore,
+  rootRef,
+  disabled = false,
   loadedCount,
   totalCount,
 }: ScrollSentinelProps) {
@@ -30,61 +32,61 @@ export function ScrollSentinel({
 
   useEffect(() => {
     const el = sentinelRef.current;
-    if (!el || !hasMore) return;
+    if (!el || disabled) return;
 
     const observer = new IntersectionObserver(
       ([entry]) => {
-        if (entry.isIntersecting) onVisible();
+        if (entry.isIntersecting && !disabled) {
+          onVisible();
+        }
       },
       {
-        // Fire when 10% of the sentinel is visible
         threshold: 0.1,
-        // Start loading slightly before the user actually hits the bottom
-        rootMargin: "0px 0px 120px 0px",
-      }
+        root: rootRef?.current ?? null,
+        rootMargin: "0px 0px 160px 0px",
+      },
     );
 
     observer.observe(el);
     return () => observer.disconnect();
-  }, [onVisible, hasMore]);
-
-  if (!hasMore) {
-    return (
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="center"
-        gap={0.75}
-        sx={{ py: 1.25 }}
-      >
-        <CheckCircleOutlineIcon
-          sx={{ fontSize: 13, color: "success.main", opacity: 0.7 }}
-        />
-        <Typography sx={{ fontSize: 11, color: "text.disabled" }}>
-          {totalCount !== null
-            ? `All ${totalCount} employees loaded`
-            : "All employees loaded"}
-        </Typography>
-      </Stack>
-    );
-  }
+  }, [onVisible, disabled, rootRef]);
 
   return (
     <Box ref={sentinelRef} sx={{ py: 1.25 }}>
-      {isFetching && (
-        <Stack
-          direction="row"
-          alignItems="center"
-          justifyContent="center"
-          gap={1}
-        >
+      {disabled && (
+        <Stack direction="row" alignItems="center" justifyContent="center" gap={1}>
           <CircularProgress size={14} thickness={4} />
           <Typography sx={{ fontSize: 11, color: "text.disabled" }}>
             Loading more…{" "}
-            {totalCount !== null && `(${loadedCount} / ${totalCount})`}
+            {totalCount != null && `(${loadedCount ?? 0} / ${totalCount})`}
           </Typography>
         </Stack>
       )}
     </Box>
+  );
+}
+
+interface AllLoadedProps {
+  loadedCount: number;
+  totalCount: number | null;
+}
+
+/** Shown in place of the sentinel when all pages have been fetched. */
+export function AllLoadedRow({ loadedCount, totalCount }: AllLoadedProps) {
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      justifyContent="center"
+      gap={0.75}
+      sx={{ py: 1.25 }}
+    >
+      <CheckCircleOutlineIcon sx={{ fontSize: 13, color: "success.main", opacity: 0.7 }} />
+      <Typography sx={{ fontSize: 11, color: "text.disabled" }}>
+        {totalCount !== null
+          ? `All ${totalCount} employees loaded`
+          : `All ${loadedCount} employees loaded`}
+      </Typography>
+    </Stack>
   );
 }

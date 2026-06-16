@@ -166,7 +166,7 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
           }}
         >
           <Tab label="Team Overview" />
-          <Tab label="Task Configuration" />
+          {/* <Tab label="Task Configuration" /> */}
         </Tabs>
       </Box>
 

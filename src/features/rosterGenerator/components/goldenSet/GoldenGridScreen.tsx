@@ -37,7 +37,7 @@ import {
   useTheme,
   CircularProgress,
 } from "@mui/material";
-import type { GoldenSetApiRow } from "../types/goldenSet.types";
+// import type { GoldenSetApiRow } from "../types/goldenSet.types";
 
 // ── Components ────────────────────────────────────────────────────────────────
 import RosterFilterDrawer, {
@@ -58,7 +58,9 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import SearchIcon from "@mui/icons-material/Search";
-import { useGetGoldenSetQuery } from "../api/rosterGenerationApiSlice";
+// import { useGetGoldenSetQuery } from "../api/rosterGenerationApiSlice";
+import type { GoldenSetApiRow } from "../../types/goldenSet.types";
+import { useGetGoldenSetQuery } from "../../api/rosterGenerationApiSlice";
 
 export interface GoldenSetEmployee {
   prefId: number;
@@ -198,7 +200,10 @@ const LEVEL_META: Record<string, LevelMeta> = {
 
 const shiftColorMap = new Map<string, ShiftColor>([
   ["Leave", { background: "#FEF2F2", color: "#B91C1C", border: "#FCA5A5" }],
-  ["New Joinee", { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" }],
+  [
+    "New Joinee",
+    { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" },
+  ],
   ["N", { background: "#EEF2FF", color: "#3730A3", border: "#818CF8" }],
   ["A", { background: "#F5F3FF", color: "#6B21A8", border: "#C4B5FD" }],
   ["B", { background: "#ECFEFF", color: "#155E75", border: "#67E8F9" }],
@@ -1012,17 +1017,6 @@ export default function GoldenGridScreen({
           : undefined,
     };
   };
-
-  // if (isLoading) {
-  //   return (
-  //     <Box sx={{ display: "grid", placeItems: "center", minHeight: "100vh" }}>
-  //       <Stack alignItems="center" gap={2}>
-  //         <CircularProgress />
-  //         <Typography>Loading roster data...</Typography>
-  //       </Stack>
-  //     </Box>
-  //   );
-  // }
 
   if (error) {
     return (

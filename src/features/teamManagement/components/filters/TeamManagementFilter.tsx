@@ -8,6 +8,7 @@ import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import { authStorage } from "../../../../app/store/auth.storage";
+import { usePermission } from "../../../../rbac/usePermission";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
@@ -40,6 +41,8 @@ export const TeamManagementFilter = ({
   const loggedUser  = authStorage.getUser();
   const actorUserId = loggedUser?.userId;
   const roleName    = loggedUser?.roleCode ?? "TEAM_MEMBER";
+  const { can } = usePermission();
+  const canCreateTeam = can("Team Management", "CREATE");
   const { options } = useOrgHierarchyFilters(filters);
 
   const [openAddDialog,    setOpenAddDialog]    = useState(false);
@@ -99,36 +102,37 @@ export const TeamManagementFilter = ({
               minWidth: { xs: "100%", sm: "max-content" },
             }}
           >
-            {/* Split button */}
-            <ButtonGroup
-              variant="contained"
-              ref={splitAnchorRef}
-              disableElevation
-              sx={{
-                flex: { xs: "1 1 100%", sm: "0 1 auto" },
-                minWidth: "max-content",
-                borderRadius: "8px",
-                "& .MuiButtonGroup-grouped": { borderColor: "rgba(255,255,255,0.3)" },
-              }}
-            >
-              <Button
-                startIcon={<PersonAddAltIcon />}
-                onClick={() => actorUserId && setOpenAddDialog(true)}
+            {canCreateTeam && (
+              <ButtonGroup
+                variant="contained"
+                ref={splitAnchorRef}
+                disableElevation
                 sx={{
-                  flexGrow: 1, textTransform: "none", fontWeight: 600,
-                  borderRadius: "8px 0 0 8px", px: 2, whiteSpace: "nowrap",
+                  flex: { xs: "1 1 100%", sm: "0 1 auto" },
+                  minWidth: "max-content",
+                  borderRadius: "8px",
+                  "& .MuiButtonGroup-grouped": { borderColor: "rgba(255,255,255,0.3)" },
                 }}
               >
-                Add Member
-              </Button>
-              <Button
-                size="small"
-                onClick={() => setSplitOpen((p) => !p)}
-                sx={{ borderRadius: "0 8px 8px 0", px: 0.5, minWidth: 32 }}
-              >
-                <ArrowDropDownIcon />
-              </Button>
-            </ButtonGroup>
+                <Button
+                  startIcon={<PersonAddAltIcon />}
+                  onClick={() => actorUserId && setOpenAddDialog(true)}
+                  sx={{
+                    flexGrow: 1, textTransform: "none", fontWeight: 600,
+                    borderRadius: "8px 0 0 8px", px: 2, whiteSpace: "nowrap",
+                  }}
+                >
+                  Add Member
+                </Button>
+                <Button
+                  size="small"
+                  onClick={() => setSplitOpen((p) => !p)}
+                  sx={{ borderRadius: "0 8px 8px 0", px: 0.5, minWidth: 32 }}
+                >
+                  <ArrowDropDownIcon />
+                </Button>
+              </ButtonGroup>
+            )}
 
             {/*  ExportPanel now receives live data props */}
             <Box sx={{ flex: { xs: "1 1 100%", sm: "0 1 auto" }, minWidth: "max-content", display: "flex" }}>
@@ -160,7 +164,10 @@ export const TeamManagementFilter = ({
               <ClickAwayListener onClickAway={() => setSplitOpen(false)}>
                 <MenuList dense disablePadding>
                   <MenuItem
-                    onClick={() => { setSplitOpen(false); actorUserId && setOpenAddDialog(true); }}
+                    onClick={() => {
+                      setSplitOpen(false);
+                      actorUserId && setOpenAddDialog(true);
+                    }}
                     sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
                   >
                     <PersonAddAltIcon sx={{ fontSize: 18, color: "primary.main" }} />
@@ -168,7 +175,10 @@ export const TeamManagementFilter = ({
                   </MenuItem>
                   <Divider sx={{ my: 0 }} />
                   <MenuItem
-                    onClick={() => { setSplitOpen(false); setOpenUploadDialog(true); }}
+                    onClick={() => {
+                      setSplitOpen(false);
+                      setOpenUploadDialog(true);
+                    }}
                     sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
                   >
                     <UploadFileIcon sx={{ fontSize: 18, color: "success.main" }} />

@@ -5,9 +5,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import CloseIcon from "@mui/icons-material/Close";
 import { LEVEL_COLORS, MONO, SHIFT_COLORS, SHIFT_ORDER, type Employee, type ShiftCode } from "../../types/Gridtypes";
 import { shiftStyle } from "../../util/Gridutils";
-// import { shiftStyle } from "../Week7PreviewScreen";
-// import { LEVEL_COLORS, MONO, SHIFT_COLORS, SHIFT_ORDER, type Employee, type ShiftCode } from "./Gridtypes";
-// import { shiftStyle } from "./Gridutils";
+
 
 // ─── LevelBadge ───────────────────────────────────────────────────────────────
 export function LevelBadge({ level }: { level: string }) {

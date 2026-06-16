@@ -25,6 +25,7 @@ import { TeamTopInfoCard } from "./TeamTopInfoCard";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
 import { CreateEditMemberDialog } from "../dialog/CreateEditMemberDialog";
 import { ExitEmployeeDialog } from "../dialog/ExitEmployeeDialog";
+import { usePermission } from "../../../../rbac/usePermission";
 
 /* ================= LEVEL COLOR MAP ================= */
 
@@ -122,7 +123,12 @@ const TeamSkillSetTable: React.FC<Props> = ({
   const [exitDialogOpen, setExitDialogOpen] = useState(false);
   const [selectedRow, setSelectedRow] = useState<any>(null);
   const theme = useTheme();
+  const { can } = usePermission();
+  const canUpdateTeam = can("Team Management", "UPDATE");
+  const canDeleteTeam = can("Team Management", "DELETE");
+  const showActionColumn = canUpdateTeam || canDeleteTeam;
   const handleEdit = (rowData: any) => {
+    if (!canUpdateTeam) return;
     setEditData(rowData);
     setDialogOpen(true);
   };
@@ -241,7 +247,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
             : undefined,
     }));
 
-    if (roleCode !== "User") {
+    if (showActionColumn) {
       baseColumns.push({
         id: "actions",
         header: "Actions",
@@ -250,24 +256,28 @@ const TeamSkillSetTable: React.FC<Props> = ({
         enableColumnFilter: false,
         Cell: ({ row }) => (
           <Box display="flex" gap={0.5}>
-            <Tooltip title="Edit">
-              <IconButton
-                size="small"
-                color="primary"
-                onClick={() => handleEdit(row.original)}
-              >
-                <EditIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Delete">
-              <IconButton
-                size="small"
-                color="error"
-                onClick={() => handleDelete(row.original)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
+            {canUpdateTeam && (
+              <Tooltip title="Edit">
+                <IconButton
+                  size="small"
+                  color="primary"
+                  onClick={() => handleEdit(row.original)}
+                >
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {canDeleteTeam && (
+              <Tooltip title="Delete">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleDelete(row.original)}
+                >
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         ),
       });

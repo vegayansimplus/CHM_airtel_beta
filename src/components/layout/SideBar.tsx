@@ -33,7 +33,7 @@ interface SideBarProps {
 const DRAWER_WIDTH = 240;
 const COLLAPSED_WIDTH = 70;
 
-// ─── Shared active-item styles ────────────────────────────────────────────────
+// ─── Shared active-item styles ──────────
 const activeItemSx = {
   background: "linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05))",
   color: "#ffffff",

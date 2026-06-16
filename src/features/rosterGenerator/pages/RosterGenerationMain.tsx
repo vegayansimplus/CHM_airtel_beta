@@ -1,4 +1,4 @@
-import { Box, Tab, Tabs, Typography, useTheme } from "@mui/material";
+import { Box, Button, Tab, Tabs, Typography, useTheme } from "@mui/material";
 import { useState } from "react";
 import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
@@ -7,14 +7,12 @@ import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchySt
 import { useTabColorTokens } from "../../../style/theme";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
-// import { Week7PreviewScreen } from "../components/RosterCycleScreens";
-import GoldenGridScreen from "../components/Goldengridscreen";
-// import NoDataFound from "../assets/NoDataFound.svg"; // adjust path as needed
-
-import NoDataFound from "../../../assets/svg/Filter.svg"; // adjust path as needed
+import NoDataFound from "../../../assets/svg/Filter.svg";
+import GoldenGridScreen from "../components/goldenSet/GoldenGridScreen";
 import GridscreenMain from "../components/Week7Preview/GridscreenMain";
-// import GridScreen from "../components/RosterCycleScreens";
-// import GridscreenMain from "../components/Week7Preview/GridscreenMain";
+
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import CircularProgress from "@mui/material/CircularProgress";
 
 const TABS = [
   {
@@ -37,7 +35,7 @@ export const RosterGenerationMain = () => {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   const isDark = tk.isDark;
-
+  const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
   const hasSubDomain = Boolean(values.subDomain);
@@ -211,6 +209,89 @@ export const RosterGenerationMain = () => {
               }}
             />
           </Box>
+          <Button
+            variant="contained"
+            disabled={isGenerating}
+            startIcon={
+              isGenerating ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <AutoAwesomeOutlinedIcon sx={{ fontSize: 16 }} />
+              )
+            }
+            onClick={async () => {
+              setIsGenerating(true);
+
+              try {
+                // await generateRoster();
+              } finally {
+                setIsGenerating(false);
+              }
+            }}
+            sx={{
+              position: "relative",
+              overflow: "hidden",
+              height: 32,
+              minWidth: 150,
+              mb: 0.5,
+              ml: 1,
+              px: 2,
+              borderRadius: "10px",
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: 12,
+              letterSpacing: "0.02em",
+
+              background: `linear-gradient(135deg, ${tk.accent} 0%, ${tk.success} 100%)`,
+              color: "#fff",
+
+              boxShadow: `0 4px 14px ${
+                activeTab === 0
+                  ? "rgba(59,130,246,.28)"
+                  : "rgba(16,185,129,.28)"
+              }`,
+
+              transition:
+                "transform .22s ease, box-shadow .22s ease, filter .22s ease",
+
+              "&:hover": {
+                transform: "translateY(-1px)",
+                filter: "brightness(1.05)",
+                boxShadow: `0 8px 24px ${
+                  activeTab === 0
+                    ? "rgba(59,130,246,.35)"
+                    : "rgba(16,185,129,.35)"
+                }`,
+              },
+
+              "&:active": {
+                transform: "translateY(0px)",
+              },
+
+              "&::before": {
+                content: '""',
+                position: "absolute",
+                top: 0,
+                left: "-120%",
+                width: "80%",
+                height: "100%",
+                background:
+                  "linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent)",
+                transition: "left .8s ease",
+              },
+
+              "&:hover::before": {
+                left: "140%",
+              },
+
+              "&.Mui-disabled": {
+                color: "#fff",
+                opacity: 0.8,
+              },
+            }}
+          >
+            {isGenerating ? "Generating..." : "Generate Roster"}
+          </Button>
         </Box>
 
         {/* ── Tab content ── */}

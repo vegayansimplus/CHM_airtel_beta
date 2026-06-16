@@ -1,21 +1,27 @@
-import { memo } from "react";
+// import React from "react";
 import { Box, useTheme } from "@mui/material";
-import type { ShiftCode } from "../../types/Futureweek.types";
 import { MONO, SHIFT_COLORS } from "../../util/Shiftconstants";
+import type { ShiftCode } from "../../types/Futureweek.types";
+// import type { ShiftCode } from "../types/Futureweek.types";
+// import { SHIFT_COLORS, MONO } from "../util/Shiftconstants";
 
 interface ShiftChipProps {
   code: ShiftCode;
-  size?: "sm" | "md";
+  size?: "sm" | "md" | "lg";
   active?: boolean;
 }
 
-export const ShiftChip = memo(function ShiftChip({
-  code,
-  size = "md",
-  active = false,
-}: ShiftChipProps) {
-  const isDark = useTheme().palette.mode === "dark";
-  const tokens = SHIFT_COLORS[code];
+export function ShiftChip({ code, size = "md", active = false }: ShiftChipProps) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const c = SHIFT_COLORS[code];
+
+  const dims =
+    size === "sm"
+      ? { minWidth: 28, height: 20, fontSize: 10, px: "4px", borderRadius: "4px" }
+      : size === "lg"
+      ? { minWidth: 44, height: 30, fontSize: 13, px: "8px", borderRadius: "7px" }
+      : { minWidth: 36, height: 26, fontSize: 11, px: "6px", borderRadius: "5px" };
 
   return (
     <Box
@@ -23,84 +29,24 @@ export const ShiftChip = memo(function ShiftChip({
       sx={{
         display: "inline-grid",
         placeItems: "center",
-        minWidth: 36,
-        height: 26,
-        px: 0.75,
-        borderRadius: "6px",
         fontFamily: MONO,
-        fontSize: 11,
         fontWeight: 700,
-        border: active ? "2px solid" : "1.5px solid",
-        bgcolor: tokens.bgLight,
-        color: tokens.fgLight,
-        borderColor: active ? tokens.borderLight : `${tokens.borderLight}80`,
-        boxShadow: active ? `0 0 0 2.5px ${tokens.borderLight}66` : "none",
-        transition: "all 0.15s",
-        "&:hover": {
-          filter: "brightness(0.96)",
-        },
+        letterSpacing: "0.02em",
+        border: "1.5px solid",
+        userSelect: "none",
+        transition: "all 0.1s ease",
+        bgcolor: active
+          ? (isDark ? c.bgDark : c.bgLight)
+          : (isDark ? c.bgDark : c.bgLight),
+        color: isDark ? c.fgDark : c.fgLight,
+        borderColor: active
+          ? c.solid
+          : (isDark ? c.borderDark : c.borderLight),
+        boxShadow: active ? `0 0 0 2px ${c.solid}40` : "none",
+        ...dims,
       }}
     >
       {code}
     </Box>
   );
-});
-
-
-
-// import { memo } from "react";
-// import { Box, useTheme } from "@mui/material";
-// import type { ShiftCode } from "../../types/Futureweek.types";
-// import { MONO, SHIFT_COLORS } from "../../util/Shiftconstants";
-
-// interface ShiftChipProps {
-//   code: ShiftCode;
-//   size?: "sm" | "md";
-// }
-
-// export const ShiftChip = memo(function ShiftChip({
-//   code,
-//   size = "md",
-// }: ShiftChipProps) {
-//   const isDark = useTheme().palette.mode === "dark";
-//   const tokens = SHIFT_COLORS[code];
-
-//   const width = size === "sm" ? 34 : 40;
-//   const height = size === "sm" ? 22 : 28;
-//   const fs = size === "sm" ? 10 : 11;
-
-//   return (
-//    <Box
-//   component="span"
-//   sx={{
-//     display: "inline-grid",
-//     placeItems: "center",
-
-//     minWidth: 36,
-//     height: 26,
-
-//     px: 0.75,
-
-//     borderRadius: "6px",
-
-//     fontFamily: MONO,
-//     fontSize: 11,
-//     fontWeight: 700,
-
-//     border: "1.5px solid",
-
-//     bgcolor: tokens.bgLight,
-//     color: tokens.fgLight,
-//     borderColor: tokens.borderLight,
-
-//     transition: "all 0.15s",
-
-//     "&:hover": {
-//       filter: "brightness(0.96)",
-//     },
-//   }}
-// >
-//   {code}
-// </Box>
-//   );
-// });
+}

@@ -1,72 +1,57 @@
+import { useState, useEffect, useCallback, type RefObject } from "react";
+import type { NormalisedEmployee } from "../../types/Futureweek.types";
+// import type { NormalisedEmployee } from "../types/Futureweek.types";
 
+export const VIRTUAL_ROW_HEIGHT = 44;
+const OVERSCAN = 8;
 
-import { useEffect, useRef, useState } from "react";
-
-export const VIRTUAL_ROW_HEIGHT = 44; // px — must match the <TableRow> height
-const BUFFER_ROWS = 10;               // rows rendered above and below viewport
-
-interface VirtualSlice<T> {
-  visibleRows:   T[];
-  paddingTop:    number;
+interface VirtualState {
+  visibleRows: NormalisedEmployee[];
+  paddingTop: number;
   paddingBottom: number;
 }
 
-export function useVirtualRows<T>(
-  allRows: T[],
-  containerRef: React.RefObject<HTMLElement | null>,
-): VirtualSlice<T> {
-  const total = allRows.length;
-  const [slice, setSlice] = useState({ start: 0, end: Math.min(40, total) });
-  const rafRef = useRef<number | null>(null);
+export function useVirtualRows(
+  employees: NormalisedEmployee[],
+  containerRef: RefObject<HTMLElement | null>,
+): VirtualState {
+  const [scrollTop, setScrollTop] = useState(0);
+  const [viewportHeight, setViewportHeight] = useState(600);
+
+  const handleScroll = useCallback(() => {
+    if (containerRef.current) {
+      setScrollTop(containerRef.current.scrollTop);
+    }
+  }, [containerRef]);
 
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+    setViewportHeight(el.clientHeight);
+    setScrollTop(el.scrollTop);
 
-    const recalc = () => {
-      const { scrollTop, clientHeight } = el;
-      const firstVisible = Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT);
-      const visibleCount  = Math.ceil(clientHeight / VIRTUAL_ROW_HEIGHT);
-      const start = Math.max(0, firstVisible - BUFFER_ROWS);
-      const end   = Math.min(total, firstVisible + visibleCount + BUFFER_ROWS);
-      setSlice((prev) =>
-        prev.start === start && prev.end === end ? prev : { start, end },
-      );
-    };
-
-    const onScroll = () => {
-      if (rafRef.current !== null) return;
-      rafRef.current = requestAnimationFrame(() => {
-        recalc();
-        rafRef.current = null;
-      });
-    };
-
-    recalc();
-    el.addEventListener("scroll", onScroll, { passive: true });
-
-    // Also re-calc on resize (e.g. sidebar toggle)
-    const ro = new ResizeObserver(recalc);
+    const ro = new ResizeObserver(() => setViewportHeight(el.clientHeight));
     ro.observe(el);
+    el.addEventListener("scroll", handleScroll, { passive: true });
 
     return () => {
-      el.removeEventListener("scroll", onScroll);
       ro.disconnect();
-      if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+      el.removeEventListener("scroll", handleScroll);
     };
-  }, [total, containerRef]);
+  }, [containerRef, handleScroll]);
 
-  // When total changes (more pages loaded), clamp end
-  useEffect(() => {
-    setSlice((prev) => ({
-      start: prev.start,
-      end:   Math.min(total, Math.max(prev.end, 40)),
-    }));
-  }, [total]);
+  const startIndex = Math.max(
+    0,
+    Math.floor(scrollTop / VIRTUAL_ROW_HEIGHT) - OVERSCAN,
+  );
+  const endIndex = Math.min(
+    employees.length,
+    Math.ceil((scrollTop + viewportHeight) / VIRTUAL_ROW_HEIGHT) + OVERSCAN,
+  );
 
   return {
-    visibleRows:   allRows.slice(slice.start, slice.end),
-    paddingTop:    slice.start * VIRTUAL_ROW_HEIGHT,
-    paddingBottom: Math.max(0, (total - slice.end) * VIRTUAL_ROW_HEIGHT),
+    visibleRows: employees.slice(startIndex, endIndex),
+    paddingTop: startIndex * VIRTUAL_ROW_HEIGHT,
+    paddingBottom: Math.max(0, (employees.length - endIndex) * VIRTUAL_ROW_HEIGHT),
   };
 }
