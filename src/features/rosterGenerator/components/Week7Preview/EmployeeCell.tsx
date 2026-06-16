@@ -3,10 +3,6 @@ import { alpha, Box, Stack, Typography, useTheme } from "@mui/material";
 import type { NormalisedEmployee } from "../../types/Futureweek.types";
 import { nameInitials } from "../../util/Futureweek.utils";
 import { LEVEL_COLORS } from "../../util/Shiftconstants";
-// import type { NormalisedEmployee } from "../types/Futureweek.types";
-// import { nameInitials } from "../util/Futureweek.utils";
-// import { LEVEL_COLORS } from "../util/Shiftconstants";
-
 interface EmployeeCellProps {
   employee: NormalisedEmployee;
   /** Highlights the avatar when the row is selected in row-edit mode */

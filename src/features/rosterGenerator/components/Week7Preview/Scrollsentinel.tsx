@@ -12,15 +12,7 @@ interface ScrollSentinelProps {
   totalCount?: number | null;
 }
 
-/**
- * A zero-height sentinel placed at the bottom of the table body.
- * IntersectionObserver fires `onVisible` when it enters the viewport,
- * triggering the next page fetch.
- *
- * FIX: The original component accepted `hasMore` / `isFetching` but then
- * read a `rootRef` variable that was never in scope. This version takes
- * `rootRef` as an explicit prop and uses `disabled` to gate firing.
- */
+
 export function ScrollSentinel({
   onVisible,
   rootRef,

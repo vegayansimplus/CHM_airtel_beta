@@ -1,9 +1,7 @@
-// import React from "react";
+
 import { Box, useTheme } from "@mui/material";
 import { MONO, SHIFT_COLORS } from "../../util/Shiftconstants";
 import type { ShiftCode } from "../../types/Futureweek.types";
-// import type { ShiftCode } from "../types/Futureweek.types";
-// import { SHIFT_COLORS, MONO } from "../util/Shiftconstants";
 
 interface ShiftChipProps {
   code: ShiftCode;

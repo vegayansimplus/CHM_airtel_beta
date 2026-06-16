@@ -2,12 +2,8 @@ import { useCallback, useRef, useState } from "react";
 import type { NormalisedEmployee } from "../../types/Futureweek.types";
 import { useLazyGetFutureWeekQuery } from "../../api/rosterGenerationApiSlice";
 import { normaliseRows } from "../../util/Futureweek.utils";
-// import type { NormalisedEmployee } from "../types/Futureweek.types";
-// import { useLazyGetFutureWeekQuery } from "../api/rosterGenerationApiSlice";
-// import { normaliseRows } from "../util/Futureweek.utils";
 
 const PAGE_SIZE = 50;
-
 export interface PaginatedFutureWeekState {
   employees: NormalisedEmployee[];
   isoWeek: number;
