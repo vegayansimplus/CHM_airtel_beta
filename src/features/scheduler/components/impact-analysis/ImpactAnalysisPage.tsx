@@ -38,6 +38,8 @@ import CustomActionButton from "../../../../components/common/CustomActionButton
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { CrqCard } from "../chips/CrqCard";
 import {  PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
+import { PREV_CRQ_STATUS_DATA } from "./mockData";
+import { useNavigate } from "react-router";
 // import { CrqCard } from "../plan-and-inventory/CrqCard";
 // import { CrqCard } from "../chips/CrqCard";
 
@@ -189,6 +191,7 @@ export const ImpactAnalysisPage: React.FC<ImpactAnalysisPageProps> = ({
 }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
+  const navigate = useNavigate();
   const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
 
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
@@ -446,10 +449,8 @@ export const ImpactAnalysisPage: React.FC<ImpactAnalysisPageProps> = ({
       <CustomActionButton
         label="View Selected CRQ"
         disabled={!selectedCrq}
-        url={
-          selectedCrq
-            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}`
-            : undefined
+        onClick={() =>
+          selectedCrq && navigate(`/scheduler/crqWorkflow/${selectedCrq.crqNo}`)
         }
         colors={colors}
       />
@@ -650,158 +651,3 @@ export const ImpactAnalysisPage: React.FC<ImpactAnalysisPageProps> = ({
 export default ImpactAnalysisPage;
 
 
-export const PREV_CRQ_STATUS_DATA = {
-  plans: [
-    {
-      planNumber: "PTN/AC/SFP-A/MOB/04092025/019",
-      planType: "Back Bone Link Upgradation",
-      description: null,
-      crqs: [
-        {
-          activityPlanEndDate: "2025-04-30T10:01:00",
-          activityPlanStartDate: "2025-04-30T08:01:00",
-          activitySequence: "new_equipment_activity",
-          aschg: null,
-          ascpy: null,
-          asgrp: null,
-          asorg: null,
-          crqId: 2,
-          crqNo: "CRQ000000888888",
-          crqReviewStatus: "Not Started",
-          crqStatus: "In Progress",
-          description: null,
-          detailedDescription: null,
-          locationCodeM6: "KNJ/NAS/001",
-          managerChange: "NA",
-          neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-          olmidReview: "A10KCZW7",
-          planActivityDetails: "new_equipment_activity",
-          planNumber: "PTN/AC/SFP-A/MOB/04092025/019",
-          planType: "Back Bone Link Upgradation",
-          remark: null,
-          requestedEndDate: null,
-          requestedStartDate: null,
-          reviewEndDate: null,
-          reviewStartDate: null,
-          supportGroupName: null,
-          supportOrganization: null,
-          taskActivity: "new_equipment_activity",
-          taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-          taskProfileType: "OPERATIONS,IMPLEMENTATION",
-          tasks: [
-            {
-              taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-              neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-              planActivityDetails: "new_equipment_activity",
-              activitySequence: "new_equipment_activity",
-              taskProfileType: "OPERATIONS,IMPLEMENTATION",
-              locationCodeM6: "KNJ/NAS/001",
-              workAreaTerritory: "KANNAUJ-KNJ",
-              activityPlanStartDate: "2025-04-30T08:01:00",
-              activityPlanEndDate: "2025-04-30T10:01:00",
-              taskActivity: "new_equipment_activity",
-            },
-          ],
-          workAreaTerritory: "KANNAUJ-KNJ",
-          workflow: "No",
-        },
-        {
-          activityPlanEndDate: "2025-04-30T10:01:00",
-          activityPlanStartDate: "2025-04-30T08:01:00",
-          activitySequence: "new_equipment_activity",
-          aschg: null,
-          ascpy: null,
-          asgrp: null,
-          asorg: null,
-          crqId: 3,
-          crqNo: "CRQ000000888890",
-          crqReviewStatus: "Not Started",
-          crqStatus: "In Progress",
-          description: null,
-          detailedDescription: null,
-          locationCodeM6: "KNJ/NAS/001",
-          managerChange: "NA",
-          neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-          olmidReview: "A10KCZW7",
-          planActivityDetails: "new_equipment_activity",
-          planNumber: "PTN/AC/SFP-A/MOB/04092025/019",
-          planType: "Back Bone Link Upgradation",
-          remark: null,
-          requestedEndDate: null,
-          requestedStartDate: null,
-          reviewEndDate: null,
-          reviewStartDate: null,
-          supportGroupName: null,
-          supportOrganization: null,
-          taskActivity: "new_equipment_activity",
-          taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-          taskProfileType: "OPERATIONS,IMPLEMENTATION",
-          tasks: [
-            {
-              taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-              neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-              planActivityDetails: "new_equipment_activity",
-              activitySequence: "new_equipment_activity",
-              taskProfileType: "OPERATIONS,IMPLEMENTATION",
-              locationCodeM6: "KNJ/NAS/001",
-              workAreaTerritory: "KANNAUJ-KNJ",
-              activityPlanStartDate: "2025-04-30T08:01:00",
-              activityPlanEndDate: "2025-04-30T10:01:00",
-              taskActivity: "new_equipment_activity",
-            },
-          ],
-          workAreaTerritory: "KANNAUJ-KNJ",
-          workflow: "No",
-        },
-        {
-          activityPlanEndDate: "2025-04-30T10:01:00",
-          activityPlanStartDate: "2025-04-30T08:01:00",
-          activitySequence: "new_equipment_activity",
-          aschg: null,
-          ascpy: null,
-          asgrp: null,
-          asorg: null,
-          crqId: 4,
-          crqNo: "CRQ000000888891",
-          crqReviewStatus: "Not Started",
-          crqStatus: "In Progress",
-          description: null,
-          detailedDescription: null,
-          locationCodeM6: "KNJ/NAS/001",
-          managerChange: "NA",
-          neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-          olmidReview: "A10KCZW7",
-          planActivityDetails: "new_equipment_activity",
-          planNumber: "PTN/AC/SFP-A/MOB/04092025/019",
-          planType: "Back Bone Link Upgradation",
-          remark: null,
-          requestedEndDate: null,
-          requestedStartDate: null,
-          reviewEndDate: null,
-          reviewStartDate: null,
-          supportGroupName: null,
-          supportOrganization: null,
-          taskActivity: "new_equipment_activity",
-          taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-          taskProfileType: "OPERATIONS,IMPLEMENTATION",
-          tasks: [
-            {
-              taskId: "PTN/AC/SFP-A/MOB/04092025/019_TASK_002",
-              neLabel: "KNJ-BCLUE-NAS-T5-ER127.171",
-              planActivityDetails: "new_equipment_activity",
-              activitySequence: "new_equipment_activity",
-              taskProfileType: "OPERATIONS,IMPLEMENTATION",
-              locationCodeM6: "KNJ/NAS/001",
-              workAreaTerritory: "KANNAUJ-KNJ",
-              activityPlanStartDate: "2025-04-30T08:01:00",
-              activityPlanEndDate: "2025-04-30T10:01:00",
-              taskActivity: "new_equipment_activity",
-            },
-          ],
-          workAreaTerritory: "KANNAUJ-KNJ",
-          workflow: "No",
-        },
-      ],
-    },
-  ],
-};

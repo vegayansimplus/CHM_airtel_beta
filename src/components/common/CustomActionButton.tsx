@@ -27,10 +27,10 @@ const CustomActionButton: React.FC<CustomActionButtonProps> = ({
   const handleClick = () => {
     if (disabled) return;
 
-    if (url) {
-      window.open(url, "_blank");
-    } else if (onClick) {
+    if (onClick) {
       onClick();
+    } else if (url) {
+      window.open(url, "_blank");
     }
   };
 

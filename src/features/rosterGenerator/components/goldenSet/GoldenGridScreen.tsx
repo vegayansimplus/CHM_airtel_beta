@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   Chip,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -35,9 +36,7 @@ import {
   Tooltip,
   Typography,
   useTheme,
-  CircularProgress,
 } from "@mui/material";
-// import type { GoldenSetApiRow } from "../types/goldenSet.types";
 
 // ── Components ────────────────────────────────────────────────────────────────
 import RosterFilterDrawer, {
@@ -57,11 +56,17 @@ import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
 import RefreshIcon from "@mui/icons-material/Refresh";
+import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import SearchIcon from "@mui/icons-material/Search";
-// import { useGetGoldenSetQuery } from "../api/rosterGenerationApiSlice";
-import type { GoldenSetApiRow } from "../../types/goldenSet.types";
-import { useGetGoldenSetQuery } from "../../api/rosterGenerationApiSlice";
 
+import type { GoldenSetApiRow } from "../../types/goldenSet.types";
+import {
+  useGetGoldenSetQuery,
+  useUpdateDailyGoldenSetMutation,
+  type DailyGoldenSetPayload,
+} from "../../api/rosterGenerationApiSlice";
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 export interface GoldenSetEmployee {
   prefId: number;
   name: string;
@@ -139,6 +144,7 @@ interface AnalyticsModalProps {
   onClose: () => void;
 }
 
+// ── Constants ─────────────────────────────────────────────────────────────────
 function useTabColorTokens(theme: Theme): TabColorTokens {
   const isDark = theme.palette.mode === "dark";
   return {
@@ -168,13 +174,7 @@ const MONO = "'Roboto Mono', 'Fira Mono', monospace";
 
 const DOW_SHORT: string[] = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
 const DOW_LONG: string[] = [
-  "Monday",
-  "Tuesday",
-  "Wednesday",
-  "Thursday",
-  "Friday",
-  "Saturday",
-  "Sunday",
+  "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ];
 
 const SHIFT_CODES: string[] = ["G", "N", "A", "B", "L", "W", "H", "C", "Leave"];
@@ -200,10 +200,7 @@ const LEVEL_META: Record<string, LevelMeta> = {
 
 const shiftColorMap = new Map<string, ShiftColor>([
   ["Leave", { background: "#FEF2F2", color: "#B91C1C", border: "#FCA5A5" }],
-  [
-    "New Joinee",
-    { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" },
-  ],
+  ["New Joinee", { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" }],
   ["N", { background: "#EEF2FF", color: "#3730A3", border: "#818CF8" }],
   ["A", { background: "#F5F3FF", color: "#6B21A8", border: "#C4B5FD" }],
   ["B", { background: "#ECFEFF", color: "#155E75", border: "#67E8F9" }],
@@ -220,6 +217,21 @@ const DEFAULT_SHIFT_COLOR: ShiftColor = {
   border: "#93C5FD",
 };
 
+// ── Shift code → numeric value for API ───────────────────────────────────────
+// 1 = working shift, 2 = off/rest — adjust if your backend uses different values
+const SHIFT_CODE_TO_NUM: Record<string, number> = {
+  G: 1,
+  N: 1,
+  A: 1,
+  B: 1,
+  L: 1,
+  W: 2,
+  H: 2,
+  C: 2,
+  Leave: 2,
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 function getShiftColor(code: string): ShiftColor {
   if (!code) return DEFAULT_SHIFT_COLOR;
   return (
@@ -246,10 +258,24 @@ function transformApiRowToEmployee(row: GoldenSetApiRow): GoldenSetEmployee {
   };
 }
 
-function transformApiDataToEmployees(
-  apiRows: GoldenSetApiRow[],
-): GoldenSetEmployee[] {
+function transformApiDataToEmployees(apiRows: GoldenSetApiRow[]): GoldenSetEmployee[] {
   return apiRows.map(transformApiRowToEmployee);
+}
+
+/**
+ * Converts a GoldenSetEmployee's shifts array into the DailyGoldenSetPayload
+ * shape expected by POST /goldenset/dailygoldenset
+ */
+function buildDailyGoldenSetPayload(emp: GoldenSetEmployee): DailyGoldenSetPayload {
+  const fields: Record<string, number> = {};
+  for (let w = 1; w <= 6; w++) {
+    for (let d = 1; d <= 7; d++) {
+      const idx = (w - 1) * 7 + (d - 1);
+      const code = emp.shifts[idx] ?? "W";
+      fields[`W${w}D${d}`] = SHIFT_CODE_TO_NUM[code] ?? 1;
+    }
+  }
+  return { userId: emp.prefId, ...fields } as DailyGoldenSetPayload;
 }
 
 function initials(name: string): string {
@@ -262,9 +288,7 @@ function initials(name: string): string {
 }
 
 function summarise(shifts: string[]): ShiftSummary {
-  const work = shifts.filter(
-    (s) => !["W", "H", "C", "Leave"].includes(s),
-  ).length;
+  const work = shifts.filter((s) => !["W", "H", "C", "Leave"].includes(s)).length;
   const night = shifts.filter((s) => s === "N").length;
   const off = shifts.filter((s) => ["W", "H", "C"].includes(s)).length;
   const loadPct = Math.round((work / TOTAL_COLS) * 100);
@@ -277,10 +301,7 @@ function workingCount(counts: Record<string, number>): number {
     .reduce((a, [, v]) => a + v, 0);
 }
 
-function colTotals(
-  emps: GoldenSetEmployee[],
-  idx: number,
-): Record<string, number> {
+function colTotals(emps: GoldenSetEmployee[], idx: number): Record<string, number> {
   const map: Record<string, number> = {};
   emps.forEach((e) => {
     const code = e.shifts[idx] ?? "";
@@ -314,6 +335,7 @@ const defaultFilter = (): FilterState => ({
   showLowRest: false,
 });
 
+// ── Sub-components ────────────────────────────────────────────────────────────
 function LevelBadge({ level }: LevelBadgeProps): React.ReactElement {
   const c: LevelMeta = LEVEL_META[level] ?? {
     bg: "#F1F5F9",
@@ -343,12 +365,7 @@ function LevelBadge({ level }: LevelBadgeProps): React.ReactElement {
   );
 }
 
-function ShiftPill({
-  code,
-  size = "md",
-  onClick,
-  active,
-}: ShiftPillProps): React.ReactElement {
+function ShiftPill({ code, size = "md", onClick, active }: ShiftPillProps): React.ReactElement {
   const sc = getShiftColor(code);
   return (
     <Box
@@ -412,12 +429,7 @@ function EmployeeCell({ emp, accent }: EmployeeCellProps): React.ReactElement {
       <Box sx={{ minWidth: 0 }}>
         <Stack direction="row" alignItems="center" gap={0.75}>
           <Typography
-            sx={{
-              fontSize: 12,
-              fontWeight: 650,
-              lineHeight: 1.15,
-              color: tk.textPrimary,
-            }}
+            sx={{ fontSize: 12, fontWeight: 650, lineHeight: 1.15, color: tk.textPrimary }}
             noWrap
           >
             {emp.name}
@@ -425,13 +437,7 @@ function EmployeeCell({ emp, accent }: EmployeeCellProps): React.ReactElement {
           <LevelBadge level={emp.level} />
         </Stack>
         <Typography
-          sx={{
-            fontSize: 9.5,
-            color: tk.textSecondary,
-            fontWeight: 500,
-            mt: 0.1,
-            lineHeight: 1.2,
-          }}
+          sx={{ fontSize: 9.5, color: tk.textSecondary, fontWeight: 500, mt: 0.1, lineHeight: 1.2 }}
           noWrap
         >
           {emp.olmid} · {emp.role.replace(/_/g, " ")}
@@ -492,14 +498,7 @@ function BrushBar({ brush, onSelect }: BrushBarProps): React.ReactElement {
             animation: "tkPulse 2s infinite",
           }}
         />
-        <Typography
-          sx={{
-            fontSize: 11,
-            color: tk.accent,
-            fontWeight: 700,
-            letterSpacing: "0.02em",
-          }}
-        >
+        <Typography sx={{ fontSize: 11, color: tk.accent, fontWeight: 700, letterSpacing: "0.02em" }}>
           PAINT MODE
         </Typography>
       </Box>
@@ -528,11 +527,7 @@ function BrushBar({ brush, onSelect }: BrushBarProps): React.ReactElement {
   );
 }
 
-function AnalyticsModal({
-  open,
-  emps,
-  onClose,
-}: AnalyticsModalProps): React.ReactElement {
+function AnalyticsModal({ open, emps, onClose }: AnalyticsModalProps): React.ReactElement {
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
 
@@ -554,11 +549,7 @@ function AnalyticsModal({
   const kpis: Array<{ label: string; value: number; color: string }> = [
     { label: "Total Shifts", value: totalShifts, color: tk.accent },
     { label: "Balanced", value: balanced, color: theme.palette.success.main },
-    {
-      label: "High Night Load",
-      value: nightHeavy,
-      color: theme.palette.warning.main,
-    },
+    { label: "High Night Load", value: nightHeavy, color: theme.palette.warning.main },
     { label: "Low Rest", value: lowRest, color: theme.palette.error.main },
   ];
 
@@ -611,24 +602,12 @@ function AnalyticsModal({
               }}
             >
               <Typography
-                sx={{
-                  fontSize: 24,
-                  fontWeight: 800,
-                  color: k.color,
-                  fontFamily: MONO,
-                  lineHeight: 1,
-                }}
+                sx={{ fontSize: 24, fontWeight: 800, color: k.color, fontFamily: MONO, lineHeight: 1 }}
               >
                 {k.value}
               </Typography>
               <Typography
-                sx={{
-                  fontSize: 10,
-                  color: tk.textSecondary,
-                  fontWeight: 600,
-                  mt: 0.5,
-                  lineHeight: 1.3,
-                }}
+                sx={{ fontSize: 10, color: tk.textSecondary, fontWeight: 600, mt: 0.5, lineHeight: 1.3 }}
               >
                 {k.label}
               </Typography>
@@ -666,14 +645,7 @@ function AnalyticsModal({
               >
                 <ShiftPill code={code} />
                 <Typography
-                  sx={{
-                    fontFamily: MONO,
-                    fontSize: 26,
-                    fontWeight: 700,
-                    mt: 1,
-                    lineHeight: 1,
-                    color: sc.color,
-                  }}
+                  sx={{ fontFamily: MONO, fontSize: 26, fontWeight: 700, mt: 1, lineHeight: 1, color: sc.color }}
                 >
                   {totals[code] ?? 0}
                 </Typography>
@@ -685,21 +657,12 @@ function AnalyticsModal({
                     height: 4,
                     borderRadius: 2,
                     bgcolor: alpha(sc.border, 0.15),
-                    "& .MuiLinearProgress-bar": {
-                      bgcolor: sc.border,
-                      borderRadius: 2,
-                    },
+                    "& .MuiLinearProgress-bar": { bgcolor: sc.border, borderRadius: 2 },
                   }}
                 />
                 <Typography
                   variant="caption"
-                  sx={{
-                    color: tk.textSecondary,
-                    fontWeight: 600,
-                    mt: 0.5,
-                    display: "block",
-                    fontFamily: MONO,
-                  }}
+                  sx={{ color: tk.textSecondary, fontWeight: 600, mt: 0.5, display: "block", fontFamily: MONO }}
                 >
                   {pct}%
                 </Typography>
@@ -712,19 +675,12 @@ function AnalyticsModal({
           {busiestDay?.count ?? 0} active personnel
         </Alert>
       </DialogContent>
-      <DialogActions
-        sx={{ px: 3, pb: 2.5, borderTop: `1px solid ${tk.border}` }}
-      >
+      <DialogActions sx={{ px: 3, pb: 2.5, borderTop: `1px solid ${tk.border}` }}>
         <Button
           onClick={onClose}
           variant="contained"
           disableElevation
-          sx={{
-            textTransform: "none",
-            px: 3,
-            borderRadius: tk.radius,
-            fontWeight: 650,
-          }}
+          sx={{ textTransform: "none", px: 3, borderRadius: tk.radius, fontWeight: 650 }}
         >
           Close
         </Button>
@@ -733,6 +689,7 @@ function AnalyticsModal({
   );
 }
 
+// ── Main component ────────────────────────────────────────────────────────────
 export default function GoldenGridScreen({
   teamId,
   subTeamId,
@@ -740,19 +697,22 @@ export default function GoldenGridScreen({
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
 
-  // ── API Integration ──────────────────────────────────────────────────────
+  // ── API ───────────────────────────────────────────────────────────────────
   const subDomainId =
     typeof subTeamId === "string" ? parseInt(subTeamId, 10) : (subTeamId ?? 0);
+
   const {
     data: apiResponse,
     isLoading,
     error,
+    refetch,
   } = useGetGoldenSetQuery({ subDomainId });
 
+  const [updateDailyGoldenSet, { isLoading: isSaving }] =
+    useUpdateDailyGoldenSetMutation();
+
   const allEmps = useMemo<GoldenSetEmployee[]>(() => {
-    if (!apiResponse?.data || !Array.isArray(apiResponse.data)) {
-      return [];
-    }
+    if (!apiResponse?.data || !Array.isArray(apiResponse.data)) return [];
     return transformApiDataToEmployees(apiResponse.data);
   }, [apiResponse]);
 
@@ -763,6 +723,7 @@ export default function GoldenGridScreen({
 
   // ── Local paint grid ──────────────────────────────────────────────────────
   const [localGrid, setLocalGrid] = useState<Record<number, string[]>>({});
+
   const getShifts = useCallback(
     (emp: GoldenSetEmployee): string[] => localGrid[emp.prefId] ?? emp.shifts,
     [localGrid],
@@ -775,36 +736,54 @@ export default function GoldenGridScreen({
   const [editing, setEditing] = useState<boolean>(false);
   const [brush, setBrush] = useState<string>("G");
   const [analyticsOpen, setAnalyticsOpen] = useState<boolean>(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; severity: "success" | "error" } | null>(null);
   const [searchRaw, setSearchRaw] = useState<string>("");
   const search = useDeferredValue(searchRaw);
   const painting = useRef<boolean>(false);
+
+  // ── Save handler ──────────────────────────────────────────────────────────
+  const handleSaveChanges = useCallback(async (): Promise<void> => {
+    const changedPrefIds = Object.keys(localGrid).map(Number);
+
+    if (changedPrefIds.length === 0) {
+      setToast({ msg: "No changes to save", severity: "success" });
+      setEditing(false);
+      return;
+    }
+
+    // Build payload only for employees that were edited
+    const payload: DailyGoldenSetPayload[] = allEmps
+      .filter((e) => changedPrefIds.includes(e.prefId))
+      .map((e) => buildDailyGoldenSetPayload({ ...e, shifts: getShifts(e) }));
+
+    try {
+      await updateDailyGoldenSet(payload).unwrap();
+      setToast({ msg: `Saved ${payload.length} employee(s) successfully`, severity: "success" });
+      setEditing(false);
+    } catch (err) {
+      console.error("Failed to save golden set:", err);
+      setToast({ msg: "Failed to save changes. Please try again.", severity: "error" });
+      // Keep editing mode open so the user can retry
+    }
+  }, [localGrid, allEmps, getShifts, updateDailyGoldenSet]);
 
   // ── Filter + sort pipeline ────────────────────────────────────────────────
   const filtered = useMemo<GoldenSetEmployee[]>(() => {
     const result = allEmps.filter((e) => {
       if (
         search &&
-        !`${e.name} ${e.olmid} ${e.role}`
-          .toLowerCase()
-          .includes(search.toLowerCase())
+        !`${e.name} ${e.olmid} ${e.role}`.toLowerCase().includes(search.toLowerCase())
       )
         return false;
-      if (filter.levels.length && !filter.levels.includes(e.level))
-        return false;
+      if (filter.levels.length && !filter.levels.includes(e.level)) return false;
       if (filter.roles.length && !filter.roles.includes(e.role)) return false;
       const shifts = getShifts(e);
       const s = summarise(shifts);
-      if (s.work < filter.workRange[0] || s.work > filter.workRange[1])
-        return false;
-      if (s.night < filter.nightRange[0] || s.night > filter.nightRange[1])
-        return false;
+      if (s.work < filter.workRange[0] || s.work > filter.workRange[1]) return false;
+      if (s.night < filter.nightRange[0] || s.night > filter.nightRange[1]) return false;
       if (filter.showHighLoad && s.night <= 8) return false;
       if (filter.showLowRest && s.off >= 6) return false;
-      if (
-        filter.shiftCodes.length &&
-        !filter.shiftCodes.every((c) => shifts.includes(c))
-      )
+      if (filter.shiftCodes.length && !filter.shiftCodes.every((c) => shifts.includes(c)))
         return false;
       return true;
     });
@@ -815,41 +794,15 @@ export default function GoldenGridScreen({
       let vA: string | number;
       let vB: string | number;
       switch (sort.field) {
-        case "name":
-          vA = a.name;
-          vB = b.name;
-          break;
-        case "olmid":
-          vA = a.olmid;
-          vB = b.olmid;
-          break;
-        case "role":
-          vA = a.role;
-          vB = b.role;
-          break;
-        case "level":
-          vA = a.level;
-          vB = b.level;
-          break;
-        case "work":
-          vA = sA.work;
-          vB = sB.work;
-          break;
-        case "night":
-          vA = sA.night;
-          vB = sB.night;
-          break;
-        case "off":
-          vA = sA.off;
-          vB = sB.off;
-          break;
-        case "load":
-          vA = sA.loadPct;
-          vB = sB.loadPct;
-          break;
-        default:
-          vA = a.name;
-          vB = b.name;
+        case "name":   vA = a.name;     vB = b.name;     break;
+        case "olmid":  vA = a.olmid;    vB = b.olmid;    break;
+        case "role":   vA = a.role;     vB = b.role;     break;
+        case "level":  vA = a.level;    vB = b.level;    break;
+        case "work":   vA = sA.work;    vB = sB.work;    break;
+        case "night":  vA = sA.night;   vB = sB.night;   break;
+        case "off":    vA = sA.off;     vB = sB.off;     break;
+        case "load":   vA = sA.loadPct; vB = sB.loadPct; break;
+        default:       vA = a.name;     vB = b.name;
       }
       const cmp =
         typeof vA === "number"
@@ -869,9 +822,7 @@ export default function GoldenGridScreen({
     (prefId: number, colIdx: number): void => {
       setLocalGrid((prev) => {
         const base =
-          prev[prefId] ??
-          allEmps.find((e) => e.prefId === prefId)?.shifts ??
-          [];
+          prev[prefId] ?? allEmps.find((e) => e.prefId === prefId)?.shifts ?? [];
         const next = [...base];
         next[colIdx] = brush;
         return { ...prev, [prefId]: next };
@@ -888,16 +839,8 @@ export default function GoldenGridScreen({
     if (filter.levels.length) c++;
     if (filter.roles.length) c++;
     if (filter.shiftCodes.length) c++;
-    if (
-      filter.workRange[0] !== def.workRange[0] ||
-      filter.workRange[1] !== def.workRange[1]
-    )
-      c++;
-    if (
-      filter.nightRange[0] !== def.nightRange[0] ||
-      filter.nightRange[1] !== def.nightRange[1]
-    )
-      c++;
+    if (filter.workRange[0] !== def.workRange[0] || filter.workRange[1] !== def.workRange[1]) c++;
+    if (filter.nightRange[0] !== def.nightRange[0] || filter.nightRange[1] !== def.nightRange[1]) c++;
     if (filter.showHighLoad) c++;
     if (filter.showLowRest) c++;
     return c;
@@ -906,14 +849,8 @@ export default function GoldenGridScreen({
   // ── CSV export ────────────────────────────────────────────────────────────
   const downloadCsv = useCallback((): void => {
     const header = [
-      "Name",
-      "OLM ID",
-      "Role",
-      "Level",
-      ...Array.from(
-        { length: TOTAL_COLS },
-        (_, i) => `W${Math.floor(i / 7) + 1}D${(i % 7) + 1}`,
-      ),
+      "Name", "OLM ID", "Role", "Level",
+      ...Array.from({ length: TOTAL_COLS }, (_, i) => `W${Math.floor(i / 7) + 1}D${(i % 7) + 1}`),
     ];
     const rows = filtered.map((e) =>
       [e.name, e.olmid, e.role, e.level, ...getShifts(e)].join(","),
@@ -926,19 +863,15 @@ export default function GoldenGridScreen({
     a.download = "golden-set.csv";
     a.click();
     URL.revokeObjectURL(url);
-    setToast("CSV exported successfully");
+    setToast({ msg: "CSV exported successfully", severity: "success" });
   }, [filtered, getShifts]);
 
+  // ── Derived style helpers ─────────────────────────────────────────────────
   const nightColor = getShiftColor("N").color;
   const offColor = getShiftColor("W").color;
-
   const headerBg = tk.surface2;
-  const weekHeaderBg = tk.isDark
-    ? "rgba(24,95,165,0.13)"
-    : "rgba(24,95,165,0.07)";
-  const dayHeaderBg = tk.isDark
-    ? "rgba(15,110,86,0.10)"
-    : "rgba(15,110,86,0.05)";
+  const weekHeaderBg = tk.isDark ? "rgba(24,95,165,0.13)" : "rgba(24,95,165,0.07)";
+  const dayHeaderBg = tk.isDark ? "rgba(15,110,86,0.10)" : "rgba(15,110,86,0.05)";
   const empColBg = tk.isDark ? "rgba(30,30,46,1)" : "rgba(248,250,252,1)";
 
   const baseHeadSx = {
@@ -961,6 +894,8 @@ export default function GoldenGridScreen({
     BODY: 1,
   };
 
+  const WEEK_ROW_H = 28;
+
   const weekHeadSx = {
     ...baseHeadSx,
     position: "sticky",
@@ -970,7 +905,6 @@ export default function GoldenGridScreen({
     borderBottom: `1px solid ${tk.border} !important`,
   };
 
-  const WEEK_ROW_H = 28;
   const dayHeadSx = {
     ...baseHeadSx,
     position: "sticky",
@@ -1018,6 +952,15 @@ export default function GoldenGridScreen({
     };
   };
 
+  // ── Render guards ─────────────────────────────────────────────────────────
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", p: 3 }}>
+        <CircularProgress size={36} />
+      </Box>
+    );
+  }
+
   if (error) {
     return (
       <Box sx={{ p: 3 }}>
@@ -1040,14 +983,14 @@ export default function GoldenGridScreen({
       <Box sx={{ p: 3 }}>
         <Alert severity="info">
           <Typography>
-            No roster data available. Please check your configuration and try
-            again.
+            No roster data available. Please check your configuration and try again.
           </Typography>
         </Alert>
       </Box>
     );
   }
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <Box
       sx={{
@@ -1064,18 +1007,10 @@ export default function GoldenGridScreen({
           "50%": { opacity: 0.35 },
         },
       }}
-      onMouseUp={() => {
-        painting.current = false;
-      }}
+      onMouseUp={() => { painting.current = false; }}
     >
       {/* ── Toolbar ── */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        gap={1}
-        flexWrap="wrap"
-        sx={{ flexShrink: 0 }}
-      >
+      <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap" sx={{ flexShrink: 0 }}>
         {/* Search */}
         <Stack
           direction="row"
@@ -1100,25 +1035,16 @@ export default function GoldenGridScreen({
             placeholder="Search name, ID, role…"
             value={searchRaw}
             onChange={(e) => setSearchRaw(e.target.value)}
-            sx={{
-              fontSize: 12.5,
-              width: "100%",
-              fontWeight: 500,
-              color: tk.textPrimary,
-            }}
+            sx={{ fontSize: 12.5, width: "100%", fontWeight: 500, color: tk.textPrimary }}
           />
           {searchRaw && (
-            <IconButton
-              size="small"
-              onClick={() => setSearchRaw("")}
-              sx={{ p: 0.25 }}
-            >
+            <IconButton size="small" onClick={() => setSearchRaw("")} sx={{ p: 0.25 }}>
               <CloseIcon sx={{ fontSize: 13 }} />
             </IconButton>
           )}
         </Stack>
 
-        {/* Filter Drawer Trigger */}
+        {/* Filter */}
         <Badge badgeContent={activeFilters || undefined} color="primary">
           <Button
             size="small"
@@ -1126,23 +1052,14 @@ export default function GoldenGridScreen({
             startIcon={<FilterListIcon sx={{ fontSize: 15 }} />}
             onClick={() => setFilterOpen(true)}
             disableElevation
-            sx={{
-              fontSize: 12,
-              height: 34,
-              borderRadius: tk.radius,
-              fontWeight: 600,
-            }}
+            sx={{ fontSize: 12, height: 34, borderRadius: tk.radius, fontWeight: 600 }}
           >
             Filters
           </Button>
         </Badge>
 
         {/* Quick-sort chips */}
-        <Stack
-          direction="row"
-          gap={0.5}
-          sx={{ display: { xs: "none", md: "flex" } }}
-        >
+        <Stack direction="row" gap={0.5} sx={{ display: { xs: "none", md: "flex" } }}>
           {(["name", "work", "night"] as SortField[]).map((f) => (
             <Chip
               key={f}
@@ -1152,11 +1069,7 @@ export default function GoldenGridScreen({
               color={sort.field === f ? "primary" : "default"}
               icon={
                 sort.field === f ? (
-                  sort.dir === "asc" ? (
-                    <ExpandLessIcon />
-                  ) : (
-                    <ExpandMoreIcon />
-                  )
+                  sort.dir === "asc" ? <ExpandLessIcon /> : <ExpandMoreIcon />
                 ) : undefined
               }
               onClick={() =>
@@ -1165,13 +1078,7 @@ export default function GoldenGridScreen({
                   dir: s.field === f && s.dir === "asc" ? "desc" : "asc",
                 }))
               }
-              sx={{
-                fontSize: 11,
-                height: 26,
-                fontWeight: 600,
-                borderRadius: "6px",
-                cursor: "pointer",
-              }}
+              sx={{ fontSize: 11, height: 26, fontWeight: 600, borderRadius: "6px", cursor: "pointer" }}
             />
           ))}
         </Stack>
@@ -1183,64 +1090,77 @@ export default function GoldenGridScreen({
           variant="outlined"
           startIcon={<BarChartIcon sx={{ fontSize: 15 }} />}
           onClick={() => setAnalyticsOpen(true)}
-          sx={{
-            fontSize: 12,
-            height: 34,
-            borderRadius: tk.radius,
-            fontWeight: 600,
-          }}
+          sx={{ fontSize: 12, height: 34, borderRadius: tk.radius, fontWeight: 600 }}
         >
           Analytics
         </Button>
+
+        {/* Edit / Done Editing button */}
         <Button
           size="small"
           variant={editing ? "contained" : "outlined"}
           color={editing ? "warning" : "inherit"}
           startIcon={<EditOutlinedIcon sx={{ fontSize: 15 }} />}
           onClick={() => {
-            setEditing((v) => !v);
-            if (editing) setToast("Changes saved to local view");
+            if (!editing) {
+              // Enter edit mode
+              setEditing(true);
+            } else {
+              // Exit edit mode without saving
+              setEditing(false);
+              setToast({ msg: "Edit cancelled — changes not saved", severity: "success" });
+            }
           }}
           disableElevation
-          sx={{
-            fontSize: 12,
-            height: 34,
-            borderRadius: tk.radius,
-            fontWeight: 600,
-          }}
+          sx={{ fontSize: 12, height: 34, borderRadius: tk.radius, fontWeight: 600 }}
         >
-          {editing ? "Done Editing" : "Edit"}
+          {editing ? "Cancel" : "Edit"}
         </Button>
+
+        {/* Save button — only visible in edit mode */}
+        {editing && (
+          <Button
+            size="small"
+            variant="contained"
+            color="primary"
+            startIcon={
+              isSaving ? (
+                <CircularProgress size={14} color="inherit" />
+              ) : (
+                <SaveOutlinedIcon sx={{ fontSize: 15 }} />
+              )
+            }
+            onClick={handleSaveChanges}
+            disabled={isSaving}
+            disableElevation
+            sx={{ fontSize: 12, height: 34, borderRadius: tk.radius, fontWeight: 600 }}
+          >
+            {isSaving ? "Saving…" : "Save Changes"}
+          </Button>
+        )}
+
         <Tooltip title="Export visible rows as CSV">
           <IconButton
             size="small"
             onClick={downloadCsv}
-            sx={{
-              border: `1.5px solid ${tk.border}`,
-              borderRadius: tk.radius,
-              width: 34,
-              height: 34,
-            }}
+            sx={{ border: `1.5px solid ${tk.border}`, borderRadius: tk.radius, width: 34, height: 34 }}
           >
             <DownloadOutlinedIcon sx={{ fontSize: 17 }} />
           </IconButton>
         </Tooltip>
+
         <Tooltip title="Reload data">
           <IconButton
             size="small"
-            sx={{
-              border: `1.5px solid ${tk.border}`,
-              borderRadius: tk.radius,
-              width: 34,
-              height: 34,
-            }}
+            onClick={() => refetch()}
+            sx={{ border: `1.5px solid ${tk.border}`, borderRadius: tk.radius, width: 34, height: 34 }}
           >
             <RefreshIcon sx={{ fontSize: 17 }} />
           </IconButton>
         </Tooltip>
       </Stack>
 
-      {/* ── Separate Drawer Component Integration ── */}
+      {/* ── Filter Drawer ── */}
       <RosterFilterDrawer
         open={filterOpen}
         onClose={() => setFilterOpen(false)}
@@ -1285,10 +1205,7 @@ export default function GoldenGridScreen({
         >
           <ShiftLegend />
           <Box flex={1} />
-          <Typography
-            variant="caption"
-            sx={{ color: tk.textSecondary, fontWeight: 500 }}
-          >
+          <Typography variant="caption" sx={{ color: tk.textSecondary, fontWeight: 500 }}>
             Showing{" "}
             <Box component="strong" sx={{ color: tk.textPrimary }}>
               {filtered.length}
@@ -1310,12 +1227,21 @@ export default function GoldenGridScreen({
               color: tk.textSecondary,
             }}
           />
+          {/* Unsaved changes indicator */}
+          {editing && Object.keys(localGrid).length > 0 && (
+            <Chip
+              label={`${Object.keys(localGrid).length} unsaved`}
+              size="small"
+              color="warning"
+              sx={{ height: 24, fontSize: 10.5, borderRadius: "6px", fontWeight: 650 }}
+            />
+          )}
         </Stack>
 
         {/* Paint brush bar */}
         {editing && <BrushBar brush={brush} onSelect={setBrush} />}
 
-        {/* ── MUI TableContainer ── */}
+        {/* ── Table ── */}
         <TableContainer
           sx={{
             flex: 1,
@@ -1325,14 +1251,10 @@ export default function GoldenGridScreen({
             "&::-webkit-scrollbar": { width: 6, height: 6 },
             "&::-webkit-scrollbar-track": { bgcolor: "transparent" },
             "&::-webkit-scrollbar-thumb": {
-              bgcolor: tk.isDark
-                ? "rgba(255,255,255,0.15)"
-                : "rgba(0,0,0,0.15)",
+              bgcolor: tk.isDark ? "rgba(255,255,255,0.15)" : "rgba(0,0,0,0.15)",
               borderRadius: 6,
               "&:hover": {
-                bgcolor: tk.isDark
-                  ? "rgba(255,255,255,0.25)"
-                  : "rgba(0,0,0,0.25)",
+                bgcolor: tk.isDark ? "rgba(255,255,255,0.25)" : "rgba(0,0,0,0.25)",
               },
             },
             maxHeight: `calc(100vh - 320px)`,
@@ -1345,15 +1267,11 @@ export default function GoldenGridScreen({
               "& .MuiTableCell-stickyHeader": {
                 backgroundColor: `${theme.palette.background.paper} !important`,
               },
-              "& .sticky-corner": {
-                left: 0,
-                zIndex: 9999,
-              },
+              "& .sticky-corner": { left: 0, zIndex: 9999 },
             }}
           >
             {/* ── TableHead ── */}
             <TableHead>
-              {/* Row 1 — Employee | Week groups | Summary cols */}
               <TableRow>
                 <TableCell
                   rowSpan={2}
@@ -1402,7 +1320,6 @@ export default function GoldenGridScreen({
                   </TableCell>
                 ))}
 
-                {/* Summary column headers */}
                 {(["Work", "N", "OFF"] as const).map((h, i) => (
                   <TableCell
                     key={h}
@@ -1422,7 +1339,6 @@ export default function GoldenGridScreen({
                 ))}
               </TableRow>
 
-              {/* Row 2 — Day-of-week labels */}
               <TableRow>
                 {Array.from({ length: TOTAL_COLS }, (_, i) => {
                   const d = i % 7;
@@ -1462,12 +1378,7 @@ export default function GoldenGridScreen({
                 <TableRow>
                   <TableCell
                     colSpan={TOTAL_COLS + 5}
-                    sx={{
-                      textAlign: "center",
-                      py: "48px",
-                      color: tk.textSecondary,
-                      fontSize: 13,
-                    }}
+                    sx={{ textAlign: "center", py: "48px", color: tk.textSecondary, fontSize: 13 }}
                   >
                     No employees match the current filters
                   </TableCell>
@@ -1478,6 +1389,7 @@ export default function GoldenGridScreen({
                   const s = summarise(shifts);
                   const isHighLoad = s.night > 8;
                   const isLowRest = s.off < 6;
+                  const hasLocalChanges = !!localGrid[emp.prefId];
 
                   return (
                     <TableRow
@@ -1485,6 +1397,10 @@ export default function GoldenGridScreen({
                       sx={{
                         height: CELL_H + 8,
                         transition: "background 0.1s",
+                        // Subtle tint on rows with unsaved local edits
+                        bgcolor: hasLocalChanges && editing
+                          ? alpha(theme.palette.warning.main, 0.04)
+                          : undefined,
                         "&:hover td": {
                           bgcolor: tk.isDark
                             ? "rgba(255,255,255,0.025)"
@@ -1504,28 +1420,15 @@ export default function GoldenGridScreen({
                           backgroundColor: `${theme.palette.background.paper} !important`,
                         }}
                       >
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          justifyContent="space-between"
-                        >
+                        <Stack direction="row" alignItems="center" justifyContent="space-between">
                           <EmployeeCell emp={emp} accent={editing} />
                           {(isHighLoad || isLowRest) && (
-                            <Stack
-                              direction="row"
-                              gap={0.5}
-                              sx={{ flexShrink: 0 }}
-                            >
+                            <Stack direction="row" gap={0.5} sx={{ flexShrink: 0 }}>
                               {isHighLoad && (
-                                <Tooltip
-                                  title="High night load (>8 nights)"
-                                  arrow
-                                >
+                                <Tooltip title="High night load (>8 nights)" arrow>
                                   <Box
                                     sx={{
-                                      width: 7,
-                                      height: 7,
-                                      borderRadius: "50%",
+                                      width: 7, height: 7, borderRadius: "50%",
                                       bgcolor: "warning.main",
                                       boxShadow: `0 0 6px ${alpha(theme.palette.warning.main, 0.5)}`,
                                     }}
@@ -1533,15 +1436,10 @@ export default function GoldenGridScreen({
                                 </Tooltip>
                               )}
                               {isLowRest && (
-                                <Tooltip
-                                  title="Low rest violation (<6 days off)"
-                                  arrow
-                                >
+                                <Tooltip title="Low rest violation (<6 days off)" arrow>
                                   <Box
                                     sx={{
-                                      width: 7,
-                                      height: 7,
-                                      borderRadius: "50%",
+                                      width: 7, height: 7, borderRadius: "50%",
                                       bgcolor: "error.main",
                                       boxShadow: `0 0 6px ${alpha(theme.palette.error.main, 0.5)}`,
                                     }}
@@ -1581,8 +1479,7 @@ export default function GoldenGridScreen({
                                   cursor: editing ? "pointer" : "default",
                                   padding: 0,
                                   userSelect: "none",
-                                  transition:
-                                    "box-shadow 0.12s,border-color 0.12s,filter 0.12s",
+                                  transition: "box-shadow 0.12s,border-color 0.12s,filter 0.12s",
                                   bgcolor: sc.background,
                                   color: sc.color,
                                   borderColor: sc.border,
@@ -1601,8 +1498,7 @@ export default function GoldenGridScreen({
                                   paintCell(emp.prefId, i);
                                 }}
                                 onMouseEnter={() => {
-                                  if (editing && painting.current)
-                                    paintCell(emp.prefId, i);
+                                  if (editing && painting.current) paintCell(emp.prefId, i);
                                 }}
                               >
                                 {code}
@@ -1615,15 +1511,9 @@ export default function GoldenGridScreen({
                       {/* Summary cells */}
                       <TableCell
                         sx={{
-                          fontFamily: MONO,
-                          fontWeight: 600,
-                          textAlign: "center",
-                          fontSize: 11,
-                          bgcolor: tk.isDark
-                            ? "rgba(255,255,255,0.01)"
-                            : "rgba(0,0,0,0.008)",
-                          color: tk.textSecondary,
-                          px: "8px",
+                          fontFamily: MONO, fontWeight: 600, textAlign: "center", fontSize: 11,
+                          bgcolor: tk.isDark ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.008)",
+                          color: tk.textSecondary, px: "8px",
                           borderLeft: `2.5px solid ${alpha(theme.palette.text.primary, 0.12)}`,
                         }}
                       >
@@ -1631,12 +1521,8 @@ export default function GoldenGridScreen({
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontFamily: MONO,
-                          textAlign: "center",
-                          fontSize: 11,
-                          bgcolor: tk.isDark
-                            ? "rgba(255,255,255,0.01)"
-                            : "rgba(0,0,0,0.008)",
+                          fontFamily: MONO, textAlign: "center", fontSize: 11,
+                          bgcolor: tk.isDark ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.008)",
                           px: "8px",
                           color: isHighLoad ? nightColor : tk.textSecondary,
                           fontWeight: isHighLoad ? 700 : 600,
@@ -1646,12 +1532,8 @@ export default function GoldenGridScreen({
                       </TableCell>
                       <TableCell
                         sx={{
-                          fontFamily: MONO,
-                          textAlign: "center",
-                          fontSize: 11,
-                          bgcolor: tk.isDark
-                            ? "rgba(255,255,255,0.01)"
-                            : "rgba(0,0,0,0.008)",
+                          fontFamily: MONO, textAlign: "center", fontSize: 11,
+                          bgcolor: tk.isDark ? "rgba(255,255,255,0.01)" : "rgba(0,0,0,0.008)",
                           px: "8px",
                           color: isLowRest ? offColor : tk.textSecondary,
                           fontWeight: isLowRest ? 700 : 600,
@@ -1670,17 +1552,10 @@ export default function GoldenGridScreen({
               <TableRow>
                 <TableCell
                   sx={{
-                    position: "sticky",
-                    bottom: 0,
-                    left: 0,
-                    zIndex: 5,
+                    position: "sticky", bottom: 0, left: 0, zIndex: 5,
                     borderTop: `2px solid ${tk.border}`,
-                    fontWeight: 600,
-                    color: tk.textSecondary,
-                    px: "14px",
-                    py: "6px",
-                    fontSize: 11,
-                    textAlign: "left",
+                    fontWeight: 600, color: tk.textSecondary,
+                    px: "14px", py: "6px", fontSize: 11, textAlign: "left",
                     boxShadow: tk.isDark
                       ? "3px 0 8px -2px rgba(0,0,0,0.5)"
                       : "3px 0 8px -2px rgba(13,27,42,0.1)",
@@ -1699,17 +1574,11 @@ export default function GoldenGridScreen({
                     <TableCell
                       key={i}
                       sx={{
-                        position: "sticky",
-                        bottom: 0,
-                        zIndex: 2,
+                        position: "sticky", bottom: 0, zIndex: 2,
                         bgcolor: `${empColBg} !important`,
                         borderTop: `2px solid ${tk.border}`,
-                        fontFamily: MONO,
-                        fontWeight: 700,
-                        fontSize: 11,
-                        textAlign: "center",
-                        py: "6px",
-                        px: "4px",
+                        fontFamily: MONO, fontWeight: 700, fontSize: 11,
+                        textAlign: "center", py: "6px", px: "4px",
                         borderLeft:
                           d === 0 && w > 0
                             ? `2.5px solid ${alpha(theme.palette.text.primary, 0.12)}`
@@ -1718,15 +1587,9 @@ export default function GoldenGridScreen({
                     >
                       <Typography
                         sx={{
-                          fontSize: 11.5,
-                          fontFamily: MONO,
-                          fontWeight: 700,
+                          fontSize: 11.5, fontFamily: MONO, fontWeight: 700,
                           color:
-                            wt < 5
-                              ? "error.main"
-                              : wt > 15
-                                ? "warning.main"
-                                : tk.textPrimary,
+                            wt < 5 ? "error.main" : wt > 15 ? "warning.main" : tk.textPrimary,
                         }}
                       >
                         {wt}
@@ -1738,9 +1601,7 @@ export default function GoldenGridScreen({
                 <TableCell
                   colSpan={3}
                   sx={{
-                    position: "sticky",
-                    bottom: 0,
-                    zIndex: 2,
+                    position: "sticky", bottom: 0, zIndex: 2,
                     bgcolor: `${headerBg} !important`,
                     borderTop: `2px solid ${tk.border}`,
                   }}
@@ -1761,17 +1622,18 @@ export default function GoldenGridScreen({
       {/* ── Toast ── */}
       <Snackbar
         open={!!toast}
-        autoHideDuration={2600}
+        autoHideDuration={3000}
         onClose={() => setToast(null)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >
         <Alert
-          severity="success"
+          severity={toast?.severity ?? "success"}
           variant="filled"
-          icon={<CheckIcon />}
+          icon={toast?.severity === "success" ? <CheckIcon /> : undefined}
           sx={{ alignItems: "center", borderRadius: tk.radiusL }}
+          onClose={() => setToast(null)}
         >
-          {toast}
+          {toast?.msg}
         </Alert>
       </Snackbar>
     </Box>

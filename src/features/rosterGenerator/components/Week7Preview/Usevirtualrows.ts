@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, type RefObject } from "react";
 import type { NormalisedEmployee } from "../../types/Futureweek.types";
-// import type { NormalisedEmployee } from "../types/Futureweek.types";
 
 export const VIRTUAL_ROW_HEIGHT = 44;
 const OVERSCAN = 8;

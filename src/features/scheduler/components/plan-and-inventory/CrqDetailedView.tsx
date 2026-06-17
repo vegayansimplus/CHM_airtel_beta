@@ -26,7 +26,8 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useGetImpactAnalysisQuery, useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
+import { useGetCrqReviewQuery } from "../../api/crqreviewApiSlice";
+import { useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
@@ -183,7 +184,7 @@ export const CrqDetailedView: React.FC = () => {
     // isLoading,
     isError,
     error,
-  } = useGetImpactAnalysisQuery({
+  } = useGetCrqReviewQuery({
     domainId: 1,
     subDomainId: 1,
   });
