@@ -267,12 +267,12 @@ function transformApiDataToEmployees(apiRows: GoldenSetApiRow[]): GoldenSetEmplo
  * shape expected by POST /goldenset/dailygoldenset
  */
 function buildDailyGoldenSetPayload(emp: GoldenSetEmployee): DailyGoldenSetPayload {
-  const fields: Record<string, number> = {};
+  const fields: Record<string, string> = {};
   for (let w = 1; w <= 6; w++) {
     for (let d = 1; d <= 7; d++) {
       const idx = (w - 1) * 7 + (d - 1);
       const code = emp.shifts[idx] ?? "W";
-      fields[`W${w}D${d}`] = SHIFT_CODE_TO_NUM[code] ?? 1;
+      fields[`W${w}D${d}`] = code;
     }
   }
   return { userId: emp.prefId, ...fields } as DailyGoldenSetPayload;

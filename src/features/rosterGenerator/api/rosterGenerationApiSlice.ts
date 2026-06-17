@@ -50,12 +50,12 @@ export interface UpdateCellResponse {
 // ── Daily Golden Set types ────────────────────────────────────────────────────
 export interface DailyGoldenSetPayload {
   userId: number;
-  W1D1: number; W1D2: number; W1D3: number; W1D4: number; W1D5: number; W1D6: number; W1D7: number;
-  W2D1: number; W2D2: number; W2D3: number; W2D4: number; W2D5: number; W2D6: number; W2D7: number;
-  W3D1: number; W3D2: number; W3D3: number; W3D4: number; W3D5: number; W3D6: number; W3D7: number;
-  W4D1: number; W4D2: number; W4D3: number; W4D4: number; W4D5: number; W4D6: number; W4D7: number;
-  W5D1: number; W5D2: number; W5D3: number; W5D4: number; W5D5: number; W5D6: number; W5D7: number;
-  W6D1: number; W6D2: number; W6D3: number; W6D4: number; W6D5: number; W6D6: number; W6D7: number;
+  W1D1: string; W1D2: string; W1D3: string; W1D4: string; W1D5: string; W1D6: string; W1D7: string;
+  W2D1: string; W2D2: string; W2D3: string; W2D4: string; W2D5: string; W2D6: string; W2D7: string;
+  W3D1: string; W3D2: string; W3D3: string; W3D4: string; W3D5: string; W3D6: string; W3D7: string;
+  W4D1: string; W4D2: string; W4D3: string; W4D4: string; W4D5: string; W4D6: string; W4D7: string;
+  W5D1: string; W5D2: string; W5D3: string; W5D4: string; W5D5: string; W5D6: string; W5D7: string;
+  W6D1: string; W6D2: string; W6D3: string; W6D4: string; W6D5: string; W6D6: string; W6D7: string;
 }
 
 export interface DailyGoldenSetResponse {
