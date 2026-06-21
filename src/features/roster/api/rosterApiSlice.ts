@@ -34,27 +34,53 @@ export const rosterApiSlice = api.injectEndpoints({
     }),
 
     // mutation for changing a shift using query parameters as per API
+    // changeShift: builder.mutation<
+    //   { status: string; message: string },
+    //   ChangeShiftParams
+    // >({
+    //   query: (params) => {
+    //     return {
+    //       url: "/monthlyrosterview/changeshift",
+    //       method: "POST",
+    //       params: {
+    //         affectedUserId: params.affectedUserId,
+    //         shiftDate: params.shiftDate,
+    //         newShiftId: params.newShiftId, // shiftId selected from dropdown
+    //         newAssignActivity: params.newAssignActivity, // assignActCount from roster data or dialog
+    //         newAvailableMinutes: params.newAvailableMinutes, // availableMins from roster data or dialog
+    //         reason: params.reason,
+    //       },
+    //     };
+
+    //   },
+    //     invalidatesTags: ["RosterVIew"],
+    // }),
     changeShift: builder.mutation<
-      { status: string; message: string },
+      { success: boolean; message: string },
       ChangeShiftParams
     >({
-      query: (params) => {
-        return {
-          url: "/monthlyrosterview/changeshift",
-          method: "POST",
-          params: {
-            affectedUserId: params.affectedUserId,
-            shiftDate: params.shiftDate,
-            newShiftId: params.newShiftId, // shiftId selected from dropdown
-            newAssignActivity: params.newAssignActivity, // assignActCount from roster data or dialog
-            newAvailableMinutes: params.newAvailableMinutes, // availableMins from roster data or dialog
-            reason: params.reason,
-          },
-        };
-      
-      },
-        invalidatesTags: ["RosterVIew"],
+      query: ({
+        affectedUserId,
+        shiftDate,
+        newShiftId,
+        newAssignActivity,
+        newAvailableMinutes,
+        reason,
+      }) => ({
+        url: "/monthlyrosterview/changeshift",
+        method: "POST",
+        params: {
+          affectedUserId,
+          newAssignActivity,
+          newAvailableMinutes,
+          shiftDate,
+          newShiftId,
+          reason,
+        },
+      }),
+      invalidatesTags: ["RosterVIew"],
     }),
+
 
     // mutation for shift swap by manager
     shiftSwapByManager: builder.mutation<

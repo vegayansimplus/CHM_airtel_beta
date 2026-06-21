@@ -8,6 +8,7 @@ import {
   Drawer,
   FormControl,
   IconButton,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -20,6 +21,8 @@ import BadgeIcon from "@mui/icons-material/Badge";
 import CloseIcon from "@mui/icons-material/Close";
 import EditCalendarIcon from "@mui/icons-material/EditCalendar";
 import EventNoteIcon from "@mui/icons-material/EventNote";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
+import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import dayjs from "dayjs";
 import { shiftColorMap } from "../../constant/shiftColors";
 
@@ -101,6 +104,7 @@ export const EditRosterDialog = ({
   if (!editData) return null;
 
   const accent = theme.palette.primary.main;
+  const accentDark = theme.palette.primary.dark;
   const borderColor = isDark ? "rgba(255,255,255,0.08)" : "#E5E7EB";
   const subtleBg = isDark ? "rgba(255,255,255,0.035)" : "#F8FAFC";
   const selectedShiftOption = shiftOptions.find(
@@ -135,8 +139,12 @@ export const EditRosterDialog = ({
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
       bgcolor: isDark ? "rgba(255,255,255,0.02)" : "#FFFFFF",
+      transition: "border-color .15s ease, box-shadow .15s ease",
       "&:hover .MuiOutlinedInput-notchedOutline": {
         borderColor: alpha(accent, 0.65),
+      },
+      "&.Mui-focused": {
+        boxShadow: `0 0 0 3px ${alpha(accent, 0.14)}`,
       },
     },
   };
@@ -150,6 +158,55 @@ export const EditRosterDialog = ({
     }
   };
 
+  // Meta row used inside the roster-context card.
+  const MetaRow = ({
+    icon,
+    iconColor,
+    label,
+    value,
+  }: {
+    icon: React.ReactNode;
+    iconColor: string;
+    label: string;
+    value: React.ReactNode;
+  }) => (
+    <Stack direction="row" spacing={1.5} alignItems="center">
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 1.75,
+          bgcolor: alpha(iconColor, isDark ? 0.18 : 0.1),
+          color: iconColor,
+        }}
+      >
+        {icon}
+      </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          variant="caption"
+          sx={{
+            display: "block",
+            color: "text.secondary",
+            fontSize: "0.66rem",
+            fontWeight: 600,
+            letterSpacing: "0.05em",
+            textTransform: "uppercase",
+          }}
+        >
+          {label}
+        </Typography>
+        <Typography variant="body2" fontWeight={700} sx={{ mt: 0.15 }}>
+          {value}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+
   return (
     <Drawer
       anchor="right"
@@ -159,7 +216,7 @@ export const EditRosterDialog = ({
       PaperProps={{
         elevation: 0,
         sx: {
-          width: { xs: "100vw", sm: 460 },
+          width: { xs: "100vw", sm: 480 },
           bgcolor: "background.paper",
           backgroundImage: "none",
           borderLeft: "1px solid",
@@ -171,27 +228,38 @@ export const EditRosterDialog = ({
       }}
     >
       <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* ---------- Header ---------- */}
         <Box
           sx={{
+            position: "relative",
             px: 3,
             pt: 3,
             pb: 2.5,
             borderBottom: "1px solid",
             borderColor,
+            background: isDark
+              ? `linear-gradient(135deg, ${alpha(accent, 0.16)} 0%, ${alpha(
+                  accent,
+                  0,
+                )} 58%)`
+              : `linear-gradient(135deg, ${alpha(accent, 0.1)} 0%, ${alpha(
+                  accent,
+                  0,
+                )} 58%)`,
           }}
         >
           <Stack direction="row" alignItems="flex-start" spacing={1.75}>
             <Box
               sx={{
-                width: 42,
-                height: 42,
+                width: 44,
+                height: 44,
                 borderRadius: 2,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
                 color: "#FFFFFF",
-                bgcolor: accent,
-                boxShadow: `0 10px 24px ${alpha(accent, 0.28)}`,
+                background: `linear-gradient(135deg, ${accent} 0%, ${accentDark} 100%)`,
+                boxShadow: `0 10px 24px ${alpha(accent, 0.32)}`,
                 flexShrink: 0,
               }}
             >
@@ -199,7 +267,7 @@ export const EditRosterDialog = ({
             </Box>
 
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography fontSize="1.05rem" fontWeight={700} lineHeight={1.3}>
+              <Typography fontSize="1.08rem" fontWeight={700} lineHeight={1.3}>
                 Modify Shift
               </Typography>
               <Typography
@@ -222,6 +290,7 @@ export const EditRosterDialog = ({
                 borderColor,
                 borderRadius: 1.5,
                 color: "text.secondary",
+                bgcolor: "background.paper",
                 "&:hover": {
                   bgcolor: isDark ? "rgba(255,255,255,0.06)" : "#F3F4F6",
                   color: "text.primary",
@@ -233,6 +302,7 @@ export const EditRosterDialog = ({
           </Stack>
         </Box>
 
+        {/* ---------- Body ---------- */}
         <Box
           sx={{
             flex: 1,
@@ -253,55 +323,24 @@ export const EditRosterDialog = ({
               bgcolor: subtleBg,
               border: "1px solid",
               borderColor,
-              borderRadius: 2,
+              borderRadius: 2.5,
               p: 2,
               mb: 3,
             }}
           >
-            <Stack spacing={1.5}>
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box
-                  sx={{
-                    p: 0.75,
-                    bgcolor: alpha("#2563EB", isDark ? 0.16 : 0.1),
-                    borderRadius: 1.5,
-                    display: "flex",
-                  }}
-                >
-                  <EventNoteIcon sx={{ fontSize: 18, color: "#2563EB" }} />
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Shift Date
-                  </Typography>
-                  <Typography variant="body2" fontWeight={700}>
-                    {dayjs(editData.date).format("dddd, MMM D, YYYY")}
-                  </Typography>
-                </Box>
-              </Stack>
-
-              <Stack direction="row" spacing={1.5} alignItems="center">
-                <Box
-                  sx={{
-                    p: 0.75,
-                    bgcolor: alpha("#7C3AED", isDark ? 0.16 : 0.1),
-                    borderRadius: 1.5,
-                    display: "flex",
-                  }}
-                >
-                  <BadgeIcon sx={{ fontSize: 18, color: "#7C3AED" }} />
-                </Box>
-
-                <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Employee ID
-                  </Typography>
-                  <Typography variant="body2" fontWeight={700}>
-                    {editData.userId}
-                  </Typography>
-                </Box>
-              </Stack>
+            <Stack spacing={1.5} divider={<Divider flexItem />}>
+              <MetaRow
+                icon={<EventNoteIcon sx={{ fontSize: 18 }} />}
+                iconColor="#2563EB"
+                label="Shift Date"
+                value={dayjs(editData.date).format("dddd, MMM D, YYYY")}
+              />
+              <MetaRow
+                icon={<BadgeIcon sx={{ fontSize: 18 }} />}
+                iconColor="#7C3AED"
+                label="Employee ID"
+                value={editData.userId}
+              />
             </Stack>
           </Box>
 
@@ -310,12 +349,25 @@ export const EditRosterDialog = ({
           {selectedShiftOption && selectedShiftStyle && (
             <Box
               sx={{
+                position: "relative",
+                overflow: "hidden",
                 mb: 2,
-                p: 1.5,
+                pl: 2.25,
+                pr: 1.75,
+                py: 1.5,
                 borderRadius: 2,
                 border: "1px solid",
-                borderColor: alpha(selectedShiftStyle.color, 0.25),
-                bgcolor: alpha(selectedShiftStyle.color, isDark ? 0.12 : 0.08),
+                borderColor: alpha(selectedShiftStyle.color, 0.28),
+                bgcolor: alpha(selectedShiftStyle.color, isDark ? 0.12 : 0.07),
+                "&::before": {
+                  content: '""',
+                  position: "absolute",
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  width: 4,
+                  bgcolor: selectedShiftStyle.color,
+                },
               }}
             >
               <Stack direction="row" spacing={1.25} alignItems="center">
@@ -333,8 +385,18 @@ export const EditRosterDialog = ({
                   }}
                 />
                 <Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Current selection
+                  <Typography
+                    variant="caption"
+                    sx={{
+                      display: "block",
+                      color: "text.secondary",
+                      fontSize: "0.66rem",
+                      fontWeight: 600,
+                      letterSpacing: "0.05em",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Selected Shift
                   </Typography>
                   <Typography variant="body2" fontWeight={700}>
                     {selectedShiftOption.shiftRange}
@@ -360,6 +422,25 @@ export const EditRosterDialog = ({
               value={selectedShift}
               label="Select Shift"
               onChange={(e) => setSelectedShift(Number(e.target.value))}
+              MenuProps={{
+                PaperProps: {
+                  sx: {
+                    mt: 0.5,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor,
+                    boxShadow: isDark
+                      ? "0 16px 40px rgba(0,0,0,0.5)"
+                      : "0 16px 40px rgba(15,23,42,0.12)",
+                    "& .MuiMenuItem-root.Mui-selected": {
+                      bgcolor: alpha(accent, isDark ? 0.18 : 0.1),
+                      "&:hover": {
+                        bgcolor: alpha(accent, isDark ? 0.24 : 0.16),
+                      },
+                    },
+                  },
+                },
+              }}
               renderValue={(value) => {
                 const shift = shiftOptions.find((opt) => opt.shiftId === value);
 
@@ -399,7 +480,7 @@ export const EditRosterDialog = ({
                   <MenuItem
                     key={shift.shiftId}
                     value={shift.shiftId}
-                    sx={{ py: 1.25 }}
+                    sx={{ py: 1.25, borderRadius: 1.5, mx: 0.5, my: 0.25 }}
                   >
                     <Stack direction="row" alignItems="center" spacing={1.5}>
                       <Box
@@ -429,6 +510,15 @@ export const EditRosterDialog = ({
               type="number"
               value={assignActivity}
               inputProps={numberInputProps}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <TaskAltRoundedIcon
+                      sx={{ fontSize: 18, color: "text.disabled" }}
+                    />
+                  </InputAdornment>
+                ),
+              }}
               sx={inputSx}
               onKeyDown={preventNegativeNumberInput}
               onChange={(e) => {
@@ -453,6 +543,22 @@ export const EditRosterDialog = ({
               type="number"
               value={availableMinutes}
               inputProps={numberInputProps}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <AccessTimeRoundedIcon
+                      sx={{ fontSize: 18, color: "text.disabled" }}
+                    />
+                  </InputAdornment>
+                ),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <Typography variant="caption" color="text.secondary">
+                      min
+                    </Typography>
+                  </InputAdornment>
+                ),
+              }}
               sx={inputSx}
               onKeyDown={preventNegativeNumberInput}
               onChange={(e) => {
@@ -475,6 +581,7 @@ export const EditRosterDialog = ({
             <Typography sx={sectionTitleSx}>Change Reason</Typography>
             <TextField
               label="Reason"
+              placeholder="Explain why this shift is being changed…"
               fullWidth
               size="small"
               required
@@ -493,6 +600,7 @@ export const EditRosterDialog = ({
 
         <Divider />
 
+        {/* ---------- Footer ---------- */}
         <Box
           sx={{
             px: 3,
@@ -507,16 +615,38 @@ export const EditRosterDialog = ({
             borderColor,
           }}
         >
-          <Typography variant="caption" color="text.secondary">
-            Reason is required before updating.
-          </Typography>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            <Box
+              sx={{
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: isReasonValid
+                  ? theme.palette.success.main
+                  : theme.palette.warning.main,
+                flexShrink: 0,
+              }}
+            />
+          
+          </Stack>
 
           <Stack direction="row" spacing={1.25} justifyContent="flex-end">
             <Button
               onClick={onClose}
               variant="outlined"
               color="inherit"
-              sx={{ fontWeight: 600, borderRadius: 1.5, px: 2.25 }}
+              sx={{
+                fontWeight: 600,
+                borderRadius: 1.5,
+                px: 2.5,
+                textTransform: "none",
+                borderColor,
+                color: "text.secondary",
+                "&:hover": {
+                  borderColor: isDark ? "rgba(255,255,255,0.2)" : "#CBD5E1",
+                  bgcolor: isDark ? "rgba(255,255,255,0.04)" : "#F1F5F9",
+                },
+              }}
             >
               Cancel
             </Button>
@@ -524,13 +654,31 @@ export const EditRosterDialog = ({
             <Button
               onClick={handleSave}
               variant="contained"
-              color="primary"
               disableElevation
               startIcon={
                 saving ? <CircularProgress color="inherit" size={16} /> : null
               }
-              sx={{ fontWeight: 700, borderRadius: 1.5, px: 3 }}
               disabled={selectedShift === 0 || saving || !isReasonValid}
+              sx={{
+                fontWeight: 700,
+                borderRadius: 1.5,
+                px: 3,
+                textTransform: "none",
+                color: "#FFFFFF",
+                background: `linear-gradient(135deg, ${accent} 0%, ${accentDark} 100%)`,
+                boxShadow: `0 10px 24px ${alpha(accent, 0.3)}`,
+                transition: "box-shadow .15s ease, transform .05s ease",
+                "&:hover": {
+                  background: `linear-gradient(135deg, ${accent} 0%, ${accentDark} 100%)`,
+                  boxShadow: `0 12px 28px ${alpha(accent, 0.42)}`,
+                },
+                "&:active": { transform: "translateY(1px)" },
+                "&.Mui-disabled": {
+                  background: isDark ? "rgba(255,255,255,0.1)" : "#E2E8F0",
+                  color: isDark ? "rgba(255,255,255,0.4)" : "#94A3B8",
+                  boxShadow: "none",
+                },
+              }}
             >
               {saving ? "Updating..." : "Confirm Update"}
             </Button>

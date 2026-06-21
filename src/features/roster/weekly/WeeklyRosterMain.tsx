@@ -335,34 +335,74 @@ export const WeeklyRosterMain = ({
   };
 
   /* ── Save shift ───────────────────────────────────────────────────── */
-  const handleSaveShift = async (
-    userId: string,
-    date: string,
-    newShiftId: number,
-    newAssignActivity: number,
-    newAvailableMinutes: number,
-    reason: string,
-  ) => {
-    setToastMsg(null);
-    try {
-      const resp = await changeShift({
-        affectedUserId: userId,
-        shiftDate: date,
-        newShiftId,
-        newAssignActivity,
-        newAvailableMinutes,
-        reason,
-      }).unwrap();
-      handleCloseEdit();
-      setToastMsg(resp.message || "Shift changed successfully");
-      toast.success(resp.message || "Shift changed successfully");
-    } catch (error: any) {
-      const msg =
-        error?.data?.message || error?.message || "Change shift failed";
-      setToastMsg(msg);
-      toast.error(msg);
-    }
-  };
+const handleSaveShift = async (
+  userId: string,
+  date: string,
+  newShiftId: number,
+  newAssignActivity: number,
+  newAvailableMinutes: number,
+  reason: string,
+) => {
+  setToastMsg(null);
+
+  try {
+    const response = await changeShift({
+      affectedUserId: Number(userId),
+      shiftDate: date, // YYYY-MM-DD
+      newShiftId: Number(newShiftId),
+      newAssignActivity: Number(newAssignActivity),
+      newAvailableMinutes: Number(newAvailableMinutes),
+      reason: reason.trim(),
+    }).unwrap();
+
+    handleCloseEdit();
+
+    const successMessage =
+      response?.message || "Shift changed successfully";
+
+    setToastMsg(successMessage);
+    toast.success(successMessage);
+  } catch (error: any) {
+    console.error("Change Shift Error:", error);
+
+    const errorMessage =
+      error?.data?.message ||
+      error?.message ||
+      "Shift change failed";
+
+    setToastMsg(errorMessage);
+    toast.error(errorMessage);
+  }
+};
+
+  // const handleSaveShift = async (
+  //   userId: string,
+  //   date: string,
+  //   newShiftId: number,
+  //   newAssignActivity: number,
+  //   newAvailableMinutes: number,
+  //   reason: string,
+  // ) => {
+  //   setToastMsg(null);
+  //   try {
+  //     const resp = await changeShift({
+  //       affectedUserId: userId,
+  //       shiftDate: date,
+  //       newShiftId,
+  //       newAssignActivity,
+  //       newAvailableMinutes,
+  //       reason,
+  //     }).unwrap();
+  //     handleCloseEdit();
+  //     setToastMsg(resp.message || "Shift changed successfully");
+  //     toast.success(resp.message || "Shift changed successfully");
+  //   } catch (error: any) {
+  //     const msg =
+  //       error?.data?.message || error?.message || "Change shift failed";
+  //     setToastMsg(msg);
+  //     toast.error(msg);
+  //   }
+  // };
 
   const hasError = data?.success === false || !!error;
   const errorMessage = "Roster not generated for selected range";
