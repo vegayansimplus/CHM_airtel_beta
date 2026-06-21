@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Route, BrowserRouter, Routes } from "react-router";
 import { BgColorProvider } from "./context/BgColorContext";
 import { ColorModeContext, useMode } from "./style/theme";
-import {  CssBaseline, ThemeProvider } from "@mui/material";
+import { CssBaseline, ThemeProvider } from "@mui/material";
 import Header from "./components/layout/Header";
 import SideBar from "./components/layout/SideBar";
 import { Home } from "@mui/icons-material";
