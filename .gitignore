@@ -26,3 +26,4 @@ dist-ssr
 src/vocab.txt
 src/vocab.txt
 *.src/CHM_word.txt
+*.src/Introduction.txt
