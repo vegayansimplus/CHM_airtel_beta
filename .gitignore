@@ -25,5 +25,4 @@ dist-ssr
 *.sw?
 src/vocab.txt
 src/vocab.txt
-*.src/CHM_word.txt
-*.src/Introduction.txt
+*src/CHM_word.txt

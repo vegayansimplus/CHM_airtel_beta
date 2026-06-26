@@ -1,0 +1,37 @@
+
+
+**Good Morning, Sir/Madam.**
+
+My name is **Sujit Thorat**, and I am from **Palghar, Maharashtra**.
+
+I completed my **Bachelor of Engineering in Computer Engineering** with a **CGPI of 9.3**.
+
+Currently, I am working as a **Software Engineer at Veegayan Systems Pvt. Ltd.**,
+where I am assigned to the **Airtel** project.
+
+My primary responsibility is to develop web applications using **ReactJS**.
+I also have hands-on experience with **Spring Boot** and **MySQL**, where I have developed **REST APIs**,
+implemented **JWT Authentication** and **Role-Based Access Control (RBAC)**,
+and participated in application deployment using **Apache Tomcat** and
+a **Node.js Express Server**.
+
+Previously, I worked as a Software Developer at Micropoint Computers Pvt. Ltd.,
+where I was assigned to the L&T Hydrocarbon project. I developed Flutter applications 
+and contributed to the L&T Hydrocarbon Invoice Tracker project
+My strengths are my willingness to learn, my problem-solving approach, 
+and my ability to adapt to new responsibilities. 
+I enjoy learning new technologies, taking on challenges, 
+and completing my work with dedication and responsibility.
+
+I am interested in joining the **Central Bank of India** as an **IT Officer** 
+because it provides an opportunity to apply my technical skills to develop 
+**secure and reliable banking applications**. 
+I also look forward to learning, growing, and contributing to the bank's digital transformation.
+
+
+
+
+
+
+
+
