@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Badge,
@@ -11,188 +11,261 @@ import {
   ClickAwayListener,
   Tooltip,
   Fade,
-  Avatar,
+  CircularProgress,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import CheckIcon from "@mui/icons-material/Check";
-import CloseIcon from "@mui/icons-material/Close";
+
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
+import PersonIcon from "@mui/icons-material/Person";
+import SettingsIcon from "@mui/icons-material/Settings";
+import RefreshIcon from "@mui/icons-material/Refresh";
+import {
+  useGetUnreadNotificationCountQuery,
+  useGetUnreadNotificationsQuery,
+  useAcknowledgeNotificationMutation,
+  useManagerShiftSwapActionMutation,
+  useEmployeeShiftSwapActionMutation,
+  type NotificationItem,
+} from "../../features/inbox/api/inboxApiSlice";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
-export type NotifType = "info" | "danger" | "success" | "warn";
-export type NotifGroup = "today" | "earlier";
+// ─── Constants ────────────────────────────────────────────────────────────────
 
-export interface Notification {
-  id: number;
-  title: string;
-  desc: string;
-  time: string;
-  action: string;
-  type: NotifType;
-  group: NotifGroup;
-  needsAction?: boolean;
-}
+const ACCENT = "#6366f1";
 
-// ─── Demo data ────────────────────────────────────────────────────────────────
-
-const DEFAULT_NOTIFS: Notification[] = [
-  {
-    id: 1,
-    title: "Shift swap requested",
-    desc: "John Doe wants to swap Friday shift with you",
-    time: "10m ago",
-    action: "Review",
-    type: "info",
-    group: "today",
-    needsAction: true,
-  },
-  {
-    id: 2,
-    title: "Swap request rejected",
-    desc: "Manager declined your Tuesday swap request",
-    time: "1h ago",
-    action: "Dismiss",
-    type: "danger",
-    group: "today",
-    needsAction: false,
-  },
-  {
-    id: 3,
-    title: "Leave approved",
-    desc: "Your leave for Apr 2–4 has been confirmed",
-    time: "2h ago",
-    action: "View",
-    type: "success",
-    group: "today",
-    needsAction: false,
-  },
-  {
-    id: 4,
-    title: "Schedule published",
-    desc: "Next week's roster is now live",
-    time: "Yesterday",
-    action: "View",
-    type: "info",
-    group: "earlier",
-    needsAction: false,
-  },
-  {
-    id: 5,
-    title: "Overtime alert",
-    desc: "You are approaching 45 hours this week",
-    time: "Yesterday",
-    action: "View",
-    type: "warn",
-    group: "earlier",
-    needsAction: true,
-  },
-];
-
-// ─── Style maps ───────────────────────────────────────────────────────────────
-
-const TYPE_STYLE: Record<
-  NotifType,
+// Maps API `module` field → visual style
+const MODULE_STYLE: Record<
+  string,
   { bg: string; color: string; border: string; avatarBg: string }
 > = {
-  info: {
+  USER: {
     bg: "#eef2ff",
     color: "#6366f1",
     border: "#c7d2fe",
     avatarBg: "#e0e7ff",
   },
-  danger: {
+  CRQ: {
+    bg: "#f5f3ff",
+    color: "#7c3aed",
+    border: "#ddd6fe",
+    avatarBg: "#ede9fe",
+  },
+  INC: {
     bg: "#fef2f2",
     color: "#ef4444",
     border: "#fecaca",
     avatarBg: "#fee2e2",
   },
-  success: {
-    bg: "#ecfdf5",
-    color: "#10b981",
-    border: "#a7f3d0",
-    avatarBg: "#d1fae5",
-  },
-  warn: {
+  PRB: {
     bg: "#fffbeb",
     color: "#f59e0b",
     border: "#fde68a",
     avatarBg: "#fef3c7",
   },
+  DEFAULT: {
+    bg: "#f1f5f9",
+    color: "#64748b",
+    border: "#e2e8f0",
+    avatarBg: "#f8fafc",
+  },
 };
 
-const ACCENT = "#6366f1";
-
-function TypeIcon({ type, size = 16 }: { type: NotifType; size?: number }) {
-  const c = TYPE_STYLE[type].color;
-  const sx = { fontSize: size, color: c };
-  if (type === "danger") return <CloseIcon sx={sx} />;
-  if (type === "success") return <CheckIcon sx={sx} />;
-  if (type === "warn") return <WarningAmberIcon sx={sx} />;
-  return <SwapHorizIcon sx={sx} />;
+function getModuleStyle(module: string) {
+  return MODULE_STYLE[module] ?? MODULE_STYLE.DEFAULT;
 }
+
+// Module → icon
+function ModuleIcon({ module, size = 17 }: { module: string; size?: number }) {
+  const sx = { fontSize: size, color: getModuleStyle(module).color };
+  if (module === "USER") return <PersonIcon sx={sx} />;
+  if (module === "CRQ") return <SwapHorizIcon sx={sx} />;
+  if (module === "INC") return <WarningAmberIcon sx={sx} />;
+  return <SettingsIcon sx={sx} />;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function timeAgo(iso: string): string {
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  const h = Math.floor(diff / 3600000);
+  const d = Math.floor(diff / 86400000);
+  if (m < 1) return "Just now";
+  if (m < 60) return `${m}m ago`;
+  if (h < 24) return `${h}h ago`;
+  if (d === 1) return "Yesterday";
+  return new Date(iso).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function isToday(iso: string): boolean {
+  const d = new Date(iso);
+  const now = new Date();
+  return (
+    d.getDate() === now.getDate() &&
+    d.getMonth() === now.getMonth() &&
+    d.getFullYear() === now.getFullYear()
+  );
+}
+
+function parsePayloadBody(raw: string): string {
+  try {
+    return JSON.parse(raw)?.body ?? "";
+  } catch {
+    return "";
+  }
+}
+
+// ─── Tab type ─────────────────────────────────────────────────────────────────
 
 type TabType = "All" | "Unread" | "Action";
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface NotificationBellProps {
-  notifications?: Notification[];
   onViewAll?: () => void;
 }
 
-export default function NotificationBell({
-  notifications = DEFAULT_NOTIFS,
-  onViewAll,
-}: NotificationBellProps) {
+// ─── Main Component ───────────────────────────────────────────────────────────
+
+export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("All");
+  const [localReadIds, setLocalReadIds] = useState<Record<number, boolean>>({});
   const [dismissed, setDismissed] = useState<Record<number, boolean>>({});
-  const [readIds, setReadIds] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
 
-  // Pulse bell on mount to draw attention
+  // ── API calls ──────────────────────────────────────────────────────────────
+
+  // 1) Live unread COUNT for badge (polls every 60s)
+  const { data: countData } = useGetUnreadNotificationCountQuery(undefined, {
+    pollingInterval: 60000,
+  });
+
+  // 2) Full notification list — fetched when panel opens
+  const {
+    data: apiNotifications = [],
+    isLoading,
+    isError,
+    refetch,
+  } = useGetUnreadNotificationsQuery(
+    { readFlag: 0 },
+    { skip: !open, refetchOnMountOrArgChange: true },
+  );
+
+  // 3) Mutations
+  const [acknowledgeNotification] = useAcknowledgeNotificationMutation();
+  const [managerShiftSwapAction] = useManagerShiftSwapActionMutation();
+  const [employeeShiftSwapAction] = useEmployeeShiftSwapActionMutation();
+
+  // Bell count: prefer API count, fall back to list length
+  const badgeCount = countData?.notificationCount ?? apiNotifications.length;
+
+  // Pulse bell on mount
   useEffect(() => {
-    const t = setTimeout(() => setPulse(true), 600);
+    const t1 = setTimeout(() => setPulse(true), 600);
     const t2 = setTimeout(() => setPulse(false), 1400);
     return () => {
-      clearTimeout(t);
+      clearTimeout(t1);
       clearTimeout(t2);
     };
   }, []);
 
-  const active = notifications.filter((n) => !dismissed[n.id]);
-  const unread = active.filter((n) => !readIds[n.id]).length;
+  // ── Derived data ───────────────────────────────────────────────────────────
 
+  // Filter out locally dismissed items
+  const active = apiNotifications.filter((n) => !dismissed[n.notificationId]);
+
+  // Unread = not in localReadIds (API items all have readFlag "0" already)
+  const unreadCount = active.filter(
+    (n) => !localReadIds[n.notificationId],
+  ).length;
+
+  // Tab filter
   const filtered = active.filter((n) => {
-    if (tab === "Unread") return !readIds[n.id];
-    if (tab === "Action") return !!n.needsAction;
+    if (tab === "Unread") return !localReadIds[n.notificationId];
+    if (tab === "Action")
+      return n.isActionable === true || n.isActionable === ("true" as any);
     return true;
   });
 
-  const grouped = filtered.reduce<Record<NotifGroup, Notification[]>>(
+  // Group into today / earlier
+  const grouped = filtered.reduce<
+    Record<"today" | "earlier", NotificationItem[]>
+  >(
     (acc, n) => {
-      (acc[n.group] = acc[n.group] || []).push(n);
+      const key = isToday(n.createdAt) ? "today" : "earlier";
+      acc[key].push(n);
       return acc;
     },
     { today: [], earlier: [] },
   );
 
-  const markRead = (id: number) => setReadIds((p) => ({ ...p, [id]: true }));
-  const dismiss = (id: number) => setDismissed((p) => ({ ...p, [id]: true }));
+  // ── Handlers ───────────────────────────────────────────────────────────────
+
+  const markRead = (id: number) => {
+    setLocalReadIds((p) => ({ ...p, [id]: true }));
+    acknowledgeNotification({ notificationId: id }).catch(() => {});
+  };
+
+  const dismiss = (id: number) => {
+    setDismissed((p) => ({ ...p, [id]: true }));
+    markRead(id);
+  };
+
   const markAll = () => {
     const patch: Record<number, boolean> = {};
-    active.forEach((n) => (patch[n.id] = true));
-    setReadIds((p) => ({ ...p, ...patch }));
+    active.forEach((n) => {
+      patch[n.notificationId] = true;
+      acknowledgeNotification({ notificationId: n.notificationId }).catch(
+        () => {},
+      );
+    });
+    setLocalReadIds((p) => ({ ...p, ...patch }));
   };
+
   const toggleExpand = (id: number) =>
     setExpanded((p) => (p === id ? null : id));
+
+  const handleActionableApprove = (n: NotificationItem) => {
+    if (n.subModule === "CAB_APPROVER") {
+      managerShiftSwapAction({
+        notificationId: n.notificationId,
+        status: "APPROVED",
+      });
+    } else {
+      employeeShiftSwapAction({
+        notificationId: n.notificationId,
+        status: "APPROVED",
+      });
+    }
+    dismiss(n.notificationId);
+  };
+
+  const handleActionableReject = (n: NotificationItem) => {
+    if (n.subModule === "CAB_APPROVER") {
+      managerShiftSwapAction({
+        notificationId: n.notificationId,
+        status: "REJECTED",
+      });
+    } else {
+      employeeShiftSwapAction({
+        notificationId: n.notificationId,
+        status: "REJECTED",
+      });
+    }
+    dismiss(n.notificationId);
+  };
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <ClickAwayListener onClickAway={() => setOpen(false)}>
@@ -225,7 +298,6 @@ export default function NotificationBell({
               "&:active": { transform: "scale(0.96)" },
             }}
           >
-            {/* Glow ring when open */}
             {open && (
               <Box
                 sx={{
@@ -238,11 +310,10 @@ export default function NotificationBell({
               />
             )}
 
-            {/* Bell icon */}
             <NotificationsIcon
               sx={{
                 fontSize: 22,
-                color: unread > 0 ? "#fff" : "rgba(255,255,255,0.75)",
+                color: badgeCount > 0 ? "#fff" : "rgba(255,255,255,0.75)",
                 transition: "all 0.2s",
                 animation: pulse ? "bellRing 0.6s ease" : "none",
                 "@keyframes bellRing": {
@@ -256,8 +327,8 @@ export default function NotificationBell({
               }}
             />
 
-            {/* Badge count pill */}
-            {unread > 0 && (
+            {/* Live count badge from API */}
+            {badgeCount > 0 && (
               <Box
                 sx={{
                   position: "absolute",
@@ -289,7 +360,7 @@ export default function NotificationBell({
                     letterSpacing: "-0.3px",
                   }}
                 >
-                  {unread > 99 ? "99+" : unread}
+                  {badgeCount > 99 ? "99+" : badgeCount}
                 </Typography>
               </Box>
             )}
@@ -312,7 +383,6 @@ export default function NotificationBell({
               overflow: "hidden",
               zIndex: 1400,
               display: open ? "block" : "none",
-              // Arrow pointer
               "&::before": {
                 content: '""',
                 position: "absolute",
@@ -371,45 +441,71 @@ export default function NotificationBell({
                   <Typography
                     sx={{ fontSize: 10, color: "#94a3b8", fontWeight: 500 }}
                   >
-                    {unread > 0
-                      ? `${unread} new update${unread > 1 ? "s" : ""}`
-                      : "You're all caught up"}
+                    {isLoading
+                      ? "Loading…"
+                      : unreadCount > 0
+                        ? `${unreadCount} new update${unreadCount > 1 ? "s" : ""}`
+                        : "You're all caught up"}
                   </Typography>
                 </Box>
               </Box>
-              <Tooltip title="Mark all as read">
-                <Box
-                  onClick={markAll}
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "4px",
-                    px: "10px",
-                    py: "5px",
-                    borderRadius: "8px",
-                    background: unread > 0 ? "#eef2ff" : "#f1f5f9",
-                    cursor: "pointer",
-                    transition: "all .15s",
-                    "&:hover": { background: "#e0e7ff" },
-                  }}
-                >
-                  <DoneAllIcon
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                {/* Refresh button */}
+                <Tooltip title="Refresh">
+                  <Box
+                    onClick={() => refetch()}
                     sx={{
-                      fontSize: 13,
-                      color: unread > 0 ? ACCENT : "#94a3b8",
-                    }}
-                  />
-                  <Typography
-                    sx={{
-                      fontSize: 10,
-                      fontWeight: 700,
-                      color: unread > 0 ? ACCENT : "#94a3b8",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 28,
+                      height: 28,
+                      borderRadius: "8px",
+                      background: "#f1f5f9",
+                      cursor: "pointer",
+                      "&:hover": { background: "#e0e7ff" },
                     }}
                   >
-                    All read
-                  </Typography>
-                </Box>
-              </Tooltip>
+                    <RefreshIcon sx={{ fontSize: 14, color: "#94a3b8" }} />
+                  </Box>
+                </Tooltip>
+
+                {/* Mark all read */}
+                <Tooltip title="Mark all as read">
+                  <Box
+                    onClick={markAll}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "4px",
+                      px: "10px",
+                      py: "5px",
+                      borderRadius: "8px",
+                      background: unreadCount > 0 ? "#eef2ff" : "#f1f5f9",
+                      cursor: "pointer",
+                      transition: "all .15s",
+                      "&:hover": { background: "#e0e7ff" },
+                    }}
+                  >
+                    <DoneAllIcon
+                      sx={{
+                        fontSize: 13,
+                        color: unreadCount > 0 ? ACCENT : "#94a3b8",
+                      }}
+                    />
+                    <Typography
+                      sx={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: unreadCount > 0 ? ACCENT : "#94a3b8",
+                      }}
+                    >
+                      All read
+                    </Typography>
+                  </Box>
+                </Tooltip>
+              </Box>
             </Box>
 
             {/* ── Tabs ── */}
@@ -426,9 +522,10 @@ export default function NotificationBell({
               {(["All", "Unread", "Action"] as TabType[]).map((t) => {
                 const count =
                   t === "Unread"
-                    ? active.filter((n) => !readIds[n.id]).length
+                    ? active.filter((n) => !localReadIds[n.notificationId])
+                        .length
                     : t === "Action"
-                      ? active.filter((n) => n.needsAction).length
+                      ? active.filter((n) => n.isActionable).length
                       : active.length;
                 return (
                   <Box
@@ -447,7 +544,7 @@ export default function NotificationBell({
                           : "2.5px solid transparent",
                       mb: "-1.5px",
                       transition: "all .15s",
-                      "&:hover": { "& .tab-label": { color: ACCENT } },
+                      "&:hover .tab-label": { color: ACCENT },
                     }}
                   >
                     <Typography
@@ -502,252 +599,425 @@ export default function NotificationBell({
                 },
               }}
             >
-              {(["today", "earlier"] as NotifGroup[]).map((group) => {
-                const items = grouped[group];
-                if (!items?.length) return null;
-                return (
-                  <Box key={group}>
-                    <Typography
-                      sx={{
-                        fontSize: 9,
-                        fontWeight: 800,
-                        color: "#94a3b8",
-                        letterSpacing: "1px",
-                        textTransform: "uppercase",
-                        px: "16px",
-                        pt: "10px",
-                        pb: "4px",
-                      }}
-                    >
-                      {group === "today" ? "Today" : "Earlier"}
-                    </Typography>
-                    {items.map((n) => {
-                      const isRead = !!readIds[n.id];
-                      const isExpanded = expanded === n.id;
-                      const s = TYPE_STYLE[n.type];
-                      return (
-                        <Box key={n.id}>
-                          <Box
-                            onClick={() => {
-                              toggleExpand(n.id);
-                              markRead(n.id);
-                            }}
-                            sx={{
-                              display: "flex",
-                              alignItems: "flex-start",
-                              gap: "11px",
-                              px: "14px",
-                              py: "10px",
-                              cursor: "pointer",
-                              background: isExpanded
-                                ? "#f5f7ff"
-                                : isRead
-                                  ? "transparent"
-                                  : "#fafbff",
-                              borderBottom: "1px solid #f8fafc",
-                              position: "relative",
-                              transition: "background .15s",
-                              "&:hover": { background: "#f5f7ff" },
-                            }}
-                          >
-                            {/* Unread left bar */}
-                            {!isRead && (
-                              <Box
-                                sx={{
-                                  position: "absolute",
-                                  left: 0,
-                                  top: "20%",
-                                  bottom: "20%",
-                                  width: 3,
-                                  borderRadius: "0 3px 3px 0",
-                                  background: ACCENT,
-                                }}
-                              />
-                            )}
+              {/* Loading state */}
+              {isLoading && (
+                <Box
+                  sx={{ display: "flex", justifyContent: "center", py: "36px" }}
+                >
+                  <CircularProgress size={24} sx={{ color: ACCENT }} />
+                </Box>
+              )}
 
-                            {/* Avatar */}
+              {/* Error state */}
+              {isError && !isLoading && (
+                <Box sx={{ textAlign: "center", py: "32px" }}>
+                  <WarningAmberIcon
+                    sx={{ fontSize: 28, color: "#f59e0b", mb: 1 }}
+                  />
+                  <Typography
+                    sx={{ color: "#1e1b4b", fontSize: 12, fontWeight: 700 }}
+                  >
+                    Failed to load notifications
+                  </Typography>
+                  <Button
+                    size="small"
+                    onClick={() => refetch()}
+                    sx={{
+                      mt: 1,
+                      fontSize: 10,
+                      color: ACCENT,
+                      textTransform: "none",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Retry
+                  </Button>
+                </Box>
+              )}
+
+              {/* Notification groups */}
+              {!isLoading &&
+                !isError &&
+                (["today", "earlier"] as const).map((group) => {
+                  const items = grouped[group];
+                  if (!items?.length) return null;
+                  return (
+                    <Box key={group}>
+                      <Typography
+                        sx={{
+                          fontSize: 9,
+                          fontWeight: 800,
+                          color: "#94a3b8",
+                          letterSpacing: "1px",
+                          textTransform: "uppercase",
+                          px: "16px",
+                          pt: "10px",
+                          pb: "4px",
+                        }}
+                      >
+                        {group === "today" ? "Today" : "Earlier"}
+                      </Typography>
+
+                      {items.map((n) => {
+                        const isRead = !!localReadIds[n.notificationId];
+                        const isExpanded = expanded === n.notificationId;
+                        const s = getModuleStyle(n.module);
+                        const bodyText = parsePayloadBody(n.payload);
+                        const isActionable =
+                          n.isActionable === true ||
+                          n.isActionable === ("true" as any);
+
+                        return (
+                          <Box key={n.notificationId}>
                             <Box
+                              onClick={() => {
+                                toggleExpand(n.notificationId);
+                                markRead(n.notificationId);
+                              }}
                               sx={{
-                                width: 36,
-                                height: 36,
-                                borderRadius: "11px",
-                                flexShrink: 0,
-                                background: s.avatarBg,
-                                border: `1.5px solid ${s.border}`,
                                 display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
+                                alignItems: "flex-start",
+                                gap: "11px",
+                                px: "14px",
+                                py: "10px",
+                                cursor: "pointer",
+                                background: isExpanded
+                                  ? "#f5f7ff"
+                                  : isRead
+                                    ? "transparent"
+                                    : "#fafbff",
+                                borderBottom: "1px solid #f8fafc",
                                 position: "relative",
+                                transition: "background .15s",
+                                "&:hover": { background: "#f5f7ff" },
                               }}
                             >
-                              <TypeIcon type={n.type} size={17} />
+                              {/* Unread left bar */}
                               {!isRead && (
                                 <Box
                                   sx={{
                                     position: "absolute",
-                                    top: -3,
-                                    right: -3,
-                                    width: 9,
-                                    height: 9,
-                                    borderRadius: "50%",
+                                    left: 0,
+                                    top: "20%",
+                                    bottom: "20%",
+                                    width: 3,
+                                    borderRadius: "0 3px 3px 0",
                                     background: ACCENT,
-                                    border: "2px solid #fff",
                                   }}
                                 />
                               )}
-                            </Box>
 
-                            {/* Text */}
-                            <Box sx={{ flex: 1, minWidth: 0 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: 12,
-                                  fontWeight: isRead ? 600 : 800,
-                                  color: "#1e1b4b",
-                                  lineHeight: 1.3,
-                                }}
-                              >
-                                {n.title}
-                              </Typography>
-                              <Typography
-                                sx={{
-                                  fontSize: 10.5,
-                                  color: "#64748b",
-                                  mt: "2px",
-                                  lineHeight: 1.4,
-                                  whiteSpace: isExpanded ? "normal" : "nowrap",
-                                  overflow: "hidden",
-                                  textOverflow: isExpanded
-                                    ? "unset"
-                                    : "ellipsis",
-                                }}
-                              >
-                                {n.desc}
-                              </Typography>
+                              {/* Module avatar */}
                               <Box
                                 sx={{
+                                  width: 36,
+                                  height: 36,
+                                  borderRadius: "11px",
+                                  flexShrink: 0,
+                                  background: s.avatarBg,
+                                  border: `1.5px solid ${s.border}`,
                                   display: "flex",
                                   alignItems: "center",
-                                  gap: "5px",
-                                  mt: "4px",
+                                  justifyContent: "center",
+                                  position: "relative",
                                 }}
                               >
-                                <FiberManualRecordIcon
-                                  sx={{ fontSize: 5, color: "#cbd5e1" }}
-                                />
+                                <ModuleIcon module={n.module} size={17} />
+                                {!isRead && (
+                                  <Box
+                                    sx={{
+                                      position: "absolute",
+                                      top: -3,
+                                      right: -3,
+                                      width: 9,
+                                      height: 9,
+                                      borderRadius: "50%",
+                                      background: ACCENT,
+                                      border: "2px solid #fff",
+                                    }}
+                                  />
+                                )}
+                              </Box>
+
+                              {/* Text block */}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                {/* Subject line */}
                                 <Typography
                                   sx={{
-                                    fontSize: 9.5,
-                                    color: "#94a3b8",
-                                    fontWeight: 600,
+                                    fontSize: 12,
+                                    fontWeight: isRead ? 600 : 800,
+                                    color: "#1e1b4b",
+                                    lineHeight: 1.3,
                                   }}
                                 >
-                                  {n.time}
+                                  {n.subject ?? "Notification"}
                                 </Typography>
+
+                                {/* Body preview */}
+                                {bodyText && (
+                                  <Typography
+                                    sx={{
+                                      fontSize: 10.5,
+                                      color: "#64748b",
+                                      mt: "2px",
+                                      lineHeight: 1.4,
+                                      whiteSpace: isExpanded
+                                        ? "pre-line"
+                                        : "nowrap",
+                                      overflow: "hidden",
+                                      textOverflow: isExpanded
+                                        ? "unset"
+                                        : "ellipsis",
+                                    }}
+                                  >
+                                    {bodyText}
+                                  </Typography>
+                                )}
+
+                                {/* Meta row: module chip + time */}
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: "6px",
+                                    mt: "5px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {/* Module badge */}
+                                  <Box
+                                    sx={{
+                                      px: "6px",
+                                      py: "1px",
+                                      borderRadius: "5px",
+                                      background: s.bg,
+                                      border: `1px solid ${s.border}`,
+                                    }}
+                                  >
+                                    <Typography
+                                      sx={{
+                                        fontSize: 9,
+                                        fontWeight: 700,
+                                        color: s.color,
+                                        letterSpacing: "0.4px",
+                                      }}
+                                    >
+                                      {n.module}
+                                      {n.subModule
+                                        ? ` · ${n.subModule.replace(/_/g, " ")}`
+                                        : ""}
+                                    </Typography>
+                                  </Box>
+
+                                  {/* Pending badge */}
+                                  {n.requestStatus === "PENDING" &&
+                                    isActionable && (
+                                      <Box
+                                        sx={{
+                                          px: "6px",
+                                          py: "1px",
+                                          borderRadius: "5px",
+                                          background: "#fffbeb",
+                                          border: "1px solid #fde68a",
+                                        }}
+                                      >
+                                        <Typography
+                                          sx={{
+                                            fontSize: 9,
+                                            fontWeight: 700,
+                                            color: "#d97706",
+                                          }}
+                                        >
+                                          Pending Action
+                                        </Typography>
+                                      </Box>
+                                    )}
+
+                                  <FiberManualRecordIcon
+                                    sx={{ fontSize: 5, color: "#cbd5e1" }}
+                                  />
+                                  <Typography
+                                    sx={{
+                                      fontSize: 9.5,
+                                      color: "#94a3b8",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {timeAgo(n.createdAt)}
+                                  </Typography>
+                                </Box>
                               </Box>
+
+                              {/* Right-side dismiss chip */}
+                              <Chip
+                                label={isActionable ? "Action" : "Dismiss"}
+                                size="small"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  dismiss(n.notificationId);
+                                }}
+                                sx={{
+                                  fontSize: 9.5,
+                                  fontWeight: 700,
+                                  background: s.bg,
+                                  color: s.color,
+                                  border: `1.5px solid ${s.border}`,
+                                  borderRadius: "8px",
+                                  flexShrink: 0,
+                                  alignSelf: "center",
+                                  height: "auto",
+                                  "& .MuiChip-label": { px: "9px", py: "3px" },
+                                  "&:hover": {
+                                    opacity: 0.8,
+                                    transform: "scale(0.96)",
+                                  },
+                                  transition: "all .15s",
+                                }}
+                              />
                             </Box>
 
-                            {/* Action chip */}
-                            <Chip
-                              label={n.action}
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                dismiss(n.id);
-                              }}
-                              sx={{
-                                fontSize: 9.5,
-                                fontWeight: 700,
-                                background: s.bg,
-                                color: s.color,
-                                border: `1.5px solid ${s.border}`,
-                                borderRadius: "8px",
-                                flexShrink: 0,
-                                alignSelf: "center",
-                                height: "auto",
-                                "& .MuiChip-label": { px: "9px", py: "3px" },
-                                "&:hover": {
-                                  opacity: 0.8,
-                                  transform: "scale(0.96)",
-                                },
-                                transition: "all .15s",
-                              }}
-                            />
-                          </Box>
-
-                          {/* Expanded panel */}
-                          <Collapse in={isExpanded}>
-                            <Box
-                              sx={{
-                                mx: "12px",
-                                mb: "8px",
-                                p: "10px 12px",
-                                borderRadius: "10px",
-                                background: s.bg,
-                                border: `1px solid ${s.border}`,
-                              }}
-                            >
-                              <Typography
+                            {/* ── Expanded panel ── */}
+                            <Collapse in={isExpanded}>
+                              <Box
                                 sx={{
-                                  fontSize: 10.5,
-                                  color: "#475569",
-                                  lineHeight: 1.6,
+                                  mx: "12px",
+                                  mb: "8px",
+                                  p: "10px 12px",
+                                  borderRadius: "10px",
+                                  background: s.bg,
+                                  border: `1px solid ${s.border}`,
                                 }}
                               >
-                                {n.desc}
-                              </Typography>
-                              <Box
-                                sx={{ display: "flex", gap: "6px", mt: "8px" }}
-                              >
-                                <Button
-                                  size="small"
-                                  variant="contained"
-                                  onClick={() => dismiss(n.id)}
+                                {/* Full body text */}
+                                <Typography
                                   sx={{
-                                    fontSize: 9.5,
-                                    fontWeight: 700,
-                                    background: s.color,
-                                    borderRadius: "7px",
-                                    py: "4px",
-                                    px: "14px",
-                                    textTransform: "none",
-                                    minWidth: 0,
-                                    boxShadow: "none",
-                                    "&:hover": {
-                                      background: s.color,
-                                      opacity: 0.85,
-                                    },
+                                    fontSize: 10.5,
+                                    color: "#475569",
+                                    lineHeight: 1.7,
+                                    whiteSpace: "pre-line",
                                   }}
                                 >
-                                  {n.action}
-                                </Button>
-                                <Button
-                                  size="small"
-                                  onClick={() => toggleExpand(n.id)}
-                                  sx={{
-                                    fontSize: 9.5,
-                                    fontWeight: 600,
-                                    color: "#94a3b8",
-                                    borderRadius: "7px",
-                                    py: "4px",
-                                    px: "10px",
-                                    textTransform: "none",
-                                    minWidth: 0,
-                                  }}
-                                >
-                                  Close
-                                </Button>
-                              </Box>
-                            </Box>
-                          </Collapse>
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                );
-              })}
+                                  {bodyText || n.subject}
+                                </Typography>
 
-              {filtered.length === 0 && (
+                                <Box
+                                  sx={{
+                                    display: "flex",
+                                    gap: "6px",
+                                    mt: "10px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {/* Approve / Reject for actionable */}
+                                  {isActionable &&
+                                    n.requestStatus === "PENDING" && (
+                                      <>
+                                        <Button
+                                          size="small"
+                                          variant="contained"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleActionableApprove(n);
+                                          }}
+                                          sx={{
+                                            fontSize: 9.5,
+                                            fontWeight: 700,
+                                            background: "#10b981",
+                                            borderRadius: "7px",
+                                            py: "4px",
+                                            px: "14px",
+                                            textTransform: "none",
+                                            minWidth: 0,
+                                            boxShadow: "none",
+                                            "&:hover": {
+                                              background: "#059669",
+                                            },
+                                          }}
+                                        >
+                                          Approve
+                                        </Button>
+                                        <Button
+                                          size="small"
+                                          variant="contained"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleActionableReject(n);
+                                          }}
+                                          sx={{
+                                            fontSize: 9.5,
+                                            fontWeight: 700,
+                                            background: "#ef4444",
+                                            borderRadius: "7px",
+                                            py: "4px",
+                                            px: "14px",
+                                            textTransform: "none",
+                                            minWidth: 0,
+                                            boxShadow: "none",
+                                            "&:hover": {
+                                              background: "#dc2626",
+                                            },
+                                          }}
+                                        >
+                                          Reject
+                                        </Button>
+                                      </>
+                                    )}
+
+                                  {/* Dismiss */}
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      dismiss(n.notificationId);
+                                    }}
+                                    sx={{
+                                      fontSize: 9.5,
+                                      fontWeight: 700,
+                                      color: s.color,
+                                      background: "#fff",
+                                      border: `1px solid ${s.border}`,
+                                      borderRadius: "7px",
+                                      py: "4px",
+                                      px: "14px",
+                                      textTransform: "none",
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    Dismiss
+                                  </Button>
+
+                                  {/* Collapse */}
+                                  <Button
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleExpand(n.notificationId);
+                                    }}
+                                    sx={{
+                                      fontSize: 9.5,
+                                      fontWeight: 600,
+                                      color: "#94a3b8",
+                                      borderRadius: "7px",
+                                      py: "4px",
+                                      px: "10px",
+                                      textTransform: "none",
+                                      minWidth: 0,
+                                    }}
+                                  >
+                                    Close
+                                  </Button>
+                                </Box>
+                              </Box>
+                            </Collapse>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  );
+                })}
+
+              {/* Empty state */}
+              {!isLoading && !isError && filtered.length === 0 && (
                 <Box sx={{ textAlign: "center", py: "36px" }}>
                   <Box
                     sx={{

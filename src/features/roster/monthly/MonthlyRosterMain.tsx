@@ -40,6 +40,7 @@ import { useGetRosterViewQuery } from "../api/rosterApiSlice";
 import SmartScrollContainer from "../../../components/common/SmartScrollContainer";
 import FilterSvg from "../../../assets/svg/RosterEmpty.svg";
 import { CompactShiftCountBar } from "../components/RosterShiftCountBar";
+import { RosterEmployeeCell } from "../components/RosterEmployeeCell";
 
 /* ─── Types ─────────────────────────────────────────────────────────────── */
 interface Props {
@@ -58,6 +59,7 @@ interface UserRoster {
   userId: number;
   olmid: string;
   jobLevel: string;
+  employeeName: string;
   mobileNo: string;
   officeLocation: string;
   roster: Record<string, Shift>;
@@ -913,7 +915,7 @@ export const MonthlyRosterMain = ({
                     }}
                   >
                     {/* Sticky employee cell */}
-                    <TableCell
+                    {/* <TableCell
                       sx={{
                         width: 190,
                         minWidth: 190,
@@ -943,7 +945,7 @@ export const MonthlyRosterMain = ({
                             fontWeight: 700,
                           }}
                         >
-                          {user.olmid.slice(0, 2).toUpperCase()}
+                          {user.employeeName.slice(0, 2).toUpperCase()}
                         </Box>
                         <Box sx={{ minWidth: 0 }}>
                           <Typography
@@ -974,7 +976,7 @@ export const MonthlyRosterMain = ({
                                 letterSpacing: ".03em",
                               }}
                             >
-                              {user.jobLevel}
+                              {user.jobLevel} 
                             </Typography>
                             {user.officeLocation && (
                               <Typography
@@ -993,7 +995,8 @@ export const MonthlyRosterMain = ({
                           </Stack>
                         </Box>
                       </Stack>
-                    </TableCell>
+                    </TableCell> */}
+                    <RosterEmployeeCell user={user}/>
 
                     {allDates.map((date) => {
                       const shift = user.roster?.[date];
@@ -1300,7 +1303,7 @@ export const MonthlyRosterMain = ({
                   color="text.secondary"
                   noWrap
                 >
-                  {p.label}
+                  {p.label} 
                 </Typography>
                 {!isWO && p.time !== "—" && (
                   <>

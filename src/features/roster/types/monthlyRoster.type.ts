@@ -12,6 +12,7 @@ export interface UserRoster {
   olmid: string;
   jobLevel: string;
   mobileNo: string;
+  employeeName: string;
   officeLocation: string;
   roster: RosterMap;
 }

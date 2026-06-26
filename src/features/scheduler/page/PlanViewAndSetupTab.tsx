@@ -1,7 +1,7 @@
 import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
-import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
+// import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 
@@ -39,6 +39,9 @@ const PlanViewAndSetupTab: React.FC = (
     // taskplanning
     if (path.includes("taskplanning")) {
       return "taskplanning";
+    }
+     if (path.includes("crqjourney")) {
+      return "crqjourney";
     }
 
     return "planviewandsetup"; // default
@@ -147,6 +150,13 @@ const PlanViewAndSetupTab: React.FC = (
             label="Task Planning"
             value="taskplanning"
             to="taskplanning"
+            component={Link}
+          />
+            {/*  TAB 4 */}
+          <Tab
+            label="CRQ Journey"
+            value="crqjourney"
+            to="crqjourney"
             component={Link}
           />
         </Tabs>

@@ -44,6 +44,8 @@ import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/Tas
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
+import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
+// import { CrqJourneyMain } from "../features/crqJourney/pages/CrqJourneyMain";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 
@@ -210,12 +212,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={<PrivateRoute element={<PlanViewAndSetupTab />} />}
         >
           <Route path="planviewandsetup" element={<PlanViewAndSetup />} />
-         <Route path="taskconfig" element={<TaskConfigMain />} /> 
-         <Route path="taskplanning" element={<TaskPlanningMain />} />
+          <Route path="taskconfig" element={<TaskConfigMain />} />
+          <Route path="taskplanning" element={<TaskPlanningMain />} />
+          <Route path="crqjourney" element={<CrqJourneyMain />} />
         </Route>
-
-        
-
 
         <Route
           path="generateroster"

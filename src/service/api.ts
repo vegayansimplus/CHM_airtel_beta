@@ -29,7 +29,11 @@ export const api = createApi({
     "ActivityPhase",
     "TaskConfig",
     "GlobalSettingsPermission",
-    "ShiftDropdown"
+    "ShiftDropdown",
+    "NetworkFreeze",
+    "GoldenSetTag",
+    "FutureWeekTag"  
+    
   ],
 });
    

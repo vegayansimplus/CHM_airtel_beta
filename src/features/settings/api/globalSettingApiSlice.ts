@@ -1,62 +1,220 @@
 import { api } from "../../../service/api";
 
+// ─── Holiday types ────────────────────────────────────────────────────────────
 export interface Holiday {
-  holidayId?: number; // Optional for creating new ones
+  holidayId?: number;
   holidayDate: string;
   holidayDay: string;
   holidayOccasion: string;
   location: string;
 }
 
+export interface LocationOption {
+  location: string;
+}
+
+// ─── Network Freeze types ─────────────────────────────────────────────────────
+export interface NetworkFreeze {
+  freezeId: number;
+  freezeName: string;
+  startDateTime: string; // "2026-08-14T18:00:00"
+  endDateTime: string;
+}
+
+export interface ApiResponse {
+  status: string;
+  message: string;
+}
+
+// ─── Slice ────────────────────────────────────────────────────────────────────
 export const globalSettingApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
+    // ── Holiday ──────────────────────────────────────────────────────────────
     getHolidayData: builder.query<Holiday[], void>({
+      query: () => ({ url: "/networkfreez/holiday/view", method: "GET" }),
+      providesTags: ["Holiday"],
+    }),
+
+    getLocationOptions: builder.query<LocationOption[], void>({
       query: () => ({
-        url: "/networkfreez/holiday/view",
+        url: "/networkfreez/holiday/location/dropdown",
         method: "GET",
       }),
-      providesTags: ["Holiday"], // Enables auto-refresh
     }),
 
-    // Add Holiday (Assuming standard POST endpoint based on your API pattern)
-    addHoliday: builder.mutation<{ status: string; message: string }, Partial<Holiday>>({
-      query: (newHoliday) => ({
-        url: "/networkfreez/holiday/add", 
+    addHoliday: builder.mutation<
+      ApiResponse,
+      { location: string; holidayDate: string; holidayOccasion: string }
+    >({
+      query: ({ location, holidayDate, holidayOccasion }) => ({
+        url: "/networkfreez/holiday/insert",
         method: "POST",
-        body: newHoliday,
+        params: { location, holidayDate, holidayOccasion },
       }),
       invalidatesTags: ["Holiday"],
     }),
 
-    // Update Holiday (Matches your exact cURL with query params)
-    updateHoliday: builder.mutation<{ status: string; message: string }, Partial<Holiday>>({
-      query: (holiday) => ({
+    updateHoliday: builder.mutation<
+      ApiResponse,
+      { location: string; holidayId:number ; holidayDate: string; holidayOccasion: string }
+    >({
+      query: ({ location,holidayId, holidayDate, holidayOccasion }) => ({
         url: "/networkfreez/holiday/update",
         method: "PATCH",
-        params: {
-          location: holiday.location,
-          holidayDate: holiday.holidayDate,
-          holidayOccasion: holiday.holidayOccasion,
-          holidayId: holiday.holidayId, // Sending ID just in case backend requires it
-        },
+        params: { location,holidayId, holidayDate, holidayOccasion },
       }),
       invalidatesTags: ["Holiday"],
     }),
 
-    // Delete Holiday (Matches your cURL with path variable)
-    deleteHoliday: builder.mutation<{ status: string; message: string }, number>({
+    deleteHoliday: builder.mutation<ApiResponse, number>({
       query: (id) => ({
         url: `/networkfreez/holiday/delete/${id}`,
         method: "DELETE",
       }),
       invalidatesTags: ["Holiday"],
     }),
+
+    // ── Network Freeze ────────────────────────────────────────────────────────
+    getNetworkFreezeData: builder.query<NetworkFreeze[], void>({
+      query: () => ({
+        url: "/networkfreez/networkfreezedays/view",
+        method: "GET",
+      }),
+      providesTags: ["NetworkFreeze"],
+    }),
+
+    addNetworkFreeze: builder.mutation<
+      ApiResponse,
+      {
+        freezeName: string;
+        startDateTime: string;
+        endDateTime: string;
+        remarks: string;
+      }
+    >({
+      query: ({ freezeName, startDateTime, endDateTime, remarks }) => ({
+        url: "/networkfreez/networkfreeze/insert",
+        method: "POST",
+        params: { freezeName, startDateTime, endDateTime, remarks },
+      }),
+      invalidatesTags: ["NetworkFreeze"],
+    }),
+
+    updateNetworkFreeze: builder.mutation<
+      ApiResponse,
+      {
+        freezeId: number;
+        freezeName: string;
+        startDateTime: string;
+        endDateTime: string;
+        remarks: string;
+      }
+    >({
+      query: ({ freezeId, freezeName, startDateTime, endDateTime, remarks }) => ({
+        url: "/networkfreez/networkfreeze/update",
+        method: "PATCH",
+        params: { freezeId, freezeName, startDateTime, endDateTime, remarks },
+      }),
+      invalidatesTags: ["NetworkFreeze"],
+    }),
+
+    deleteNetworkFreeze: builder.mutation<ApiResponse, number>({
+      query: (freezeId) => ({
+        url: `/networkfreez/networkfreeze/delete/${freezeId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["NetworkFreeze"],
+    }),
   }),
 });
 
 export const {
+  // Holiday
   useGetHolidayDataQuery,
+  useGetLocationOptionsQuery,
   useAddHolidayMutation,
   useUpdateHolidayMutation,
   useDeleteHolidayMutation,
+  // Network Freeze
+  useGetNetworkFreezeDataQuery,
+  useAddNetworkFreezeMutation,
+  useUpdateNetworkFreezeMutation,
+  useDeleteNetworkFreezeMutation,
 } = globalSettingApiSlice;
+
+// import { api } from "../../../service/api";
+
+// export interface Holiday {
+//   holidayId?: number;
+//   holidayDate: string;
+//   holidayDay: string;
+//   holidayOccasion: string;
+//   location: string;
+// }
+
+// export interface LocationOption {
+//   location: string;
+// }
+
+// export const globalSettingApiSlice = api.injectEndpoints({
+//   endpoints: (builder) => ({
+//     getHolidayData: builder.query<Holiday[], void>({
+//       query: () => ({
+//         url: "/networkfreez/holiday/view",
+//         method: "GET",
+//       }),
+//       providesTags: ["Holiday"],
+//     }),
+//     getLocationOptions: builder.query<LocationOption[], void>({
+//       query: () => ({
+//         url: "/networkfreez/holiday/location/dropdown",
+//         method: "GET",
+//       }),
+//     }),
+
+//     addHoliday: builder.mutation<
+//       { status: string; message: string },
+//       { location: string; holidayDate: string; holidayOccasion: string }
+//     >({
+//       query: ({ location, holidayDate, holidayOccasion }) => ({
+//         url: "/networkfreez/holiday/insert",
+//         method: "POST",
+//         params: { location, holidayDate, holidayOccasion },
+//       }),
+//       invalidatesTags: ["Holiday"],
+//     }),
+
+//     // /holiday/insert
+
+//     updateHoliday: builder.mutation<
+//       { status: string; message: string },
+//       { location: string; holidayDate: string; holidayOccasion: string }
+//     >({
+//       query: ({ location, holidayDate, holidayOccasion }) => ({
+//         url: "/networkfreez/holiday/update",
+//         method: "PATCH",
+//         params: { location, holidayDate, holidayOccasion },
+//       }),
+//       invalidatesTags: ["Holiday"],
+//     }),
+
+//     deleteHoliday: builder.mutation<
+//       { status: string; message: string },
+//       number
+//     >({
+//       query: (id) => ({
+//         url: `/networkfreez/holiday/delete/${id}`,
+//         method: "DELETE",
+//       }),
+//       invalidatesTags: ["Holiday"],
+//     }),
+//   }),
+// });
+
+// export const {
+//   useGetHolidayDataQuery,
+//   useAddHolidayMutation,
+//   useUpdateHolidayMutation,
+//   useDeleteHolidayMutation,
+//   useGetLocationOptionsQuery,
+// } = globalSettingApiSlice;

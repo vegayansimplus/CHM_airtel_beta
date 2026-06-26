@@ -1,22 +1,21 @@
 import React, { useState } from "react";
-import { Box } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import NetworkFreezeTable from "../components/Networkfreezetable";
 import { HolidayListTable } from "../components/Holidaylisttable";
-import { CommonContainerWithoutTab } from "../../../../components/common/ContainerWithoutTab";
 
 const HolidayAndNetworkScheduleManagerMain: React.FC = () => {
   const [refreshHolidayList, setRefreshHolidayList] = useState(false);
+  const theme = useTheme();
 
   const handleRefreshHolidayList = () => {
     setRefreshHolidayList((prev) => !prev);
   };
 
   return (
-    <>
-      {/* Page Header */}
- 
-
-      {/* Two-column layout */}
+    <Box>
+      {/* ── Page Header ── */}
+    
+      {/* ── Two-column layout ── */}
       <Box
         sx={{
           display: "grid",
@@ -26,9 +25,9 @@ const HolidayAndNetworkScheduleManagerMain: React.FC = () => {
         }}
       >
         <NetworkFreezeTable onRefresh={handleRefreshHolidayList} />
-        <HolidayListTable  />
+        <HolidayListTable />
       </Box>
-    </>
+    </Box>
   );
 };
 

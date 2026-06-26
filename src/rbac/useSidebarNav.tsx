@@ -3,6 +3,8 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
+import AltRouteIcon from '@mui/icons-material/AltRoute';
+
 import {
   FilterTiltShift,
   CalendarMonth,
@@ -81,6 +83,13 @@ const ALL_NAV_ITEMS: NavItem[] = [
         icon: <SchemaIcon />,
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskplanning"],
+      },
+       {
+        to: "/scheduler/crqjourney",
+        text: "CRQ Journey",
+        icon: <AltRouteIcon />,
+        requiredModule: "Role-Based Access Control",
+        matchPaths: ["/scheduler/crqjourney"],
       },
     ],
   },

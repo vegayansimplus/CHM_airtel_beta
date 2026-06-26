@@ -58,7 +58,7 @@ export const inboxApiSlice = api.injectEndpoints({
       // invalidatesTags: ['Notifications'],
     }),
 
-    // --- NEW: GENERIC ACKNOWLEDGE (READ) API ---
+    // GENERIC ACKNOWLEDGE (READ) API ---
     acknowledgeNotification: builder.mutation<any, { notificationId: number }>({
       query: ({ notificationId }) => ({
         url: `/notification/acknowledge?notificationId=${notificationId}`, // Update with your actual ACK API

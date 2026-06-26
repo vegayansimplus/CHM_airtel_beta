@@ -5,6 +5,7 @@ import { api } from "../service/api";
 import loadingReducer from "./loadingSlice";
 import rosterReducer from "../features/roster/slices/roster.slice"; 
 import { activityReducer } from "../features/activityViewAndSetup";
+import { crqJourneyReducer } from "../features/crqJourney";
 
 export const store = configureStore({
   reducer: {
@@ -13,6 +14,7 @@ export const store = configureStore({
     loading: loadingReducer,
     roster:rosterReducer,
     activity: activityReducer,
+     crqJourney: crqJourneyReducer,
   },
   middleware: (gDM) =>
     gDM({ serializableCheck: false }).concat(api.middleware),

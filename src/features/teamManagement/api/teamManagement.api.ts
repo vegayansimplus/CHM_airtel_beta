@@ -16,18 +16,24 @@ export interface CreateUserDropdownResponse {
   roleCode: string[];
 }
 
+export interface ExcelUploadRowResult {
+  rowNumber: number;
+  olmid: string;
+  status: "SUCCESS" | "FAILED";
+  message: string;
+}
+
 export const orgHierarchyApi = api.injectEndpoints({
   endpoints: (builder) => ({
     addNewEmployee: builder.mutation<ApiResponse, CreateEmployeeRequest>({
       query: (body) => ({
-        // url: "/teamoverview/v1/addnewemp",
-        url:"/teamoverview/v2/addnewemp",
+        url: "/teamoverview/v2/addnewemp",
         method: "POST",
         body,
       }),
-
       invalidatesTags: ["EMPLOYEES"],
     }),
+
     getCreateUserDropdowns: builder.query<CreateUserDropdownResponse, void>({
       query: () => ({
         url: "/teamoverview/getcreateuserdropdowns",
@@ -35,7 +41,7 @@ export const orgHierarchyApi = api.injectEndpoints({
       }),
       keepUnusedDataFor: 6,
     }),
-    // useUpdateEmployeeMutation
+
     updateEmployee: builder.mutation<
       { status: string; message: string },
       UpdateEmployeeRequest
@@ -47,6 +53,7 @@ export const orgHierarchyApi = api.injectEndpoints({
       }),
       invalidatesTags: ["EMPLOYEES"],
     }),
+
     updateUserStatus: builder.mutation<
       { status: string; message: string },
       UpdateUserStatusRequest
@@ -58,21 +65,25 @@ export const orgHierarchyApi = api.injectEndpoints({
       }),
       invalidatesTags: ["EMPLOYEES"],
     }),
-    uploadEmployeesFromExcel: builder.mutation<
-      {
-        rowNumber: number;
-        olmid: string;
-        status: "SUCCESS" | "FAILED";
-        message: string;
-      }[],
-      File
-    >({
+
+    // ── Download pre-filled template ──────────────────────────────────────
+    downloadEmployeeTemplate: builder.query<Blob, void>({
+      query: () => ({
+        url: "/teamoverview/excel/v1/template",
+        method: "GET",
+        responseHandler: (response) => response.blob(),
+        // prevent RTK Query from trying to parse as JSON
+        cache: "no-cache",
+      }),
+    }),
+
+    // ── Upload filled Excel file ──────────────────────────────────────────
+    uploadEmployeesFromExcel: builder.mutation<ExcelUploadRowResult[], File>({
       query: (file) => {
         const formData = new FormData();
         formData.append("file", file);
-
         return {
-          url: "/teamoverview/v1/upload-employees",
+          url: "/teamoverview/excel/v1/upload",
           method: "POST",
           body: formData,
         };
@@ -89,5 +100,101 @@ export const {
   useGetCreateUserDropdownsQuery,
   useUpdateEmployeeMutation,
   useUpdateUserStatusMutation,
-  useUploadEmployeesFromExcelMutation
+  // lazy query so we can trigger download on button click
+  useLazyDownloadEmployeeTemplateQuery,
+  useUploadEmployeesFromExcelMutation,
 } = orgHierarchyApi;
+
+// import { api } from "../../../service/api";
+// import type {
+//   ApiResponse,
+//   CreateEmployeeRequest,
+// } from "../types/createUser.types";
+// import type { UpdateEmployeeRequest } from "../types/updateUser.types";
+// import type { UpdateUserStatusRequest } from "../types/updateUserStatus.types";
+
+// export interface CreateUserDropdownResponse {
+//   employmentTypes: string[];
+//   vendorCompanies: string[];
+//   designations: string[];
+//   jobLevels: string[];
+//   officeLocations: string[];
+//   deviceVendorCapabilities: string[];
+//   roleCode: string[];
+// }
+
+// export const orgHierarchyApi = api.injectEndpoints({
+//   endpoints: (builder) => ({
+//     addNewEmployee: builder.mutation<ApiResponse, CreateEmployeeRequest>({
+//       query: (body) => ({
+//         // url: "/teamoverview/v1/addnewemp",
+//         url:"/teamoverview/v2/addnewemp",
+//         method: "POST",
+//         body,
+//       }),
+
+//       invalidatesTags: ["EMPLOYEES"],
+//     }),
+//     getCreateUserDropdowns: builder.query<CreateUserDropdownResponse, void>({
+//       query: () => ({
+//         url: "/teamoverview/getcreateuserdropdowns",
+//         method: "GET",
+//       }),
+//       keepUnusedDataFor: 6,
+//     }),
+//     // useUpdateEmployeeMutation
+//     updateEmployee: builder.mutation<
+//       { status: string; message: string },
+//       UpdateEmployeeRequest
+//     >({
+//       query: (body) => ({
+//         url: "/teamoverview/v1/updateemp",
+//         method: "PUT",
+//         body,
+//       }),
+//       invalidatesTags: ["EMPLOYEES"],
+//     }),
+//     updateUserStatus: builder.mutation<
+//       { status: string; message: string },
+//       UpdateUserStatusRequest
+//     >({
+//       query: (body) => ({
+//         url: "/teamoverview/v1/updateuserstatus",
+//         method: "PUT",
+//         body,
+//       }),
+//       invalidatesTags: ["EMPLOYEES"],
+//     }),
+//     uploadEmployeesFromExcel: builder.mutation<
+//       {
+//         rowNumber: number;
+//         olmid: string;
+//         status: "SUCCESS" | "FAILED";
+//         message: string;
+//       }[],
+//       File
+//     >({
+//       query: (file) => {
+//         const formData = new FormData();
+//         formData.append("file", file);
+
+//         return {
+//           url: "/teamoverview/v1/upload-employees",
+//           method: "POST",
+//           body: formData,
+//         };
+//       },
+//       invalidatesTags: ["EMPLOYEES"],
+//     }),
+//   }),
+
+//   overrideExisting: false,
+// });
+
+// export const {
+//   useAddNewEmployeeMutation,
+//   useGetCreateUserDropdownsQuery,
+//   useUpdateEmployeeMutation,
+//   useUpdateUserStatusMutation,
+//   useUploadEmployeesFromExcelMutation
+// } = orgHierarchyApi;
