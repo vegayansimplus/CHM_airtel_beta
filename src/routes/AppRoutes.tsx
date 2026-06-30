@@ -22,7 +22,7 @@ import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGene
 import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
 import NotificationManagerMain from "../features/userMe/pages/NotificationManagerMain";
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
-import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
+// import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
 import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
 // import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
 // import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
@@ -38,13 +38,15 @@ import { UserLogs } from "../features/userManagement/pages/UserLogs";
 import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup";
-import { PlanVIewAndSetupMainPage } from "../features/scheduler/sub-feature/planViewAndSetup/PlanVIewAndSetupMainPage";
+// import { PlanVIewAndSetupMainPage } from "../features/scheduler/sub-feature/planViewAndSetup/PlanVIewAndSetupMainPage";
 import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
+import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
+// import { PlanAndInventoryMain } from "../features/scheduler_u/page/PlanAndInventoryMain";
 // import { CrqJourneyMain } from "../features/crqJourney/pages/CrqJourneyMain";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
@@ -194,7 +196,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={<PrivateRoute element={<SchedulerMainTab />} />}
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
-          <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
+          {/* <Route path="crqWorkflow" element={<PlanAndInventoryMain />} /> */}
+          <Route path="crqWorkflow" element={<PlanAndInventoryMain/>}/>
           {/* <Route path="planviewandsetup" element={<PlanViewAndSetup />} /> */}
           <Route
             path="action"

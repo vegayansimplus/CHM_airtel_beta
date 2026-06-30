@@ -32,7 +32,10 @@ export const api = createApi({
     "ShiftDropdown",
     "NetworkFreeze",
     "GoldenSetTag",
-    "FutureWeekTag"  
+    "FutureWeekTag",
+    "StageWorkflow",
+    "Scheduling",
+    
     
   ],
 });

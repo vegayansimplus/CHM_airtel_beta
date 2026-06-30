@@ -114,38 +114,7 @@ export const CrqCard: React.FC<CrqCardProps> = ({
           }}
         />
 
-        {/* <Box
-          sx={{
-            px: 1.2,
-            py: 0.45,
-            borderRadius: "7px",
-            bgcolor: colors.accentDim,
-            border: `1px solid ${colors.accentBorder}`,
-            flexShrink: 0,
-          }}
-        >
-          <Typography
-            sx={{
-              fontSize: 12,
-              fontWeight: 800,
-              color: colors.accent,
-              fontFamily: "'JetBrains Mono','Fira Code',monospace",
-              letterSpacing: 0.5,
-              lineHeight: 1,
-            }}
-          >
-            {crq.crqNo}
-          </Typography>
-        </Box> */}
-
-        {/* <Stack direction="row" spacing={0.7} flexShrink={0}>
-          {crq.crqStatus && (
-            <StatusPill value={crq.crqStatus} colors={colors} />
-          )}
-          {status && status !== crq.crqStatus && (
-            <StatusPill value={status} colors={colors} />
-          )}
-        </Stack> */}
+   
 
         {/* Info Cards Container */}
         <Box sx={{ flex: 1, overflowX: "scroll" , width:"60vw"}}>
