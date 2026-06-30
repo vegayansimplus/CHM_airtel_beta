@@ -4,6 +4,7 @@ import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import AltRouteIcon from '@mui/icons-material/AltRoute';
+import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 
 import {
   FilterTiltShift,
@@ -42,6 +43,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
     text: "Me",
     icon: <PersonIcon />,
     requiredModule: null,
+  },
+  {
+    to: "/cabmanager",
+    text: "Cab Manager",
+    icon: <BusinessCenterIcon />,
+    requiredModule: "Cab Manager",
   },
   {
     to: "/generateroster",

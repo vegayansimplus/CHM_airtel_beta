@@ -46,6 +46,8 @@ import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/A
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
+import { CabPortalLayout } from "../features/cabManager/pages/CabPortalLayout";
+// import { CabWorkspace } from "../features/cabManager/pages/CabWorkspace";
 // import { PlanAndInventoryMain } from "../features/scheduler_u/page/PlanAndInventoryMain";
 // import { CrqJourneyMain } from "../features/crqJourney/pages/CrqJourneyMain";
 // import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
@@ -141,6 +143,29 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route index element={<Navigate to="monthlyview" replace />} />
           <Route path="monthlyview" element={<UserRosterMain />} />
+          <Route path="leave" element={<UserLeaveSectionMain />} />
+          <Route
+            path="notifiactionmanger"
+            element={<NotificationManagerMain />}
+          />
+        </Route>
+
+        {/* Cab Manger Routes */}
+          <Route
+          path="cabmanager"
+          element={
+            <PrivateRoute
+              element={
+                <UserMeMainPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="cabmanager" replace />} />
+          <Route path="cabmanager" element={<CabPortalLayout />} />
           <Route path="leave" element={<UserLeaveSectionMain />} />
           <Route
             path="notifiactionmanger"
