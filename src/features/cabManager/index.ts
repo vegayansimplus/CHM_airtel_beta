@@ -2,11 +2,7 @@
 //  CAB Portal — feature barrel exports
 // ─────────────────────────────────────────────
 
-// Routes (drop into AppRoutes.tsx)
-export { cabPortalRoutes } from "./routes/cabRoutes";
-
 // Pages
-export { CabPortalLayout }    from "./pages/CabPortalLayout";
 export { DashboardPage }      from "./pages/DashboardPage";
 export { AllCrqsPage }        from "./pages/AllCrqsPage";
 export { MyCrqsPage }         from "./pages/MyCrqsPage";

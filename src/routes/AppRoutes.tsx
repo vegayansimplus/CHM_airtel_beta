@@ -46,12 +46,18 @@ import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/A
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
-import { CabPortalLayout } from "../features/cabManager/pages/CabPortalLayout";
-// import { CabWorkspace } from "../features/cabManager/pages/CabWorkspace";
-// import { PlanAndInventoryMain } from "../features/scheduler_u/page/PlanAndInventoryMain";
-// import { CrqJourneyMain } from "../features/crqJourney/pages/CrqJourneyMain";
-// import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
-// import ModernHomeDashboard from "../features/dashboard/pages/modernHomeDashboard";
+import ReusableTabLayout from "../components/common/ReusableTabLayout";
+
+// Cab Manager pages
+import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
+import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
+import { MyCrqsPage } from "../features/cabManager/pages/MyCrqsPage";
+import { CrqJourneyPage } from "../features/cabManager/pages/CrqJourneyPage";
+import { CabPlanningPage } from "../features/cabManager/pages/CabPlanningPage";
+import { CabSessionsPage } from "../features/cabManager/pages/CabSessionsPage";
+import { ImplementationPage } from "../features/cabManager/pages/ImplementationPage";
+import { AdminPage } from "../features/cabManager/pages/AdminPage";
+
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -150,27 +156,40 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           />
         </Route>
 
-        {/* Cab Manger Routes */}
-          <Route
+        {/* {cabPortalRoutes} */}
+        <Route
           path="cabmanager"
           element={
             <PrivateRoute
               element={
-                <UserMeMainPageTab
-                  setDynamicHeaderText={setDynamicHeaderText}
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                <ReusableTabLayout
+                  basePath="/cabmanager"
+                  tabs={[
+                    { label: "Dashboard", path: "dashboard" },
+                    { label: "All CRQs", path: "allcrqs" },
+                    { label: "My CRQs", path: "mycrqs" },
+                    { label: "CRQ Journey", path: "journey" },
+                    { label: "Planning", path: "planning" },
+                    { label: "Sessions", path: "sessions" },
+                    { label: "Implementation", path: "implementation" },
+                    { label: "Admin", path: "admin" },
+                  ]}
                 />
               }
             />
           }
         >
-          <Route index element={<Navigate to="cabmanager" replace />} />
-          <Route path="cabmanager" element={<CabPortalLayout />} />
-          <Route path="leave" element={<UserLeaveSectionMain />} />
-          <Route
-            path="notifiactionmanger"
-            element={<NotificationManagerMain />}
-          />
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<CabDashboardPage />} />
+          <Route path="allcrqs" element={<AllCrqsPage />} />
+          <Route path="mycrqs" element={<MyCrqsPage />} />
+          <Route path="journey" element={<Navigate to="../allcrqs" replace />} />
+          <Route path="journey/:id" element={<CrqJourneyPage />} />
+          <Route path="planning" element={<CabPlanningPage />} />
+          <Route path="sessions" element={<CabSessionsPage />} />
+          <Route path="implementation" element={<Navigate to="implementation/CRQ-2026-0418" replace />} />
+          <Route path="implementation/:id" element={<ImplementationPage />} />
+          <Route path="admin" element={<AdminPage />} />
         </Route>
 
         <Route
