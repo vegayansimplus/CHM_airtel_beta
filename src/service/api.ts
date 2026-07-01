@@ -35,7 +35,13 @@ export const api = createApi({
     "FutureWeekTag",
     "StageWorkflow",
     "Scheduling",
-    
+    "CabKpi",
+    "CabQueue",
+    "CabSession",
+    "CabDashboard",
+    "CabAdmin",
+    "CabAudit",
+   
     
   ],
 });
