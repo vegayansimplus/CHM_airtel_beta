@@ -38,6 +38,9 @@ export const api = createApi({
     "CabKpi",
     "CabQueue",
     "CabSession",
+    "CabDashboard",
+    "CabAdmin",
+    "CabAudit",
    
     
   ],
