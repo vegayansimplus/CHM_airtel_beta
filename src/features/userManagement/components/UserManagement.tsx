@@ -1,5 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Box, Fab, MenuItem, Pagination, Select, Stack, TextField, Typography, useMediaQuery } from "@mui/material";
+import {
+  Box,
+  Fab,
+  MenuItem,
+  Pagination,
+  Select,
+  Stack,
+  TextField,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { saveAs } from "file-saver";
 import { toast } from "react-toastify";
@@ -47,7 +58,10 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const isMobile = useMediaQuery("(max-width:900px)");
+  const theme = useTheme();
+  // Below `sm` (phones), the table has no room even with column-hiding, so fall
+  // back to the card grid. From `sm` up, UserTable folds columns by priority.
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
   useEffect(() => {
     const t = setTimeout(() => setLoading(false), 550);
@@ -234,7 +248,7 @@ export default function UserManagement() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", bgcolor: "#F8FAFC", p: { xs: 2, md: 3 }, pb: { xs: 10, md: 3 } }}>
+    <Box sx={{ pb: { xs: 9, md: 1 } }}>
       <DashboardHeader
         onAddUser={() => setAddOpen(true)}
         onImport={handleImport}
@@ -281,8 +295,13 @@ export default function UserManagement() {
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
-                gap: 2,
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  sm: "1fr 1fr",
+                  md: "repeat(3, 1fr)",
+                  xl: "repeat(4, 1fr)",
+                },
+                gap: 1.5,
               }}
             >
               {paginated.map((u, i) => (
@@ -305,8 +324,8 @@ export default function UserManagement() {
             direction={{ xs: "column", sm: "row" }}
             alignItems="center"
             justifyContent="space-between"
-            mt={3}
-            gap={2}
+            mt={1.5}
+            gap={1.5}
           >
             <Stack direction="row" alignItems="center" gap={1.5}>
               <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>Rows per page</Typography>

@@ -1,12 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
-import { Avatar, Badge, Box, Chip, Stack, Tooltip, Typography, Button } from "@mui/material";
-import { DeleteOutline } from "@mui/icons-material";
+import {
+  Avatar,
+  Badge,
+  Box,
+  Chip,
+  Stack,
+  Tooltip,
+  Typography,
+  Button,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
+import { DeleteOutline, GroupOutlined, Close } from "@mui/icons-material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   MRT_ShowHideColumnsButton,
   type MRT_ColumnDef,
   type MRT_RowSelectionState,
+  type MRT_VisibilityState,
 } from "material-react-table";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
@@ -47,6 +59,33 @@ export default function UserTable({
     setRowSelection({});
   }, [users]);
 
+  // ── Responsive column priority ──────────────────────────────────────────
+  // Lower-priority columns fold away as the available width shrinks (the
+  // sidebar + header eat into it before the table container even starts).
+  const theme = useTheme();
+  const isDownMd = useMediaQuery(theme.breakpoints.down("md"));
+  const isDownLg = useMediaQuery(theme.breakpoints.down("lg"));
+  const isDownXl = useMediaQuery(theme.breakpoints.down("xl"));
+
+  const responsiveVisibility = useMemo<MRT_VisibilityState>(
+    () => ({
+      function: !isDownMd,
+      employeeId: !isDownLg,
+      joinedDate: !isDownLg,
+      lastLogin: !isDownXl,
+      permissions: !isDownXl,
+    }),
+    [isDownMd, isDownLg, isDownXl],
+  );
+
+  const [columnVisibility, setColumnVisibility] = useState<MRT_VisibilityState>(responsiveVisibility);
+
+  // Re-apply the breakpoint defaults whenever the viewport crosses a boundary,
+  // while still letting the user override via the Show/Hide columns menu in between.
+  useEffect(() => {
+    setColumnVisibility(responsiveVisibility);
+  }, [responsiveVisibility]);
+
   const columns = useMemo<MRT_ColumnDef<User>[]>(
     () => [
       {
@@ -76,10 +115,12 @@ export default function UserTable({
                 <Avatar
                   sx={{
                     bgcolor: getAvatarColor(u.id),
-                    width: 40,
-                    height: 40,
-                    fontSize: "0.8rem",
+                    width: 38,
+                    height: 38,
+                    fontSize: "0.78rem",
                     fontWeight: 700,
+                    border: "2px solid #fff",
+                    boxShadow: "0 0 0 1px rgba(15,23,42,0.06)",
                   }}
                 >
                   {getInitials(u.name)}
@@ -89,7 +130,7 @@ export default function UserTable({
                 <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }} noWrap>
                   {u.name}
                 </Typography>
-                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>
+                <Typography sx={{ fontSize: 11.5, color: "#94A3B8" }} noWrap>
                   {u.email}
                 </Typography>
               </Box>
@@ -204,8 +245,9 @@ export default function UserTable({
     columns,
     data: users,
     getRowId: (row) => row.id,
-    state: { rowSelection },
+    state: { rowSelection, columnVisibility },
     onRowSelectionChange: setRowSelection,
+    onColumnVisibilityChange: setColumnVisibility,
     enableRowSelection: true,
     enableColumnResizing: true,
     enableColumnActions: false,
@@ -218,38 +260,66 @@ export default function UserTable({
     enableBottomToolbar: false,
     enableStickyHeader: true,
     enableHiding: true,
+    enableColumnPinning: true,
+    initialState: {
+      columnPinning: { left: ["mrt-row-select", "name"], right: ["actions"] },
+    },
     layoutMode: "grid",
     positionToolbarAlertBanner: "top",
     muiTablePaperProps: {
       elevation: 0,
       sx: {
-        borderRadius: "18px",
-        border: "1px solid rgba(15,23,42,0.06)",
-        boxShadow: "0 4px 20px rgba(15,23,42,0.04)",
+        borderRadius: "16px",
+        border: "1px solid rgba(15,23,42,0.07)",
+        boxShadow: "0 8px 28px rgba(15,23,42,0.06)",
         overflow: "hidden",
-        background: "rgba(255,255,255,0.9)",
+        background: "#fff",
+        width: "100%",
       },
     },
-    muiTableContainerProps: { sx: { maxHeight: "62vh" } },
-    muiTableHeadCellProps: {
+    muiTableContainerProps: {
+      sx: { maxHeight: { xs: "60vh", md: "68vh", xl: "72vh" }, overflowX: "auto" },
+    },
+    muiTableHeadCellProps: ({ column }) => ({
       sx: {
         background: "#F8FAFC",
-        color: "#64748B",
+        color: "#475569",
         fontSize: 11,
         fontWeight: 700,
         textTransform: "uppercase",
-        letterSpacing: "0.05em",
-        borderBottom: "1px solid rgba(15,23,42,0.08)",
+        letterSpacing: "0.06em",
+        borderBottom: "2px solid rgba(15,23,42,0.08)",
+        px: { xs: 1, lg: 1.5 },
+        "& .Mui-TableHeadCell-Content-Actions button": { color: "#94A3B8" },
+        ...(column.getIsPinned() && {
+          background: "#F8FAFC",
+          boxShadow:
+            column.getIsPinned() === "left"
+              ? "2px 0 4px rgba(15,23,42,0.04)"
+              : "-2px 0 4px rgba(15,23,42,0.04)",
+        }),
       },
-    },
-    muiTableBodyCellProps: {
-      sx: { borderBottom: "1px solid rgba(15,23,42,0.05)", py: 1 },
-    },
-    muiTableBodyRowProps: () => ({
+    }),
+    muiTableBodyCellProps: ({ column }) => ({
+      sx: {
+        borderBottom: "1px solid rgba(15,23,42,0.05)",
+        py: 1.35,
+        px: { xs: 1, lg: 1.5 },
+        ...(column.getIsPinned() && {
+          background: "#fff",
+          boxShadow:
+            column.getIsPinned() === "left"
+              ? "2px 0 4px rgba(15,23,42,0.04)"
+              : "-2px 0 4px rgba(15,23,42,0.04)",
+        }),
+      },
+    }),
+    muiTableBodyRowProps: ({ row }) => ({
       className: "row-hover",
       sx: {
         transition: "background 0.15s",
-        "&:hover": { background: "rgba(37,99,235,0.03)" },
+        background: row.index % 2 === 1 ? "rgba(248,250,252,0.6)" : "transparent",
+        "&:hover": { background: "rgba(37,99,235,0.045)" },
       },
     }),
     muiSelectCheckboxProps: { size: "small" },
@@ -258,20 +328,25 @@ export default function UserTable({
       <Box
         sx={{
           display: "flex",
+          flexWrap: "wrap",
           alignItems: "center",
           justifyContent: "space-between",
-          px: 2,
-          py: 1,
+          gap: 1,
+          px: { xs: 1.25, lg: 2.25 },
+          py: 1.25,
           borderBottom: "1px solid rgba(15,23,42,0.06)",
+          background: "linear-gradient(180deg, #FAFBFF 0%, #FFFFFF 100%)",
         }}
       >
-        <Box sx={{ minHeight: 32, display: "flex", alignItems: "center" }}>
-          {selectedUsers.length > 0 && (
-            <Stack direction="row" alignItems="center" gap={1.5}>
+        <Box sx={{ minHeight: 30, display: "flex", alignItems: "center" }}>
+          {selectedUsers.length > 0 ? (
+            <Stack direction="row" alignItems="center" flexWrap="wrap" gap={1.25}>
               <Chip
                 label={`${selectedUsers.length} selected`}
                 size="small"
-                sx={{ bgcolor: "primary.main", color: "#fff", fontWeight: 700 }}
+                onDelete={() => setRowSelection({})}
+                deleteIcon={<Close sx={{ fontSize: 14 }} />}
+                sx={{ bgcolor: "primary.main", color: "#fff", fontWeight: 700, "& .MuiChip-deleteIcon": { color: "rgba(255,255,255,0.8)" } }}
               />
               <Button
                 size="small"
@@ -281,10 +356,22 @@ export default function UserTable({
                   onBulkDelete(selectedUsers);
                   setRowSelection({});
                 }}
-                sx={{ fontWeight: 600 }}
+                sx={{ fontWeight: 600, borderRadius: "8px" }}
               >
                 Delete selected
               </Button>
+            </Stack>
+          ) : (
+            <Stack direction="row" alignItems="center" gap={0.75}>
+              <GroupOutlined sx={{ fontSize: 17, color: "#94A3B8" }} />
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>
+                All Users
+              </Typography>
+              <Chip
+                label={users.length}
+                size="small"
+                sx={{ height: 19, fontSize: 11, fontWeight: 700, bgcolor: "#EFF6FF", color: "#2563EB" }}
+              />
             </Stack>
           )}
         </Box>

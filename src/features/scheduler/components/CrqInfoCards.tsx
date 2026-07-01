@@ -1,17 +1,15 @@
 import React from "react";
 import { Stack, Box, Typography } from "@mui/material";
-import CancelIcon from "@mui/icons-material/Cancel";
-import AutorenewIcon from "@mui/icons-material/Autorenew";
-import { format } from "date-fns";
 
-interface InfoItem {
+export interface CrqInfoCardItem {
   label: string;
-  value: React.ReactNode;
+  value: React.ReactNode | ((data?: any) => React.ReactNode);
 }
+
 interface CrqInfoCardsProps {
-  // crq: any;
   colors: any;
-  items: InfoItem[];
+  items: CrqInfoCardItem[];
+  data?: any;
 }
 
 const InfoBlock = ({
@@ -25,7 +23,6 @@ const InfoBlock = ({
 }) => (
   <Box
     sx={{
-      // bgcolor: colors.surface2,
       bgcolor: colors.accentDim,
       borderRadius: colors.radius,
       px: 2,
@@ -55,67 +52,17 @@ const InfoBlock = ({
   </Box>
 );
 
-const StatusPill = ({
-  status,
-  colors,
-  isImpact = false,
-}: {
-  status: string;
-  colors: any;
-  isImpact?: boolean;
-}) => {
-  const isFailed = ["canceled", "cancel", "Canceled"].includes(status);
-  const isInProgress = status === "In Progress";
-
-  const icon = isFailed ? (
-    <CancelIcon fontSize="small" />
-  ) : isInProgress ? (
-    <AutorenewIcon fontSize="small" />
-  ) : null;
-  const pillColor = isFailed
-    ? colors.danger
-    : isInProgress
-      ? colors.info
-      : colors.success;
-  const pillBorder = isFailed
-    ? colors.dangerBorder
-    : isInProgress
-      ? colors.infoBorder
-      : colors.successBorder;
-
-  return (
-    <Box
-      sx={{
-        border: `1px solid ${pillBorder}`,
-        color: pillColor,
-        borderRadius: "16px",
-        px: 1.5,
-        py: 0.25,
-        display: "flex",
-        alignItems: "center",
-        gap: 0.5,
-        bgcolor: colors.surface,
-        fontSize: "0.8rem",
-        fontWeight: 600,
-      }}
-    >
-      {icon}
-      <span>{status || "-"}</span>
-    </Box>
-  );
-};
-
-const CrqInfoCards: React.FC<CrqInfoCardsProps> = ({ colors, items }) => {
-  const formatDate = (dateString: string) =>
-    dateString ? format(new Date(dateString), "dd-MMM-yyyy HH:mm") : "-";
+const CrqInfoCards: React.FC<CrqInfoCardsProps> = ({ colors, items, data }) => {
+  const resolveValue = (item: CrqInfoCardItem) =>
+    typeof item.value === "function" ? item.value(data) : item.value;
 
   return (
     <Stack direction="row" gap={1.5} alignItems="center">
       {items.map((item, index) => (
         <InfoBlock
-          key={index}
+          key={`${item.label}-${index}`}
           label={item.label}
-          value={item.value}
+          value={resolveValue(item)}
           colors={colors}
         />
       ))}

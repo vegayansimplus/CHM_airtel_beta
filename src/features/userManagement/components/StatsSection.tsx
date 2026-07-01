@@ -95,7 +95,7 @@ export default function StatsSection({ users }: { users: User[] }) {
   ];
 
   return (
-    <Stack direction="row" flexWrap="wrap" gap={2} mb={3}>
+    <Stack direction="row" flexWrap="wrap" gap={1} mb={2}>
       {cards.map((c, i) => (
         <StatCard
           key={c.label}

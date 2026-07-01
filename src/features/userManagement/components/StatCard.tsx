@@ -4,8 +4,8 @@ import { motion } from "framer-motion";
 import { useCountUp } from "../utils/userHelpers";
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const w = 72;
-  const h = 24;
+  const w = 52;
+  const h = 18;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const range = max - min || 1;
@@ -62,22 +62,22 @@ export default function StatCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
-      whileHover={{ y: -4 }}
-      style={{ flex: "1 1 220px", minWidth: 200 }}
+      whileHover={{ y: -2 }}
+      style={{ flex: "1 1 160px", minWidth: 148 }}
     >
       <Box
         sx={{
           position: "relative",
           overflow: "hidden",
-          p: 2.25,
-          borderRadius: "18px",
+          p: 1.25,
+          borderRadius: "14px",
           background: "rgba(255,255,255,0.75)",
           backdropFilter: "blur(12px)",
           border: "1px solid rgba(15,23,42,0.06)",
-          boxShadow: "0 4px 20px rgba(15,23,42,0.05)",
-          transition: "box-shadow 0.25s ease, border-color 0.25s ease",
+          boxShadow: "0 2px 10px rgba(15,23,42,0.04)",
+          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": {
-            boxShadow: "0 14px 32px rgba(15,23,42,0.12)",
+            boxShadow: "0 8px 20px rgba(15,23,42,0.1)",
             borderColor: `${color}40`,
           },
         }}
@@ -85,62 +85,64 @@ export default function StatCard({
         <Box
           sx={{
             position: "absolute",
-            top: -30,
-            right: -30,
-            width: 100,
-            height: 100,
+            top: -24,
+            right: -24,
+            width: 72,
+            height: 72,
             borderRadius: "50%",
             background: gradient,
             opacity: 0.12,
           }}
         />
-        <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: "12px",
-              background: gradient,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: `0 6px 16px ${color}55`,
-            }}
-          >
-            <Icon sx={{ color: "#fff", fontSize: 20 }} />
-          </Box>
-          <Sparkline data={sparkline} color={color} />
-        </Stack>
-
-        <Typography
-          sx={{ mt: 1.5, fontSize: 26, fontWeight: 800, color: "#0F172A", lineHeight: 1.1 }}
-        >
-          {animated.toLocaleString()}
-        </Typography>
-        <Stack direction="row" alignItems="center" justifyContent="space-between" mt={0.5}>
-          <Typography sx={{ fontSize: 12.5, color: "#64748B", fontWeight: 500 }}>
-            {label}
-          </Typography>
-          <Stack
-            direction="row"
-            alignItems="center"
-            gap={0.3}
-            sx={{
-              px: 0.8,
-              py: 0.2,
-              borderRadius: 999,
-              bgcolor: isUp ? "#ECFDF5" : "#FEF2F2",
-              color: isUp ? "#059669" : "#DC2626",
-            }}
-          >
-            {isUp ? (
-              <TrendingUp sx={{ fontSize: 13 }} />
-            ) : (
-              <TrendingDown sx={{ fontSize: 13 }} />
-            )}
-            <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
-              {Math.abs(trend)}%
-            </Typography>
+        <Stack direction="row" alignItems="center" justifyContent="space-between">
+          <Stack direction="row" alignItems="center" gap={1}>
+            <Box
+              sx={{
+                width: 28,
+                height: 28,
+                borderRadius: "9px",
+                background: gradient,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: `0 4px 10px ${color}55`,
+                flexShrink: 0,
+              }}
+            >
+              <Icon sx={{ color: "#fff", fontSize: 15 }} />
+            </Box>
+            <Box>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#0F172A", lineHeight: 1.1 }}>
+                {animated.toLocaleString()}
+              </Typography>
+              <Typography sx={{ fontSize: 10.5, color: "#64748B", fontWeight: 600, whiteSpace: "nowrap" }}>
+                {label}
+              </Typography>
+            </Box>
+          </Stack>
+          <Stack alignItems="flex-end" gap={0.25} sx={{ display: { xs: "none", lg: "flex" } }}>
+            <Sparkline data={sparkline} color={color} />
+            <Stack
+              direction="row"
+              alignItems="center"
+              gap={0.3}
+              sx={{
+                px: 0.6,
+                py: 0.1,
+                borderRadius: 999,
+                bgcolor: isUp ? "#ECFDF5" : "#FEF2F2",
+                color: isUp ? "#059669" : "#DC2626",
+              }}
+            >
+              {isUp ? (
+                <TrendingUp sx={{ fontSize: 11 }} />
+              ) : (
+                <TrendingDown sx={{ fontSize: 11 }} />
+              )}
+              <Typography sx={{ fontSize: 10, fontWeight: 700 }}>
+                {Math.abs(trend)}%
+              </Typography>
+            </Stack>
           </Stack>
         </Stack>
       </Box>

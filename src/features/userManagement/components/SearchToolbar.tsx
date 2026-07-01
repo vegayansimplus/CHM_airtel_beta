@@ -60,8 +60,8 @@ interface SearchToolbarProps {
 }
 
 const fieldSx = {
-  minWidth: 140,
-  "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: 13 },
+  minWidth: 120,
+  "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 12.5 },
 };
 
 export default function SearchToolbar({
@@ -95,16 +95,16 @@ export default function SearchToolbar({
     <LocalizationProvider dateAdapter={AdapterDayjs}>
       <Box
         sx={{
-          p: 2,
-          mb: 2,
-          borderRadius: "16px",
+          p: 1.25,
+          mb: 1.5,
+          borderRadius: "12px",
           background: "rgba(255,255,255,0.8)",
           backdropFilter: "blur(10px)",
           border: "1px solid rgba(15,23,42,0.06)",
-          boxShadow: "0 4px 20px rgba(15,23,42,0.04)",
+          boxShadow: "0 2px 12px rgba(15,23,42,0.03)",
         }}
       >
-        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1.5}>
+        <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1}>
           <TextField
             inputRef={searchRef}
             placeholder="Search by name, ID or email…"
@@ -143,8 +143,8 @@ export default function SearchToolbar({
             }}
             sx={{
               flex: 1,
-              minWidth: 240,
-              "& .MuiOutlinedInput-root": { borderRadius: "999px", fontSize: 13 },
+              minWidth: 200,
+              "& .MuiOutlinedInput-root": { borderRadius: "999px", fontSize: 12.5, height: 34 },
             }}
           />
 
@@ -181,11 +181,12 @@ export default function SearchToolbar({
           </FormControl>
 
           <Button
+            size="small"
             variant={advancedOpen ? "contained" : "outlined"}
-            startIcon={<Tune sx={{ fontSize: 16 }} />}
+            startIcon={<Tune sx={{ fontSize: 15 }} />}
             onClick={() => setAdvancedOpen((p) => !p)}
             sx={{
-              borderRadius: "10px",
+              borderRadius: "8px",
               fontWeight: 600,
               ...(advancedOpen
                 ? {}
@@ -210,10 +211,11 @@ export default function SearchToolbar({
 
           <Tooltip title="Reset filters">
             <IconButton
+              size="small"
               onClick={onReset}
-              sx={{ border: "1px solid rgba(15,23,42,0.1)", borderRadius: "10px" }}
+              sx={{ border: "1px solid rgba(15,23,42,0.1)", borderRadius: "8px" }}
             >
-              <RestartAlt sx={{ fontSize: 18, color: "text.secondary" }} />
+              <RestartAlt sx={{ fontSize: 16, color: "text.secondary" }} />
             </IconButton>
           </Tooltip>
 
@@ -252,9 +254,9 @@ export default function SearchToolbar({
             direction="row"
             flexWrap="wrap"
             alignItems="center"
-            gap={1.5}
-            mt={2}
-            pt={2}
+            gap={1}
+            mt={1.25}
+            pt={1.25}
             sx={{ borderTop: "1px dashed rgba(15,23,42,0.1)" }}
           >
             <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: "text.secondary" }}>
