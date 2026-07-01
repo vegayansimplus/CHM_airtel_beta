@@ -41,6 +41,8 @@ export const api = createApi({
     "CabDashboard",
     "CabAdmin",
     "CabAudit",
+    "CabCrq",
+    "CabImpl"
    
     
   ],

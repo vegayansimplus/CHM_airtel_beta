@@ -125,7 +125,7 @@ const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
   });
 };
 
-const cleanParams = <T extends Record<string, unknown>>(
+const cleanParams = <T extends Record<string, any>>(
   o: T
 ): Record<string, string> => {
   const out: Record<string, string> = {};
@@ -269,22 +269,29 @@ export const cabPortalApi = api.injectEndpoints({
     }),
 
     // ── IMPLEMENTATION ────────────────────────────────────────────────────
-    getImplementation: builder.query<ImplementationDetail, string>({
-      queryFn: async (id, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(id)}/implementation`,
-            method: "GET",
-          },
-          baseQuery,
-          async () => {
-            const impl = buildImplementation(id);
-            if (impl) return await mockDelay(impl);
-            throw { status: 404, data: { message: "CRQ not found" } };
-          }
-        ),
-      providesTags: (_r, _e, id) => [{ type: "CabImpl" as const, id }],
-    }),
+getImplementation: builder.query<ImplementationDetail, void>({
+  queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
+    networkOrMock(
+      {
+        url: "/cab/crqs/implementation",
+        method: "GET",
+      },
+      baseQuery,
+      async () => {
+        // Use any fixed dummy CRQ ID
+        const impl = buildImplementation("CRQ-2026-0418");
+
+        if (impl) return await mockDelay(impl);
+
+        throw {
+          status: 404,
+          data: { message: "Mock data not found" },
+        };
+      }
+    ),
+
+  providesTags: [{ type: "CabImpl", id: "MOCK" }],
+}),
 
     // ── ADMIN ─────────────────────────────────────────────────────────────
     getAdminAnalytics: builder.query<AdminAnalytics, void>({

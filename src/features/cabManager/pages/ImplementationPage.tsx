@@ -13,7 +13,6 @@ import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
 import { useState } from "react";
-import { useParams } from "react-router";
 import {
   useBlockRingMutation,
   useGetImplementationQuery,
@@ -22,8 +21,8 @@ import {
 import { errMsg } from "../components/shared/errMsg";
 
 export function ImplementationPage() {
-  const { id = "CRQ-2026-0418" } = useParams<{ id: string }>();
-  const { data, isLoading, isError, error, refetch } = useGetImplementationQuery(id);
+
+  const { data, isLoading, isError, error, refetch } = useGetImplementationQuery();
   const [proceed] = useProceedRingMutation();
   const [block]   = useBlockRingMutation();
   const [nocCalled, setNocCalled] = useState(false);

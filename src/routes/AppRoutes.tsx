@@ -11,7 +11,6 @@ import CommonContainer from "../components/common/CommonContainer";
 import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
 import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
 import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
-import { HomeDashboard } from "../features/dashboard/pages/HomeDashboard";
 import MonthlyRosterPageTab from "../features/roster/page/MonthlyRosterPageTab";
 import { RosterViewMain } from "../features/roster/page/RosterViewMain";
 import UserMeMainPageTab from "../features/userMe/pages/UserMeMainPageTab";
@@ -187,8 +186,10 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="journey/:id" element={<CrqJourneyPage />} />
           <Route path="planning" element={<CabPlanningPage />} />
           <Route path="sessions" element={<CabSessionsPage />} />
-          <Route path="implementation" element={<Navigate to="implementation/CRQ-2026-0418" replace />} />
-          <Route path="implementation/:id" element={<ImplementationPage />} />
+          <Route
+            path="implementation"
+            element={<ImplementationPage />}
+          />
           <Route path="admin" element={<AdminPage />} />
         </Route>
 
