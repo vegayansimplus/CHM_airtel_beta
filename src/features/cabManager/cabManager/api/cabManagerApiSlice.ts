@@ -206,14 +206,7 @@ export const cabPortalApi = api.injectEndpoints({
 // Inside cabManagerApiSlice.ts
 getMyCrqs: builder.query<MyCrqsResponse, Role>({
   queryFn: async (roleArg) => {
-    console.log("2. Role received in API Slice:", roleArg);
-
-    // 1. Get the mock data directly, skipping the network request completely
     const mockData = await mockDelay(buildMyCrqs(roleArg));
-    
-    console.log("3. Mode decided by mock data:", mockData.mode);
-
-    // 2. Wrap it in 'data' so RTK Query accepts it
     return { data: mockData };
   },
   providesTags: [{ type: "CabCrq", id: "MINE" }],

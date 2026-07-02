@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
@@ -24,7 +24,7 @@ import { usePermission } from "./usePermission";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
-import type { Role } from "../features/cabManager/cabManager/types/types";
+import { useCabRole } from "../features/cabManager/cabManager/hooks/useCabRole";
 import { ROLE_SCREENS } from "../features/cabManager/cabManager/data/cabManager.mock";
 // import ChecklistIcon from "@mui/icons-material/Checklist";
 export interface NavItem {
@@ -208,23 +208,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
 
 export const useSidebarNav = (): NavItem[] => {
   const { hasModule } = usePermission();
-  const [cabRole, setCabRole] = useState<Role>("requester");
-
-  useEffect(() => {
-    const syncRole = () => {
-      const stored = window.localStorage.getItem("cab.role") as Role | null;
-      setCabRole(stored && ROLE_SCREENS[stored] ? stored : "requester");
-    };
-
-    syncRole();
-    window.addEventListener("cab-role-changed", syncRole);
-    window.addEventListener("storage", syncRole);
-
-    return () => {
-      window.removeEventListener("cab-role-changed", syncRole);
-      window.removeEventListener("storage", syncRole);
-    };
-  }, []);
+  const { role: cabRole } = useCabRole();
 
   return useMemo(() => {
     // map cab child path -> screen id used in ROLE_SCREENS
@@ -245,22 +229,11 @@ export const useSidebarNav = (): NavItem[] => {
       // For Cab Manager apply role-based child filtering using the active CAB persona
       if (item.to === "/cabmanager") {
         const children = item.children ?? [];
-        const effectiveRole: Role | null = cabRole;
-        if (effectiveRole && ROLE_SCREENS[effectiveRole]) {
-          const allowed = ROLE_SCREENS[effectiveRole];
-          const filtered = children.filter((c) =>
-            allowed.includes(pathToScreenId[c.to]),
-          );
-          return { ...item, children: filtered };
-        }
-        // otherwise fall back to permission module filtering per child
-        return {
-          ...item,
-          children: children.filter(
-            (child) =>
-              child.requiredModule === null || hasModule(child.requiredModule),
-          ),
-        };
+        const allowed = ROLE_SCREENS[cabRole];
+        const filtered = children.filter((c) =>
+          allowed.includes(pathToScreenId[c.to]),
+        );
+        return { ...item, children: filtered };
       }
 
       return {

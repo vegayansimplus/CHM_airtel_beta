@@ -34,10 +34,8 @@ type ModalKind = "approve" | "reject" | "delegate" | "reschedule" | "assignSpoc"
 
 export function MyCrqsPage() {
   const { role } = useCabRole();
-  console.log("1. Role in UI Component:", role);
 
   const { data, isLoading, isError, error, refetch } = useGetMyCrqsQuery(role);
-  console.log("4. Mode returned from API:", data?.mode);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
