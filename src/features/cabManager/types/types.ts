@@ -96,7 +96,7 @@ export interface DashboardData {
 }
 
 // ── My CRQs ─────────────────────────────────────────────────────────────────
-export type MyCrqsMode = "approve" | "assign";
+export type MyCrqsMode = "approve" | "assign" | "requester";
 
 export interface MyCrqsStats {
   awaitingMe: number;

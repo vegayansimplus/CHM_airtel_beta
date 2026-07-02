@@ -105,7 +105,7 @@ export function CrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onCl
             <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
               Impacted Parties
             </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>{data.impactedParties.join(", ")}</Typography>
+            <Typography variant="body2" sx={{ mb: 2 }}>{(data.impactedParties ?? []).join(", ")}</Typography>
 
             {data.rejectReason && (
               <>

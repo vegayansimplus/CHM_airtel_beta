@@ -56,12 +56,36 @@ import { CabPlanningPage } from "../features/cabManager/pages/CabPlanningPage";
 import { CabSessionsPage } from "../features/cabManager/pages/CabSessionsPage";
 import { ImplementationPage } from "../features/cabManager/pages/ImplementationPage";
 import { AdminPage } from "../features/cabManager/pages/AdminPage";
+import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
+import { useCabRole } from "../features/cabManager/hooks/useCabRole";
 
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
   setNotificationCount?: (count: number) => void;
+}
+
+const CAB_MANAGER_TAB_MAP: Record<string, { label: string; path: string }> = {
+  dashboard: { label: "Dashboard", path: "dashboard" },
+  cabPlanning: { label: "Cab Planning", path: "planning" },
+  cabSessions: { label: "Cab Sessions", path: "sessions" },
+  mycrqs: { label: "My CRQs", path: "mycrqs" },
+  allcrqs: { label: "All CRQs", path: "allcrqs" },
+  journey: { label: "CRQ Journey", path: "journey" },
+  implementation: { label: "Implementation", path: "implementation" },
+  admin: { label: "Admin", path: "admin" },
+};
+
+function CabManagerTabShell() {
+  const { role } = useCabRole();
+
+  const allowedScreens = ROLE_SCREENS[role] ?? ROLE_SCREENS.cabMember;
+  const tabs = allowedScreens
+    .map((screen) => CAB_MANAGER_TAB_MAP[screen])
+    .filter((tab): tab is { label: string; path: string } => Boolean(tab));
+
+  return <ReusableTabLayout basePath="/cabmanager" tabs={tabs} />;
 }
 
 const AppRoutes: React.FC<AppRoutesProps> = ({
@@ -159,23 +183,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         <Route
           path="cabmanager"
           element={
-            <PrivateRoute
-              element={
-                <ReusableTabLayout
-                  basePath="/cabmanager"
-                  tabs={[
-                    { label: "Dashboard", path: "dashboard" },
-                    { label: "All CRQs", path: "allcrqs" },
-                    { label: "My CRQs", path: "mycrqs" },
-                    { label: "CRQ Journey", path: "journey" },
-                    { label: "Planning", path: "planning" },
-                    { label: "Sessions", path: "sessions" },
-                    { label: "Implementation", path: "implementation" },
-                    { label: "Admin", path: "admin" },
-                  ]}
-                />
-              }
-            />
+            <PrivateRoute element={<CabManagerTabShell />} />
           }
         >
           <Route index element={<Navigate to="dashboard" replace />} />

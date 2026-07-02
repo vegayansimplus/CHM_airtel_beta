@@ -1,12 +1,13 @@
 import { useEffect } from "react";
 import { useAppDispatch } from "./hooks";
 import { setToken } from "../features/auth/slices/auth.slice";
+import { authStorage } from "./store/auth.storage";
 
 const AuthBootstrap = () => {
   const dispatch = useAppDispatch();
 
   useEffect(() => {
-    const token = sessionStorage.getItem("accessToken");
+    const token = authStorage.getToken();
     if (token) {
       dispatch(setToken(token));
     }

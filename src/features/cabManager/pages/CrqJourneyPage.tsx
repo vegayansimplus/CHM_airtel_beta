@@ -165,7 +165,7 @@ export function CrqJourneyPage() {
             </Box>
             <Divider sx={{ my: 2 }} />
             <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Impacted Parties</Typography>
-            <Typography variant="body2">{crq.impactedParties.join(", ")}</Typography>
+            <Typography variant="body2">{(crq.impactedParties ?? []).join(", ")}</Typography>
           </Paper>
 
           <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider" }} elevation={0}>

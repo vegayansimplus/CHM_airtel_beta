@@ -34,7 +34,10 @@ type ModalKind = "approve" | "reject" | "delegate" | "reschedule" | "assignSpoc"
 
 export function MyCrqsPage() {
   const { role } = useCabRole();
+  console.log("1. Role in UI Component:", role);
+
   const { data, isLoading, isError, error, refetch } = useGetMyCrqsQuery(role);
+  console.log("4. Mode returned from API:", data?.mode);
 
   const [selected, setSelected] = useState<string | null>(null);
   const [modal, setModal] = useState<ModalKind>(null);
@@ -122,6 +125,12 @@ export function MyCrqsPage() {
                         </Button>
                         <Button size="small" variant="outlined" startIcon={<EngineeringOutlinedIcon />} onClick={() => openAction(r.id, "assignFe")}>
                           {r.fieldEngineer ? "Re-assign FE" : "Assign FE"}
+                        </Button>
+                      </Stack>
+                    ) : data.mode === "requester" ? (
+                      <Stack direction="row" spacing={0.5} justifyContent="flex-end">
+                        <Button size="small" variant="outlined" onClick={() => setSelected(r.id)}>
+                          View
                         </Button>
                       </Stack>
                     ) : (

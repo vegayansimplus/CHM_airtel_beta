@@ -66,8 +66,8 @@ import type {
 // ─────────────────────────────────────────────────────────────────────────────
 
 const USE_MOCK =
-  (import.meta as { env?: Record<string, string> }).env?.VITE_CAB_USE_MOCK !==
-  "false";
+  (import.meta as { env?: Record<string, string> }).env?.VITE_CAB_USE_MOCK ===
+  "true";
 
 const rawBaseQuery = fetchBaseQuery({
   baseUrl: (import.meta as { env?: Record<string, string> }).env
@@ -91,8 +91,8 @@ const networkOrMock = async <T>(
   const result = await baseQuery(request);
 
   if ("error" in result) {
-    console.warn("Network request failed, falling back to mock.", result.error);
-    return { data: await mockProvider() };
+    console.warn("Network request failed; returning error instead of mock fallback.", result.error);
+    return result as QueryReturnValue<T, FetchBaseQueryError, FetchBaseQueryMeta>;
   }
 
   return result as QueryReturnValue<T, FetchBaseQueryError, FetchBaseQueryMeta>;
@@ -142,6 +142,7 @@ const cleanParams = <T extends Record<string, any>>(
 // ─────────────────────────────────────────────────────────────────────────────
 export const cabPortalApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    
     // ── DASHBOARD ─────────────────────────────────────────────────────────
     getDashboard: builder.query<DashboardData, void>({
       queryFn: (_arg, _api, _extraOptions, baseQuery) =>
@@ -189,16 +190,34 @@ export const cabPortalApi = api.injectEndpoints({
       providesTags: (_r, _e, id) => [{ type: "CabCrq" as const, id }],
     }),
 
+    // // ── MY CRQs ───────────────────────────────────────────────────────────
+    // getMyCrqs: builder.query<MyCrqsResponse, Role>({
+    //   queryFn: async (role, _apiArg, _extraOptions, baseQuery) =>
+    //     networkOrMock(
+    //       { url: "/cab/crqs/mine", method: "GET", params: { role } },
+    //       baseQuery,
+    //       async () => await mockDelay(buildMyCrqs(role))
+    //     ),
+    //   providesTags: [{ type: "CabCrq", id: "MINE" }],
+    // }),
     // ── MY CRQs ───────────────────────────────────────────────────────────
-    getMyCrqs: builder.query<MyCrqsResponse, Role>({
-      queryFn: async (role, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          { url: "/cab/crqs/mine", method: "GET", params: { role } },
-          baseQuery,
-          async () => await mockDelay(buildMyCrqs(role))
-        ),
-      providesTags: [{ type: "CabCrq", id: "MINE" }],
-    }),
+
+
+// Inside cabManagerApiSlice.ts
+getMyCrqs: builder.query<MyCrqsResponse, Role>({
+  queryFn: async (roleArg) => {
+    console.log("2. Role received in API Slice:", roleArg);
+
+    // 1. Get the mock data directly, skipping the network request completely
+    const mockData = await mockDelay(buildMyCrqs(roleArg));
+    
+    console.log("3. Mode decided by mock data:", mockData.mode);
+
+    // 2. Wrap it in 'data' so RTK Query accepts it
+    return { data: mockData };
+  },
+  providesTags: [{ type: "CabCrq", id: "MINE" }],
+}),
 
     // ── CRQ JOURNEY ───────────────────────────────────────────────────────
     getCrqJourney: builder.query<CrqJourney, string>({

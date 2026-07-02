@@ -90,7 +90,7 @@ export function CabSessionsPage() {
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                     <Chip size="small" label={s.type} />
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>{s.crqIds.length} CRQs</Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>{s.crqIds?.length ?? 0} CRQs</Typography>
                   </Stack>
                   <Typography variant="body2">{s.date} · {s.time}</Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>Hosted by {s.host}</Typography>

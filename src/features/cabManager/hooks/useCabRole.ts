@@ -14,15 +14,40 @@ const KEY = "cab.role";
  */
 export function useCabRole() {
   const [role, setRoleState] = useState<Role>(() => {
-    if (typeof window === "undefined") return "admin";
-    return ((localStorage.getItem(KEY) as Role) ?? "admin");
+    if (typeof window === "undefined") return "requester";
+
+    const saved = localStorage.getItem(KEY) as Role | null;
+    return saved && saved in ROLES ? (saved as Role) : "requester";
   });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const syncRole = () => {
+      const saved = localStorage.getItem(KEY) as Role | null;
+      setRoleState(saved && saved in ROLES ? (saved as Role) : "requester");
+    };
+
+    syncRole();
+    window.addEventListener("cab-role-changed", syncRole);
+
+    return () => {
+      window.removeEventListener("cab-role-changed", syncRole);
+    };
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") localStorage.setItem(KEY, role);
   }, [role]);
 
-  const setRole = useCallback((r: Role) => setRoleState(r), []);
+  const setRole = useCallback((r: Role) => {
+    setRoleState(r);
+    if (typeof window !== "undefined") {
+      localStorage.setItem(KEY, r);
+      window.dispatchEvent(new Event("cab-role-changed"));
+    }
+  }, []);
+
   const persona: Persona = ROLES[role];
 
   return { role, setRole, persona };

@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
@@ -158,14 +158,26 @@ const ALL_NAV_ITEMS: NavItem[] = [
 ];
 
 export const useSidebarNav = (): NavItem[] => {
-  const { hasModule, roleCode } = usePermission();
+  const { hasModule } = usePermission();
+  const [cabRole, setCabRole] = useState<Role>("requester");
+
+  useEffect(() => {
+    const syncRole = () => {
+      const stored = window.localStorage.getItem("cab.role") as Role | null;
+      setCabRole(stored && ROLE_SCREENS[stored] ? stored : "requester");
+    };
+
+    syncRole();
+    window.addEventListener("cab-role-changed", syncRole);
+    window.addEventListener("storage", syncRole);
+
+    return () => {
+      window.removeEventListener("cab-role-changed", syncRole);
+      window.removeEventListener("storage", syncRole);
+    };
+  }, []);
 
   return useMemo(() => {
-    // Allow a developer to force a static CAB role for testing via localStorage
-    const staticRole = typeof window !== "undefined" ? (window.localStorage.getItem("CAB_STATIC_ROLE") as Role | null) : null;
-    // If user roleCode matches a CAB role key, use it to filter CAB children
-    const userCabRole = (roleCode ? (roleCode.toLowerCase() as Role) : null) && ROLE_SCREENS[(roleCode ?? "").toLowerCase() as Role] ? (roleCode ?? "").toLowerCase() as Role : null;
-
     // map cab child path -> screen id used in ROLE_SCREENS
     const pathToScreenId: Record<string, string> = {
       "/cabmanager/dashboard": "dashboard",
@@ -180,10 +192,10 @@ export const useSidebarNav = (): NavItem[] => {
 
     return ALL_NAV_ITEMS.filter((item) => item.requiredModule === null || hasModule(item.requiredModule))
       .map((item) => {
-        // For Cab Manager apply role-based child filtering when a static role is provided
+        // For Cab Manager apply role-based child filtering using the active CAB persona
         if (item.to === "/cabmanager") {
           const children = item.children ?? [];
-          const effectiveRole: Role | null = staticRole ?? userCabRole;
+          const effectiveRole: Role | null = cabRole;
           if (effectiveRole && ROLE_SCREENS[effectiveRole]) {
             const allowed = ROLE_SCREENS[effectiveRole];
             const filtered = children.filter((c) => allowed.includes(pathToScreenId[c.to]));
@@ -198,5 +210,5 @@ export const useSidebarNav = (): NavItem[] => {
           children: item.children?.filter((child) => child.requiredModule === null || hasModule(child.requiredModule)),
         };
       });
-  }, [hasModule]);
+  }, [hasModule, cabRole]);
 };

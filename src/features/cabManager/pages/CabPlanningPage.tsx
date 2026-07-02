@@ -151,10 +151,10 @@ export function CabPlanningPage() {
                 <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                   <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{d.sessionId}</Typography>
                   <Chip size="small" label={d.type} />
-                  <Typography variant="caption" sx={{ color: "text.secondary", ml: 1 }}>{d.crqIds.length} CRQs</Typography>
+                  <Typography variant="caption" sx={{ color: "text.secondary", ml: 1 }}>{d.crqIds?.length ?? 0} CRQs</Typography>
                 </Stack>
                 <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                  {d.crqIds.map((id) => (
+                  {(d.crqIds ?? []).map((id) => (
                     <Chip key={id} size="small" label={id} variant="outlined" sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 11 }} />
                   ))}
                 </Stack>

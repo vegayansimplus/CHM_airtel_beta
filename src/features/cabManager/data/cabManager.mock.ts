@@ -49,9 +49,9 @@ export const ROLES: Record<Role, Persona> = {
 
 export const ROLE_SCREENS: Record<Role, string[]> = {
   admin:       ["dashboard", "cabPlanning", "cabSessions", "allcrqs", "journey", "admin"],
-  requester:   ["dashboard", "mycrqs", "cabSessions", "journey"],
-  stakeholder: ["dashboard", "mycrqs", "cabSessions", "journey"],
-  cabEngineer: ["dashboard", "cabPlanning", "cabSessions", "allcrqs", "journey"],
+  requester:   ["dashboard", "cabSessions", "mycrqs", "journey"],
+  stakeholder: ["dashboard", "cabSessions", "mycrqs", "journey"],
+  cabEngineer: ["dashboard", "cabSessions", "allcrqs", "journey"],
   cabMember:   ["dashboard", "cabSessions", "journey"],
   se:          ["dashboard", "cabSessions", "implementation", "journey"],
 };
@@ -251,19 +251,33 @@ export const buildMyCrqs = (
   role: Role,
   crqs: Crq[] = MOCK_CRQS
 ): MyCrqsResponse => {
-  const mode: "approve" | "assign" = role === "cabEngineer" ? "assign" : "approve";
+  // 👇 If you want Requester to see Assign SPOC, it must map to "assign" here!
+  const mode: MyCrqsResponse["mode"] =
+    role === "cabEngineer" || role === "requester" 
+      ? "assign" 
+      : role === "stakeholder" 
+        ? "requester" 
+        : "approve";
+
   const rows =
     mode === "assign"
       ? crqs.filter((c) => c.stage === "Scheduling" || c.stage === "CAB Review")
-      : crqs.filter((c) => c.assignedToMe);
+      : mode === "requester"
+        ? crqs.filter((c) =>
+            c.raisedBy.toLowerCase().includes("karan mehta") ||
+            c.raisedBy.toLowerCase().includes("priya deshmukh")
+          )
+        : crqs.filter((c) => c.assignedToMe);
 
   return {
     mode,
-    title: mode === "assign" ? "Assignment Queue" : "My CRQs",
+    title: mode === "assign" ? "Assignment Queue" : mode === "requester" ? "My Requests" : "My CRQs",
     subtitle:
       mode === "assign"
         ? "CRQs awaiting SPOC / Field Engineer assignment from the CAB Engineer."
-        : "Approve, reject, delegate or reschedule CRQs that need your sign-off.",
+        : mode === "requester"
+          ? "Track the CRQs you raised, their current stage, and the latest status."
+          : "Approve, reject, delegate or reschedule CRQs that need your sign-off.",
     stats: {
       awaitingMe: rows.filter((c) => c.status === "pending").length,
       approvedThisWeek: 3,
