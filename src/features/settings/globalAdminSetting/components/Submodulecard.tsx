@@ -1,13 +1,37 @@
 import React, { useState } from "react";
-import { Box, Typography, Tooltip, alpha } from "@mui/material";
-import { AddOutlined, MoreHorizOutlined, SelectAllOutlined, DeselectOutlined } from "@mui/icons-material";
+import { Box, Typography, Tooltip } from "@mui/material";
+import {
+  AddOutlined,
+  MoreHorizOutlined,
+  SelectAllOutlined,
+  DeselectOutlined,
+} from "@mui/icons-material";
+import { alpha } from "@mui/material/styles";
 import type { useTabColorTokens } from "../../../../style/theme";
-import type { RolePermissionViewModel } from "../api/globalSettingsPermissionApi";
-import type { AddablePermission, AttachedPermission } from "../types/permissionTypes";
-import { PermissionChip } from "./PermissionChip";
-import { AddPermissionPopover } from "./AddPermissionPopover";
+import type { RolePermissionViewModel } from "../Globalsettingapislice";
+import type { AddablePermission } from "../constants/Constants";
+import { AddPermissionPopover } from "./Addpermissionpopover";
+// import { PermchipAdminProps } from "./PermchipAdmin";
+// import { PermChip } from "./Permchip";
+// import { AddPermissionPopover } from "./Addpermissionpopover";
+// import type { AddablePermission } from "./constants";
+// import { PermChip } from "./PermChip";
+// import { AddPermissionPopover } from "./AddPermissionPopover";
 
-interface SubModuleCardProps {
+// ─────────────────────────────────────────────────────────────
+//  SubModuleCard
+//  Card that renders all permissions attached to one sub-module,
+//  including grant/revoke toggles, bulk actions, and add/remove.
+// ─────────────────────────────────────────────────────────────
+
+export interface AttachedPermission {
+  permissionId: number;
+  permissionName: string;
+  permissionCode: string;
+  granted: boolean;
+}
+
+export interface SubModuleCardProps {
   row: RolePermissionViewModel;
   /** Permissions attached to this sub-module (with their granted state). */
   attachedPermissions: AttachedPermission[];
@@ -65,7 +89,13 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
         },
       }}
     >
-      <Box sx={{ height: 2, bgcolor: c.isDark ? "rgba(255,255,255,0.05)" : "rgba(13,27,42,0.04)" }}>
+      {/* Granted-progress bar at top */}
+      <Box
+        sx={{
+          height: 2,
+          bgcolor: c.isDark ? "rgba(255,255,255,0.05)" : "rgba(13,27,42,0.04)",
+        }}
+      >
         <Box
           sx={{
             height: "100%",
@@ -77,8 +107,18 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
         />
       </Box>
 
-      <Box sx={{ px: 2.5, py: 2, display: "flex", flexDirection: "column", gap: 1.5 }}>
+      <Box
+        sx={{
+          px: 2.5,
+          py: 2,
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.5,
+        }}
+      >
+        {/* ── Header row ── */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+          {/* Status dot */}
           <Box
             sx={{
               width: 8,
@@ -87,25 +127,45 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
               bgcolor: grantedCount > 0 ? c.accent : c.border,
               flexShrink: 0,
               transition: "background 0.15s",
-              boxShadow: grantedCount > 0 ? `0 0 0 3px ${alpha(c.accent, 0.15)}` : "none",
+              boxShadow:
+                grantedCount > 0
+                  ? `0 0 0 3px ${alpha(c.accent, 0.15)}`
+                  : "none",
             }}
           />
 
-          <Typography fontSize="0.9rem" fontWeight={600} color={c.textPrimary} sx={{ flex: 1, letterSpacing: "-0.01em" }}>
+          {/* Sub-module name */}
+          <Typography
+            fontSize="0.9rem"
+            fontWeight={600}
+            color={c.textPrimary}
+            sx={{ flex: 1, letterSpacing: "-0.01em" }}
+          >
             {row.subModuleName}
           </Typography>
 
+          {/* Meta: ID + badges + bulk actions + context menu */}
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography fontSize="0.68rem" color={c.textDim} fontFamily="'JetBrains Mono', monospace">
+            <Typography
+              fontSize="0.68rem"
+              color={c.textDim}
+              fontFamily="'JetBrains Mono', monospace"
+            >
               ID:{row.subModuleId}
             </Typography>
 
+            {/* Granted/total badge */}
             <Box
               sx={{
                 px: "7px",
                 py: "2px",
                 borderRadius: "5px",
-                bgcolor: grantedCount > 0 ? alpha(c.accent, 0.1) : c.isDark ? "rgba(255,255,255,0.04)" : "rgba(13,27,42,0.04)",
+                bgcolor:
+                  grantedCount > 0
+                    ? alpha(c.accent, 0.1)
+                    : c.isDark
+                      ? "rgba(255,255,255,0.04)"
+                      : "rgba(13,27,42,0.04)",
                 border: `1px solid ${grantedCount > 0 ? alpha(c.accent, 0.25) : c.border}`,
                 color: grantedCount > 0 ? c.accent : c.textDim,
                 fontSize: "0.68rem",
@@ -131,7 +191,16 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
               </Box>
             )}
 
-            <Box className="bulk-actions" sx={{ display: "flex", gap: 0.5, opacity: 0, transition: "opacity 0.12s" }}>
+            {/* Bulk action buttons (grant all / revoke all) */}
+            <Box
+              className="bulk-actions"
+              sx={{
+                display: "flex",
+                gap: 0.5,
+                opacity: 0,
+                transition: "opacity 0.12s",
+              }}
+            >
               <Tooltip title="Grant all permissions" placement="top">
                 <Box
                   component="button"
@@ -188,6 +257,7 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
               </Tooltip>
             </Box>
 
+            {/* Context menu trigger */}
             <Box
               component="button"
               className="sub-menu-btn"
@@ -205,7 +275,12 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
                 alignItems: "center",
                 justifyContent: "center",
                 transition: "opacity 0.12s, background 0.1s",
-                "&:hover": { bgcolor: c.isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.06)", color: c.textPrimary },
+                "&:hover": {
+                  bgcolor: c.isDark
+                    ? "rgba(255,255,255,0.08)"
+                    : "rgba(13,27,42,0.06)",
+                  color: c.textPrimary,
+                },
               }}
             >
               <MoreHorizOutlined sx={{ fontSize: 14 }} />
@@ -213,7 +288,15 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
           </Box>
         </Box>
 
-        <Box sx={{ display: "flex", flexWrap: "wrap", gap: "6px", alignItems: "center" }}>
+        {/* ── Permission chips row ── */}
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "6px",
+            alignItems: "center",
+          }}
+        >
           {attachedPermissions.length === 0 && (
             <Typography fontSize="0.75rem" color={c.textDim} fontStyle="italic">
               No permissions attached yet —
@@ -221,8 +304,9 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
           )}
 
           {attachedPermissions.map((p) => (
-            <PermissionChip
+            <PermchipAdminProps
               key={p.permissionId}
+              permissionId={p.permissionId}
               permissionName={p.permissionName}
               permissionCode={p.permissionCode}
               granted={p.granted}
@@ -233,6 +317,8 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
             />
           ))}
 
+          {/* ── "+ Add Permission" trigger ──
+              Always rendered; becomes disabled/spinner/highlighted based on state. */}
           {(() => {
             const empty = attachedPermissions.length === 0;
             const noneAddable = !catalogLoading && addablePermissions.length === 0;
@@ -246,9 +332,21 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
                   ? "Attach a permission to this sub-module"
                   : "Add another permission to this sub-module";
 
-            const borderColor = disabled ? c.border : empty ? alpha(c.accent, 0.55) : c.border;
-            const bgColor = disabled ? "transparent" : empty ? alpha(c.accent, 0.06) : "transparent";
-            const textColor = disabled ? c.textDim : empty ? c.accent : c.textDim;
+            const borderColor = disabled
+              ? c.border
+              : empty
+                ? alpha(c.accent, 0.55)
+                : c.border;
+            const bgColor = disabled
+              ? "transparent"
+              : empty
+                ? alpha(c.accent, 0.06)
+                : "transparent";
+            const textColor = disabled
+              ? c.textDim
+              : empty
+                ? c.accent
+                : c.textDim;
 
             return (
               <Tooltip title={tooltipText} placement="top">
@@ -276,7 +374,11 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
                     fontFamily: "inherit",
                     transition: "all 0.12s",
                     flexShrink: 0,
-                    "&:hover:not(:disabled)": { border: `1px dashed ${c.accent}`, bgcolor: alpha(c.accent, 0.08), color: c.accent },
+                    "&:hover:not(:disabled)": {
+                      border: `1px dashed ${c.accent}`,
+                      bgcolor: alpha(c.accent, 0.08),
+                      color: c.accent,
+                    },
                   }}
                 >
                   {catalogLoading ? (
@@ -302,6 +404,7 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
         </Box>
       </Box>
 
+      {/* Popover – anchored to the "+ Add" button above */}
       <AddPermissionPopover
         anchorEl={addAnchorEl}
         open={!!addAnchorEl}
