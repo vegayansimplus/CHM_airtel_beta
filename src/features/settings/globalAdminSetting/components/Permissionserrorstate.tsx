@@ -8,7 +8,7 @@ import {
   RefreshOutlined,
 } from "@mui/icons-material";
 import type { useTabColorTokens } from "../../../../style/theme";
-import { extractErrorStatus, extractApiErrorMessage } from "./Utils";
+import { extractErrorStatus, extractApiErrorMessage } from "../utils/permissionUtils";
 
 interface PermissionsErrorStateProps {
   error: unknown;
@@ -18,7 +18,7 @@ interface PermissionsErrorStateProps {
   c: ReturnType<typeof useTabColorTokens>;
 }
 
-const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
+export const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
   error,
   roleName,
   moduleName,
@@ -26,11 +26,7 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
   c,
 }) => {
   const statusCode = extractErrorStatus(error);
-  const apiMessage = extractApiErrorMessage(
-    error,
-    "An unexpected error occurred while loading permissions.",
-  );
-
+  const apiMessage = extractApiErrorMessage(error, "An unexpected error occurred while loading permissions.");
   const is500 = statusCode === 500;
 
   const icon = is500 ? (
@@ -65,14 +61,8 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
         position: "relative",
       }}
     >
-      <Box
-        sx={{
-          height: 3,
-          background: `linear-gradient(90deg, ${c.danger}, ${alpha(c.danger, 0.4)})`,
-        }}
-      />
+      <Box sx={{ height: 3, background: `linear-gradient(90deg, ${c.danger}, ${alpha(c.danger, 0.4)})` }} />
       <Box sx={{ px: 3, py: 3 }}>
-        {/* Title row */}
         <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2, mb: 2 }}>
           <Box
             sx={{
@@ -90,21 +80,8 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
             {icon}
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                flexWrap: "wrap",
-                mb: 0.5,
-              }}
-            >
-              <Typography
-                fontSize="0.9rem"
-                fontWeight={600}
-                color={c.danger}
-                letterSpacing="-0.01em"
-              >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap", mb: 0.5 }}>
+              <Typography fontSize="0.9rem" fontWeight={600} color={c.danger} letterSpacing="-0.01em">
                 {title}
               </Typography>
               {statusCode && (
@@ -132,7 +109,6 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
           </Box>
         </Box>
 
-        {/* Context breadcrumb */}
         <Box
           sx={{
             display: "flex",
@@ -158,7 +134,6 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
           </Typography>
         </Box>
 
-        {/* Hint */}
         <Box
           sx={{
             display: "flex",
@@ -172,22 +147,12 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
             mb: 2.5,
           }}
         >
-          <Box
-            sx={{
-              width: 4,
-              height: 4,
-              borderRadius: "50%",
-              bgcolor: c.textDim,
-              mt: "7px",
-              flexShrink: 0,
-            }}
-          />
+          <Box sx={{ width: 4, height: 4, borderRadius: "50%", bgcolor: c.textDim, mt: "7px", flexShrink: 0 }} />
           <Typography fontSize="0.75rem" color={c.textDim} lineHeight={1.6}>
             {hint}
           </Typography>
         </Box>
 
-        {/* Actions */}
         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Box
             component="button"
@@ -208,10 +173,7 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
               color: c.danger,
               transition: "all 0.1s",
               letterSpacing: "-0.005em",
-              "&:hover": {
-                bgcolor: alpha(c.danger, 0.14),
-                border: `1px solid ${alpha(c.danger, 0.55)}`,
-              },
+              "&:hover": { bgcolor: alpha(c.danger, 0.14), border: `1px solid ${alpha(c.danger, 0.55)}` },
               "&:active": { transform: "scale(0.98)" },
             }}
           >
@@ -226,5 +188,3 @@ const PermissionsErrorState: React.FC<PermissionsErrorStateProps> = ({
     </Box>
   );
 };
-
-export default PermissionsErrorState;

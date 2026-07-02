@@ -1,7 +1,3 @@
-// ─────────────────────────────────────────────────────────────
-//  Shared helper utilities
-// ─────────────────────────────────────────────────────────────
-
 /** Convert a display label into an UPPER_SNAKE_CASE slug key. */
 export const slug = (s: string): string =>
   s
@@ -10,9 +6,14 @@ export const slug = (s: string): string =>
     .replace(/[^A-Z0-9]+/g, "_")
     .replace(/^_|_$/, "");
 
-/** Generate a negative random ID for locally-created (unsaved) entities. */
-export const newLocalId = (): number =>
-  -(Math.floor(Math.random() * 900_000) + 100_000);
+/** Convert an UPPER_SNAKE_CASE code into a human-readable label ("Sub Approve"). */
+export function humanizeCode(code: string): string {
+  return code
+    .toLowerCase()
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
 
 /** Extract a human-readable message from an RTK-Query / fetch error object. */
 export function extractApiErrorMessage(err: unknown, fallback: string): string {
@@ -39,13 +40,4 @@ export function extractErrorStatus(err: unknown): number | null {
     return (err as { status: number }).status;
   }
   return null;
-}
-
-/** Convert SCREAMING_SNAKE_CASE permission codes into human-readable labels. */
-export function humanizeCode(code: string): string {
-  return code
-    .toLowerCase()
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
 }

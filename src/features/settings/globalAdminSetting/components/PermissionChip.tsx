@@ -1,20 +1,9 @@
 import React from "react";
-import { Box, Tooltip } from "@mui/material";
+import { Box, Tooltip, alpha } from "@mui/material";
 import { CheckOutlined, CloseOutlined } from "@mui/icons-material";
-import { alpha } from "@mui/material/styles";
 import type { useTabColorTokens } from "../../../../style/theme";
 
-// ─────────────────────────────────────────────────────────────
-//  PermchipAdmin
-//  Renders a single permission toggle chip with:
-//    • checkbox-style indicator (granted / loading state)
-//    • permission display name label
-//    • inline permissionCode badge
-//    • hover-reveal remove (×) button
-// ─────────────────────────────────────────────────────────────
-
-export interface PermchipAdminProps {
-  permissionId: number;
+interface PermissionChipProps {
   permissionName: string;
   permissionCode: string;
   granted: boolean;
@@ -24,7 +13,7 @@ export interface PermchipAdminProps {
   c: ReturnType<typeof useTabColorTokens>;
 }
 
-export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
+export const PermissionChip: React.FC<PermissionChipProps> = ({
   permissionName,
   permissionCode,
   granted,
@@ -33,26 +22,12 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
   onRemove,
   c,
 }) => (
-  <Box
-    sx={{
-      position: "relative",
-      display: "inline-flex",
-      "&:hover .perm-remove-btn": { opacity: 1 },
-    }}
-  >
+  <Box sx={{ position: "relative", display: "inline-flex", "&:hover .perm-remove-btn": { opacity: 1 } }}>
     <Tooltip
       title={
         <Box>
-          <Box sx={{ fontWeight: 700, mb: 0.25 }}>
-            {granted ? "Click to disable" : "Click to enable"}
-          </Box>
-          <Box
-            sx={{
-              fontFamily: "'JetBrains Mono', monospace",
-              fontSize: "0.7rem",
-              opacity: 0.8,
-            }}
-          >
+          <Box sx={{ fontWeight: 700, mb: 0.25 }}>{granted ? "Click to disable" : "Click to enable"}</Box>
+          <Box sx={{ fontFamily: "'JetBrains Mono', monospace", fontSize: "0.7rem", opacity: 0.8 }}>
             code: {permissionCode}
           </Box>
         </Box>
@@ -70,7 +45,7 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
           gap: "6px",
           height: 32,
           px: "11px",
-          pr: "26px", // space for remove btn
+          pr: "26px",
           borderRadius: "8px",
           border: `1px solid ${granted ? alpha(c.accent, 0.5) : c.border}`,
           bgcolor: granted ? alpha(c.accent, 0.1) : c.surface,
@@ -90,7 +65,6 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
           },
         }}
       >
-        {/* Checkbox indicator */}
         <Box
           sx={{
             width: 15,
@@ -122,10 +96,8 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
           )}
         </Box>
 
-        {/* Label */}
         <span>{permissionName}</span>
 
-        {/* Code badge */}
         <Box
           component="span"
           sx={{
@@ -134,11 +106,7 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
             px: "4px",
             py: "1px",
             borderRadius: "3px",
-            bgcolor: granted
-              ? alpha(c.accent, 0.15)
-              : c.isDark
-                ? "rgba(255,255,255,0.06)"
-                : "rgba(0,0,0,0.05)",
+            bgcolor: granted ? alpha(c.accent, 0.15) : c.isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.05)",
             color: granted ? c.accent : c.textDim,
             letterSpacing: "0.03em",
             lineHeight: 1,
@@ -149,8 +117,7 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
       </Box>
     </Tooltip>
 
-    {/* Remove button – appears on hover */}
-    <Tooltip title="Remove this permission from sub-module" placement="top">
+    <Tooltip title="Disable & hide from this view (no delete endpoint exists — it stays disabled server-side)" placement="top">
       <Box
         component="button"
         className="perm-remove-btn"
@@ -167,9 +134,7 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
           height: 18,
           borderRadius: "4px",
           border: "none",
-          bgcolor: c.isDark
-            ? "rgba(255,255,255,0.08)"
-            : "rgba(13,27,42,0.06)",
+          bgcolor: c.isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.06)",
           color: c.textDim,
           cursor: "pointer",
           opacity: 0,
@@ -177,10 +142,7 @@ export const PermchipAdmin: React.FC<PermchipAdminProps> = ({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          "&:hover": {
-            bgcolor: alpha(c.danger ?? "#e53935", 0.18),
-            color: c.danger,
-          },
+          "&:hover": { bgcolor: alpha(c.danger ?? "#e53935", 0.18), color: c.danger },
         }}
       >
         <CloseOutlined sx={{ fontSize: 11 }} />

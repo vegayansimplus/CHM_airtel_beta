@@ -1,5 +1,5 @@
 import Box from "@mui/material/Box";
-import type { useTabColorTokens } from "../../../style/theme";
+import type { useTabColorTokens } from "../../../../style/theme";
 import { alpha, Typography } from "@mui/material";
 import { MoreHorizOutlined } from "@mui/icons-material";
 
@@ -9,7 +9,8 @@ interface RailItemProps {
   isActive: boolean;
   icon: React.ReactNode;
   onClick: () => void;
-  onMenuClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
+  /** Omit to render the row without a context-menu trigger. */
+  onMenuClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   c: ReturnType<typeof useTabColorTokens>;
 }
 
@@ -89,32 +90,34 @@ export const RailItem: React.FC<RailItemProps> = ({
       </Typography>
     </Box>
 
-    <Box
-      component="button"
-      className="rail-menu-btn"
-      onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-        e.stopPropagation();
-        onMenuClick(e);
-      }}
-      sx={{
-        opacity: 0,
-        width: 22,
-        height: 22,
-        borderRadius: "4px",
-        border: "none",
-        bgcolor: "transparent",
-        color: isActive ? c.accent : c.textDim,
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        transition: "opacity 0.12s, background 0.1s",
-        "&:hover": {
-          bgcolor: c.isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.06)",
-        },
-      }}
-    >
-      <MoreHorizOutlined sx={{ fontSize: 14 }} />
-    </Box>
+    {onMenuClick && (
+      <Box
+        component="button"
+        className="rail-menu-btn"
+        onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
+          e.stopPropagation();
+          onMenuClick(e);
+        }}
+        sx={{
+          opacity: 0,
+          width: 22,
+          height: 22,
+          borderRadius: "4px",
+          border: "none",
+          bgcolor: "transparent",
+          color: isActive ? c.accent : c.textDim,
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          transition: "opacity 0.12s, background 0.1s",
+          "&:hover": {
+            bgcolor: c.isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.06)",
+          },
+        }}
+      >
+        <MoreHorizOutlined sx={{ fontSize: 14 }} />
+      </Box>
+    )}
   </Box>
 );
