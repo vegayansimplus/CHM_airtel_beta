@@ -18,6 +18,7 @@ import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import { format } from "date-fns";
 interface CrqCardProps {
   crq: any;
   plan: any;
@@ -31,7 +32,6 @@ interface CrqCardProps {
 
 export const CrqCard: React.FC<CrqCardProps> = ({
   crq,
-  plan,
   isOpen,
   isSelected,
   colors,
@@ -42,6 +42,20 @@ export const CrqCard: React.FC<CrqCardProps> = ({
   const isFailed = ["canceled", "cancel", "Canceled"].includes(crq.crqStatus);
   const status = crq.impactAnalysisStatus || crq.crqReviewStatus;
   const isRunning = status === "In Progress";
+
+  const formatDate = (dateString?: string) =>
+    dateString ? format(new Date(dateString), "dd-MMM-yyyy HH:mm") : "-";
+
+  const infoItems = [
+    { label: "CRQ No", value: crq.crqNo || "-" },
+    { label: "Start Date", value: formatDate(crq.activityPlanStartDate) },
+    { label: "End Date", value: formatDate(crq.activityPlanEndDate) },
+    { label: "CRQ Status", value: crq.crqStatus || "-" },
+    { label: "CRQ Review Status", value: crq.crqReviewStatus || "-" },
+    { label: "Review Start", value: crq.reviewStartDate || "-" },
+    { label: "Review End", value: crq.reviewEndDate || "-" },
+    { label: "OLM ID Review", value: crq.olmidReview || "-" },
+  ];
 
   return (
     <Paper
@@ -117,8 +131,8 @@ export const CrqCard: React.FC<CrqCardProps> = ({
    
 
         {/* Info Cards Container */}
-        <Box sx={{ flex: 1, overflowX: "scroll" , width:"60vw"}}>
-          <CrqInfoCards crq={crq} colors={colors} />
+        <Box sx={{ flex: 1, overflowX: "scroll", width: "60vw" }}>
+          <CrqInfoCards colors={colors} data={crq} items={infoItems} />
         </Box>
 
         {(crq.tasks?.length ?? 0) > 0 && (

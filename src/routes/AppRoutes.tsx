@@ -32,7 +32,7 @@ import UserManagement from "../features/userManagement/components/UserManagement
 // import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
 import { UserLogs } from "../features/userManagement/pages/UserLogs";
-// import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+// import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
 // import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
@@ -41,7 +41,7 @@ import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndS
 import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
-import { AdminSettingDashboard } from "../features/settings/globalAdminSetting/Adminsettingdashboard";
+import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";

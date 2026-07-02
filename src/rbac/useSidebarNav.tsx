@@ -4,25 +4,18 @@ import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import AltRouteIcon from '@mui/icons-material/AltRoute';
-import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 
 import {
   FilterTiltShift,
   CalendarMonth,
   SupervisedUserCircle,
 } from "@mui/icons-material";
-import ListAltOutlinedIcon from '@mui/icons-material/ListAltOutlined';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import PlayArrowOutlinedIcon from '@mui/icons-material/PlayArrowOutlined';
-import EventNoteOutlinedIcon from '@mui/icons-material/EventNoteOutlined';
 import MailIcon from "@mui/icons-material/Mail";
 import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 // import PaletteIcon from "@mui/icons-material/Palette";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { usePermission } from "./usePermission";
-import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
-import type { Role } from "../features/cabManager/types/types";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
 // import ChecklistIcon from "@mui/icons-material/Checklist";
@@ -49,22 +42,6 @@ const ALL_NAV_ITEMS: NavItem[] = [
     text: "Me",
     icon: <PersonIcon />,
     requiredModule: null,
-  },
-  {
-    to: "/cabmanager",
-    text: "Cab Manager",
-    icon: <BusinessCenterIcon />,
-    requiredModule: "Cab Manager",
-    children: [
-      { to: "/cabmanager/dashboard", text: "Dashboard", icon: <DashboardIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/dashboard"] },
-      { to: "/cabmanager/planning", text: "Cab Planning", icon: <EventNoteOutlinedIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/planning"] },
-      { to: "/cabmanager/sessions", text: "Cab Sessions", icon: <Groups2Icon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/sessions"] },
-      { to: "/cabmanager/mycrqs", text: "My CRQs", icon: <CheckCircleOutlineIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/mycrqs"] },
-      { to: "/cabmanager/allcrqs", text: "All CRQs", icon: <ListAltOutlinedIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/allcrqs"] },
-      { to: "/cabmanager/journey", text: "CRQ Journey", icon: <AltRouteIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/journey"] },
-      { to: "/cabmanager/implementation", text: "Implementation", icon: <PlayArrowOutlinedIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/implementation"] },
-      { to: "/cabmanager/admin", text: "Admin Config", icon: <SettingsIcon />, requiredModule: "Cab Manager", matchPaths: ["/cabmanager/admin"] },
-    ],
   },
   {
     to: "/generateroster",
