@@ -1,4 +1,3 @@
-import { api } from "../../../service/api";
 import {
   fetchBaseQuery,
   type FetchArgs,
@@ -6,7 +5,6 @@ import {
   type FetchBaseQueryError,
   type FetchBaseQueryMeta,
 } from "@reduxjs/toolkit/query/react";
-import type { RootState } from "../../../app/store";
 import {
   buildAgenda,
   buildAnalytics,
@@ -60,6 +58,8 @@ import type {
   SendChatPayload,
   ServiceApprovalRule,
 } from "../types/types";
+import type { RootState } from "../../../../app/store";
+import { api } from "../../../../service/api";
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CAB Portal — RTK Query slice

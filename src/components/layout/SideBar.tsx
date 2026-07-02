@@ -1,8 +1,7 @@
-// SideBar.tsx  — only the structural parts that changed are highlighted with comments
 import React, { useState, useRef } from "react";
 import {
   Box,
-  Divider,          // ← new import
+  Divider,          
   IconButton,
   Typography,
   List,
@@ -462,10 +461,11 @@ const SideBar: React.FC<SideBarProps> = ({
 
 export default SideBar;
 
-
+// // SideBar.tsx  — only the structural parts that changed are highlighted with comments
 // import React, { useState, useRef } from "react";
 // import {
 //   Box,
+//   Divider,          // ← new import
 //   IconButton,
 //   Typography,
 //   List,
@@ -489,6 +489,8 @@ export default SideBar;
 // import { useAppSelector } from "../../app/hooks";
 // import { useGetUnreadNotificationCountQuery } from "../../features/inbox/api/inboxApiSlice";
 // import { useSidebarNav, type NavItem } from "../../rbac/useSidebarNav";
+// import SmartScrollContainer from "../common/SmartScrollContainer";
+// // import SmartScrollContainer from "./SmartScrollContainer"; // ← new import
 
 // interface SideBarProps {
 //   isCollapsed?: boolean;
@@ -498,7 +500,6 @@ export default SideBar;
 // const DRAWER_WIDTH = 240;
 // const COLLAPSED_WIDTH = 70;
 
-// // ─── Shared active-item styles ──────────
 // const activeItemSx = {
 //   background: "linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05))",
 //   color: "#ffffff",
@@ -531,7 +532,6 @@ export default SideBar;
 //   transition: "all 0.28s ease",
 // });
 
-// // ─── Sub-item row (used in both accordion & flyout) ───────────────────────────
 // interface SubItemProps {
 //   item: Omit<NavItem, "children">;
 //   isActive: boolean;
@@ -578,27 +578,16 @@ export default SideBar;
 //       transition: "all 0.22s ease",
 //     }}
 //   >
-//     <ListItemIcon
-//       sx={{
-//         color: "inherit",
-//         minWidth: 32,
-//         "& svg": { fontSize: 17 },
-//       }}
-//     >
+//     <ListItemIcon sx={{ color: "inherit", minWidth: 32, "& svg": { fontSize: 17 } }}>
 //       {item.icon}
 //     </ListItemIcon>
 //     <ListItemText
 //       primary={item.text}
-//       primaryTypographyProps={{
-//         fontSize: 13.5,
-//         fontWeight: isActive ? 600 : 400,
-//         letterSpacing: 0.2,
-//       }}
+//       primaryTypographyProps={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, letterSpacing: 0.2 }}
 //     />
 //   </ListItemButton>
 // );
 
-// // ─── Flyout panel rendered via Popper ────────────────────────────────────────
 // interface FlyoutMenuProps {
 //   anchorEl: HTMLElement | null;
 //   open: boolean;
@@ -609,12 +598,7 @@ export default SideBar;
 // }
 
 // const FlyoutMenu: React.FC<FlyoutMenuProps> = ({
-//   anchorEl,
-//   open,
-//   parentText,
-//   children,
-//   isItemActive,
-//   onClose,
+//   anchorEl, open, parentText, children, isItemActive, onClose,
 // }) => (
 //   <Popper
 //     open={open}
@@ -634,13 +618,11 @@ export default SideBar;
 //             borderRadius: 3,
 //             overflow: "hidden",
 //             background: "#ffffff",
-//             boxShadow:
-//               "0 8px 32px rgba(30,30,80,0.16), 0 2px 8px rgba(99,102,241,0.10)",
+//             boxShadow: "0 8px 32px rgba(30,30,80,0.16), 0 2px 8px rgba(99,102,241,0.10)",
 //             border: "1px solid rgba(99,102,241,0.10)",
 //             py: 0.8,
 //           }}
 //         >
-//           {/* Section label */}
 //           <Typography
 //             sx={{
 //               px: 2,
@@ -657,7 +639,6 @@ export default SideBar;
 //           >
 //             {parentText}
 //           </Typography>
-
 //           <List disablePadding>
 //             {children.map((child) => (
 //               <SubItem
@@ -685,8 +666,6 @@ export default SideBar;
 //   const user = useAppSelector((s) => s.auth.user);
 
 //   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
-
-//   // Flyout state — used only when sidebar is collapsed
 //   const [flyoutAnchor, setFlyoutAnchor] = useState<HTMLElement | null>(null);
 //   const [flyoutItem, setFlyoutItem] = useState<NavItem | null>(null);
 //   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -696,46 +675,15 @@ export default SideBar;
 //     refetchOnReconnect: true,
 //   });
 //   const inboxCount = countData?.notificationCount ?? 0;
-
 //   const sidebarItems = useSidebarNav();
 
 //   if (!user) return null;
 
-//   /**
-//    * Determines whether a nav item should appear "active".
-//    *
-//    * For PARENT items (called with just `to`):
-//    *   prefix match — glows whenever the current path is anywhere under it.
-//    *
-//    * For CHILD items (called with `to` + optional `matchPaths`):
-//    *   1. Exact match on `to`  (e.g. /scheduler/planviewandsetup)
-//    *   2. OR prefix match on any entry in `matchPaths`
-//    *      (e.g. /scheduler/crqWorkflow stays active on /scheduler/crqWorkflow/ABC123)
-//    *
-//    * This means siblings never steal each other's highlight.
-//    */
-//   const isItemActive = (
-//     to: string,
-//     matchPaths?: string[],
-//     exactOnly = false,
-//   ): boolean => {
+//   const isItemActive = (to: string, matchPaths?: string[], exactOnly = false): boolean => {
 //     const p = location.pathname;
-
-//     // Exact hit always wins
 //     if (p === to) return true;
-
-//     // For parent-level check (exactOnly = false, no matchPaths) use prefix
-//     if (!exactOnly && !matchPaths) {
-//       return p.startsWith(to + "/");
-//     }
-
-//     // For child items: only prefix-match on explicitly declared matchPaths
-//     if (matchPaths) {
-//       return matchPaths.some(
-//         (mp) => p === mp || p.startsWith(mp + "/"),
-//       );
-//     }
-
+//     if (!exactOnly && !matchPaths) return p.startsWith(to + "/");
+//     if (matchPaths) return matchPaths.some((mp) => p === mp || p.startsWith(mp + "/"));
 //     return false;
 //   };
 
@@ -744,15 +692,9 @@ export default SideBar;
 
 //   const isGroupOpen = (item: NavItem) => {
 //     if (openGroups[item.to] !== undefined) return openGroups[item.to];
-//     // Auto-open if any child is active (uses each child's own matchPaths)
-//     return (
-//       item.children?.some((c) =>
-//         isItemActive(c.to, c.matchPaths, true),
-//       ) ?? false
-//     );
+//     return item.children?.some((c) => isItemActive(c.to, c.matchPaths, true)) ?? false;
 //   };
 
-//   // ── Flyout mouse handlers ─────────────────────────────────────────────────
 //   const openFlyout = (e: React.MouseEvent<HTMLElement>, item: NavItem) => {
 //     if (!isCollapsed) return;
 //     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -765,7 +707,7 @@ export default SideBar;
 //     closeTimer.current = setTimeout(() => {
 //       setFlyoutAnchor(null);
 //       setFlyoutItem(null);
-//     }, 120); // small grace period so pointer can enter the panel
+//     }, 120);
 //   };
 
 //   const cancelFlyoutClose = () => {
@@ -791,23 +733,43 @@ export default SideBar;
 //             borderRight: "none",
 //             transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1)",
 //             overflowX: "hidden",
-//             boxShadow: "2px 0 10px rgba(0,0,0,0.45)",
+//             boxShadow: "2px 0 16px rgba(0,0,0,0.5)",
 //             borderRadius: "0 18px 18px 0",
+//             display: "flex",
+//             flexDirection: "column",
 //           },
 //         }}
 //       >
-//         {/* HEADER */}
+//         {/* ── HEADER ── */}
 //         <Box
 //           display="flex"
 //           alignItems="center"
 //           justifyContent={isCollapsed ? "center" : "space-between"}
-//           px={2}
-//           py={2}
+//           px={isCollapsed ? 1 : 2}
+//           py={1.8}
+//           sx={{ flexShrink: 0 }}
 //         >
 //           {!isCollapsed && (
 //             <Box display="flex" alignItems="center" gap={1.2}>
-//               <img src={vegayanLogo} alt="Logo" width={34} />
-//               <Typography fontWeight={800} letterSpacing={1.2} sx={{ opacity: 0.95 }}>
+//               <Box
+//                 component="img"
+//                 src={vegayanLogo}
+//                 alt="Logo"
+//                 sx={{
+//                   width: 34,
+//                   filter: "drop-shadow(0 0 6px rgba(56,189,248,0.5))",
+//                 }}
+//               />
+//               <Typography
+//                 fontWeight={800}
+//                 letterSpacing={1.4}
+//                 sx={{
+//                   opacity: 0.95,
+//                   background: "linear-gradient(90deg, #fff 60%, #38bdf8)",
+//                   WebkitBackgroundClip: "text",
+//                   WebkitTextFillColor: "transparent",
+//                 }}
+//               >
 //                 CHM
 //               </Typography>
 //             </Box>
@@ -819,50 +781,110 @@ export default SideBar;
 //               bgcolor: "rgba(255,255,255,0.08)",
 //               "&:hover": {
 //                 bgcolor: "rgba(255,255,255,0.18)",
-//                 transform: "rotate(90deg)",
+//                 transform: "rotate(180deg)",
 //               },
-//               transition: "all 0.3s ease",
+//               transition: "all 0.35s ease",
 //             }}
 //           >
 //             <MenuIcon />
 //           </IconButton>
 //         </Box>
 
-//         {/* NAVIGATION */}
-//         <List sx={{ px: 1.5, mt: 1 }}>
-//           {sidebarItems.map((item) => {
-//             const { to, text, icon, showBadge, children } = item;
-//             const active = isItemActive(to); // prefix match for parent
-//             const hasChildren = Array.isArray(children) && children.length > 0;
-//             const groupOpen = hasChildren && isGroupOpen(item);
+//         {/* subtle divider under header */}
+//         <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mx: 1.5, mb: 0.5, flexShrink: 0 }} />
 
-//             const renderedIcon = showBadge ? (
-//               <Badge badgeContent={inboxCount} color="error">{icon}</Badge>
-//             ) : icon;
+//         {/* ── NAVIGATION wrapped in SmartScrollContainer ── */}
+//         <Box sx={{ flex: 1, overflow: "hidden", px: 0 }}>
+//           <SmartScrollContainer height="calc(100vh - 84px)">
+//             <List sx={{ px: 1.5, mt: 0.5, pb: 2 }}>
+//               {sidebarItems.map((item) => {
+//                 const { to, text, icon, showBadge, children } = item;
+//                 const active = isItemActive(to);
+//                 const hasChildren = Array.isArray(children) && children.length > 0;
+//                 const groupOpen = hasChildren && isGroupOpen(item);
 
-//             // ── Parent with children ──────────────────────────────────────
-//             if (hasChildren) {
-//               return (
-//                 <React.Fragment key={to}>
-//                   <ListItemButton
-//                     onClick={() => !isCollapsed && toggleGroup(to)}
-//                     onMouseEnter={(e) => openFlyout(e, item)}
-//                     onMouseLeave={scheduleFlyoutClose}
-//                     sx={baseItemSx(active, isCollapsed)}
-//                   >
-//                     <ListItemIcon
-//                       sx={{
-//                         color: "inherit",
-//                         minWidth: 42,
-//                         transform: active ? "scale(1.15)" : "scale(1)",
-//                         transition: "transform 0.25s ease",
-//                       }}
+//                 const renderedIcon = showBadge ? (
+//                   <Badge badgeContent={inboxCount} color="error">{icon}</Badge>
+//                 ) : icon;
+
+//                 if (hasChildren) {
+//                   return (
+//                     <React.Fragment key={to}>
+//                       <ListItemButton
+//                         onClick={() => !isCollapsed && toggleGroup(to)}
+//                         onMouseEnter={(e) => openFlyout(e, item)}
+//                         onMouseLeave={scheduleFlyoutClose}
+//                         sx={baseItemSx(active, isCollapsed)}
+//                       >
+//                         <ListItemIcon
+//                           sx={{
+//                             color: "inherit",
+//                             minWidth: 42,
+//                             transform: active ? "scale(1.15)" : "scale(1)",
+//                             transition: "transform 0.25s ease",
+//                           }}
+//                         >
+//                           {renderedIcon}
+//                         </ListItemIcon>
+//                         {!isCollapsed && (
+//                           <>
+//                             <ListItemText
+//                               primary={text}
+//                               primaryTypographyProps={{
+//                                 fontSize: 14.5,
+//                                 fontWeight: active ? 600 : 400,
+//                                 letterSpacing: 0.3,
+//                               }}
+//                             />
+//                             <Box
+//                               component="span"
+//                               sx={{
+//                                 display: "flex",
+//                                 color: "rgba(255,255,255,0.55)",
+//                                 "& svg": { fontSize: 18 },
+//                               }}
+//                             >
+//                               {groupOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+//                             </Box>
+//                           </>
+//                         )}
+//                       </ListItemButton>
+
+//                       {!isCollapsed && (
+//                         <Collapse in={groupOpen} timeout={260} unmountOnExit>
+//                           <List disablePadding sx={{ pb: 0.5 }}>
+//                             {children!.map((child) => (
+//                               <SubItem
+//                                 key={child.to}
+//                                 item={child}
+//                                 isActive={isItemActive(child.to, child.matchPaths, true)}
+//                               />
+//                             ))}
+//                           </List>
+//                         </Collapse>
+//                       )}
+//                     </React.Fragment>
+//                   );
+//                 }
+
+//                 return (
+//                   <Tooltip key={to} title={isCollapsed ? text : ""} placement="right" arrow>
+//                     <ListItemButton
+//                       component={NavLink}
+//                       to={to}
+//                       sx={baseItemSx(active, isCollapsed)}
 //                     >
-//                       {renderedIcon}
-//                     </ListItemIcon>
-
-//                     {!isCollapsed && (
-//                       <>
+//                       <ListItemIcon
+//                         sx={{
+//                           color: "inherit",
+//                           minWidth: 42,
+//                           transform: active ? "scale(1.15)" : "scale(1)",
+//                           transition: "transform 0.25s ease",
+//                         }}
+//                       >
+//                         {renderedIcon}
+//                       </ListItemIcon>
+//                       {!isCollapsed && (
 //                         <ListItemText
 //                           primary={text}
 //                           primaryTypographyProps={{
@@ -871,83 +893,19 @@ export default SideBar;
 //                             letterSpacing: 0.3,
 //                           }}
 //                         />
-//                         <Box
-//                           component="span"
-//                           sx={{
-//                             display: "flex",
-//                             color: "rgba(255,255,255,0.55)",
-//                             "& svg": { fontSize: 18 },
-//                           }}
-//                         >
-//                           {groupOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-//                         </Box>
-//                       </>
-//                     )}
-//                   </ListItemButton>
-
-//                   {/* Accordion — expanded sidebar only */}
-//                   {!isCollapsed && (
-//                     <Collapse in={groupOpen} timeout={260} unmountOnExit>
-//                       <List disablePadding sx={{ pb: 0.5 }}>
-//                         {children!.map((child) => (
-//                           <SubItem
-//                             key={child.to}
-//                             item={child}
-//                             isActive={isItemActive(child.to, child.matchPaths, true)}
-//                           />
-//                         ))}
-//                       </List>
-//                     </Collapse>
-//                   )}
-//                 </React.Fragment>
-//               );
-//             }
-
-//             // ── Regular leaf item ─────────────────────────────────────────
-//             return (
-//               <Tooltip
-//                 key={to}
-//                 title={isCollapsed ? text : ""}
-//                 placement="right"
-//                 arrow
-//               >
-//                 <ListItemButton
-//                   component={NavLink}
-//                   to={to}
-//                   sx={baseItemSx(active, isCollapsed)}
-//                 >
-//                   <ListItemIcon
-//                     sx={{
-//                       color: "inherit",
-//                       minWidth: 42,
-//                       transform: active ? "scale(1.15)" : "scale(1)",
-//                       transition: "transform 0.25s ease",
-//                     }}
-//                   >
-//                     {renderedIcon}
-//                   </ListItemIcon>
-
-//                   {!isCollapsed && (
-//                     <ListItemText
-//                       primary={text}
-//                       primaryTypographyProps={{
-//                         fontSize: 14.5,
-//                         fontWeight: active ? 600 : 400,
-//                         letterSpacing: 0.3,
-//                       }}
-//                     />
-//                   )}
-//                 </ListItemButton>
-//               </Tooltip>
-//             );
-//           })}
-//         </List>
+//                       )}
+//                     </ListItemButton>
+//                   </Tooltip>
+//                 );
+//               })}
+//             </List>
+//           </SmartScrollContainer>
+//         </Box>
 //       </Drawer>
 
-//       {/* Flyout panel — rendered outside Drawer so it isn't clipped by overflowX:hidden */}
 //       {flyoutItem && (
 //         <Box
-//           onMouseEnter={cancelFlyoutClose}   // keep open while pointer is inside panel
+//           onMouseEnter={cancelFlyoutClose}
 //           onMouseLeave={closeFlyout}
 //           sx={{ position: "fixed", zIndex: 1400 }}
 //         >

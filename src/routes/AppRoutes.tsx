@@ -46,19 +46,14 @@ import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/Tas
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
 import ReusableTabLayout from "../components/common/ReusableTabLayout";
+import { useCabRole } from "../features/cabManager/cabManager/hooks/useCabRole";
+import { ROLE_SCREENS } from "../features/cabManager/cabManager/data/cabManager.mock";
 
 // Cab Manager pages
-import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
-import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
-import { MyCrqsPage } from "../features/cabManager/pages/MyCrqsPage";
-import { CrqJourneyPage } from "../features/cabManager/pages/CrqJourneyPage";
-import { CabPlanningPage } from "../features/cabManager/pages/CabPlanningPage";
-import { CabSessionsPage } from "../features/cabManager/pages/CabSessionsPage";
-import { ImplementationPage } from "../features/cabManager/pages/ImplementationPage";
-import { AdminPage } from "../features/cabManager/pages/AdminPage";
-import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
-import { useCabRole } from "../features/cabManager/hooks/useCabRole";
-
+// import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
+// import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
+import { CabDashboardPage } from "../features/cabManager/cabManager/pages/CabDashboardPage";
+import { AdminPage, AllCrqsPage, CabPlanningPage, CabSessionsPage, CrqJourneyPage, ImplementationPage, MyCrqsPage } from "../features/cabManager/cabManager";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -182,22 +177,20 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         {/* {cabPortalRoutes} */}
         <Route
           path="cabmanager"
-          element={
-            <PrivateRoute element={<CabManagerTabShell />} />
-          }
+          element={<PrivateRoute element={<CabManagerTabShell />} />}
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<CabDashboardPage />} />
           <Route path="allcrqs" element={<AllCrqsPage />} />
           <Route path="mycrqs" element={<MyCrqsPage />} />
-          <Route path="journey" element={<Navigate to="../allcrqs" replace />} />
+          <Route
+            path="journey"
+            element={<Navigate to="../allcrqs" replace />}
+          />
           <Route path="journey/:id" element={<CrqJourneyPage />} />
           <Route path="planning" element={<CabPlanningPage />} />
           <Route path="sessions" element={<CabSessionsPage />} />
-          <Route
-            path="implementation"
-            element={<ImplementationPage />}
-          />
+          <Route path="implementation" element={<ImplementationPage />} />
           <Route path="admin" element={<AdminPage />} />
         </Route>
 
@@ -250,7 +243,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           {/* <Route path="crqWorkflow" element={<PlanAndInventoryMain />} /> */}
-          <Route path="crqWorkflow" element={<PlanAndInventoryMain/>}/>
+          <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
           {/* <Route path="planviewandsetup" element={<PlanViewAndSetup />} /> */}
           <Route
             path="action"

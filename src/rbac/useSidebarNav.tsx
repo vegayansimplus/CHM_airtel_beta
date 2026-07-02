@@ -3,21 +3,29 @@ import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
-import AltRouteIcon from '@mui/icons-material/AltRoute';
+import AltRouteIcon from "@mui/icons-material/AltRoute";
+import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 
 import {
   FilterTiltShift,
   CalendarMonth,
   SupervisedUserCircle,
 } from "@mui/icons-material";
+import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
+import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
 import MailIcon from "@mui/icons-material/Mail";
 import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 // import PaletteIcon from "@mui/icons-material/Palette";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import { usePermission } from "./usePermission";
+
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
+import type { Role } from "../features/cabManager/cabManager/types/types";
+import { ROLE_SCREENS } from "../features/cabManager/cabManager/data/cabManager.mock";
 // import ChecklistIcon from "@mui/icons-material/Checklist";
 export interface NavItem {
   to: string;
@@ -42,6 +50,70 @@ const ALL_NAV_ITEMS: NavItem[] = [
     text: "Me",
     icon: <PersonIcon />,
     requiredModule: null,
+  },
+  {
+    to: "/cabmanager",
+    text: "Cab Manager",
+    icon: <BusinessCenterIcon />,
+    requiredModule: "Cab Manager",
+    children: [
+      {
+        to: "/cabmanager/dashboard",
+        text: "Dashboard",
+        icon: <DashboardIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/dashboard"],
+      },
+      {
+        to: "/cabmanager/planning",
+        text: "Cab Planning",
+        icon: <EventNoteOutlinedIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/planning"],
+      },
+      {
+        to: "/cabmanager/sessions",
+        text: "Cab Sessions",
+        icon: <Groups2Icon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/sessions"],
+      },
+      {
+        to: "/cabmanager/mycrqs",
+        text: "My CRQs",
+        icon: <CheckCircleOutlineIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/mycrqs"],
+      },
+      {
+        to: "/cabmanager/allcrqs",
+        text: "All CRQs",
+        icon: <ListAltOutlinedIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/allcrqs"],
+      },
+      {
+        to: "/cabmanager/journey",
+        text: "CRQ Journey",
+        icon: <AltRouteIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/journey"],
+      },
+      {
+        to: "/cabmanager/implementation",
+        text: "Implementation",
+        icon: <PlayArrowOutlinedIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/implementation"],
+      },
+      {
+        to: "/cabmanager/admin",
+        text: "Admin Config",
+        icon: <SettingsIcon />,
+        requiredModule: "Cab Manager",
+        matchPaths: ["/cabmanager/admin"],
+      },
+    ],
   },
   {
     to: "/generateroster",
@@ -84,7 +156,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskplanning"],
       },
-       {
+      {
         to: "/scheduler/crqjourney",
         text: "CRQ Journey",
         icon: <AltRouteIcon />,
@@ -167,25 +239,37 @@ export const useSidebarNav = (): NavItem[] => {
       "/cabmanager/admin": "admin",
     };
 
-    return ALL_NAV_ITEMS.filter((item) => item.requiredModule === null || hasModule(item.requiredModule))
-      .map((item) => {
-        // For Cab Manager apply role-based child filtering using the active CAB persona
-        if (item.to === "/cabmanager") {
-          const children = item.children ?? [];
-          const effectiveRole: Role | null = cabRole;
-          if (effectiveRole && ROLE_SCREENS[effectiveRole]) {
-            const allowed = ROLE_SCREENS[effectiveRole];
-            const filtered = children.filter((c) => allowed.includes(pathToScreenId[c.to]));
-            return { ...item, children: filtered };
-          }
-          // otherwise fall back to permission module filtering per child
-          return { ...item, children: children.filter((child) => child.requiredModule === null || hasModule(child.requiredModule)) };
+    return ALL_NAV_ITEMS.filter(
+      (item) => item.requiredModule === null || hasModule(item.requiredModule),
+    ).map((item) => {
+      // For Cab Manager apply role-based child filtering using the active CAB persona
+      if (item.to === "/cabmanager") {
+        const children = item.children ?? [];
+        const effectiveRole: Role | null = cabRole;
+        if (effectiveRole && ROLE_SCREENS[effectiveRole]) {
+          const allowed = ROLE_SCREENS[effectiveRole];
+          const filtered = children.filter((c) =>
+            allowed.includes(pathToScreenId[c.to]),
+          );
+          return { ...item, children: filtered };
         }
-
+        // otherwise fall back to permission module filtering per child
         return {
           ...item,
-          children: item.children?.filter((child) => child.requiredModule === null || hasModule(child.requiredModule)),
+          children: children.filter(
+            (child) =>
+              child.requiredModule === null || hasModule(child.requiredModule),
+          ),
         };
-      });
+      }
+
+      return {
+        ...item,
+        children: item.children?.filter(
+          (child) =>
+            child.requiredModule === null || hasModule(child.requiredModule),
+        ),
+      };
+    });
   }, [hasModule, cabRole]);
 };
