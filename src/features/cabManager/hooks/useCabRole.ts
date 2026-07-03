@@ -1,9 +1,10 @@
 import { useMemo } from "react";
-import { usePermission } from "../../../../rbac/usePermission";
+
 import { ROLES } from "../data/cabManager.mock";
 import type { Persona, Role } from "../types/types";
+import { usePermission } from "../../../rbac/usePermission";
 
-const DEFAULT_ROLE: Role = "requester";
+const DEFAULT_ROLE: Role = "stakeholder";
 
 function isKnownRole(code: string | null): code is Role {
   return !!code && code in ROLES;

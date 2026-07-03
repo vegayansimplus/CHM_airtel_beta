@@ -4,6 +4,7 @@ import {
   type QueryReturnValue,
   type FetchBaseQueryError,
   type FetchBaseQueryMeta,
+  type RootState,
 } from "@reduxjs/toolkit/query/react";
 import {
   buildAgenda,
@@ -58,8 +59,8 @@ import type {
   SendChatPayload,
   ServiceApprovalRule,
 } from "../types/types";
-import type { RootState } from "../../../../app/store";
-import { api } from "../../../../service/api";
+import { api } from "../../../service/api";
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CAB Portal — RTK Query slice
@@ -69,15 +70,6 @@ const USE_MOCK =
   (import.meta as { env?: Record<string, string> }).env?.VITE_CAB_USE_MOCK ===
   "true";
 
-const rawBaseQuery = fetchBaseQuery({
-  baseUrl: (import.meta as { env?: Record<string, string> }).env
-    ?.VITE_REACT_APP_BASE_URL,
-  prepareHeaders: (headers, { getState }) => {
-    const token = (getState() as RootState).auth?.token;
-    if (token) headers.set("Authorization", `Bearer ${token}`);
-    return headers;
-  },
-});
 
 const networkOrMock = async <T>(
   request: FetchArgs,

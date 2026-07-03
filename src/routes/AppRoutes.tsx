@@ -46,14 +46,17 @@ import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/Tas
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
 import ReusableTabLayout from "../components/common/ReusableTabLayout";
-import { useCabRole } from "../features/cabManager/cabManager/hooks/useCabRole";
-import { ROLE_SCREENS } from "../features/cabManager/cabManager/data/cabManager.mock";
+
 
 // Cab Manager pages
 // import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
 // import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
-import { CabDashboardPage } from "../features/cabManager/cabManager/pages/CabDashboardPage";
-import { AdminPage, AllCrqsPage, CabPlanningPage, CabSessionsPage, CrqJourneyPage, ImplementationPage, MyCrqsPage } from "../features/cabManager/cabManager";
+
+
+import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
+import { useCabRole } from "../features/cabManager/hooks/useCabRole";
+import { CabDashboardPage, AllCrqsPage, MyCrqsPage, CabPlanningPage, CabSessionsPage, ImplementationPage, AdminPage } from "../features/cabManager";
+import { CrqJourneyPage } from "../features/crqJourney";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;

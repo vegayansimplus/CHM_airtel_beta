@@ -24,8 +24,9 @@ import { usePermission } from "./usePermission";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
-import { useCabRole } from "../features/cabManager/cabManager/hooks/useCabRole";
-import { ROLE_SCREENS } from "../features/cabManager/cabManager/data/cabManager.mock";
+import { useCabRole } from "../features/cabManager/hooks/useCabRole";
+import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
+
 // import ChecklistIcon from "@mui/icons-material/Checklist";
 export interface NavItem {
   to: string;
