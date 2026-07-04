@@ -1,4 +1,4 @@
-import { Box, Button, Stack, Typography } from "@mui/material";
+import { Box, Button, Stack, Typography, alpha, useTheme } from "@mui/material";
 import { PersonSearch, PersonAddAlt1, RestartAlt } from "@mui/icons-material";
 import { motion } from "framer-motion";
 
@@ -11,6 +11,9 @@ export default function EmptyState({
   onResetFilters?: () => void;
   showResetFilters?: boolean;
 }) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+
   return (
     <Box
       component={motion.div}
@@ -29,12 +32,14 @@ export default function EmptyState({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #EFF6FF 0%, #EEF2FF 100%)",
+          background: isDark
+            ? alpha(theme.palette.primary.main, 0.16)
+            : "linear-gradient(135deg, #EFF6FF 0%, #EEF2FF 100%)",
         }}
       >
-        <PersonSearch sx={{ fontSize: 40, color: "#2563EB" }} />
+        <PersonSearch sx={{ fontSize: 40, color: "primary.main" }} />
       </Box>
-      <Typography sx={{ fontSize: 17, fontWeight: 700, color: "#0F172A" }}>
+      <Typography sx={{ fontSize: 17, fontWeight: 700, color: "text.primary" }}>
         No users found
       </Typography>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5, maxWidth: 340, mx: "auto" }}>
@@ -47,7 +52,7 @@ export default function EmptyState({
             variant="outlined"
             startIcon={<RestartAlt sx={{ fontSize: 16 }} />}
             onClick={onResetFilters}
-            sx={{ borderRadius: "10px", fontWeight: 600, borderColor: "rgba(15,23,42,0.12)" }}
+            sx={{ borderRadius: "10px", fontWeight: 600, borderColor: "divider" }}
           >
             Reset Filters
           </Button>
@@ -56,11 +61,7 @@ export default function EmptyState({
           variant="contained"
           startIcon={<PersonAddAlt1 sx={{ fontSize: 16 }} />}
           onClick={onAddUser}
-          sx={{
-            borderRadius: "10px",
-            fontWeight: 700,
-            background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
-          }}
+          sx={{ borderRadius: "10px", fontWeight: 700 }}
         >
           Add User
         </Button>

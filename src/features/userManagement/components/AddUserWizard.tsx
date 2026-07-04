@@ -165,7 +165,7 @@ export default function AddUserWizard({
                 animate={{ scale: 1 }}
                 transition={{ type: "spring", stiffness: 260, damping: 18 }}
               >
-                <CheckCircle sx={{ fontSize: 72, color: "#10B981" }} />
+                <CheckCircle sx={{ fontSize: 72, color: "success.main" }} />
               </motion.div>
               <Typography sx={{ fontSize: 17, fontWeight: 800, mt: 2 }}>
                 User added successfully
@@ -381,11 +381,7 @@ export default function AddUserWizard({
             <Button
               onClick={handleNext}
               variant="contained"
-              sx={{
-                borderRadius: "10px",
-                fontWeight: 700,
-                background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
-              }}
+              sx={{ borderRadius: "10px", fontWeight: 700 }}
             >
               Next
             </Button>
@@ -393,12 +389,9 @@ export default function AddUserWizard({
             <Button
               onClick={submit}
               variant="contained"
+              color="success"
               startIcon={<CheckCircle sx={{ fontSize: 18 }} />}
-              sx={{
-                borderRadius: "10px",
-                fontWeight: 700,
-                background: "linear-gradient(135deg, #10B981 0%, #059669 100%)",
-              }}
+              sx={{ borderRadius: "10px", fontWeight: 700 }}
             >
               Add User
             </Button>

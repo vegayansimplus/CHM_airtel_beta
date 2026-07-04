@@ -1,10 +1,10 @@
-import { Avatar, Badge, Box, Chip, Divider, Stack, Typography } from "@mui/material";
+import { Avatar, Badge, Box, Chip, Divider, Stack, Typography, useTheme } from "@mui/material";
 import { motion } from "framer-motion";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
 import ActionMenu from "./ActionMenu";
 import { getAvatarColor, getInitials, formatRelativeTime } from "../utils/userHelpers";
-import { getUserStatus, type User } from "../types/user";
+import { getUserStatus, STATUS_CONFIG, type User } from "../types/user";
 
 export interface UserCardProps {
   user: User;
@@ -26,6 +26,8 @@ export default function UserCard({
   onDelete,
 }: UserCardProps) {
   const status = getUserStatus(user);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   return (
     <motion.div
@@ -40,11 +42,12 @@ export default function UserCard({
         sx={{
           p: 1.5,
           borderRadius: "14px",
-          border: "1px solid rgba(15,23,42,0.06)",
-          background: "rgba(255,255,255,0.9)",
-          boxShadow: "0 2px 10px rgba(15,23,42,0.03)",
+          border: "1px solid",
+          borderColor: "divider",
+          background: "background.paper",
+          boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(15,23,42,0.03)",
           transition: "box-shadow 0.2s ease",
-          "&:hover": { boxShadow: "0 8px 20px rgba(15,23,42,0.08)" },
+          "&:hover": { boxShadow: isDark ? "0 8px 20px rgba(0,0,0,0.45)" : "0 8px 20px rgba(15,23,42,0.08)" },
           cursor: "pointer",
         }}
         onClick={() => onView(user)}
@@ -59,8 +62,9 @@ export default function UserCard({
                   width: 9,
                   height: 9,
                   borderRadius: "50%",
-                  bgcolor: status === "Active" ? "#22C55E" : "#9CA3AF",
-                  border: "2px solid white",
+                  bgcolor: STATUS_CONFIG[status].dot,
+                  border: "2px solid",
+                  borderColor: "background.paper",
                 }}
               />
             }
@@ -82,7 +86,7 @@ export default function UserCard({
           </Box>
         </Stack>
 
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#0F172A", mt: 1 }} noWrap>
+        <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary", mt: 1 }} noWrap>
           {user.name}
         </Typography>
         <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>
@@ -98,7 +102,7 @@ export default function UserCard({
           <Chip
             label={user.function}
             size="small"
-            sx={{ bgcolor: "#F1F5F9", color: "#475569", fontSize: "0.65rem", fontWeight: 600, height: 20 }}
+            sx={{ bgcolor: "action.hover", color: "text.secondary", fontSize: "0.65rem", fontWeight: 600, height: 20 }}
           />
         </Stack>
 

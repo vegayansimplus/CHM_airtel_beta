@@ -382,7 +382,6 @@ export default function UserManagement() {
             position: "fixed",
             bottom: 24,
             right: 24,
-            background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
           }}
         >
           <Add />

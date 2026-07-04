@@ -9,6 +9,7 @@ import {
   Stack,
   Typography,
   Zoom,
+  alpha,
 } from "@mui/material";
 import { WarningAmberRounded } from "@mui/icons-material";
 import type { TransitionProps } from "@mui/material/transitions";
@@ -46,13 +47,13 @@ export default function DeleteDialog({ user, count, onClose, onConfirm }: Delete
             width: 40,
             height: 40,
             borderRadius: "12px",
-            bgcolor: "#FEF2F2",
+            bgcolor: (theme) => alpha(theme.palette.error.main, theme.palette.mode === "dark" ? 0.18 : 0.1),
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <WarningAmberRounded sx={{ color: "#DC2626" }} />
+          <WarningAmberRounded color="error" />
         </Box>
         Remove {isBulk ? `${count} Users` : "User"}
       </DialogTitle>

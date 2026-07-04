@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { IconButton, Menu, MenuItem, Stack, Tooltip, Typography, Divider } from "@mui/material";
+import { IconButton, Menu, MenuItem, Stack, Tooltip, Typography, Divider, useTheme } from "@mui/material";
 import {
   Visibility,
   Edit,
@@ -25,6 +25,8 @@ export default function ActionMenu({
   onDelete,
 }: ActionMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   return (
     <Stack
@@ -63,7 +65,11 @@ export default function ActionMenu({
         open={Boolean(anchorEl)}
         onClose={() => setAnchorEl(null)}
         PaperProps={{
-          sx: { borderRadius: "12px", boxShadow: "0 12px 32px rgba(15,23,42,0.14)", minWidth: 190 },
+          sx: {
+            borderRadius: "12px",
+            boxShadow: isDark ? "0 12px 32px rgba(0,0,0,0.4)" : "0 12px 32px rgba(15,23,42,0.14)",
+            minWidth: 190,
+          },
         }}
       >
         <MenuItem
@@ -92,7 +98,7 @@ export default function ActionMenu({
             onDelete();
             setAnchorEl(null);
           }}
-          sx={{ gap: 1.5, color: "#DC2626" }}
+          sx={{ gap: 1.5, color: "error.main" }}
         >
           <Delete fontSize="small" />
           <Typography variant="body2" color="inherit">

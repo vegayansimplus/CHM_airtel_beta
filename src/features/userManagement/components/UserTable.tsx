@@ -8,6 +8,7 @@ import {
   Tooltip,
   Typography,
   Button,
+  alpha,
   useMediaQuery,
   useTheme,
 } from "@mui/material";
@@ -25,7 +26,7 @@ import StatusBadge from "./StatusBadge";
 import ActionMenu from "./ActionMenu";
 import EmptyState from "./EmptyState";
 import { getAvatarColor, getInitials, formatRelativeTime } from "../utils/userHelpers";
-import { getUserStatus, type User } from "../types/user";
+import { getUserStatus, STATUS_CONFIG, type User } from "../types/user";
 
 export interface UserTableProps {
   users: User[];
@@ -63,6 +64,7 @@ export default function UserTable({
   // Lower-priority columns fold away as the available width shrinks (the
   // sidebar + header eat into it before the table container even starts).
   const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const isDownMd = useMediaQuery(theme.breakpoints.down("md"));
   const isDownLg = useMediaQuery(theme.breakpoints.down("lg"));
   const isDownXl = useMediaQuery(theme.breakpoints.down("xl"));
@@ -106,8 +108,9 @@ export default function UserTable({
                       width: 10,
                       height: 10,
                       borderRadius: "50%",
-                      bgcolor: status === "Active" ? "#22C55E" : "#9CA3AF",
-                      border: "2px solid white",
+                      bgcolor: STATUS_CONFIG[status].dot,
+                      border: "2px solid",
+                      borderColor: "background.paper",
                     }}
                   />
                 }
@@ -119,18 +122,19 @@ export default function UserTable({
                     height: 38,
                     fontSize: "0.78rem",
                     fontWeight: 700,
-                    border: "2px solid #fff",
-                    boxShadow: "0 0 0 1px rgba(15,23,42,0.06)",
+                    border: "2px solid",
+                    borderColor: "background.paper",
+                    boxShadow: isDark ? "0 0 0 1px rgba(255,255,255,0.08)" : "0 0 0 1px rgba(15,23,42,0.06)",
                   }}
                 >
                   {getInitials(u.name)}
                 </Avatar>
               </Badge>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }} noWrap>
+                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }} noWrap>
                   {u.name}
                 </Typography>
-                <Typography sx={{ fontSize: 11.5, color: "#94A3B8" }} noWrap>
+                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>
                   {u.email}
                 </Typography>
               </Box>
@@ -156,7 +160,7 @@ export default function UserTable({
           <Chip
             label={cell.getValue<string>()}
             size="small"
-            sx={{ bgcolor: "#F1F5F9", color: "#475569", fontWeight: 600, fontSize: "0.7rem" }}
+            sx={{ bgcolor: "action.hover", color: "text.secondary", fontWeight: 600, fontSize: "0.7rem" }}
           />
         ),
       },
@@ -209,7 +213,12 @@ export default function UserTable({
               <Chip
                 label={`${perms.length} granted`}
                 size="small"
-                sx={{ bgcolor: "#EEF2FF", color: "#4338CA", fontWeight: 600, fontSize: "0.68rem" }}
+                sx={{
+                  bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+                  color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
+                  fontWeight: 600,
+                  fontSize: "0.68rem",
+                }}
               />
             </Tooltip>
           );
@@ -270,10 +279,11 @@ export default function UserTable({
       elevation: 0,
       sx: {
         borderRadius: "16px",
-        border: "1px solid rgba(15,23,42,0.07)",
-        boxShadow: "0 8px 28px rgba(15,23,42,0.06)",
+        border: "1px solid",
+        borderColor: "divider",
+        boxShadow: isDark ? "0 8px 28px rgba(0,0,0,0.35)" : "0 8px 28px rgba(15,23,42,0.06)",
         overflow: "hidden",
-        background: "#fff",
+        background: theme.palette.background.paper,
         width: "100%",
       },
     },
@@ -282,35 +292,37 @@ export default function UserTable({
     },
     muiTableHeadCellProps: ({ column }) => ({
       sx: {
-        background: "#F8FAFC",
-        color: "#475569",
+        background: isDark ? theme.palette.background.default : "#F8FAFC",
+        color: "text.secondary",
         fontSize: 11,
         fontWeight: 700,
         textTransform: "uppercase",
         letterSpacing: "0.06em",
-        borderBottom: "2px solid rgba(15,23,42,0.08)",
+        borderBottom: "2px solid",
+        borderColor: "divider",
         px: { xs: 1, lg: 1.5 },
-        "& .Mui-TableHeadCell-Content-Actions button": { color: "#94A3B8" },
+        "& .Mui-TableHeadCell-Content-Actions button": { color: theme.palette.text.secondary },
         ...(column.getIsPinned() && {
-          background: "#F8FAFC",
+          background: isDark ? theme.palette.background.default : "#F8FAFC",
           boxShadow:
             column.getIsPinned() === "left"
-              ? "2px 0 4px rgba(15,23,42,0.04)"
-              : "-2px 0 4px rgba(15,23,42,0.04)",
+              ? `2px 0 4px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(15,23,42,0.04)"}`
+              : `-2px 0 4px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(15,23,42,0.04)"}`,
         }),
       },
     }),
     muiTableBodyCellProps: ({ column }) => ({
       sx: {
-        borderBottom: "1px solid rgba(15,23,42,0.05)",
+        borderBottom: "1px solid",
+        borderColor: "divider",
         py: 1.35,
         px: { xs: 1, lg: 1.5 },
         ...(column.getIsPinned() && {
-          background: "#fff",
+          background: theme.palette.background.paper,
           boxShadow:
             column.getIsPinned() === "left"
-              ? "2px 0 4px rgba(15,23,42,0.04)"
-              : "-2px 0 4px rgba(15,23,42,0.04)",
+              ? `2px 0 4px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(15,23,42,0.04)"}`
+              : `-2px 0 4px ${isDark ? "rgba(0,0,0,0.3)" : "rgba(15,23,42,0.04)"}`,
         }),
       },
     }),
@@ -318,8 +330,13 @@ export default function UserTable({
       className: "row-hover",
       sx: {
         transition: "background 0.15s",
-        background: row.index % 2 === 1 ? "rgba(248,250,252,0.6)" : "transparent",
-        "&:hover": { background: "rgba(37,99,235,0.045)" },
+        background:
+          row.index % 2 === 1
+            ? isDark
+              ? "rgba(255,255,255,0.02)"
+              : "rgba(248,250,252,0.6)"
+            : "transparent",
+        "&:hover": { background: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.045) },
       },
     }),
     muiSelectCheckboxProps: { size: "small" },
@@ -334,8 +351,11 @@ export default function UserTable({
           gap: 1,
           px: { xs: 1.25, lg: 2.25 },
           py: 1.25,
-          borderBottom: "1px solid rgba(15,23,42,0.06)",
-          background: "linear-gradient(180deg, #FAFBFF 0%, #FFFFFF 100%)",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          background: isDark
+            ? `linear-gradient(180deg, ${alpha(theme.palette.background.paper, 0.6)} 0%, ${theme.palette.background.paper} 100%)`
+            : "linear-gradient(180deg, #FAFBFF 0%, #FFFFFF 100%)",
         }}
       >
         <Box sx={{ minHeight: 30, display: "flex", alignItems: "center" }}>
@@ -363,14 +383,20 @@ export default function UserTable({
             </Stack>
           ) : (
             <Stack direction="row" alignItems="center" gap={0.75}>
-              <GroupOutlined sx={{ fontSize: 17, color: "#94A3B8" }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>
+              <GroupOutlined sx={{ fontSize: 17, color: "text.secondary" }} />
+              <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
                 All Users
               </Typography>
               <Chip
                 label={users.length}
                 size="small"
-                sx={{ height: 19, fontSize: 11, fontWeight: 700, bgcolor: "#EFF6FF", color: "#2563EB" }}
+                sx={{
+                  height: 19,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+                  color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
+                }}
               />
             </Stack>
           )}

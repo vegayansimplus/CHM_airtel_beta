@@ -38,10 +38,10 @@ export default function DashboardHeader({
             </Typography>
           </Breadcrumbs>
           <Stack direction="row" alignItems="baseline" gap={1} flexWrap="wrap">
-            <Typography sx={{ fontSize: 17, fontWeight: 800, color: "#0F172A", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
+            <Typography sx={{ fontSize: 17, fontWeight: 800, color: "text.primary", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
               User Management
             </Typography>
-            <Typography sx={{ fontSize: 11.5, color: "#94A3B8" }}>
+            <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
               Manage roles, permissions and team access
             </Typography>
           </Stack>
@@ -56,7 +56,7 @@ export default function DashboardHeader({
               onClick={onImport}
               sx={{
                 borderRadius: "8px",
-                borderColor: "rgba(15,23,42,0.12)",
+                borderColor: "divider",
                 color: "text.secondary",
                 fontWeight: 600,
                 py: 0.4,
@@ -78,7 +78,7 @@ export default function DashboardHeader({
               onClick={onExport}
               sx={{
                 borderRadius: "8px",
-                borderColor: "rgba(15,23,42,0.12)",
+                borderColor: "divider",
                 color: "text.secondary",
                 fontWeight: 600,
                 py: 0.4,
@@ -96,7 +96,7 @@ export default function DashboardHeader({
             <IconButton
               size="small"
               onClick={onRefresh}
-              sx={{ borderRadius: "8px", border: "1px solid rgba(15,23,42,0.1)", width: 30, height: 30 }}
+              sx={{ borderRadius: "8px", border: "1px solid", borderColor: "divider", width: 30, height: 30 }}
             >
               <Refresh
                 sx={{
@@ -120,12 +120,6 @@ export default function DashboardHeader({
                 fontWeight: 700,
                 px: { xs: 1.5, sm: 2 },
                 py: 0.4,
-                background: "linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%)",
-                boxShadow: "0 4px 12px rgba(37,99,235,0.3)",
-                "&:hover": {
-                  background: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-                  boxShadow: "0 6px 16px rgba(37,99,235,0.4)",
-                },
               }}
             >
               <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>

@@ -62,7 +62,7 @@ const UserManagementLayout: React.FC = () => {
           backdropFilter: "blur(18px)",
           WebkitBackdropFilter: "blur(18px)",
 
-          border: `1px ${
+          border: `1px solid ${
             theme.palette.mode === "dark"
               ? "rgba(255,255,255,0.08)"
               : "rgba(255,255,255,0.6)"

@@ -1,4 +1,4 @@
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography, alpha, useTheme } from "@mui/material";
 import { TrendingDown, TrendingUp } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useCountUp } from "../utils/userHelpers";
@@ -56,6 +56,9 @@ export default function StatCard({
 }: StatCardProps) {
   const animated = useCountUp(value);
   const isUp = trend >= 0;
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const trendColor = isUp ? theme.palette.success.main : theme.palette.error.main;
 
   return (
     <motion.div
@@ -71,13 +74,14 @@ export default function StatCard({
           overflow: "hidden",
           p: 1.25,
           borderRadius: "14px",
-          background: "rgba(255,255,255,0.75)",
+          background: isDark ? alpha(theme.palette.background.paper, 0.75) : "rgba(255,255,255,0.75)",
           backdropFilter: "blur(12px)",
-          border: "1px solid rgba(15,23,42,0.06)",
-          boxShadow: "0 2px 10px rgba(15,23,42,0.04)",
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(15,23,42,0.04)",
           transition: "box-shadow 0.2s ease, border-color 0.2s ease",
           "&:hover": {
-            boxShadow: "0 8px 20px rgba(15,23,42,0.1)",
+            boxShadow: isDark ? "0 8px 20px rgba(0,0,0,0.45)" : "0 8px 20px rgba(15,23,42,0.1)",
             borderColor: `${color}40`,
           },
         }}
@@ -112,10 +116,10 @@ export default function StatCard({
               <Icon sx={{ color: "#fff", fontSize: 15 }} />
             </Box>
             <Box>
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#0F172A", lineHeight: 1.1 }}>
+              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
                 {animated.toLocaleString()}
               </Typography>
-              <Typography sx={{ fontSize: 10.5, color: "#64748B", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <Typography sx={{ fontSize: 10.5, color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>
                 {label}
               </Typography>
             </Box>
@@ -130,8 +134,8 @@ export default function StatCard({
                 px: 0.6,
                 py: 0.1,
                 borderRadius: 999,
-                bgcolor: isUp ? "#ECFDF5" : "#FEF2F2",
-                color: isUp ? "#059669" : "#DC2626",
+                bgcolor: alpha(trendColor, isDark ? 0.18 : 0.12),
+                color: trendColor,
               }}
             >
               {isUp ? (

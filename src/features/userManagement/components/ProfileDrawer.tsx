@@ -10,6 +10,8 @@ import {
   Tab,
   Tabs,
   Typography,
+  alpha,
+  useTheme,
 } from "@mui/material";
 import {
   Close,
@@ -44,20 +46,20 @@ function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
           width: 32,
           height: 32,
           borderRadius: "9px",
-          bgcolor: "#F1F5F9",
+          bgcolor: "action.hover",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           flexShrink: 0,
         }}
       >
-        <Icon sx={{ fontSize: 16, color: "#64748B" }} />
+        <Icon sx={{ fontSize: 16, color: "text.secondary" }} />
       </Box>
       <Box sx={{ minWidth: 0 }}>
         <Typography sx={{ fontSize: 10.5, color: "text.secondary", textTransform: "uppercase", letterSpacing: "0.05em" }}>
           {label}
         </Typography>
-        <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }} noWrap>
+        <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }} noWrap>
           {value}
         </Typography>
       </Box>
@@ -75,6 +77,8 @@ export default function ProfileDrawer({
   onClose: () => void;
 }) {
   const [tab, setTab] = useState(0);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   return (
     <Drawer
@@ -98,14 +102,21 @@ export default function ProfileDrawer({
             <Box
               sx={{
                 p: 3,
-                background: "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)",
+                background: isDark
+                  ? `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.16)} 0%, ${alpha(theme.palette.secondary.main, 0.12)} 100%)`
+                  : "linear-gradient(135deg, #EFF6FF 0%, #F5F3FF 100%)",
                 position: "relative",
               }}
             >
               <IconButton
                 onClick={onClose}
                 size="small"
-                sx={{ position: "absolute", top: 12, right: 12, bgcolor: "rgba(255,255,255,0.6)" }}
+                sx={{
+                  position: "absolute",
+                  top: 12,
+                  right: 12,
+                  bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)",
+                }}
               >
                 <Close fontSize="small" />
               </IconButton>
@@ -117,14 +128,15 @@ export default function ProfileDrawer({
                     fontSize: 28,
                     fontWeight: 700,
                     bgcolor: getAvatarColor(user.id),
-                    border: "4px solid #fff",
-                    boxShadow: "0 8px 24px rgba(15,23,42,0.15)",
+                    border: "4px solid",
+                    borderColor: "background.paper",
+                    boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(15,23,42,0.15)",
                   }}
                 >
                   {getInitials(user.name)}
                 </Avatar>
                 <Box textAlign="center">
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "#0F172A" }}>
+                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
                     {user.name}
                   </Typography>
                   <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
@@ -142,7 +154,7 @@ export default function ProfileDrawer({
               value={tab}
               onChange={(_, v) => setTab(v)}
               variant="fullWidth"
-              sx={{ borderBottom: "1px solid rgba(15,23,42,0.08)" }}
+              sx={{ borderBottom: "1px solid", borderColor: "divider" }}
             >
               <Tab label="Overview" />
               <Tab label="Permissions" />
@@ -184,7 +196,12 @@ export default function ProfileDrawer({
                           icon={<Shield sx={{ fontSize: 14 }} />}
                           label={p}
                           size="small"
-                          sx={{ bgcolor: "#EEF2FF", color: "#4338CA", fontWeight: 600 }}
+                          sx={{
+                            bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
+                            color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
+                            fontWeight: 600,
+                            "& .MuiChip-icon": { color: "inherit" },
+                          }}
                         />
                       ))
                     )}
@@ -217,7 +234,7 @@ export default function ProfileDrawer({
                               }}
                             />
                             <Box>
-                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>
+                              <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
                                 {a.action}
                               </Typography>
                               <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
@@ -252,9 +269,9 @@ export default function ProfileDrawer({
                             direction="row"
                             alignItems="center"
                             gap={1.5}
-                            sx={{ p: 1.25, borderRadius: "10px", bgcolor: "#F8FAFC" }}
+                            sx={{ p: 1.25, borderRadius: "10px", bgcolor: "action.hover" }}
                           >
-                            <Icon sx={{ fontSize: 18, color: "#64748B" }} />
+                            <Icon sx={{ fontSize: 18, color: "text.secondary" }} />
                             <Box sx={{ flex: 1 }}>
                               <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
                                 {d.name}
@@ -284,9 +301,9 @@ export default function ProfileDrawer({
                           direction="row"
                           alignItems="center"
                           gap={1.5}
-                          sx={{ p: 1.25, borderRadius: "10px", bgcolor: "#F8FAFC" }}
+                          sx={{ p: 1.25, borderRadius: "10px", bgcolor: "action.hover" }}
                         >
-                          <Devices sx={{ fontSize: 18, color: "#64748B" }} />
+                          <Devices sx={{ fontSize: 18, color: "text.secondary" }} />
                           <Box sx={{ flex: 1 }}>
                             <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
                               {s.device} · {s.location}

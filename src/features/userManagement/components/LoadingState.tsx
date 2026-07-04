@@ -1,14 +1,20 @@
-import { Box, Skeleton, Stack } from "@mui/material";
+import { Box, Skeleton, Stack, useTheme } from "@mui/material";
 
-const shimmerSx = {
-  bgcolor: "rgba(15,23,42,0.06)",
-  "&::after": {
-    background:
-      "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
-  },
-};
+function useShimmerSx() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  return {
+    bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(15,23,42,0.06)",
+    "&::after": {
+      background: isDark
+        ? "linear-gradient(90deg, transparent, rgba(255,255,255,0.12), transparent)"
+        : "linear-gradient(90deg, transparent, rgba(255,255,255,0.6), transparent)",
+    },
+  };
+}
 
 export function StatsSkeleton() {
+  const shimmerSx = useShimmerSx();
   return (
     <Stack direction="row" flexWrap="wrap" gap={2} mb={3}>
       {Array.from({ length: 6 }).map((_, i) => (
@@ -19,8 +25,9 @@ export function StatsSkeleton() {
             minWidth: 200,
             p: 2.25,
             borderRadius: "18px",
-            border: "1px solid rgba(15,23,42,0.06)",
-            background: "#fff",
+            border: "1px solid",
+            borderColor: "divider",
+            background: "background.paper",
           }}
         >
           <Skeleton variant="rounded" width={40} height={40} sx={{ borderRadius: "12px", ...shimmerSx }} />
@@ -33,16 +40,18 @@ export function StatsSkeleton() {
 }
 
 export function TableSkeleton({ rows = 6 }: { rows?: number }) {
+  const shimmerSx = useShimmerSx();
   return (
     <Box
       sx={{
         borderRadius: "18px",
-        border: "1px solid rgba(15,23,42,0.06)",
-        background: "#fff",
+        border: "1px solid",
+        borderColor: "divider",
+        background: "background.paper",
         overflow: "hidden",
       }}
     >
-      <Box sx={{ display: "flex", gap: 2, px: 3, py: 1.5, bgcolor: "#F8FAFC" }}>
+      <Box sx={{ display: "flex", gap: 2, px: 3, py: 1.5, bgcolor: "action.hover" }}>
         {["User", "Employee ID", "Department", "Role", "Status", "Actions"].map((h) => (
           <Skeleton key={h} variant="text" width={100} height={16} sx={shimmerSx} />
         ))}
@@ -55,7 +64,7 @@ export function TableSkeleton({ rows = 6 }: { rows?: number }) {
           gap={2}
           px={3}
           py={1.75}
-          sx={{ borderTop: "1px solid rgba(15,23,42,0.05)" }}
+          sx={{ borderTop: "1px solid", borderColor: "divider" }}
         >
           <Skeleton variant="circular" width={40} height={40} sx={shimmerSx} />
           <Box sx={{ flex: 1 }}>

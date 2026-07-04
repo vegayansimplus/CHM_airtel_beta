@@ -13,6 +13,8 @@ import {
   TextField,
   Tooltip,
   Typography,
+  alpha,
+  useTheme,
 } from "@mui/material";
 import {
   Search,
@@ -74,6 +76,8 @@ export default function SearchToolbar({
 }: SearchToolbarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -98,10 +102,11 @@ export default function SearchToolbar({
           p: 1.25,
           mb: 1.5,
           borderRadius: "12px",
-          background: "rgba(255,255,255,0.8)",
+          background: isDark ? alpha(theme.palette.background.paper, 0.8) : "rgba(255,255,255,0.8)",
           backdropFilter: "blur(10px)",
-          border: "1px solid rgba(15,23,42,0.06)",
-          boxShadow: "0 2px 12px rgba(15,23,42,0.03)",
+          border: "1px solid",
+          borderColor: "divider",
+          boxShadow: isDark ? "0 2px 12px rgba(0,0,0,0.25)" : "0 2px 12px rgba(15,23,42,0.03)",
         }}
       >
         <Stack direction="row" flexWrap="wrap" alignItems="center" gap={1}>
@@ -129,7 +134,7 @@ export default function SearchToolbar({
                         px: 0.8,
                         py: 0.2,
                         borderRadius: "6px",
-                        bgcolor: "rgba(15,23,42,0.05)",
+                        bgcolor: "action.hover",
                         color: "text.secondary",
                         fontSize: 11,
                         fontWeight: 600,
@@ -190,7 +195,7 @@ export default function SearchToolbar({
               fontWeight: 600,
               ...(advancedOpen
                 ? {}
-                : { borderColor: "rgba(15,23,42,0.12)", color: "text.secondary" }),
+                : { borderColor: "divider", color: "text.secondary" }),
             }}
           >
             Advanced Filters
@@ -213,7 +218,7 @@ export default function SearchToolbar({
             <IconButton
               size="small"
               onClick={onReset}
-              sx={{ border: "1px solid rgba(15,23,42,0.1)", borderRadius: "8px" }}
+              sx={{ border: "1px solid", borderColor: "divider", borderRadius: "8px" }}
             >
               <RestartAlt sx={{ fontSize: 16, color: "text.secondary" }} />
             </IconButton>
@@ -226,7 +231,7 @@ export default function SearchToolbar({
                 onClick={() => onViewModeChange("list")}
                 sx={{
                   borderRadius: "8px",
-                  bgcolor: viewMode === "list" ? "rgba(37,99,235,0.1)" : "transparent",
+                  bgcolor: viewMode === "list" ? alpha(theme.palette.primary.main, 0.1) : "transparent",
                   color: viewMode === "list" ? "primary.main" : "text.secondary",
                 }}
               >
@@ -239,7 +244,7 @@ export default function SearchToolbar({
                 onClick={() => onViewModeChange("grid")}
                 sx={{
                   borderRadius: "8px",
-                  bgcolor: viewMode === "grid" ? "rgba(37,99,235,0.1)" : "transparent",
+                  bgcolor: viewMode === "grid" ? alpha(theme.palette.primary.main, 0.1) : "transparent",
                   color: viewMode === "grid" ? "primary.main" : "text.secondary",
                 }}
               >
@@ -257,7 +262,7 @@ export default function SearchToolbar({
             gap={1}
             mt={1.25}
             pt={1.25}
-            sx={{ borderTop: "1px dashed rgba(15,23,42,0.1)" }}
+            sx={{ borderTop: "1px dashed", borderColor: "divider" }}
           >
             <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: "text.secondary" }}>
               DEPARTMENT
