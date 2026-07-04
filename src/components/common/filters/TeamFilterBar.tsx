@@ -9,6 +9,7 @@ import {
   Tooltip,
   IconButton,
   Divider,
+  useTheme,
 } from "@mui/material";
 import { useState } from "react";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
@@ -46,6 +47,8 @@ const TeamFilterBar = ({
 }: Props) => {
   const [status, setStatus] = useState<"active" | "inactive">("active");
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
 
   const canSeeFilters = role !== "basic_user";
 
@@ -53,19 +56,23 @@ const TeamFilterBar = ({
     <Box
       sx={{
         display: "flex",
+        flexWrap: "wrap",
         alignItems: "center",
         justifyContent: "space-between",
+        gap: 1.5,
         px: 2,
         py: 1.5,
         borderRadius: 3,
-        bgcolor: "rgba(255,255,255,0.75)",
+        bgcolor: isDark ? "rgba(255,255,255,0.04)" : "rgba(255,255,255,0.75)",
         backdropFilter: "blur(12px)",
-        border: "1px solid rgba(0,0,0,0.06)",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: isDark
+          ? "0 10px 30px rgba(0,0,0,0.35)"
+          : "0 10px 30px rgba(0,0,0,0.08)",
       }}
     >
       {/* LEFT SECTION */}
-      <Stack direction="row" spacing={2} alignItems="center">
+      <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap" useFlexGap>
         <Stack direction="row" spacing={1} alignItems="center">
           <FilterAltOutlinedIcon fontSize="small" />
           <Typography fontWeight={600}>Filters</Typography>
@@ -73,7 +80,6 @@ const TeamFilterBar = ({
 
         {canSeeFilters && (
           <>
-          <h1>{role||"Sujit thorat"}</h1>
             <CustomSelect
               label="Function"
               value={selectedFunction}
@@ -102,7 +108,7 @@ const TeamFilterBar = ({
           sx={{
             p: 0.5,
             borderRadius: 2,
-            bgcolor: "rgba(0,0,0,0.04)",
+            bgcolor: isDark ? "rgba(255,255,255,0.06)" : "rgba(0,0,0,0.04)",
           }}
         >
           <Chip
@@ -133,7 +139,7 @@ const TeamFilterBar = ({
       </Stack>
 
       {/* RIGHT SECTION */}
-      <Stack direction="row" spacing={1} alignItems="center">
+      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
         <Button
           variant="contained"
           startIcon={<AddIcon />}

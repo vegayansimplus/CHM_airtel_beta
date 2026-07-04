@@ -40,6 +40,7 @@ const App: React.FC = () => {
                   dynamicHeaderIcon={dynamicHeaderIcon}
                   setLoading={setLoading}
                   loading={loading}
+                  isSidebarCollapsed={isSidebarCollapsed}
                 />
                 <SideBar
                   isCollapsed={isSidebarCollapsed}

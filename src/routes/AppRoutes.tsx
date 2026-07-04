@@ -26,7 +26,6 @@ import { CrqDetailedView } from "../features/scheduler/components/plan-and-inven
 // import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
 // import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
-import UserManagement from "../features/userManagement/components/UserManagement";
 // import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
 // import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 // import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
@@ -57,6 +56,7 @@ import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
 import { useCabRole } from "../features/cabManager/hooks/useCabRole";
 import { CabDashboardPage, AllCrqsPage, MyCrqsPage, CabPlanningPage, CabSessionsPage, ImplementationPage, AdminPage } from "../features/cabManager";
 import { CrqJourneyPage } from "../features/crqJourney";
+import UserManagement from "../features/userManagement/components/UserManagement";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;

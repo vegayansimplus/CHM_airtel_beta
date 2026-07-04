@@ -25,7 +25,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   value = "",   //  default to empty string if null/undefined
   onChange,
   width = "170px",
-  backgroundColor = "white",
+  backgroundColor,
   size = "small",
   disabled = false,
 }) => {
@@ -33,7 +33,7 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
   const validValue = Array.isArray(options) && options.includes(value ?? "") ? value ?? "" : "";
 
   return (
-    <FormControl size={size} sx={{ p: 0, width }}>
+    <FormControl size={size} sx={{ p: 0, width, maxWidth: "100%" }}>
       <InputLabel id={`${label}-label`}>{label}</InputLabel>
       <Select
         labelId={`${label}-label`}
@@ -41,7 +41,9 @@ const CustomSelect: React.FC<CustomSelectProps> = ({
         label={label}
         value={validValue}
         onChange={onChange}
-        sx={{ bgcolor: backgroundColor }}
+        // No forced background — let the theme's MuiOutlinedInput styling
+        // (light/dark aware) show through unless a caller opts in explicitly.
+        sx={backgroundColor ? { bgcolor: backgroundColor } : undefined}
         disabled={disabled}
       >
         {options.length > 0 ? (

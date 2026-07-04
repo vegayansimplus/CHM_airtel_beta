@@ -15,6 +15,7 @@ import {
   Paper,
   Popper,
   Fade,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { NavLink, useLocation } from "react-router";
@@ -201,13 +202,18 @@ const FlyoutMenu: React.FC<FlyoutMenuProps> = ({
 
 // ─── Main SideBar ─────────────────────────────────────────────────────────────
 const SideBar: React.FC<SideBarProps> = ({
-  isCollapsed = false,
+  isCollapsed: isCollapsedProp = false,
   onCollapseToggle,
 }) => {
   const location = useLocation();
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const user = useAppSelector((s) => s.auth.user);
+
+  // Below "sm" the drawer always renders as the narrow icon-only rail —
+  // a 240px expanded drawer would swallow most of a phone viewport.
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isCollapsed = isMobile || isCollapsedProp;
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [flyoutAnchor, setFlyoutAnchor] = useState<HTMLElement | null>(null);
@@ -321,6 +327,7 @@ const SideBar: React.FC<SideBarProps> = ({
           <IconButton
             onClick={onCollapseToggle}
             sx={{
+              display: { xs: "none", sm: "inline-flex" },
               color: "#fff",
               bgcolor: "rgba(255,255,255,0.08)",
               "&:hover": {

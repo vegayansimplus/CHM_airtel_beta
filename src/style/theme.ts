@@ -4,6 +4,7 @@ import {
   createTheme,
   darken,
   lighten,
+  responsiveFontSizes,
   type Theme,
   type ThemeOptions,
 } from "@mui/material/styles";
@@ -42,7 +43,6 @@ export const tokens = (mode: "light" | "dark"): ColorTokens => ({
           700: "#0c101b",
           800: "#080b12",
           900: "#040509",
-          950: "#4d0024",
         },
         greenAccent: {
           100: "#dbf5ee",
@@ -100,7 +100,6 @@ export const tokens = (mode: "light" | "dark"): ColorTokens => ({
           700: "#727681",
           800: "#a1a4ab",
           900: "#d0d1d5",
-          950: "#590e31",
         },
         greenAccent: {
           100: "#0f2922",
@@ -244,8 +243,25 @@ export const themeSettings = (
       borderRadius: 8,
     },
 
+    // Explicit breakpoints (same values MUI defaults to) so every
+    // theme.breakpoints.down/up() call across the app is grounded here.
+    breakpoints: {
+      values: { xs: 0, sm: 600, md: 900, lg: 1200, xl: 1536 },
+    },
+
     typography: {
-      fontFamily: ["Inter", "Source Sans Pro", "sans-serif"].join(","),
+      // System-first stack: renders instantly using each OS's native UI
+      // font — no network font file and no local font package required.
+      fontFamily: [
+        "-apple-system",
+        "BlinkMacSystemFont",
+        '"Segoe UI"',
+        "Roboto",
+        '"Source Sans Pro"',
+        '"Helvetica Neue"',
+        "Arial",
+        "sans-serif",
+      ].join(","),
       fontSize: 14,
 
       h1: { fontSize: 34, fontWeight: 700, letterSpacing: "-0.02em" },
@@ -715,7 +731,7 @@ export const useMode = (): [
   );
 
   const theme = useMemo(
-    () => createTheme(themeSettings(mode, primaryColor)),
+    () => responsiveFontSizes(createTheme(themeSettings(mode, primaryColor))),
     [mode, primaryColor],
   );
 

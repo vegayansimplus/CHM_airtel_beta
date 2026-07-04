@@ -12,6 +12,7 @@ import {
   Tooltip,
   Fade,
   CircularProgress,
+  useTheme,
 } from "@mui/material";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
@@ -35,8 +36,6 @@ import {
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const ACCENT = "#6366f1";
 
 // Maps API `module` field → visual style
 const MODULE_STYLE: Record<
@@ -136,6 +135,10 @@ interface NotificationBellProps {
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function NotificationBell({ onViewAll }: NotificationBellProps) {
+  const theme = useTheme();
+  // Brand accent — was a hardcoded indigo; now follows the header's
+  // brand-color picker (theme.palette.primary.main) like the rest of the app.
+  const ACCENT = theme.palette.primary.main;
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<TabType>("All");
   const [localReadIds, setLocalReadIds] = useState<Record<number, boolean>>({});
@@ -375,6 +378,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
               top: "calc(100% + 14px)",
               right: -4,
               width: 360,
+              maxWidth: "calc(100vw - 32px)",
               background: "#fff",
               borderRadius: "18px",
               boxShadow:

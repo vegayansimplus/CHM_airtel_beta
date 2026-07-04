@@ -10,6 +10,7 @@ import {
   Switch,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 
@@ -47,6 +48,7 @@ interface HeaderProps {
   dynamicHeaderIcon?: JSX.Element;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   loading: boolean;
+  isSidebarCollapsed: boolean;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -54,6 +56,7 @@ const Header: React.FC<HeaderProps> = ({
   dynamicHeaderIcon,
   setLoading,
   loading,
+  isSidebarCollapsed,
 }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -61,6 +64,13 @@ const Header: React.FC<HeaderProps> = ({
   const colors = useTabColorTokens(theme);
   const { toggleColorMode, primaryColor, setPrimaryColor } = useContext(ColorModeContext);
   const isDark = theme.palette.mode === "dark";
+
+  // Below "sm" the sidebar always renders as an icon-only rail (see SideBar),
+  // so the header's reserved left space must follow the same rule —
+  // otherwise the two drift out of sync and content overlaps the rail.
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const sidebarCollapsed = isMobile || isSidebarCollapsed;
+  const headerOffset = sidebarCollapsed ? 86 : 256;
 
   const user = useAppSelector((s) => s.auth.user);
 
@@ -132,26 +142,40 @@ const Header: React.FC<HeaderProps> = ({
           width: "100%",
           zIndex: 1000,
           color: "#fff",
-          paddingLeft: "80px",
+          pl: { xs: `${headerOffset}px`, sm: `${headerOffset}px` },
+          pr: { xs: 1, sm: 2 },
           background: `linear-gradient(115deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
           boxShadow: isDark ? "0 2px 16px rgba(0,0,0,.45)" : "0 2px 16px rgba(13,27,42,.18)",
-          transition: "background 0.3s ease",
+          transition: "background 0.3s ease, padding-left 0.3s ease",
         }}
       >
         {/* Left — Airtel logo + current page context */}
-        <Box display="flex" alignItems="center" gap="14px">
-          <IconButton sx={{ p: 0 }}>
+        <Box display="flex" alignItems="center" gap={{ xs: "8px", sm: "14px" }} minWidth={0}>
+          <IconButton sx={{ p: 0, flexShrink: 0 }}>
             <img
               src={AirtelLog}
               alt="Airtel Logo"
-              style={{ width: "80px", height: "auto", objectFit: "contain" }}
+              style={{ width: "80px", maxWidth: "18vw", height: "auto", objectFit: "contain" }}
             />
           </IconButton>
 
           {dynamicHeaderText && (
             <>
-              <Box sx={{ width: "1px", height: 22, bgcolor: "rgba(255,255,255,0.25)" }} />
-              <Stack direction="row" alignItems="center" spacing={0.9}>
+              <Box
+                sx={{
+                  display: { xs: "none", sm: "block" },
+                  width: "1px",
+                  height: 22,
+                  bgcolor: "rgba(255,255,255,0.25)",
+                  flexShrink: 0,
+                }}
+              />
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={0.9}
+                sx={{ display: { xs: "none", sm: "flex" }, minWidth: 0 }}
+              >
                 {dynamicHeaderIcon && (
                   <Box
                     sx={{
@@ -162,13 +186,17 @@ const Header: React.FC<HeaderProps> = ({
                       height: 26,
                       borderRadius: "8px",
                       bgcolor: "rgba(255,255,255,0.16)",
+                      flexShrink: 0,
                       "& svg": { fontSize: 16 },
                     }}
                   >
                     {dynamicHeaderIcon}
                   </Box>
                 )}
-                <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: 14.5, letterSpacing: 0.2 }}>
+                <Typography
+                  noWrap
+                  sx={{ color: "#fff", fontWeight: 700, fontSize: 14.5, letterSpacing: 0.2 }}
+                >
                   {dynamicHeaderText}
                 </Typography>
               </Stack>
@@ -177,8 +205,8 @@ const Header: React.FC<HeaderProps> = ({
         </Box>
 
         {/* Right — Bell + user menu */}
-        <Box display="flex" alignItems="center" gap="8px">
-          <img src={VegayanLogo} alt="Logo" width={100} />
+        <Box display="flex" alignItems="center" gap="8px" flexShrink={0}>
+          <Box component="img" src={VegayanLogo} alt="Logo" width={100} sx={{ display: { xs: "none", md: "block" } }} />
 
           <NotificationBell onViewAll={() => navigate("/notifications")} />
 
@@ -199,7 +227,12 @@ const Header: React.FC<HeaderProps> = ({
             }}
           >
             <AccountCircleIcon sx={{ fontSize: 30, color: "#fff" }} />
-            <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>{olmId}</Typography>
+            <Typography
+              noWrap
+              sx={{ display: { xs: "none", sm: "block" }, color: "#fff", fontWeight: 600, fontSize: 13 }}
+            >
+              {olmId}
+            </Typography>
           </Box>
 
           <Menu
