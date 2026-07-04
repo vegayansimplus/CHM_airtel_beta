@@ -12,6 +12,7 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import { useNotifTokens } from "../../userMe/notification-manager/style/notificationTokens";
 import { useCabRole } from "../hooks/useCabRole";
 import { ROLE_SCREENS } from "../data/cabManager.mock";
+import CommonContainer from "../../../components/common/CommonContainer";
 
 interface CabManagerMainPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -206,6 +207,7 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
       {/* ================= CONTENT ================= */}
 
       <Box sx={{ p: 0, minHeight: "65vh" }}>
+        <CommonContainer>
         <Suspense
           fallback={
             <Box
@@ -222,7 +224,9 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
         >
           <Outlet />
         </Suspense>
+        </CommonContainer>
       </Box>
+      
     </Box>
   );
 };
