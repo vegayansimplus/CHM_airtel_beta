@@ -44,17 +44,14 @@ import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
-import ReusableTabLayout from "../components/common/ReusableTabLayout";
-
 
 // Cab Manager pages
 // import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
 // import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
 
 
-import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
-import { useCabRole } from "../features/cabManager/hooks/useCabRole";
 import { CabDashboardPage, AllCrqsPage, MyCrqsPage, CabPlanningPage, CabSessionsPage, ImplementationPage, AdminPage } from "../features/cabManager";
+import CabManagerMainPageTab from "../features/cabManager/pages/CabManagerMainPageTab";
 import { CrqJourneyPage } from "../features/crqJourney";
 import UserManagement from "../features/userManagement/components/UserManagement";
 
@@ -62,28 +59,6 @@ interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
   setNotificationCount?: (count: number) => void;
-}
-
-const CAB_MANAGER_TAB_MAP: Record<string, { label: string; path: string }> = {
-  dashboard: { label: "Dashboard", path: "dashboard" },
-  cabPlanning: { label: "Cab Planning", path: "planning" },
-  cabSessions: { label: "Cab Sessions", path: "sessions" },
-  mycrqs: { label: "My CRQs", path: "mycrqs" },
-  allcrqs: { label: "All CRQs", path: "allcrqs" },
-  journey: { label: "CRQ Journey", path: "journey" },
-  implementation: { label: "Implementation", path: "implementation" },
-  admin: { label: "Admin", path: "admin" },
-};
-
-function CabManagerTabShell() {
-  const { role } = useCabRole();
-
-  const allowedScreens = ROLE_SCREENS[role] ?? ROLE_SCREENS.cabMember;
-  const tabs = allowedScreens
-    .map((screen) => CAB_MANAGER_TAB_MAP[screen])
-    .filter((tab): tab is { label: string; path: string } => Boolean(tab));
-
-  return <ReusableTabLayout basePath="/cabmanager" tabs={tabs} />;
 }
 
 const AppRoutes: React.FC<AppRoutesProps> = ({
@@ -180,7 +155,16 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         {/* {cabPortalRoutes} */}
         <Route
           path="cabmanager"
-          element={<PrivateRoute element={<CabManagerTabShell />} />}
+          element={
+            <PrivateRoute
+              element={
+                <CabManagerMainPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
         >
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<CabDashboardPage />} />
