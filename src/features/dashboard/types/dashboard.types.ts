@@ -1,0 +1,67 @@
+export type TaskStatus = "Done" | "Urgent" | "Pending" | "Rostering";
+
+export interface Task {
+  id: number;
+  title: string;
+  dept: string;
+  time: string;
+  status: TaskStatus;
+}
+
+export type TaskFilter = "All" | "Pending" | "Done";
+
+/** Semantic colour tone — resolved against theme tokens at render time. */
+export type ToneKey = "accent" | "success" | "warning" | "danger" | "info";
+
+export interface Holiday {
+  month: string;
+  day: string;
+  name: string;
+  type: string;
+  countdown: string;
+  tone: ToneKey;
+}
+
+export interface LeaveTeamMember {
+  name: string;
+  role: string;
+  type: string;
+  tone: ToneKey;
+  avatarTone: ToneKey;
+  initials: string;
+  returnDate: string;
+}
+
+export interface ShiftInfo {
+  name: string;
+  start: string;
+  end: string;
+  dur: string;
+}
+
+export interface WeekDay {
+  day: string;
+  date: number;
+  shift: ShiftInfo | null;
+  isOff?: boolean;
+  isToday?: boolean;
+}
+
+export type WorkMode = "WFH" | "WFO";
+
+export interface WorkModeDay {
+  d: string;
+  t: WorkMode;
+  active?: boolean;
+}
+
+export type StatIconKey = "trending" | "clock" | "calendar" | "event";
+
+export interface StatCardConfig {
+  key: string;
+  label: string;
+  display: number | string;
+  sub: string;
+  tone: ToneKey;
+  icon: StatIconKey;
+}

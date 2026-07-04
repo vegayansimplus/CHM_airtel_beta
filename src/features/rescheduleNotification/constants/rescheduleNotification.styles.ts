@@ -1,36 +1,45 @@
-import type { ActionStatus } from "../types/rescheduleNotification.types";
-import type { TimeShiftDirection } from "../types/rescheduleNotification.types";
+import type { Colors } from "../types/colorTypes";
+import type { ActionStatus, TimeShiftDirection } from "../types/rescheduleNotification.types";
 
-export const ACCENT = "#6366f1";
-export const ACCENT_SOFT = "#8b5cf6";
+/** Card surface + border derived from the active theme (light/dark aware). */
+export const getSurfaceSx = (c: Colors) => ({
+  border: `1.5px solid ${c.border}`,
+  borderRadius: c.radiusL,
+  boxShadow: c.isDark ? "0 2px 14px rgba(0,0,0,.4)" : "0 2px 12px rgba(60,60,140,.06)",
+  background: c.surface,
+});
 
-export const CARD_BORDER = "1.5px solid #e8edf6";
-export const CARD_SHADOW = "0 2px 12px rgba(60,60,140,.06)";
-export const CARD_SHADOW_HOVER = "0 8px 28px rgba(60,60,140,.11)";
+export const getHoverShadow = (c: Colors) =>
+  c.isDark ? "0 8px 26px rgba(0,0,0,.5)" : "0 8px 28px rgba(60,60,140,.11)";
 
 interface StatusVisual {
   label: string;
   bg: string;
   color: string;
-  ring: string;
+  border: string;
 }
 
-export const ACTION_STATUS_STYLES: Record<ActionStatus, StatusVisual> = {
-  PENDING: { label: "Pending", bg: "#fff7ed", color: "#ea580c", ring: "#fed7aa" },
-  APPROVED: { label: "Approved", bg: "#ecfdf5", color: "#059669", ring: "#a7f3d0" },
-  REJECTED: { label: "Rejected", bg: "#fef2f2", color: "#dc2626", ring: "#fecaca" },
-};
+/** Action-status → colour mapping, sourced from theme warning/success/danger tokens. */
+export const getActionStatusStyles = (c: Colors): Record<ActionStatus, StatusVisual> => ({
+  PENDING: { label: "Pending", bg: c.warningDim, color: c.warning, border: c.warningBorder },
+  APPROVED: { label: "Approved", bg: c.successDim, color: c.success, border: c.successBorder },
+  REJECTED: { label: "Rejected", bg: c.dangerDim, color: c.danger, border: c.dangerBorder },
+});
 
-export const DIRECTION_STYLES: Record<TimeShiftDirection, { color: string; bg: string }> = {
-  LATER: { color: "#ea580c", bg: "#fff7ed" },
-  EARLIER: { color: "#059669", bg: "#ecfdf5" },
-  SAME: { color: "#64748b", bg: "#f8fafc" },
-};
+/** Time-shift direction → colour mapping (later = warning, earlier = success, same = neutral). */
+export const getDirectionStyles = (
+  c: Colors,
+): Record<TimeShiftDirection, { color: string; bg: string }> => ({
+  LATER: { color: c.warning, bg: c.warningDim },
+  EARLIER: { color: c.success, bg: c.successDim },
+  SAME: { color: c.textSecondary, bg: c.surface2 },
+});
 
-export const SUMMARY_TILE_ACCENTS: Record<string, { color: string; light: string }> = {
-  total: { color: ACCENT, light: "#eef2ff" },
-  unread: { color: "#0ea5e9", light: "#f0f9ff" },
-  pending: { color: "#ea580c", light: "#fff7ed" },
-  approved: { color: "#059669", light: "#ecfdf5" },
-  rejected: { color: "#dc2626", light: "#fef2f2" },
-};
+/** Summary-tile accent per metric, all derived from theme tokens. */
+export const getSummaryTileAccents = (c: Colors): Record<string, { color: string; light: string }> => ({
+  total: { color: c.accent, light: c.accentDim },
+  unread: { color: c.info, light: c.infoDim },
+  pending: { color: c.warning, light: c.warningDim },
+  approved: { color: c.success, light: c.successDim },
+  rejected: { color: c.danger, light: c.dangerDim },
+});

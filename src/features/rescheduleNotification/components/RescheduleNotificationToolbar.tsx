@@ -18,7 +18,7 @@ import type {
   ReadStatusFilter,
   SortOption,
 } from "../types/rescheduleNotification.types";
-import { ACCENT } from "../constants/rescheduleNotification.styles";
+import type { Colors } from "../types/colorTypes";
 
 interface RescheduleNotificationToolbarProps {
   search: string;
@@ -30,19 +30,8 @@ interface RescheduleNotificationToolbarProps {
   sort: SortOption;
   onSortChange: (value: SortOption) => void;
   onReset: () => void;
+  colors: Colors;
 }
-
-const fieldSx = {
-  "& .MuiOutlinedInput-root": {
-    borderRadius: "10px",
-    background: "#fbfbff",
-    fontSize: 12.5,
-    "& fieldset": { borderColor: "#e8edf6" },
-    "&:hover fieldset": { borderColor: "#c7d2fe" },
-    "&.Mui-focused fieldset": { borderColor: ACCENT },
-  },
-  "& .MuiInputLabel-root": { fontSize: 12.5 },
-};
 
 export function RescheduleNotificationToolbar({
   search,
@@ -54,11 +43,24 @@ export function RescheduleNotificationToolbar({
   sort,
   onSortChange,
   onReset,
+  colors,
 }: RescheduleNotificationToolbarProps) {
+  const fieldSx = {
+    "& .MuiOutlinedInput-root": {
+      borderRadius: "10px",
+      background: colors.surface2,
+      fontSize: 12,
+      "& fieldset": { borderColor: colors.border },
+      "&:hover fieldset": { borderColor: colors.accentBorder },
+      "&.Mui-focused fieldset": { borderColor: colors.accent },
+    },
+    "& .MuiInputLabel-root": { fontSize: 12, color: colors.textSecondary },
+  };
+
   return (
     <Stack
       direction={{ xs: "column", md: "row" }}
-      spacing={1.25}
+      spacing={1}
       alignItems={{ xs: "stretch", md: "center" }}
       sx={{ flexWrap: "wrap" }}
     >
@@ -71,12 +73,12 @@ export function RescheduleNotificationToolbar({
           input: {
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" sx={{ color: "#94a3b8" }} />
+                <SearchIcon fontSize="small" sx={{ color: colors.textDim }} />
               </InputAdornment>
             ),
           },
         }}
-        sx={{ minWidth: { xs: "100%", md: 220 }, flex: { md: 1 }, ...fieldSx }}
+        sx={{ minWidth: { xs: "100%", md: 200 }, flex: { md: 1 }, ...fieldSx }}
         inputProps={{ "aria-label": "Search by CRQ number" }}
       />
 
@@ -86,10 +88,10 @@ export function RescheduleNotificationToolbar({
         label="Read Status"
         value={readFilter}
         onChange={(e) => onReadFilterChange(e.target.value as ReadStatusFilter)}
-        sx={{ minWidth: { xs: "100%", md: 140 }, ...fieldSx }}
+        sx={{ minWidth: { xs: "100%", md: 128 }, ...fieldSx }}
       >
         {READ_FILTER_OPTIONS.map((opt) => (
-          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12.5 }}>
+          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12 }}>
             {opt.label}
           </MenuItem>
         ))}
@@ -101,10 +103,10 @@ export function RescheduleNotificationToolbar({
         label="Action Status"
         value={actionFilter}
         onChange={(e) => onActionFilterChange(e.target.value as ActionStatusFilter)}
-        sx={{ minWidth: { xs: "100%", md: 150 }, ...fieldSx }}
+        sx={{ minWidth: { xs: "100%", md: 138 }, ...fieldSx }}
       >
         {ACTION_FILTER_OPTIONS.map((opt) => (
-          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12.5 }}>
+          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12 }}>
             {opt.label}
           </MenuItem>
         ))}
@@ -116,10 +118,10 @@ export function RescheduleNotificationToolbar({
         label="Sort By"
         value={sort}
         onChange={(e) => onSortChange(e.target.value as SortOption)}
-        sx={{ minWidth: { xs: "100%", md: 200 }, ...fieldSx }}
+        sx={{ minWidth: { xs: "100%", md: 180 }, ...fieldSx }}
       >
         {SORT_OPTIONS.map((opt) => (
-          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12.5 }}>
+          <MenuItem key={opt.value} value={opt.value} sx={{ fontSize: 12 }}>
             {opt.label}
           </MenuItem>
         ))}
@@ -136,8 +138,8 @@ export function RescheduleNotificationToolbar({
             fontWeight: 700,
             borderRadius: "10px",
             textTransform: "none",
-            color: ACCENT,
-            "&:hover": { background: "#eef2ff" },
+            color: colors.accent,
+            "&:hover": { background: colors.accentDim },
           }}
         >
           Reset

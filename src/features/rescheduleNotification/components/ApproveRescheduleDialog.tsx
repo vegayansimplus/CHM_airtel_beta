@@ -8,8 +8,10 @@ import {
   Typography,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import { useTheme } from "@mui/material/styles";
 import type { RescheduleNotification } from "../types/rescheduleNotification.types";
 import { formatExecutionTime } from "../utils/rescheduleNotification.utils";
+import { useTabColorTokens } from "../../../style/theme";
 
 interface ApproveRescheduleDialogProps {
   notification: RescheduleNotification | null;
@@ -22,13 +24,15 @@ export function ApproveRescheduleDialog({
   onClose,
   onConfirm,
 }: ApproveRescheduleDialogProps) {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
   return (
     <Dialog
       open={!!notification}
       onClose={onClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{ paper: { sx: { borderRadius: "16px" } } }}
+      slotProps={{ paper: { sx: { borderRadius: colors.radiusL, background: colors.surface } } }}
     >
       <DialogTitle id="approve-reschedule-title">
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

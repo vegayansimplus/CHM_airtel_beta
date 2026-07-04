@@ -10,7 +10,9 @@ import {
   Typography,
 } from "@mui/material";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import { useTheme } from "@mui/material/styles";
 import type { RescheduleNotification } from "../types/rescheduleNotification.types";
+import { useTabColorTokens } from "../../../style/theme";
 
 interface RejectRescheduleDialogProps {
   notification: RescheduleNotification | null;
@@ -23,6 +25,8 @@ export function RejectRescheduleDialog({
   onClose,
   onConfirm,
 }: RejectRescheduleDialogProps) {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
   const [reason, setReason] = useState("");
   const [touched, setTouched] = useState(false);
 
@@ -49,7 +53,7 @@ export function RejectRescheduleDialog({
       onClose={handleClose}
       maxWidth="xs"
       fullWidth
-      slotProps={{ paper: { sx: { borderRadius: "16px" } } }}
+      slotProps={{ paper: { sx: { borderRadius: colors.radiusL, background: colors.surface } } }}
     >
       <DialogTitle>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>

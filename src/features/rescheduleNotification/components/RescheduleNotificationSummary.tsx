@@ -10,7 +10,8 @@ import type {
   ReadStatusFilter,
   RescheduleSummaryCounts,
 } from "../types/rescheduleNotification.types";
-import { CARD_BORDER, SUMMARY_TILE_ACCENTS } from "../constants/rescheduleNotification.styles";
+import type { Colors } from "../types/colorTypes";
+import { getSummaryTileAccents } from "../constants/rescheduleNotification.styles";
 
 interface SummaryTileConfig {
   key: string;
@@ -25,6 +26,7 @@ interface RescheduleNotificationSummaryProps {
   counts: RescheduleSummaryCounts;
   readFilter: ReadStatusFilter;
   actionFilter: ActionStatusFilter;
+  colors: Colors;
   onSelectAll: () => void;
   onSelectUnread: () => void;
   onSelectPending: () => void;
@@ -36,6 +38,7 @@ export function RescheduleNotificationSummary({
   counts,
   readFilter,
   actionFilter,
+  colors,
   onSelectAll,
   onSelectUnread,
   onSelectPending,
@@ -43,6 +46,7 @@ export function RescheduleNotificationSummary({
   onSelectRejected,
 }: RescheduleNotificationSummaryProps) {
   const isAllActive = readFilter === "ALL" && actionFilter === "ALL";
+  const accents = getSummaryTileAccents(colors);
 
   const tiles: SummaryTileConfig[] = [
     {
@@ -51,7 +55,7 @@ export function RescheduleNotificationSummary({
       value: counts.total,
       isActive: isAllActive,
       onClick: onSelectAll,
-      icon: <InboxIcon sx={{ fontSize: 15 }} />,
+      icon: <InboxIcon sx={{ fontSize: 14 }} />,
     },
     {
       key: "unread",
@@ -59,7 +63,7 @@ export function RescheduleNotificationSummary({
       value: counts.unread,
       isActive: readFilter === "UNREAD",
       onClick: onSelectUnread,
-      icon: <MarkEmailUnreadIcon sx={{ fontSize: 15 }} />,
+      icon: <MarkEmailUnreadIcon sx={{ fontSize: 14 }} />,
     },
     {
       key: "pending",
@@ -67,7 +71,7 @@ export function RescheduleNotificationSummary({
       value: counts.pending,
       isActive: actionFilter === "PENDING",
       onClick: onSelectPending,
-      icon: <HourglassTopIcon sx={{ fontSize: 15 }} />,
+      icon: <HourglassTopIcon sx={{ fontSize: 14 }} />,
     },
     {
       key: "approved",
@@ -75,7 +79,7 @@ export function RescheduleNotificationSummary({
       value: counts.approved,
       isActive: actionFilter === "APPROVED",
       onClick: onSelectApproved,
-      icon: <TaskAltIcon sx={{ fontSize: 15 }} />,
+      icon: <TaskAltIcon sx={{ fontSize: 14 }} />,
     },
     {
       key: "rejected",
@@ -83,7 +87,7 @@ export function RescheduleNotificationSummary({
       value: counts.rejected,
       isActive: actionFilter === "REJECTED",
       onClick: onSelectRejected,
-      icon: <HighlightOffIcon sx={{ fontSize: 15 }} />,
+      icon: <HighlightOffIcon sx={{ fontSize: 14 }} />,
     },
   ];
 
@@ -92,11 +96,11 @@ export function RescheduleNotificationSummary({
       sx={{
         display: "grid",
         gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(5, 1fr)" },
-        gap: "10px",
+        gap: "8px",
       }}
     >
       {tiles.map((tile) => {
-        const accent = SUMMARY_TILE_ACCENTS[tile.key];
+        const accent = accents[tile.key];
         return (
           <Box
             key={tile.key}
@@ -110,14 +114,13 @@ export function RescheduleNotificationSummary({
             sx={{
               position: "relative",
               cursor: "pointer",
-              borderRadius: "12px",
-              border: CARD_BORDER,
-              borderColor: tile.isActive ? accent.color : undefined,
-              background: tile.isActive ? accent.light : "#fff",
-              p: "11px 12px",
+              borderRadius: "10px",
+              border: `1.5px solid ${tile.isActive ? accent.color : colors.border}`,
+              background: tile.isActive ? accent.light : colors.surface,
+              p: "9px 10px",
               transition: "box-shadow .2s, border-color .2s, transform .2s",
               "&:hover": {
-                boxShadow: "0 8px 22px rgba(60,60,140,.10)",
+                boxShadow: colors.isDark ? "0 8px 20px rgba(0,0,0,.4)" : "0 8px 22px rgba(60,60,140,.10)",
                 borderColor: accent.color,
                 transform: "translateY(-2px)",
               },
@@ -126,24 +129,42 @@ export function RescheduleNotificationSummary({
           >
             <Box
               sx={{
-                width: 26,
-                height: 26,
-                borderRadius: "8px",
-                background: accent.light,
-                color: accent.color,
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                mb: "8px",
+                gap: "6px",
+                mb: "6px",
               }}
             >
-              {tile.icon}
+              <Box
+                sx={{
+                  width: 22,
+                  height: 22,
+                  borderRadius: "7px",
+                  background: accent.light,
+                  color: accent.color,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {tile.icon}
+              </Box>
+              <Typography
+                sx={{
+                  fontSize: 8.5,
+                  fontWeight: 700,
+                  color: colors.textSecondary,
+                  letterSpacing: ".3px",
+                  textTransform: "uppercase",
+                  lineHeight: 1.2,
+                }}
+              >
+                {tile.label}
+              </Typography>
             </Box>
-            <Typography sx={{ fontSize: 20, fontWeight: 900, color: "#1e1b4b", lineHeight: 1, letterSpacing: "-0.5px" }}>
+            <Typography sx={{ fontSize: 19, fontWeight: 900, color: colors.textPrimary, lineHeight: 1, letterSpacing: "-0.5px" }}>
               {tile.value}
-            </Typography>
-            <Typography sx={{ fontSize: 9, fontWeight: 700, color: "#94a3b8", mt: "4px", letterSpacing: ".3px", textTransform: "uppercase" }}>
-              {tile.label}
             </Typography>
           </Box>
         );

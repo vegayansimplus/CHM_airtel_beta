@@ -1,5 +1,6 @@
 import { Box, Stack, TablePagination, useMediaQuery, useTheme } from "@mui/material";
 import type { RescheduleNotification } from "../types/rescheduleNotification.types";
+import type { Colors } from "../types/colorTypes";
 import { RescheduleNotificationTable } from "./RescheduleNotificationTable";
 import { RescheduleNotificationCard } from "./RescheduleNotificationCard";
 import { RescheduleNotificationEmptyState } from "./RescheduleNotificationEmptyState";
@@ -10,6 +11,7 @@ interface RescheduleNotificationListProps {
   totalCount: number;
   page: number;
   pageSize: number;
+  colors: Colors;
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
   hasActiveFilters: boolean;
@@ -24,6 +26,7 @@ export function RescheduleNotificationList({
   totalCount,
   page,
   pageSize,
+  colors,
   onPageChange,
   onPageSizeChange,
   hasActiveFilters,
@@ -40,18 +43,20 @@ export function RescheduleNotificationList({
       <RescheduleNotificationEmptyState
         hasActiveFilters={hasActiveFilters}
         onResetFilters={onResetFilters}
+        colors={colors}
       />
     );
   }
 
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1.25}>
       {isCompact ? (
-        <Stack spacing={1.25}>
+        <Stack spacing={1}>
           {notifications.map((notification) => (
             <RescheduleNotificationCard
               key={notification.id}
               notification={notification}
+              colors={colors}
               onMarkAsRead={onMarkAsRead}
               onApprove={onApprove}
               onReject={onReject}
@@ -59,9 +64,10 @@ export function RescheduleNotificationList({
           ))}
         </Stack>
       ) : (
-        <Box sx={{ overflowX: "auto", borderRadius: "12px", border: "1.5px solid #f1f5f9" }}>
+        <Box sx={{ overflowX: "auto", borderRadius: "12px", border: `1.5px solid ${colors.border}` }}>
           <RescheduleNotificationTable
             notifications={notifications}
+            colors={colors}
             onMarkAsRead={onMarkAsRead}
             onApprove={onApprove}
             onReject={onReject}
@@ -78,13 +84,15 @@ export function RescheduleNotificationList({
         onRowsPerPageChange={(e) => onPageSizeChange(Number(e.target.value))}
         rowsPerPageOptions={PAGE_SIZE_OPTIONS}
         sx={{
-          borderTop: "1px solid #f1f5f9",
-          "& .MuiTablePagination-toolbar": { minHeight: 44, px: 0 },
+          borderTop: `1px solid ${colors.border}`,
+          color: colors.textPrimary,
+          "& .MuiTablePagination-toolbar": { minHeight: 42, px: 0 },
           "& .MuiTablePagination-selectLabel, & .MuiTablePagination-displayedRows": {
-            fontSize: 11.5,
-            color: "#94a3b8",
+            fontSize: 11,
+            color: colors.textSecondary,
             fontWeight: 600,
           },
+          "& .MuiSvgIcon-root": { color: colors.textSecondary },
         }}
       />
     </Stack>

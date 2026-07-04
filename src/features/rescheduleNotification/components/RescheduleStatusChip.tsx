@@ -1,9 +1,10 @@
 import { Box, Chip } from "@mui/material";
 import type { ActionStatus, ReadStatus } from "../types/rescheduleNotification.types";
-import { ACCENT, ACTION_STATUS_STYLES } from "../constants/rescheduleNotification.styles";
+import type { Colors } from "../types/colorTypes";
+import { getActionStatusStyles } from "../constants/rescheduleNotification.styles";
 
-export function ActionStatusChip({ status }: { status: ActionStatus }) {
-  const s = ACTION_STATUS_STYLES[status];
+export function ActionStatusChip({ status, colors }: { status: ActionStatus; colors: Colors }) {
+  const s = getActionStatusStyles(colors)[status];
   return (
     <Chip
       size="small"
@@ -11,18 +12,18 @@ export function ActionStatusChip({ status }: { status: ActionStatus }) {
       sx={{
         background: s.bg,
         color: s.color,
-        fontSize: 11,
+        fontSize: 10.5,
         fontWeight: 800,
         borderRadius: "6px",
-        border: `1.5px solid ${s.ring}`,
+        border: `1.5px solid ${s.border}`,
         height: "auto",
-        "& .MuiChip-label": { px: "9px", py: "3px" },
+        "& .MuiChip-label": { px: "8px", py: "2.5px" },
       }}
     />
   );
 }
 
-export function ReadStatusIndicator({ status }: { status: ReadStatus }) {
+export function ReadStatusIndicator({ status, colors }: { status: ReadStatus; colors: Colors }) {
   if (status === "READ") return null;
   return (
     <Box
@@ -31,11 +32,11 @@ export function ReadStatusIndicator({ status }: { status: ReadStatus }) {
       title="Unread"
       sx={{
         display: "inline-block",
-        width: 8,
-        height: 8,
+        width: 7,
+        height: 7,
         borderRadius: "50%",
-        bgcolor: ACCENT,
-        boxShadow: `0 0 0 3px ${ACCENT}25`,
+        bgcolor: colors.accent,
+        boxShadow: `0 0 0 3px ${colors.accentDim}`,
         flexShrink: 0,
       }}
     />

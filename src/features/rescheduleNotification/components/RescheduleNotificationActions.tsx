@@ -3,10 +3,11 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import type { RescheduleNotification } from "../types/rescheduleNotification.types";
-import { ACCENT } from "../constants/rescheduleNotification.styles";
+import type { Colors } from "../types/colorTypes";
 
 interface RescheduleNotificationActionsProps {
   notification: RescheduleNotification;
+  colors: Colors;
   onMarkAsRead: (id: string) => void;
   onApprove: (id: string) => void;
   onReject: (id: string) => void;
@@ -15,16 +16,17 @@ interface RescheduleNotificationActionsProps {
 const pillButtonSx = {
   minWidth: 0,
   whiteSpace: "nowrap" as const,
-  fontSize: 11,
+  fontSize: 10.5,
   fontWeight: 700,
   borderRadius: "8px",
   textTransform: "none" as const,
-  px: "10px",
+  px: "9px",
   py: "3px",
 };
 
 export function RescheduleNotificationActions({
   notification,
+  colors,
   onMarkAsRead,
   onApprove,
   onReject,
@@ -33,14 +35,14 @@ export function RescheduleNotificationActions({
 
   if (isDecided) {
     return (
-      <Typography sx={{ fontSize: 11, color: "#cbd5e1", fontWeight: 600 }}>
+      <Typography sx={{ fontSize: 11, color: colors.textDim, fontWeight: 600 }}>
         No further action
       </Typography>
     );
   }
 
   return (
-    <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="flex-end">
+    <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="flex-end" flexWrap="wrap">
       {notification.readStatus === "UNREAD" && (
         <Tooltip title="Mark as read" arrow>
           <Button
@@ -49,7 +51,7 @@ export function RescheduleNotificationActions({
             startIcon={<VisibilityIcon sx={{ fontSize: 14 }} />}
             onClick={() => onMarkAsRead(notification.id)}
             aria-label={`Mark ${notification.crqNo} as read`}
-            sx={{ ...pillButtonSx, color: ACCENT, "&:hover": { background: "#eef2ff" } }}
+            sx={{ ...pillButtonSx, color: colors.accent, "&:hover": { background: colors.accentDim } }}
           >
             Read
           </Button>
@@ -63,10 +65,10 @@ export function RescheduleNotificationActions({
           aria-label={`Approve reschedule for ${notification.crqNo}`}
           sx={{
             ...pillButtonSx,
-            color: "#059669",
-            border: "1.5px solid #a7f3d0",
-            background: "#ecfdf5",
-            "&:hover": { background: "#d1fae5", borderColor: "#6ee7b7" },
+            color: colors.success,
+            border: `1.5px solid ${colors.successBorder}`,
+            background: colors.successDim,
+            "&:hover": { background: colors.successBorder },
           }}
         >
           Approve
@@ -80,10 +82,10 @@ export function RescheduleNotificationActions({
           aria-label={`Reject reschedule for ${notification.crqNo}`}
           sx={{
             ...pillButtonSx,
-            color: "#dc2626",
-            border: "1.5px solid #fecaca",
-            background: "#fef2f2",
-            "&:hover": { background: "#fee2e2", borderColor: "#fca5a5" },
+            color: colors.danger,
+            border: `1.5px solid ${colors.dangerBorder}`,
+            background: colors.dangerDim,
+            "&:hover": { background: colors.dangerBorder },
           }}
         >
           Reject

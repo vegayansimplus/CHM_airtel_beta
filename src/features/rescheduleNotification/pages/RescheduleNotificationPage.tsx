@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { Box, Chip, Stack, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
 import EventRepeatIcon from "@mui/icons-material/EventRepeat";
 import { toast } from "react-toastify";
+import { useTabColorTokens } from "../../../style/theme";
 import { useRescheduleNotifications } from "../hooks/useRescheduleNotifications";
 import { RescheduleNotificationSummary } from "../components/RescheduleNotificationSummary";
 import { RescheduleNotificationToolbar } from "../components/RescheduleNotificationToolbar";
@@ -9,9 +11,12 @@ import { RescheduleNotificationList } from "../components/RescheduleNotification
 import { ApproveRescheduleDialog } from "../components/ApproveRescheduleDialog";
 import { RejectRescheduleDialog } from "../components/RejectRescheduleDialog";
 import type { RescheduleNotification } from "../types/rescheduleNotification.types";
-import { ACCENT, CARD_BORDER, CARD_SHADOW } from "../constants/rescheduleNotification.styles";
+import { getSurfaceSx } from "../constants/rescheduleNotification.styles";
 
 export function RescheduleNotificationPage() {
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
+
   const {
     notifications,
     totalCount,
@@ -58,14 +63,11 @@ export function RescheduleNotificationPage() {
   return (
     <Box
       sx={{
-        p: { xs: "14px", md: "16px" },
-        border: CARD_BORDER,
-        borderRadius: "16px",
-        boxShadow: CARD_SHADOW,
-        background: "#fff",
+        p: { xs: "12px", md: "15px" },
+        ...getSurfaceSx(colors),
         display: "flex",
         flexDirection: "column",
-        gap: "14px",
+        gap: "12px",
         minWidth: 0,
       }}
     >
@@ -73,24 +75,24 @@ export function RescheduleNotificationPage() {
         <Stack direction="row" spacing={"12px"} alignItems="center">
           <Box
             sx={{
-              width: 34,
-              height: 34,
+              width: 32,
+              height: 32,
               borderRadius: "10px",
-              background: `linear-gradient(135deg,${ACCENT},#8b5cf6)`,
+              background: `linear-gradient(135deg,${colors.accent},${colors.accentLight})`,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 4px 12px rgba(99,102,241,.35)",
+              boxShadow: `0 4px 12px ${colors.accentBorder}`,
               flexShrink: 0,
             }}
           >
-            <EventRepeatIcon sx={{ fontSize: 18, color: "#fff" }} />
+            <EventRepeatIcon sx={{ fontSize: 17, color: "#fff" }} />
           </Box>
           <Box>
-            <Typography sx={{ fontSize: 14, fontWeight: 800, color: "#1e1b4b" }}>
+            <Typography sx={{ fontSize: 13.5, fontWeight: 800, color: colors.textPrimary }}>
               Reschedule Notifications
             </Typography>
-            <Typography sx={{ fontSize: 10.5, color: "#94a3b8", mt: "1px", fontWeight: 500 }}>
+            <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px", fontWeight: 500 }}>
               Review and act on CRQ execution reschedule requests
             </Typography>
           </Box>
@@ -102,9 +104,9 @@ export function RescheduleNotificationPage() {
             sx={{
               fontSize: 10,
               fontWeight: 800,
-              color: "#ea580c",
-              background: "#fff7ed",
-              border: "1.5px solid #fed7aa",
+              color: colors.warning,
+              background: colors.warningDim,
+              border: `1.5px solid ${colors.warningBorder}`,
               borderRadius: "20px",
               height: "auto",
               "& .MuiChip-label": { px: "9px", py: "3px" },
@@ -117,6 +119,7 @@ export function RescheduleNotificationPage() {
         counts={summaryCounts}
         readFilter={readFilter}
         actionFilter={actionFilter}
+        colors={colors}
         onSelectAll={filterAll}
         onSelectUnread={filterByUnread}
         onSelectPending={() => filterByAction("PENDING")}
@@ -134,6 +137,7 @@ export function RescheduleNotificationPage() {
         sort={sort}
         onSortChange={setSort}
         onReset={resetFilters}
+        colors={colors}
       />
 
       <RescheduleNotificationList
@@ -141,6 +145,7 @@ export function RescheduleNotificationPage() {
         totalCount={totalCount}
         page={page}
         pageSize={pageSize}
+        colors={colors}
         onPageChange={setPage}
         onPageSizeChange={setPageSize}
         hasActiveFilters={hasActiveFilters}
