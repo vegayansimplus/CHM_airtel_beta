@@ -1,16 +1,16 @@
-import React, { useState, useContext, type JSX } from "react";
+import React, { useContext, useState, type JSX } from "react";
 import {
   Box,
+  CircularProgress,
+  Divider,
   IconButton,
-  Typography,
-  useTheme,
   Menu,
   MenuItem,
-  Divider,
-  CircularProgress,
-  Switch,
   Stack,
+  Switch,
   Tooltip,
+  Typography,
+  useTheme,
 } from "@mui/material";
 
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
@@ -20,12 +20,15 @@ import LockResetIcon from "@mui/icons-material/LockReset";
 import DarkModeIcon from "@mui/icons-material/DarkMode";
 import LightModeIcon from "@mui/icons-material/LightMode";
 import BadgeIcon from "@mui/icons-material/Badge";
+import CheckIcon from "@mui/icons-material/Check";
+import PaletteIcon from "@mui/icons-material/Palette";
 
-import { tokens, ColorModeContext } from "../../style/theme";
-import { useBgColor } from "../../context/BgColorContext";
+import {
+  BRAND_COLOR_OPTIONS,
+  ColorModeContext,
+  useTabColorTokens,
+} from "../../style/theme";
 import { useNavigate } from "react-router";
-// import VegayanLogo from "../../assets/images/logo_vega.png";
-// vegayan_logo.png
 import VegayanLogo from "../../assets/images/vegayan_logo.png";
 import AirtelLog from "../../assets/images/airtel3.png";
 import { toast } from "react-toastify";
@@ -38,15 +41,6 @@ import ChangePasswordDialog from "../common/ChangePasswordDialog";
 import NotificationBell from "../common/NotificationBell";
 // If you want to pass real notifications from an API, import your notification
 // type too: import NotificationBell, { type Notification } from "../common/NotificationBell";
-
-const THEME_COLORS = [
-  "#6C5CE7",
-  "#0984E3",
-  "#00B894",
-  "#F39C12",
-  "#141b2e",
-  "#b81d4c",
-];
 
 interface HeaderProps {
   dynamicHeaderText: string;
@@ -64,9 +58,9 @@ const Header: React.FC<HeaderProps> = ({
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
-  const { bgColor, setBgColor } = useBgColor();
-  const colorMode = useContext(ColorModeContext);
+  const colors = useTabColorTokens(theme);
+  const { toggleColorMode, primaryColor, setPrimaryColor } = useContext(ColorModeContext);
+  const isDark = theme.palette.mode === "dark";
 
   const user = useAppSelector((s) => s.auth.user);
 
@@ -137,13 +131,15 @@ const Header: React.FC<HeaderProps> = ({
           position: "fixed",
           width: "100%",
           zIndex: 1000,
-          color: "white",
+          color: "#fff",
           paddingLeft: "80px",
-          bgcolor: bgColor,
+          background: `linear-gradient(115deg, ${theme.palette.primary.dark} 0%, ${theme.palette.primary.main} 100%)`,
+          boxShadow: isDark ? "0 2px 16px rgba(0,0,0,.45)" : "0 2px 16px rgba(13,27,42,.18)",
+          transition: "background 0.3s ease",
         }}
       >
-        {/* Left — Airtel logo */}
-        <Box display="flex" alignItems="center">
+        {/* Left — Airtel logo + current page context */}
+        <Box display="flex" alignItems="center" gap="14px">
           <IconButton sx={{ p: 0 }}>
             <img
               src={AirtelLog}
@@ -151,6 +147,33 @@ const Header: React.FC<HeaderProps> = ({
               style={{ width: "80px", height: "auto", objectFit: "contain" }}
             />
           </IconButton>
+
+          {dynamicHeaderText && (
+            <>
+              <Box sx={{ width: "1px", height: 22, bgcolor: "rgba(255,255,255,0.25)" }} />
+              <Stack direction="row" alignItems="center" spacing={0.9}>
+                {dynamicHeaderIcon && (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      width: 26,
+                      height: 26,
+                      borderRadius: "8px",
+                      bgcolor: "rgba(255,255,255,0.16)",
+                      "& svg": { fontSize: 16 },
+                    }}
+                  >
+                    {dynamicHeaderIcon}
+                  </Box>
+                )}
+                <Typography sx={{ color: "#fff", fontWeight: 700, fontSize: 14.5, letterSpacing: 0.2 }}>
+                  {dynamicHeaderText}
+                </Typography>
+              </Stack>
+            </>
+          )}
         </Box>
 
         {/* Right — Bell + user menu */}
@@ -166,11 +189,17 @@ const Header: React.FC<HeaderProps> = ({
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
+              gap: "6px",
               ml: 0.5,
+              px: 1,
+              py: 0.4,
+              borderRadius: "20px",
+              transition: "background 0.18s",
+              "&:hover": { background: "rgba(255,255,255,0.14)" },
             }}
           >
-            <AccountCircleIcon sx={{ fontSize: 30, color: "white" }} />
-            <Typography>{olmId}</Typography>
+            <AccountCircleIcon sx={{ fontSize: 30, color: "#fff" }} />
+            <Typography sx={{ color: "#fff", fontWeight: 600, fontSize: 13 }}>{olmId}</Typography>
           </Box>
 
           <Menu
@@ -181,85 +210,113 @@ const Header: React.FC<HeaderProps> = ({
               paper: {
                 sx: {
                   mt: 1,
-                  width: 280,
-                  borderRadius: 3,
-                  bgcolor:
-                    theme.palette.mode === "dark" ? "#1e293b" : "#ffffff",
-                  color: theme.palette.mode === "dark" ? "#e5e7eb" : "#111827",
-                  boxShadow: "0 20px 40px rgba(0,0,0,0.35)",
+                  width: 288,
+                  borderRadius: "14px",
+                  bgcolor: colors.surface,
+                  color: colors.textPrimary,
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: isDark
+                    ? "0 20px 44px rgba(0,0,0,0.5)"
+                    : "0 20px 44px rgba(13,27,42,0.18)",
                   p: 1,
                 },
               },
             }}
           >
             <MenuItem>
-              <PersonIcon sx={{ mr: 1 }} />
+              <PersonIcon sx={{ mr: 1, color: colors.textSecondary }} />
               {user.employeeName}
             </MenuItem>
 
             <MenuItem onClick={() => setIsChangePasswordOpen(true)}>
-              <LockResetIcon sx={{ mr: 1 }} />
+              <LockResetIcon sx={{ mr: 1, color: colors.textSecondary }} />
               Change Password
             </MenuItem>
 
             <MenuItem>
-              <PersonIcon sx={{ mr: 1 }} /> {olmId}
+              <PersonIcon sx={{ mr: 1, color: colors.textSecondary }} /> {olmId}
             </MenuItem>
 
             <MenuItem>
-              <BadgeIcon sx={{ mr: 1 }} /> Role: {roleCode}
+              <BadgeIcon sx={{ mr: 1, color: colors.textSecondary }} /> Role: {roleCode}
             </MenuItem>
 
             <MenuItem onClick={handleLogout} disabled={loading}>
-              <LogoutIcon sx={{ mr: 1 }} />
+              <LogoutIcon sx={{ mr: 1, color: colors.danger }} />
               Logout
               {loading && <CircularProgress size={16} sx={{ ml: 2 }} />}
             </MenuItem>
 
             <Divider sx={{ my: 1 }} />
 
-            {/* Color palette */}
-            <Stack direction="row" spacing={1.2} justifyContent="center" py={1}>
-              {THEME_COLORS.map((color) => (
-                <Tooltip key={color} title="Theme color">
-                  <Box
-                    sx={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: 1,
-                      bgcolor: color,
-                      cursor: "pointer",
-                      border: "2px solid transparent",
-                      transition: "all 0.2s",
-                      "&:hover": {
-                        transform: "scale(1.1)",
-                        borderColor: "#fff",
-                      },
-                    }}
-                    onClick={() => setBgColor(color)}
-                  />
-                </Tooltip>
-              ))}
-            </Stack>
+            {/* ── Appearance controls ── */}
+            <Box sx={{ px: 1.5, pb: 1 }}>
+              <Stack direction="row" alignItems="center" spacing={0.75} sx={{ mb: 1 }}>
+                <PaletteIcon sx={{ fontSize: 14, color: colors.textSecondary }} />
+                <Typography sx={{ fontSize: 10.5, fontWeight: 700, letterSpacing: ".6px", textTransform: "uppercase", color: colors.textSecondary }}>
+                  Appearance
+                </Typography>
+              </Stack>
 
-            {/* Light / dark toggle */}
-            <Stack
-              direction="row"
-              alignItems="center"
-              justifyContent="center"
-              spacing={1}
-              pb={1}
-            >
-              <LightModeIcon fontSize="small" />
-              <Typography variant="body2">Light</Typography>
-              <Switch
-                checked={theme.palette.mode === "dark"}
-                onChange={colorMode.toggleColorMode}
-                size="small"
-              />
-              <Typography variant="body2">Dark</Typography>
-              <DarkModeIcon fontSize="small" />
-            </Stack>
+              {/* Brand colour swatches */}
+              <Stack direction="row" spacing={1.1} justifyContent="space-between" sx={{ mb: 1.25 }}>
+                {BRAND_COLOR_OPTIONS.map((option) => {
+                  const active = option.value.toLowerCase() === primaryColor.toLowerCase();
+                  return (
+                    <Tooltip key={option.value} title={option.label} arrow>
+                      <Box
+                        onClick={() => setPrimaryColor(option.value)}
+                        role="button"
+                        aria-label={`Use ${option.label} theme`}
+                        aria-pressed={active}
+                        sx={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: "8px",
+                          bgcolor: option.value,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          border: active ? `2px solid ${colors.textPrimary}` : "2px solid transparent",
+                          boxShadow: active ? `0 0 0 3px ${option.value}35` : "none",
+                          transition: "transform 0.15s, box-shadow 0.15s",
+                          "&:hover": { transform: "scale(1.12)" },
+                        }}
+                      >
+                        {active && <CheckIcon sx={{ fontSize: 15, color: "#fff" }} />}
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
+              </Stack>
+
+              {/* Light / dark toggle */}
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{
+                  px: 1.25,
+                  py: 0.75,
+                  borderRadius: "10px",
+                  background: colors.surface2,
+                  border: `1px solid ${colors.border}`,
+                }}
+              >
+                <Stack direction="row" alignItems="center" spacing={0.75}>
+                  {isDark ? (
+                    <DarkModeIcon fontSize="small" sx={{ color: colors.accent }} />
+                  ) : (
+                    <LightModeIcon fontSize="small" sx={{ color: colors.accent }} />
+                  )}
+                  <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: colors.textPrimary }}>
+                    {isDark ? "Dark mode" : "Light mode"}
+                  </Typography>
+                </Stack>
+                <Switch checked={isDark} onChange={toggleColorMode} size="small" />
+              </Stack>
+            </Box>
           </Menu>
         </Box>
       </Box>

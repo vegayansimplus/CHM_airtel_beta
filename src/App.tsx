@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { Route, BrowserRouter, Routes } from "react-router";
-import { BgColorProvider } from "./context/BgColorContext";
 import { ColorModeContext, useMode } from "./style/theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
 import Header from "./components/layout/Header";
@@ -23,55 +22,53 @@ const App: React.FC = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
 
   return (
-    <BgColorProvider>
-      <BrowserRouter basename="airtelchm">
-        <ColorModeContext.Provider value={colorMode}>
-          <ThemeProvider theme={theme}>
-            <CssBaseline />
-            <div className="app">
-              <GlobalBackdrop />
+    <BrowserRouter basename="airtelchm">
+      <ColorModeContext.Provider value={colorMode}>
+        <ThemeProvider theme={theme}>
+          <CssBaseline />
+          <div className="app">
+            <GlobalBackdrop />
 
-              {isAuth && (
-                <>
-                  <Header
-                    dynamicHeaderText={dynamicHeaderText}
-                    dynamicHeaderIcon={dynamicHeaderIcon}
-                    setLoading={setLoading}
-                    loading={loading}
+            {isAuth && (
+              <>
+                <Header
+                  dynamicHeaderText={dynamicHeaderText}
+                  dynamicHeaderIcon={dynamicHeaderIcon}
+                  setLoading={setLoading}
+                  loading={loading}
+                />
+                <SideBar
+                  isCollapsed={isSidebarCollapsed}
+                  onCollapseToggle={() =>
+                    setIsSidebarCollapsed(!isSidebarCollapsed)
+                  }
+                />
+              </>
+            )}
+
+            <AppScrollView>
+              <main className="content">
+                <Routes>
+                  <Route
+                    path="/login"
+                    element={<PublicRoute element={<LoginPage />} />}
                   />
-                  <SideBar
-                    isCollapsed={isSidebarCollapsed}
-                    onCollapseToggle={() =>
-                      setIsSidebarCollapsed(!isSidebarCollapsed)
+                  <Route
+                    path="/*"
+                    element={
+                      <AppRoutes
+                        setDynamicHeaderText={setDynamicHeaderText}
+                        setDynamicHeaderIcon={setDynamicHeaderIcon}
+                      />
                     }
                   />
-                </>
-              )}
-
-              <AppScrollView>
-                <main className="content">
-                  <Routes>
-                    <Route
-                      path="/login"
-                      element={<PublicRoute element={<LoginPage />} />}
-                    />
-                    <Route
-                      path="/*"
-                      element={
-                        <AppRoutes
-                          setDynamicHeaderText={setDynamicHeaderText}
-                          setDynamicHeaderIcon={setDynamicHeaderIcon}
-                        />
-                      }
-                    />
-                  </Routes>
-                </main>
-              </AppScrollView>
-            </div>
-          </ThemeProvider>
-        </ColorModeContext.Provider>
-      </BrowserRouter>
-    </BgColorProvider>
+                </Routes>
+              </main>
+            </AppScrollView>
+          </div>
+        </ThemeProvider>
+      </ColorModeContext.Provider>
+    </BrowserRouter>
   );
 };
 export default App;
