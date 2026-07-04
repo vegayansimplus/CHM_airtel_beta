@@ -9,6 +9,8 @@ interface UserMeMainPageTabProps {
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
+const HEADER_ICON = <PeopleAltIcon sx={{ color: "white" }} />;
+
 const UserMeMainPageTab: React.FC<UserMeMainPageTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
@@ -49,7 +51,7 @@ const tk = useNotifTokens(theme);
         setDynamicHeaderText("Monthly View");
     }
 
-    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
+    setDynamicHeaderIcon(HEADER_ICON);
   }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ================= UI ================= */

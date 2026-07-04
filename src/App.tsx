@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import { Route, BrowserRouter, Routes } from "react-router";
 import { ColorModeContext, useMode } from "./style/theme";
 import { CssBaseline, ThemeProvider } from "@mui/material";
@@ -20,6 +20,10 @@ const App: React.FC = () => {
   const [dynamicHeaderIcon, setDynamicHeaderIcon] = useState(<Home />);
   const [loading, setLoading] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
+  const handleSidebarCollapseToggle = useCallback(
+    () => setIsSidebarCollapsed((prev) => !prev),
+    [],
+  );
 
   return (
     <BrowserRouter basename="airtelchm">
@@ -39,9 +43,7 @@ const App: React.FC = () => {
                 />
                 <SideBar
                   isCollapsed={isSidebarCollapsed}
-                  onCollapseToggle={() =>
-                    setIsSidebarCollapsed(!isSidebarCollapsed)
-                  }
+                  onCollapseToggle={handleSidebarCollapseToggle}
                 />
               </>
             )}

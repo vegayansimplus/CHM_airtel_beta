@@ -9,6 +9,8 @@ interface MonthlyRosterPageTabProps {
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
+const HEADER_ICON = <PeopleAltIcon sx={{ color: "white" }} />;
+
 const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
@@ -55,7 +57,7 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
         setDynamicHeaderText("Weekly Roster");
     }
 
-    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
+    setDynamicHeaderIcon(HEADER_ICON);
   }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ================= UI ================= */

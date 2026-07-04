@@ -10,6 +10,8 @@ interface RosterGeneratorTabProps {
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
 }
 
+const HEADER_ICON = <PeopleAltIcon sx={{ color: "white" }} />;
+
 const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
@@ -41,7 +43,7 @@ const RosterGeneratorTab: React.FC<RosterGeneratorTabProps> = ({
         break;
     }
 
-    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
+    setDynamicHeaderIcon(HEADER_ICON);
   }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ================= UI ================= */

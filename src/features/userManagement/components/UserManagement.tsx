@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Fab,
@@ -55,18 +55,13 @@ export default function UserManagement() {
   const [addOpen, setAddOpen] = useState(false);
   const [activeUser, setActiveUser] = useState<User | null>(null);
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const theme = useTheme();
   // Below `sm` (phones), the table has no room even with column-hiding, so fall
   // back to the card grid. From `sm` up, UserTable folds columns by priority.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-
-  useEffect(() => {
-    const t = setTimeout(() => setLoading(false), 550);
-    return () => clearTimeout(t);
-  }, []);
 
   const handleFilterChange = useCallback((patch: Partial<UserFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));

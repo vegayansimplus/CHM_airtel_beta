@@ -25,6 +25,8 @@ const TAB_TO_PATH: Record<number, string> = {
   1: TAB_PATHS.TASK_CONFIG,
 };
 
+const HEADER_ICON = <PeopleAltIcon sx={{ color: "white" }} />;
+
 const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
@@ -56,7 +58,7 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
       setDynamicHeaderText("Dashboard");
     }
 
-    setDynamicHeaderIcon(<PeopleAltIcon sx={{ color: "white" }} />);
+    setDynamicHeaderIcon(HEADER_ICON);
   }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* ===================== GUARD (AFTER HOOKS) ===================== */

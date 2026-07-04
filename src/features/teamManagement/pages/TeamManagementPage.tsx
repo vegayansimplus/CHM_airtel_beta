@@ -1,5 +1,5 @@
 import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
-import React, { type JSX, useEffect, useState, Suspense } from "react";
+import React, { type JSX, useEffect, useMemo, useState, Suspense } from "react";
 import { useLocation, useNavigate, Outlet } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 // import { alpha } from "@mui/material/styles";
@@ -57,15 +57,18 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
   }, [location.pathname, activeTab]);
 
   /* -------- HEADER SYNC -------- */
+  const headerIcon = useMemo(
+    () => <PeopleAltIcon sx={{ color: theme.palette.text.primary }} />,
+    [theme.palette.text.primary],
+  );
+
   useEffect(() => {
     setDynamicHeaderText(
       activeTab === 0 ? "Team Overview" : "Task Configuration",
     );
 
-    setDynamicHeaderIcon(
-      <PeopleAltIcon sx={{ color: theme.palette.text.primary }} />,
-    );
-  }, [activeTab]);
+    setDynamicHeaderIcon(headerIcon);
+  }, [activeTab, headerIcon, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   /* -------- TAB NAVIGATION -------- */
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
