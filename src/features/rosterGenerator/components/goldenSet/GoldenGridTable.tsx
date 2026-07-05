@@ -352,7 +352,6 @@ export default function GoldenGridTable({
                         editing && editMode === "week"
                           ? { background: `${alpha(tk.accent, 0.12)} !important` }
                           : undefined,
-                      position: "relative",
                     }}
                   >
                     Week {w + 1}
@@ -450,6 +449,7 @@ export default function GoldenGridTable({
                   sx={{
                     position: "sticky",
                     bottom: 0,
+                    zIndex: Z_INDEX.FOOTER,
                     width: editing ? 40 : 0,
                     minWidth: editing ? 40 : 0,
                     p: 0,
@@ -462,7 +462,7 @@ export default function GoldenGridTable({
                     position: "sticky",
                     bottom: 0,
                     left: editing ? 40 : 0,
-                    zIndex: 5,
+                    zIndex: Z_INDEX.FOOTER_CORNER,
                     borderTop: `2px solid ${tk.border}`,
                     fontWeight: 600,
                     color: tk.textSecondary,
@@ -490,7 +490,7 @@ export default function GoldenGridTable({
                       sx={{
                         position: "sticky",
                         bottom: 0,
-                        zIndex: 2,
+                        zIndex: Z_INDEX.FOOTER,
                         background: `${empColBg} !important`,
                         borderTop: `2px solid ${tk.border}`,
                         fontFamily: MONO,
@@ -520,7 +520,7 @@ export default function GoldenGridTable({
                   sx={{
                     position: "sticky",
                     bottom: 0,
-                    zIndex: 2,
+                    zIndex: Z_INDEX.FOOTER,
                     background: `${empColBg} !important`,
                     borderTop: `2px solid ${tk.border}`,
                   }}

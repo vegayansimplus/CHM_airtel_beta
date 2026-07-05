@@ -109,10 +109,14 @@ export const EDIT_MODES: {
   },
 ];
 
-// Sticky z-index hierarchy for GoldenGridTable.
+// Sticky z-index hierarchy for GoldenGridTable. Footer must outrank
+// STICKY_COLUMN so the body's sticky name column doesn't render over the
+// bottom-pinned footer as rows scroll past it.
 export const Z_INDEX = {
   HEADER_CORNER: 150, // corner cells that span both header rows
   WEEK_HEADER: 110, // "Week N" row
   DAY_HEADER: 100, // "Mo Tu We …" row
   STICKY_COLUMN: 90, // employee name column in body rows
+  FOOTER_CORNER: 96, // "Staffed / Day" label cell (bottom + left sticky)
+  FOOTER: 92, // remaining footer cells (bottom sticky only)
 };
