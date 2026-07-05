@@ -102,6 +102,25 @@ export default function GoldenGridTable({
     return () => observer.disconnect();
   }, []);
 
+  // Measure the sticky footer's real rendered height so the body can reserve
+  // exactly that much scroll runway at its end — otherwise, since the footer
+  // is `position:sticky`, it renders in front of whatever body row is
+  // scrolling past that bottom slice instead of letting the last row clear
+  // it first.
+  const footerRowRef = useRef<HTMLTableRowElement>(null);
+  const [footerHeight, setFooterHeight] = useState(0);
+
+  useEffect(() => {
+    const el = footerRowRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) setFooterHeight(entry.contentRect.height);
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
   // Cap the card's height at the real remaining viewport space below it,
   // measured directly — the app shell above this screen doesn't currently
   // give it a definite height to flex against, so `flex:1` alone can't
@@ -440,11 +459,22 @@ export default function GoldenGridTable({
                   />
                 ))
               )}
+              {/* Reserves scroll runway equal to the sticky footer's height,
+                  so the last real row can clear it instead of the footer
+                  rendering on top of it. */}
+              {footerHeight > 0 && (
+                <TableRow aria-hidden style={{ height: footerHeight }}>
+                  <TableCell
+                    colSpan={TOTAL_COLS + 6}
+                    sx={{ p: 0, border: "none" }}
+                  />
+                </TableRow>
+              )}
             </TableBody>
 
             {/* ── TableFooter ── */}
             <TableFooter>
-              <TableRow>
+              <TableRow ref={footerRowRef}>
                 <TableCell
                   sx={{
                     position: "sticky",
