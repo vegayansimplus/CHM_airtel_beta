@@ -161,6 +161,11 @@ export default function GoldenGridTable({
     color: tk.textSecondary,
     textAlign: "center" as const,
     fontSize: 11,
+    // Promotes sticky cells to their own GPU compositing layer so the
+    // browser doesn't have to repaint them inline against scrolling body
+    // rows — without this, fast scrolling can show a brief flash/ghost of
+    // whatever's scrolling underneath before the layer catches up.
+    willChange: "transform" as const,
   };
 
   const weekHeadSx = {
@@ -314,6 +319,7 @@ export default function GoldenGridTable({
                     borderRight: editing ? `0.5px solid ${tk.border} !important` : "none",
                     overflow: "hidden",
                     transition: "width .2s, min-width .2s",
+                    willChange: "transform",
                   }}
                 >
                   {editing && editMode === "select" && (
@@ -344,6 +350,7 @@ export default function GoldenGridTable({
                     textAlign: "left",
                     borderBottom: `2px solid ${tk.border} !important`,
                     borderRight: `1.5px solid ${tk.border} !important`,
+                    willChange: "transform",
                   }}
                 >
                   <Typography sx={{ fontSize: 11, fontWeight: 600, color: tk.textSecondary }}>
@@ -501,6 +508,7 @@ export default function GoldenGridTable({
                     p: 0,
                     background: `${empColBg} !important`,
                     borderTop: `2px solid ${tk.border}`,
+                    willChange: "transform",
                   }}
                 />
                 <TableCell
@@ -521,6 +529,7 @@ export default function GoldenGridTable({
                       : "3px 0 8px -2px rgba(13,27,42,0.1)",
                     borderRight: `1.5px solid ${tk.border} !important`,
                     background: `${empColBg} !important`,
+                    willChange: "transform",
                   }}
                 >
                   Staffed / Day
@@ -546,6 +555,7 @@ export default function GoldenGridTable({
                         py: "6px",
                         px: "4px",
                         borderLeft: d === 0 && w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
+                        willChange: "transform",
                       }}
                     >
                       <Typography
@@ -569,6 +579,7 @@ export default function GoldenGridTable({
                     zIndex: Z_INDEX.FOOTER,
                     background: `${empColBg} !important`,
                     borderTop: `2px solid ${tk.border}`,
+                    willChange: "transform",
                   }}
                 />
               </TableRow>

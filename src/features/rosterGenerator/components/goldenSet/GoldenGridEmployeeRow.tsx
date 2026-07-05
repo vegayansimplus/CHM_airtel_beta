@@ -106,6 +106,7 @@ function GoldenGridEmployeeRow({
             ? `${alpha(tk.accent, 0.07)} !important`
             : `${paperBg} !important`,
           borderLeft: isSelected ? `2.5px solid ${tk.accent}` : undefined,
+          willChange: "transform",
         }}
       >
         <Stack direction="row" alignItems="center" justifyContent="space-between">
