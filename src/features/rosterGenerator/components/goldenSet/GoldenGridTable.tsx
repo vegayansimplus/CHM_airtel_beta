@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   alpha,
   Box,
@@ -33,6 +33,10 @@ import { useGoldenGridTokens } from "./useGoldenGridTokens";
 import ShiftLegend from "./ShiftLegend";
 import BrushBar from "./BrushBar";
 import GoldenGridEmployeeRow from "./GoldenGridEmployeeRow";
+
+// Breathing room left below the card, and the floor it won't shrink past.
+const GRID_BOTTOM_GAP = 16;
+const MIN_GRID_HEIGHT = 320;
 
 interface GoldenGridTableProps {
   allEmpsCount: number;
@@ -98,6 +102,33 @@ export default function GoldenGridTable({
     return () => observer.disconnect();
   }, []);
 
+  // Cap the card's height at the real remaining viewport space below it,
+  // measured directly — the app shell above this screen doesn't currently
+  // give it a definite height to flex against, so `flex:1` alone can't
+  // constrain it. Re-measures after every render (cheap: one rAF + one
+  // DOMRect read) so it stays correct as banners above the table
+  // appear/disappear, plus on window resize.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [maxCardHeight, setMaxCardHeight] = useState<number>();
+
+  useLayoutEffect(() => {
+    const el = cardRef.current;
+    if (!el) return;
+
+    const recompute = () => {
+      const top = el.getBoundingClientRect().top;
+      const available = window.innerHeight - top - GRID_BOTTOM_GAP;
+      setMaxCardHeight(Math.max(available, MIN_GRID_HEIGHT));
+    };
+
+    const raf = requestAnimationFrame(recompute);
+    window.addEventListener("resize", recompute);
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener("resize", recompute);
+    };
+  });
+
   const empColBg = tk.isDark ? "rgba(30,30,46,1)" : "rgba(248,250,252,1)";
   const weekHeaderBg = tk.isDark ? "rgba(24,95,165,0.13)" : "rgba(24,95,165,0.07)";
   const dayHeaderBg = tk.isDark ? "rgba(15,110,86,0.10)" : "rgba(15,110,86,0.05)";
@@ -133,9 +164,11 @@ export default function GoldenGridTable({
 
   return (
     <Card
+      ref={cardRef}
       variant="outlined"
       sx={{
         flex: 1,
+        maxHeight: maxCardHeight,
         borderRadius: tk.radiusL,
         overflow: "hidden",
         borderColor: tk.border,
