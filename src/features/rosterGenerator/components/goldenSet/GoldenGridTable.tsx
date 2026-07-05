@@ -168,7 +168,13 @@ export default function GoldenGridTable({
     position: "sticky" as const,
     top: 0,
     zIndex: Z_INDEX.WEEK_HEADER,
+    // Both the shorthand and the longhand: MUI's theme applies a
+    // semi-transparent `backgroundColor` to every head-variant TableCell
+    // (see MuiTableCell.styleOverrides.head in style/theme.ts) — overriding
+    // only `background` leaves that longhand rule in place, letting rows
+    // scrolling underneath show through.
     background: `${paperBg} !important`,
+    backgroundColor: `${paperBg} !important`,
     borderBottom: `1px solid ${tk.border} !important`,
   };
 
@@ -178,6 +184,7 @@ export default function GoldenGridTable({
     top: dayRowTop,
     zIndex: Z_INDEX.DAY_HEADER,
     background: `${paperBg} !important`,
+    backgroundColor: `${paperBg} !important`,
     borderBottom: `2px solid ${tk.border} !important`,
   };
 
@@ -302,6 +309,7 @@ export default function GoldenGridTable({
                     maxWidth: editing ? 40 : 0,
                     p: 0,
                     background: `${empColBg} !important`,
+                    backgroundColor: `${empColBg} !important`,
                     borderBottom: `2px solid ${tk.border} !important`,
                     borderRight: editing ? `0.5px solid ${tk.border} !important` : "none",
                     overflow: "hidden",
@@ -332,6 +340,7 @@ export default function GoldenGridTable({
                     minWidth: EMP_COL_W,
                     maxWidth: EMP_COL_W,
                     background: `${empColBg} !important`,
+                    backgroundColor: `${empColBg} !important`,
                     textAlign: "left",
                     borderBottom: `2px solid ${tk.border} !important`,
                     borderRight: `1.5px solid ${tk.border} !important`,
@@ -342,48 +351,54 @@ export default function GoldenGridTable({
                   </Typography>
                 </TableCell>
 
-                {Array.from({ length: 6 }, (_, w) => (
-                  <TableCell
-                    key={w}
-                    colSpan={7}
-                    onContextMenu={(e) => {
-                      if (!editing || editMode !== "week") return;
-                      e.preventDefault();
-                      onWeekHeaderContextMenu(e.currentTarget as HTMLElement, w);
-                    }}
-                    sx={{
-                      ...weekHeadSx,
-                      fontSize: 10,
-                      fontWeight: 700,
-                      letterSpacing: ".06em",
-                      textTransform: "uppercase",
-                      borderLeft: w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
-                      background: `${
-                        w % 2 === 1
-                          ? tk.isDark
-                            ? "rgba(24,95,165,0.18)"
-                            : "rgba(24,95,165,0.10)"
-                          : weekHeaderBg
-                      } !important`,
-                      color: w % 2 === 1 ? tk.accent : tk.textSecondary,
-                      cursor: editing && editMode === "week" ? "context-menu" : "default",
-                      "&:hover":
-                        editing && editMode === "week"
-                          ? { background: `${alpha(tk.accent, 0.12)} !important` }
-                          : undefined,
-                    }}
-                  >
-                    Week {w + 1}
-                    {editing && editMode === "week" && (
-                      <Typography
-                        component="span"
-                        sx={{ ml: 0.5, fontSize: 9, opacity: 0.5, fontWeight: 400, letterSpacing: 0, textTransform: "none" }}
-                      >
-                        (right-click)
-                      </Typography>
-                    )}
-                  </TableCell>
-                ))}
+                {Array.from({ length: 6 }, (_, w) => {
+                  const weekCellBg =
+                    w % 2 === 1
+                      ? tk.isDark
+                        ? "rgba(24,95,165,0.18)"
+                        : "rgba(24,95,165,0.10)"
+                      : weekHeaderBg;
+                  return (
+                    <TableCell
+                      key={w}
+                      colSpan={7}
+                      onContextMenu={(e) => {
+                        if (!editing || editMode !== "week") return;
+                        e.preventDefault();
+                        onWeekHeaderContextMenu(e.currentTarget as HTMLElement, w);
+                      }}
+                      sx={{
+                        ...weekHeadSx,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        letterSpacing: ".06em",
+                        textTransform: "uppercase",
+                        borderLeft: w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
+                        background: `${weekCellBg} !important`,
+                        backgroundColor: `${weekCellBg} !important`,
+                        color: w % 2 === 1 ? tk.accent : tk.textSecondary,
+                        cursor: editing && editMode === "week" ? "context-menu" : "default",
+                        "&:hover":
+                          editing && editMode === "week"
+                            ? {
+                                background: `${alpha(tk.accent, 0.12)} !important`,
+                                backgroundColor: `${alpha(tk.accent, 0.12)} !important`,
+                              }
+                            : undefined,
+                      }}
+                    >
+                      Week {w + 1}
+                      {editing && editMode === "week" && (
+                        <Typography
+                          component="span"
+                          sx={{ ml: 0.5, fontSize: 9, opacity: 0.5, fontWeight: 400, letterSpacing: 0, textTransform: "none" }}
+                        >
+                          (right-click)
+                        </Typography>
+                      )}
+                    </TableCell>
+                  );
+                })}
 
                 {(["Work", "N", "OFF"] as const).map((h, i) => (
                   <TableCell
@@ -406,6 +421,8 @@ export default function GoldenGridTable({
                 {Array.from({ length: TOTAL_COLS }, (_, i) => {
                   const d = i % 7;
                   const w = Math.floor(i / 7);
+                  const dayCellBg =
+                    d >= 5 ? (tk.isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") : dayHeaderBg;
                   return (
                     <TableCell
                       key={i}
@@ -416,9 +433,8 @@ export default function GoldenGridTable({
                         fontSize: 10.5,
                         fontWeight: 600,
                         borderLeft: d === 0 && w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
-                        background: `${
-                          d >= 5 ? (tk.isDark ? "rgba(255,255,255,0.03)" : "rgba(0,0,0,0.02)") : dayHeaderBg
-                        } !important`,
+                        background: `${dayCellBg} !important`,
+                        backgroundColor: `${dayCellBg} !important`,
                       }}
                     >
                       {DOW_SHORT[d]}
