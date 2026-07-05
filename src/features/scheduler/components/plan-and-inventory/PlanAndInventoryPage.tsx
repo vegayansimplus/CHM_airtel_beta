@@ -425,7 +425,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         disabled={!selectedCrq}
         url={
           selectedCrq
-            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}`
+            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
             : undefined
         }
         colors={colors}

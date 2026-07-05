@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, GlobalStyles, Stack, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 
@@ -57,6 +57,16 @@ export const CrqDetailedView: React.FC = () => {
   const colors = useTabColorTokens(theme);
   const navigate = useNavigate();
   const { crqNo } = useParams<{ crqNo: string }>();
+  const [searchParams] = useSearchParams();
+
+  // Same org-hierarchy scope (Vertical/Domain/Sub-domain) the list pages
+  // (PlanAndInventoryPage / ImpactAnalysisPage / GenericStagePage) receive
+  // as props - here it arrives via query params since this route is
+  // reached directly (deep link / new tab), not nested under those pages.
+  // Falls back to 1/1 to preserve the previous hardcoded default when a
+  // link doesn't carry them (e.g. an old bookmark).
+  const domainId = Number(searchParams.get("domainId")) || 1;
+  const subDomainId = Number(searchParams.get("subDomainId")) || 1;
 
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [expPlans, setExpPlans] = useState<Record<string, boolean>>({});
@@ -72,7 +82,7 @@ export const CrqDetailedView: React.FC = () => {
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
 
-  const { data, isError, error } = useGetCrqReviewQuery({ domainId: 1, subDomainId: 1 });
+  const { data, isError, error } = useGetCrqReviewQuery({ domainId, subDomainId });
   const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
 
   // One useStageWorkflow instance per generic stage key - hooks must be
@@ -156,9 +166,9 @@ export const CrqDetailedView: React.FC = () => {
       setExpPlans((prev) => ({ ...prev, [planNumber]: true }));
       setExpCrqs((prev) => ({ ...prev, [crq.crqNo]: true }));
       setSelectedStageId(WORKFLOW_STAGES[resolveCurrentStageIndex(crq)].id);
-      navigate(`/scheduler/crqWorkflow/${crq.crqNo}`, { replace: true });
+      navigate(`/scheduler/crqWorkflow/${crq.crqNo}?${searchParams.toString()}`, { replace: true });
     },
-    [navigate],
+    [navigate, searchParams],
   );
   const handleSelectStage = useCallback((stageId: WorkflowStageId) => setSelectedStageId(stageId), []);
 

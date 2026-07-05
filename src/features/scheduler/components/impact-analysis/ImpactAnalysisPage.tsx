@@ -450,7 +450,10 @@ export const ImpactAnalysisPage: React.FC<ImpactAnalysisPageProps> = ({
         label="View Selected CRQ"
         disabled={!selectedCrq}
         onClick={() =>
-          selectedCrq && navigate(`/scheduler/crqWorkflow/${selectedCrq.crqNo}`)
+          selectedCrq &&
+          navigate(
+            `/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`,
+          )
         }
         colors={colors}
       />

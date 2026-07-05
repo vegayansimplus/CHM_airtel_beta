@@ -215,7 +215,11 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
       <CustomActionButton
         label="View Selected CRQ"
         disabled={!selectedCrq}
-        url={selectedCrq ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}` : undefined}
+        url={
+          selectedCrq
+            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
+            : undefined
+        }
         colors={colors}
       />
       <CustomActionButton
