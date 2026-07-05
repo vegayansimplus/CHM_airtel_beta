@@ -20,7 +20,28 @@ export const rosterApiSlice = api.injectEndpoints({
       }),
       providesTags: ["CrqReview"],
     }),
+
+    // POST /crqworkflow/updatecrqreview/start|pause?crqNo=&crqId=
+    updateCrqReviewStatus: builder.mutation<
+      { message?: string },
+      {
+        crqNo: string;
+        crqId: number | string;
+        action: "start" | "pause";
+      }
+    >({
+      query: ({ crqNo, crqId, action }) => ({
+        url: `/crqworkflow/updatecrqreview/${action}`,
+        method: "POST",
+        params: {
+          crqNo,
+          crqId,
+        },
+      }),
+      invalidatesTags: ["CrqReview"],
+    }),
   }),
 });
 
-export const { useGetCrqReviewQuery } = rosterApiSlice;
+export const { useGetCrqReviewQuery, useUpdateCrqReviewStatusMutation } =
+  rosterApiSlice;

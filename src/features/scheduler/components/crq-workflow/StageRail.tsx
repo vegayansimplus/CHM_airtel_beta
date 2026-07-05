@@ -54,19 +54,23 @@ export const StageRail: React.FC<StageRailProps> = ({
             key={stage.id}
             onClick={() => clickable && onSelectStage(stage.id)}
             sx={{
-              flex: "0 0 168px",
+              flex: "0 0 172px",
               p: "11px 14px",
               borderRadius: colors.radiusL,
               border: `1.5px solid ${isSelected ? colors.accent : colors.border}`,
               bgcolor: colors.surface,
               cursor: clickable ? "pointer" : "not-allowed",
-              boxShadow: isSelected ? `0 4px 14px ${colors.accentBorder}` : "none",
+              boxShadow: isSelected ? `0 4px 14px ${colors.accentBorder}` : "0 1px 2px rgba(20,30,50,0.03)",
               transition: "all 0.16s ease",
+              "&:hover": clickable && !isSelected ? { borderColor: colors.borderHover, transform: "translateY(-2px)" } : undefined,
             }}
           >
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Stack direction="row" alignItems="center" spacing={0.8}>
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: palette.dot }} />
+                <Box
+                  className={state === "in_progress" ? "status-pulse-dot" : undefined}
+                  sx={{ width: 9, height: 9, borderRadius: "50%", bgcolor: palette.dot }}
+                />
                 <Typography sx={{ fontSize: 9.5, fontWeight: 800, color: colors.textDim, fontFamily: "monospace" }}>
                   S{idx + 1}
                 </Typography>
@@ -78,6 +82,7 @@ export const StageRail: React.FC<StageRailProps> = ({
                   px: "8px",
                   py: "2px",
                   borderRadius: "20px",
+                  whiteSpace: "nowrap",
                   bgcolor: palette.bg,
                   color: palette.fg,
                 }}

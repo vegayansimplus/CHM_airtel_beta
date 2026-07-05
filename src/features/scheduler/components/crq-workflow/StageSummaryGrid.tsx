@@ -53,6 +53,8 @@ export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({
             borderRadius: colors.radiusL,
             p: "13px 16px",
             bgcolor: colors.surface,
+            transition: "all 0.15s ease",
+            "&:hover": { transform: "translateY(-2px)", boxShadow: "0 6px 16px rgba(20,30,50,0.08)" },
           }}
         >
           <Typography

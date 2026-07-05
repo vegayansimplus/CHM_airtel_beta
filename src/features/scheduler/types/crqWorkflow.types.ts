@@ -56,10 +56,20 @@ export interface Crq {
   olmidImpactAnalysis?: string | null;
   
   // Backwards compatibility / fallbacks for previous UI logic
-  crqReviewStatus?: string | null; 
+  crqReviewStatus?: string | null;
   olmidReview?: string | null;
-  
+  reviewStartDate?: string | null;
+  reviewEndDate?: string | null;
+  workflow?: string | null;
+
   tasks: Task[];
+
+  // Every other stage's endpoint (mopcreate/mopvalidate/scheduling/
+  // activityimplement/closer) returns its own differently-named status/date/
+  // olmId fields on top of this same shape - deliberately left open-ended
+  // (rather than enumerated) since the dynamic stage summary grid
+  // (constants/workflowStages.ts) reads whatever the API actually returns.
+  [extraField: string]: unknown;
 }
 
 export interface Plan {

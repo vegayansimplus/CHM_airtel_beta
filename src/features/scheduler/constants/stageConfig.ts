@@ -114,7 +114,7 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     key: "closer",
     label: "Closer",
     endpointBase: "updatecloser",
-    reviewQueryUrl: "/crqworkflow/closer",
+    reviewQueryUrl: "/crqworkflow/crqcloser",
     statusField: "closerStatus",
     buildDonePayload: (values, crq) => ({
       localStatus: values.status === "Done" ? "DONE" : values.status,

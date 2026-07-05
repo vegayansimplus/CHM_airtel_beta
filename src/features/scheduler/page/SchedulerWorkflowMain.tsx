@@ -15,9 +15,12 @@ import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import type { IStep } from "../../../components/ui/AppStepper/types";
 import { useTabColorTokens } from "../../../style/theme";
 import { PlanAndInventoryPage } from "../components/plan-and-inventory/PlanAndInventoryPage";
-import ImpactAnalysisPage from "../components/impact-analysis/ImpactAnalysisPage";
-import { MopCreationPage } from "../components/mop-creation/MopCreationPage";
-import { MopValidationPage } from "../components/mop-validation/MopValidationPage";
+import ImpactAnalysisPage from "./ImpactAnalysisPage";
+import MopCreatePage from "./MopCreatePage";
+import MopValidatePage from "./MopValidatePage";
+import SchedulingPage from "./SchedulingPage";
+import ActivityImplementPage from "./ActivityImplementPage";
+import CloserPage from "./CloserPage";
 
 const WORKFLOW_STEPS: IStep[] = [
   {
@@ -106,20 +109,32 @@ export const PlanAndInventoryMain = () => {
         />
       )}
       {activeStep === 2 && (
-        <MopCreationPage
+        <MopCreatePage
           domainId={values.domain}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 3 && (
-        <MopValidationPage
+        <MopValidatePage
           domainId={values.domain}
           subDomainId={values.subDomain}
         />
       )}
-      {activeStep === 4 && <h1>Scheduling</h1>}
-      {activeStep === 5 && <h1>Network exec</h1>}
-      {activeStep === 6 && <h1>Task closure</h1>}
+      {activeStep === 4 && (
+        <SchedulingPage
+          domainId={values.domain}
+          subDomainId={values.subDomain}
+        />
+      )}
+      {activeStep === 5 && (
+        <ActivityImplementPage
+          domainId={values.domain}
+          subDomainId={values.subDomain}
+        />
+      )}
+      {activeStep === 6 && (
+        <CloserPage domainId={values.domain} subDomainId={values.subDomain} />
+      )}
     </Box>
   );
 };

@@ -103,53 +103,83 @@ export interface StageSummaryField {
   value: string;
 }
 
-const fallback = (v?: string | null) =>
-  v && String(v).trim().length ? String(v) : "—";
+/** Fields rendered elsewhere (sidebar/header) or structural - never shown
+ * again in the generic per-stage field grid. */
+const SUMMARY_EXCLUDED_KEYS = new Set(["tasks"]);
 
-const fallbackDate = (v?: string | null) => {
-  if (!v) return "—";
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? fallback(v) : format(d, "dd-MMM-yyyy HH:mm");
-};
+/** Short tokens that should render as an acronym instead of Title-Case. */
+const ACRONYM_WORDS = new Set([
+  "id",
+  "crq",
+  "olm",
+  "olmid",
+  "ne",
+  "m6",
+  "isis",
+  "cab",
+]);
 
 /**
- * Real-field-only summary shown in each stage's detail body. No invented
- * content (checklists, node tables, step lists, impact metrics, etc) -
- * only whatever the CRQ object actually carries for that stage today.
+ * Turns an API field name into a human label without any per-stage mapping,
+ * e.g. "reviewStartDate" -> "Review Start Date", "olmidReview" -> "OLMID
+ * Review", "neLabel" -> "NE Label". Works the same regardless of which of
+ * the 7 stages' differently-named fields it's given.
+ */
+function humanizeKey(key: string): string {
+  const words = key
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[\s_]+/)
+    .filter(Boolean);
+  return words
+    .map((w) => {
+      const lower = w.toLowerCase();
+      if (ACRONYM_WORDS.has(lower)) return lower.toUpperCase();
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    })
+    .join(" ");
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?/;
+
+/** Formats a raw field value for display - ISO-looking dates (detected by
+ * value shape or a "date" in the key name) go through the same date-fns
+ * formatter the rest of the app uses; everything else renders as-is. */
+function formatFieldValue(key: string, value: unknown): string {
+  if (typeof value === "string" && (ISO_DATE_RE.test(value) || /date/i.test(key))) {
+    const d = new Date(value);
+    if (!Number.isNaN(d.getTime())) return format(d, "dd-MMM-yyyy HH:mm");
+  }
+  return String(value);
+}
+
+/**
+ * Real-field-only summary shown in each stage's detail body: every scalar
+ * property the API actually returned on the selected CRQ for the current
+ * stage, auto-labeled and auto-formatted. No invented content (checklists,
+ * node tables, step lists, impact metrics, etc), and no per-stage field-name
+ * mapping - each of the 7 stages' endpoints can use whatever field names
+ * they want (e.g. "reviewStartDate" vs "impactStartDate") and this renders
+ * whatever comes back as-is.
  */
 export function getStageSummaryFields(
-  stageId: WorkflowStageId,
+  _stageId: WorkflowStageId,
   crq: Crq | null | undefined,
 ): StageSummaryField[] {
   if (!crq) return [];
-  const c = crq as any;
+  const c = crq as Record<string, unknown>;
 
-  if (stageId === "review") {
-    return [
-      { label: "CRQ Status", value: fallback(c.crqStatus) },
-      { label: "Review Status", value: fallback(c.crqReviewStatus) },
-      { label: "Review Start", value: fallbackDate(c.reviewStartDate) },
-      { label: "Review End", value: fallbackDate(c.reviewEndDate) },
-      { label: "OLM ID", value: fallback(c.olmidReview) },
-      { label: "Plan Type", value: fallback(c.planType) },
-    ];
-  }
-
-  if (stageId === "impactanalysis") {
-    return [
-      { label: "CRQ Status", value: fallback(c.crqStatus) },
-      { label: "Impact Analysis Status", value: fallback(c.impactAnalysisStatus) },
-      { label: "OLM ID (Impact)", value: fallback(c.olmidImpactAnalysis) },
-      { label: "Plan Start", value: fallbackDate(c.activityPlanStartDate) },
-      { label: "Plan End", value: fallbackDate(c.activityPlanEndDate) },
-    ];
-  }
-
-  const stage = WORKFLOW_STAGES.find((s) => s.id === stageId);
-  return [
-    { label: "CRQ Status", value: fallback(c.crqStatus) },
-    { label: stage?.label ?? "Stage Status", value: fallback(stage ? c[stage.statusField] : undefined) },
-    { label: "Plan Start", value: fallbackDate(c.activityPlanStartDate) },
-    { label: "Plan End", value: fallbackDate(c.activityPlanEndDate) },
-  ];
+  return Object.keys(c)
+    .filter((key) => {
+      if (SUMMARY_EXCLUDED_KEYS.has(key)) return false;
+      const value = c[key];
+      if (value === null || value === undefined) return false;
+      if (typeof value === "object") return false;
+      if (typeof value === "string" && !value.trim().length) return false;
+      return true;
+    })
+    .map((key) => ({
+      label: humanizeKey(key),
+      value: formatFieldValue(key, c[key]),
+    }));
 }

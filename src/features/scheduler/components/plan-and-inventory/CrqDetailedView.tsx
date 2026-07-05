@@ -7,8 +7,10 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 
-import { useGetCrqReviewQuery } from "../../api/crqreviewApiSlice";
-import { useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
+import {
+  useGetCrqReviewQuery,
+  useUpdateCrqReviewStatusMutation,
+} from "../../api/crqreviewApiSlice";
 import { getStageConfig } from "../../constants/stageConfig";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
@@ -40,6 +42,11 @@ const GlobalStyleBlock = (
         display: "flex",
       },
       ".expand-chevron.open": { transform: "rotate(90deg)" },
+      "@keyframes pulseDot": {
+        "0%, 100%": { opacity: 1, transform: "scale(1)" },
+        "50%": { opacity: 0.4, transform: "scale(0.8)" },
+      },
+      ".status-pulse-dot": { animation: "pulseDot 1.4s ease-in-out infinite" },
     }}
   />
 );
@@ -47,7 +54,7 @@ const GlobalStyleBlock = (
 /**
  * Single-CRQ workflow cockpit at /scheduler/crqWorkflow/:crqNo. Reuses the
  * exact same data + mutations as the list pages (useGetCrqReviewQuery,
- * useUpdateImpactAnalysisStatusMutation for the Plan & Inventory / Review
+ * useUpdateCrqReviewStatusMutation for the Plan & Inventory / Review
  * stage, useStageWorkflow + STAGE_CONFIG_MAP for the other six) and the
  * exact same dialogs (PlanInvDialog, StageReviewDialog, PrevCrqStatusDialog)
  * - only the surrounding navigation (sidebar tree + stage rail) is new.
@@ -83,7 +90,7 @@ export const CrqDetailedView: React.FC = () => {
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
 
   const { data, isError, error } = useGetCrqReviewQuery({ domainId, subDomainId });
-  const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
+  const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
 
   // One useStageWorkflow instance per generic stage key - hooks must be
   // called unconditionally, so all six are created up front and the active
@@ -176,11 +183,10 @@ export const CrqDetailedView: React.FC = () => {
     if (!selectedCrq) return;
 
     if (isReviewStage) {
-      const isRunningNow =
-        (selectedCrq.impactAnalysisStatus ?? selectedCrq.crqReviewStatus ?? "").toLowerCase() === "in progress";
+      const isRunningNow = (selectedCrq.crqReviewStatus ?? "").toLowerCase() === "in progress";
       const action = isRunningNow ? "pause" : "start";
       try {
-        const response = await updateImpactAnalysisStatus({
+        const response = await updateCrqReviewStatus({
           crqNo: selectedCrq.crqNo,
           crqId: selectedCrq.crqId,
           action,
@@ -191,7 +197,7 @@ export const CrqDetailedView: React.FC = () => {
             ...plan,
             crqs: plan.crqs.map((c) =>
               c.crqNo === selectedCrq.crqNo
-                ? { ...c, impactAnalysisStatus: isRunningNow ? "Paused" : "In Progress" }
+                ? { ...c, crqReviewStatus: isRunningNow ? "Paused" : "In Progress" }
                 : c,
             ),
           })),
@@ -212,7 +218,7 @@ export const CrqDetailedView: React.FC = () => {
         crqs: plan.crqs.map((c) => (c.crqNo === selectedCrq.crqNo ? { ...c, [statusField]: result.nextStatus } : c)),
       })),
     );
-  }, [selectedCrq, isReviewStage, activeStageWorkflow, selectedStageId, updateImpactAnalysisStatus]);
+  }, [selectedCrq, isReviewStage, activeStageWorkflow, selectedStageId, updateCrqReviewStatus]);
 
   const handleSubmitDone = useCallback(
     async (values: Record<string, any>, crq: Crq) => {

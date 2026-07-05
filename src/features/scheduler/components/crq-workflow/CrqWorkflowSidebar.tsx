@@ -5,7 +5,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import type { Colors } from "../../types/colorTypes";
 import type { Crq, Plan } from "../../types/crqWorkflow.types";
-import { WORKFLOW_STAGES, resolveCurrentStageIndex } from "../../constants/workflowStages";
+import { WORKFLOW_STAGES, resolveCurrentStageIndex, resolveStageState } from "../../constants/workflowStages";
 
 interface CrqWorkflowSidebarProps {
   plans: Plan[];
@@ -20,13 +20,21 @@ interface CrqWorkflowSidebarProps {
   colors: Colors;
 }
 
-const crqStatusDot = (crq: Crq, colors: Colors) => {
+/** Per-CRQ status dot + chip, matching the reference tree row's status
+ * indicator - derived from the same resolveStageState the stage rail uses. */
+const crqStatusMeta = (crq: Crq, colors: Colors) => {
   const idx = resolveCurrentStageIndex(crq);
-  const stage = WORKFLOW_STAGES[idx];
-  const status = (crq as any)[stage.statusField];
-  if (status === "In Progress") return colors.accent;
-  if (status === "Done" || status === "DONE") return colors.success;
-  return colors.textDim;
+  const state = resolveStageState(crq, idx, idx);
+  if (state === "completed") {
+    return { dot: colors.success, chipBg: colors.successDim, chipFg: colors.success, chipLabel: "Done" };
+  }
+  if (state === "in_progress") {
+    return { dot: colors.accent, chipBg: colors.infoDim, chipFg: colors.info, chipLabel: "In Progress" };
+  }
+  if (state === "failed") {
+    return { dot: colors.danger, chipBg: colors.dangerDim, chipFg: colors.danger, chipLabel: "Failed" };
+  }
+  return { dot: colors.textDim, chipBg: colors.trackOff, chipFg: colors.textDim, chipLabel: "Paused" };
 };
 
 /**
@@ -94,7 +102,14 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
               alignItems="center"
               spacing={1.1}
               onClick={() => onTogglePlan(plan.planNumber)}
-              sx={{ px: 1.5, py: 1.2, cursor: "pointer", bgcolor: colors.accentDim }}
+              sx={{
+                px: 1.5,
+                py: 1.2,
+                cursor: "pointer",
+                bgcolor: colors.trackOff,
+                transition: "background 0.15s ease",
+                "&:hover": { bgcolor: colors.surface2 },
+              }}
             >
               <ChevronRightRoundedIcon
                 className={`expand-chevron${isPlanOpen ? " open" : ""}`}
@@ -135,6 +150,7 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
                   bgcolor: colors.surface,
                   border: `1px solid ${colors.accentBorder}`,
                   color: colors.accent,
+                  whiteSpace: "nowrap",
                 }}
               />
             </Stack>
@@ -146,6 +162,7 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
                   const isCrqOpen = !!expCrqs[crq.crqNo];
                   const tasks = crq.tasks ?? [];
                   const stageIdx = resolveCurrentStageIndex(crq);
+                  const statusMeta = crqStatusMeta(crq, colors);
                   return (
                     <Box key={crq.crqNo} sx={{ mt: 0.5 }}>
                       <Stack
@@ -183,7 +200,10 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
                             {crq.crqNo}
                           </Typography>
                           <Stack direction="row" alignItems="center" spacing={0.7} sx={{ mt: 0.3 }}>
-                            <FiberManualRecordIcon sx={{ fontSize: 7, color: crqStatusDot(crq, colors) }} />
+                            <FiberManualRecordIcon
+                              className={statusMeta.chipLabel === "In Progress" ? "status-pulse-dot" : undefined}
+                              sx={{ fontSize: 7, color: statusMeta.dot }}
+                            />
                             <Typography
                               sx={{ fontSize: 11, color: colors.textSecondary, fontWeight: 600 }}
                               noWrap
@@ -191,6 +211,20 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
                               {WORKFLOW_STAGES[stageIdx].shortLabel}
                             </Typography>
                           </Stack>
+                        </Box>
+                        <Box
+                          sx={{
+                            fontSize: 9.5,
+                            fontWeight: 800,
+                            px: "8px",
+                            py: "2px",
+                            borderRadius: "20px",
+                            whiteSpace: "nowrap",
+                            bgcolor: statusMeta.chipBg,
+                            color: statusMeta.chipFg,
+                          }}
+                        >
+                          {statusMeta.chipLabel}
                         </Box>
                       </Stack>
 

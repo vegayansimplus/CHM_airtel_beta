@@ -52,6 +52,8 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
     mode === "editable"
       ? { bg: colors.successDim, fg: colors.success }
       : { bg: colors.trackOff, fg: colors.textDim };
+  const bannerBg = mode === "editable" ? colors.successDim : colors.trackOff;
+  const bannerBorder = mode === "editable" ? colors.successBorder : colors.border;
 
   return (
     <Stack
@@ -61,8 +63,8 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
       flexWrap="wrap"
       spacing={1.5}
       sx={{
-        bgcolor: colors.surface,
-        border: `1px solid ${colors.border}`,
+        bgcolor: bannerBg,
+        border: `1px solid ${bannerBorder}`,
         borderRadius: colors.radiusL,
         px: 2.25,
         py: 1.6,
@@ -78,6 +80,7 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
             fontWeight: 800,
             fontSize: 11,
             textTransform: "uppercase",
+            letterSpacing: "0.4px",
             bgcolor: badgePalette.bg,
             color: badgePalette.fg,
           }}
@@ -93,7 +96,7 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
       </Stack>
 
       {mode === "editable" ? (
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1.1}>
           <Button
             variant="contained"
             size="small"
@@ -105,9 +108,19 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
             sx={{
               textTransform: "none",
               fontWeight: 700,
+              fontSize: 13,
               borderRadius: "10px",
-              bgcolor: isRunning ? colors.danger : colors.success,
-              "&:hover": { bgcolor: isRunning ? colors.danger : colors.success, opacity: 0.9 },
+              px: 2.2,
+              py: 1,
+              boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
+              border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
+              background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
+              color: isRunning ? colors.danger : "#fff",
+              "&:hover": {
+                boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
+                background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
+                transform: "translateY(-1px)",
+              },
             }}
           >
             {isRunning ? "Pause" : "Start Stage"}
@@ -120,9 +133,15 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
             sx={{
               textTransform: "none",
               fontWeight: 700,
+              fontSize: 13,
               borderRadius: "10px",
+              px: 2,
+              py: 1,
+              borderWidth: "1.5px",
               borderColor: colors.accentBorder,
               color: colors.accent,
+              bgcolor: colors.surface,
+              "&:hover": { bgcolor: colors.accentDim, borderColor: colors.accent },
             }}
           >
             Review {stageLabel}
@@ -136,6 +155,7 @@ export const StageActionBar: React.FC<StageActionBarProps> = ({
             height: 28,
             fontWeight: 800,
             fontSize: 12,
+            px: 0.5,
             bgcolor: mode === "view" ? colors.successDim : colors.trackOff,
             color: mode === "view" ? colors.success : colors.textDim,
           }}
