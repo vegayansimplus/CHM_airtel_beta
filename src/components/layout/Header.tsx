@@ -36,6 +36,7 @@ import { toast } from "react-toastify";
 import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useLogoutMutation } from "../../features/auth/api/auth.api";
 import { logout } from "../../features/auth/slices/auth.slice";
+import { authStorage } from "../../app/store/auth.storage";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
 
 // ── Import the notification bell ──────────────────────────────────────────────
@@ -98,10 +99,10 @@ const Header: React.FC<HeaderProps> = ({
     } catch {
       console.warn("Logout API failed, continuing local logout");
     } finally {
-      sessionStorage.removeItem("access_token");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("auth_user");
-      localStorage.clear();
+      // Only clear the auth keys, not the whole storage — a blanket
+      // localStorage.clear() also wiped unrelated saved preferences
+      // (theme, brand colour, sidebar state) on every logout.
+      authStorage.clear();
       dispatch(logout());
       navigate("/login", { replace: true });
       setLoading(false);
