@@ -36,6 +36,11 @@ import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { useGetCrqReviewQuery } from "../../api/crqreviewApiSlice";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
+import {
+  AttributeUpdateDialog,
+  useOpenAttributeUpdate,
+} from "../../sub-feature/attributeUpdate";
 
 interface PlanAndInventoryPageProps {
   domainId?: number;
@@ -351,6 +356,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   );
 
   const [openReviewDialog, setOpenReviewDialog] = useState(false);
+  const openAttributeUpdate = useOpenAttributeUpdate();
 
   const handleOpenReviewDialog = () => {
     if (!selectedCrq) return;
@@ -436,6 +442,14 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         disabled={!selectedCrq}
         onClick={handleOpenReviewDialog}
         startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
+
+      <CustomActionButton
+        label="Attribute Update"
+        disabled={!selectedCrq}
+        onClick={() => selectedCrq && openAttributeUpdate(selectedCrq, "review")}
+        startIcon={<EditNoteRoundedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
 
@@ -606,6 +620,8 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
           console.log("Review Submitted:", data);
         }}
       />
+
+      <AttributeUpdateDialog />
     </Box>
   );
 };

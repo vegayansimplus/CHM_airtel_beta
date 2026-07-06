@@ -20,6 +20,7 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
@@ -34,6 +35,10 @@ import { StageReviewDialog } from "./dialog/StageReviewDialog";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import type { StageKey } from "../../types/stageWorkflow.types";
+import {
+  AttributeUpdateDialog,
+  useOpenAttributeUpdate,
+} from "../../sub-feature/attributeUpdate";
 
 interface GenericStagePageProps {
   stageKey: StageKey;
@@ -77,6 +82,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const stageConfig = getStageConfig(stageKey);
 
   const { toggleStartPause, submitDone } = useStageWorkflow(stageKey);
+  const openAttributeUpdate = useOpenAttributeUpdate();
 
   const [plansOriginal, setPlansOriginal] = useState<any[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
@@ -230,6 +236,14 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         colors={colors}
       />
 
+      <CustomActionButton
+        label="Attribute Update"
+        disabled={!selectedCrq}
+        onClick={() => selectedCrq && openAttributeUpdate(selectedCrq, stageKey)}
+        startIcon={<EditNoteRoundedIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
+
       <Stack direction="row" spacing={0.8}>
         <Chip label={`${filteredPlans.length} plans`} size="small" sx={{ height: 24, fontSize: 11, fontWeight: 700 }} />
         <Chip
@@ -307,6 +321,8 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         stageConfig={stageConfig}
         onSubmitDone={handleSubmitDone}
       />
+
+      <AttributeUpdateDialog />
     </Box>
   );
 };
