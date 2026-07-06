@@ -26,8 +26,6 @@ const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30_000;
 
 const GLOBAL_CSS = `
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-
   @keyframes lp-fadeUp  { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
   @keyframes lp-slideL  { from{opacity:0;transform:translateX(-28px);} to{opacity:1;transform:translateX(0);} }
   @keyframes lp-slideR  { from{opacity:0;transform:translateX(28px);}  to{opacity:1;transform:translateX(0);} }
@@ -46,7 +44,7 @@ const GLOBAL_CSS = `
   .lp-field .MuiOutlinedInput-root {
     background: #F8FAFD; border-radius: 9px !important;
     color: #0C1B2E; font-size: 13.5px;
-    font-family: 'Plus Jakarta Sans', sans-serif;
+    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
     transition: box-shadow 0.2s, background 0.2s;
   }
   .lp-field .MuiOutlinedInput-root:hover { background: #EEF4FC; }
@@ -54,9 +52,9 @@ const GLOBAL_CSS = `
   .lp-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #185FA5 !important; border-width: 1.5px !important; }
   .lp-field .MuiOutlinedInput-root.Mui-focused { background: #EEF4FC; box-shadow: 0 0 0 3px rgba(24,95,165,0.1); }
   .lp-field .MuiOutlinedInput-notchedOutline { border-color: rgba(12,27,46,0.12) !important; }
-  .lp-field .MuiInputLabel-root            { color: rgba(12,27,46,0.45); font-size: 13px; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .lp-field .MuiInputLabel-root            { color: rgba(12,27,46,0.45); font-size: 13px; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; }
   .lp-field .MuiInputLabel-root.Mui-focused { color: #185FA5; }
-  .lp-field .MuiInputBase-input            { color: #0C1B2E; font-family: 'Plus Jakarta Sans', sans-serif; }
+  .lp-field .MuiInputBase-input            { color: #0C1B2E; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; }
   .lp-field .MuiInputBase-input::placeholder { color: rgba(12,27,46,0.3); }
   .lp-field .MuiSvgIcon-root              { color: rgba(12,27,46,0.3) !important; }
   .lp-field .MuiInputAdornment-root .MuiIconButton-root { color: rgba(12,27,46,0.4); }
@@ -488,7 +486,7 @@ const LoginPage: React.FC = () => {
                 letterSpacing: "0.07em",
                 textTransform: "uppercase",
                 color: "#16A34A",
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
               }}
             >
               All Systems Operational
@@ -505,7 +503,7 @@ const LoginPage: React.FC = () => {
               color: "#0C1B2E",
               mb: 2,
               animation: "lp-fadeUp 0.6s 0.18s both",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
             }}
           >
             Change
@@ -534,7 +532,7 @@ const LoginPage: React.FC = () => {
               maxWidth: 370,
               mb: 4.5,
               animation: "lp-fadeUp 0.6s 0.24s both",
-              fontFamily: "'Plus Jakarta Sans', sans-serif",
+              fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
             }}
           >
             Streamline operational workflows, approvals, and change requests
@@ -560,7 +558,7 @@ const LoginPage: React.FC = () => {
             />
             <Typography
               sx={{
-                fontFamily: "'Plus Jakarta Sans', sans-serif",
+                fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                 fontSize: "10.5px",
                 color: "rgba(12,27,46,0.28)",
                 letterSpacing: "0.03em",
@@ -662,7 +660,7 @@ const LoginPage: React.FC = () => {
                   <Box>
                     <Typography
                       sx={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                         fontSize: "11px",
                         fontWeight: 700,
                         color: "#185FA5",
@@ -675,7 +673,7 @@ const LoginPage: React.FC = () => {
                     </Typography>
                     <Typography
                       sx={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                         fontSize: "9.5px",
                         color: "rgba(12,27,46,0.35)",
                         letterSpacing: "0.04em",
@@ -691,7 +689,7 @@ const LoginPage: React.FC = () => {
 
               <Typography
                 sx={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                   fontSize: "22px",
                   fontWeight: 700,
                   letterSpacing: "-0.6px",
@@ -704,7 +702,7 @@ const LoginPage: React.FC = () => {
               </Typography>
               <Typography
                 sx={{
-                  fontFamily: "'Plus Jakarta Sans', sans-serif",
+                  fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                   fontSize: "12.5px",
                   color: "rgba(12,27,46,0.42)",
                   mb: 3.5,
@@ -746,7 +744,7 @@ const LoginPage: React.FC = () => {
                       component="a"
                       href="#"
                       sx={{
-                        fontFamily: "'Plus Jakarta Sans', sans-serif",
+                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
                         fontSize: "11px",
                         color: "#185FA5",
                         textDecoration: "none",
@@ -769,7 +767,7 @@ const LoginPage: React.FC = () => {
                   />
                   <Typography
                     sx={{
-                      fontFamily: "'DM Mono', monospace",
+                      fontFamily: "Consolas, 'Courier New', monospace",
                       fontSize: "9px",
                       color: "rgba(12,27,46,0.28)",
                     }}
@@ -783,7 +781,7 @@ const LoginPage: React.FC = () => {
                   />
                   <Typography
                     sx={{
-                      fontFamily: "'DM Mono', monospace",
+                      fontFamily: "Consolas, 'Courier New', monospace",
                       fontSize: "9px",
                       color: "rgba(12,27,46,0.28)",
                       ml: 0.4,

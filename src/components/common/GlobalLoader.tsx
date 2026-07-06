@@ -2,6 +2,7 @@ import { useSelector } from "react-redux";
 import { Backdrop } from "@mui/material";
 import { FadeLoader } from "react-spinners";
 import { selectIsLoading } from "../../app/loadingSlice";
+
 const GlobalLoader = () => {
   const isLoading = useSelector(selectIsLoading);
   return (

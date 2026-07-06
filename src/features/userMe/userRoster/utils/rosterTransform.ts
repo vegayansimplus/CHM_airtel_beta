@@ -1,13 +1,5 @@
 import moment from "moment";
-
-export interface CalendarEvent {
-  id: string;
-  title: string;
-  start: Date;
-  end: Date;
-  allDay: boolean;
-  resource?: any;
-}
+import type { CalendarEvent, RosterDay } from "../types/roster.types";
 
 export const parseShiftTime = (shift: string) => {
   const match = shift.match(/\(([^)]+)\)/);
@@ -25,7 +17,9 @@ export const parseShiftTime = (shift: string) => {
   };
 };
 
-export const transformRosterToEvents = (roster: Record<string, any>): CalendarEvent[] => {
+export const transformRosterToEvents = (
+  roster: Record<string, RosterDay>,
+): CalendarEvent[] => {
   return Object.entries(roster).map(([date, value], index) => {
     const shift = value.shiftDisplay || "";
 

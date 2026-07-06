@@ -1,12 +1,12 @@
 import React, { memo } from "react";
-import {type  ToolbarProps } from "react-big-calendar";
+import { type ToolbarProps } from "react-big-calendar";
 import {
-  Box,
   Button,
   ButtonGroup,
   IconButton,
   Typography,
   Select,
+  type SelectChangeEvent,
   MenuItem,
   Stack,
   useMediaQuery,
@@ -15,8 +15,9 @@ import {
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import TodayIcon from "@mui/icons-material/Today";
+import type { CalendarEvent } from "../types/roster.types";
 
-interface CustomToolbarProps extends ToolbarProps {
+interface CustomToolbarProps extends ToolbarProps<CalendarEvent, object> {
   currentView: "month" | "week" | "day";
   onDateChange: (date: Date) => void;
 }
@@ -26,7 +27,7 @@ const CustomToolbar: React.FC<CustomToolbarProps> = (props) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
-  const handleYearChange = (event: any) => {
+  const handleYearChange = (event: SelectChangeEvent<number>) => {
     const newYear = event.target.value;
     const newDate = new Date(date.setFullYear(newYear));
     onDateChange(newDate); // Custom prop to update parent state accurately
