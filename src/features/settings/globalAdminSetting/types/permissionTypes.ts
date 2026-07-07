@@ -23,10 +23,16 @@ export type DrawerKind = "role" | "module" | "sub-module";
 
 export interface DrawerState {
   kind: DrawerKind;
+  /** "create" (default) or "rename" an existing entity. */
+  mode?: "create" | "rename";
   /** Module the new sub-module will belong to (only relevant for kind "sub-module") */
   contextModuleId?: number;
   /** Pre-selected "copy permissions from" role (only relevant for kind "role", set via Duplicate) */
   presetCopyFromRoleId?: number;
+  /** id of the entity being renamed (only relevant when mode is "rename") */
+  entityId?: number;
+  /** current name to pre-fill the label field with (only relevant when mode is "rename") */
+  initialLabel?: string;
 }
 
 export interface RailMenuAnchor {

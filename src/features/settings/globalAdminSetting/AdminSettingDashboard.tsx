@@ -27,6 +27,8 @@ import {
   DeselectOutlined,
   RestartAltOutlined,
   BlockOutlined,
+  DriveFileRenameOutlineOutlined,
+  DeleteOutlineOutlined,
 } from "@mui/icons-material";
 import { useTabColorTokens } from "../../../style/theme";
 import { useGlobalPermissionsController } from "./hooks/useGlobalPermissionsController";
@@ -347,13 +349,28 @@ export const AdminSettingDashboard: React.FC = () => {
         </Box>
       </Box>
 
-      {/* ── Role rail context menu (Duplicate only — no rename/delete endpoints exist) ── */}
+      {/* ── Role rail context menu ── */}
       <Menu
         anchorEl={s.railMenuAnchor?.el}
         open={!!s.railMenuAnchor}
         onClose={() => s.setRailMenuAnchor(null)}
         PaperProps={{ sx: { bgcolor: c.surface, border: `1px solid ${c.border}`, borderRadius: "8px", minWidth: 200 } }}
       >
+        <MenuItem
+          sx={{ fontSize: "0.8rem", color: c.textPrimary }}
+          onClick={() => {
+            const roleId = s.railMenuAnchor!.roleId;
+            const role = s.roles.find((r) => r.roleId === roleId);
+            s.setRailMenuAnchor(null);
+            s.setDrawerState({ kind: "role", mode: "rename", entityId: roleId, initialLabel: role?.roleCode ?? "" });
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+          </ListItemIcon>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename role…</ListItemText>
+        </MenuItem>
+
         <MenuItem
           sx={{ fontSize: "0.8rem", color: c.textPrimary }}
           onClick={() => {
@@ -394,13 +411,30 @@ export const AdminSettingDashboard: React.FC = () => {
         </MenuItem>
       </Menu>
 
-      {/* ── Module rail context menu (Disable only — no rename/delete endpoints exist) ── */}
+      {/* ── Module rail context menu ── */}
       <Menu
         anchorEl={s.moduleMenuAnchor?.el}
         open={!!s.moduleMenuAnchor}
         onClose={() => s.setModuleMenuAnchor(null)}
         PaperProps={{ sx: { bgcolor: c.surface, border: `1px solid ${c.border}`, borderRadius: "8px", minWidth: 200 } }}
       >
+        <MenuItem
+          sx={{ fontSize: "0.8rem", color: c.textPrimary }}
+          onClick={() => {
+            const moduleId = s.moduleMenuAnchor!.moduleId;
+            const mod = s.modules.find((m) => m.moduleId === moduleId);
+            s.setModuleMenuAnchor(null);
+            s.setDrawerState({ kind: "module", mode: "rename", entityId: moduleId, initialLabel: mod?.moduleName ?? "" });
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 28 }}>
+            <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+          </ListItemIcon>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename module…</ListItemText>
+        </MenuItem>
+
+        <Divider sx={{ borderColor: c.border, my: "4px" }} />
+
         <MenuItem
           sx={{ fontSize: "0.8rem", color: c.danger }}
           onClick={() => {
@@ -435,6 +469,27 @@ export const AdminSettingDashboard: React.FC = () => {
       >
         {s.subMenuAnchor && (
           <>
+            <MenuItem
+              sx={{ fontSize: "0.8rem", color: c.textPrimary }}
+              onClick={() => {
+                const row = s.subMenuAnchor!.row;
+                s.setSubMenuAnchor(null);
+                s.setDrawerState({
+                  kind: "sub-module",
+                  mode: "rename",
+                  entityId: row.subModuleId,
+                  initialLabel: row.subModuleName,
+                });
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 28 }}>
+                <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+              </ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename sub-module…</ListItemText>
+            </MenuItem>
+
+            <Divider sx={{ borderColor: c.border, my: "4px" }} />
+
             <MenuItem
               sx={{ fontSize: "0.8rem", color: c.textPrimary }}
               onClick={() => {
@@ -484,6 +539,28 @@ export const AdminSettingDashboard: React.FC = () => {
               </ListItemIcon>
               <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Reset to defaults…</ListItemText>
             </MenuItem>
+
+            <MenuItem
+              sx={{ fontSize: "0.8rem", color: c.danger }}
+              onClick={() => {
+                const row = s.subMenuAnchor!.row;
+                s.setSubMenuAnchor(null);
+                s.setConfirmDialog({
+                  open: true,
+                  title: "Delete sub-module?",
+                  body: `This permanently deletes "${row.subModuleName}" and every role's permission mapping for it. This cannot be undone.`,
+                  onConfirm: () => {
+                    s.handleDeleteSubModule(row.subModuleId);
+                    s.setConfirmDialog((d) => ({ ...d, open: false }));
+                  },
+                });
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 28 }}>
+                <DeleteOutlineOutlined sx={{ fontSize: 14, color: c.danger }} />
+              </ListItemIcon>
+              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Delete sub-module…</ListItemText>
+            </MenuItem>
           </>
         )}
       </Menu>
@@ -497,6 +574,9 @@ export const AdminSettingDashboard: React.FC = () => {
         onCreateRole={s.handleCreateRole}
         onCreateModule={s.handleCreateModule}
         onCreateSubModule={s.handleCreateSubModule}
+        onRenameRole={s.handleRenameRole}
+        onRenameModule={s.handleRenameModule}
+        onRenameSubModule={s.handleRenameSubModule}
         c={c}
       />
 

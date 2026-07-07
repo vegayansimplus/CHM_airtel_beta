@@ -88,6 +88,21 @@ export interface CreateSubModuleRequest {
   subModuleCode: string;
 }
 
+export interface RenameRoleRequest {
+  roleId: number;
+  newRoleCode: string;
+}
+
+export interface RenameModuleRequest {
+  moduleId: number;
+  newModuleName: string;
+}
+
+export interface RenameSubModuleRequest {
+  subModuleId: number;
+  newSubModuleName: string;
+}
+
 // ─────────────────────────────────────────────────────────────
 //  API slice
 // ─────────────────────────────────────────────────────────────
@@ -183,12 +198,32 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
       invalidatesTags: [ROLES_LIST_TAG, PERMISSIONS_LIST_TAG],
     }),
 
+    // ── Rename Role ───────────────────────────────────────────
+    renameRole: builder.mutation<ApiResponse, RenameRoleRequest>({
+      query: ({ roleId, newRoleCode }) => ({
+        url: "/global-settings/permissions/rename-role",
+        method: "POST",
+        params: { roleId, newRoleCode },
+      }),
+      invalidatesTags: [ROLES_LIST_TAG],
+    }),
+
     // ── Create Module ────────────────────────────────────────
     createNewModule: builder.mutation<ApiResponse, CreateModuleRequest>({
       query: ({ moduleCode }) => ({
         url: "/global-settings/permissions/create-new-module",
         method: "POST",
         params: { moduleCode },
+      }),
+      invalidatesTags: [MODULES_LIST_TAG],
+    }),
+
+    // ── Rename Module ─────────────────────────────────────────
+    renameModule: builder.mutation<ApiResponse, RenameModuleRequest>({
+      query: ({ moduleId, newModuleName }) => ({
+        url: "/global-settings/permissions/rename-module",
+        method: "POST",
+        params: { moduleId, newModuleName },
       }),
       invalidatesTags: [MODULES_LIST_TAG],
     }),
@@ -209,6 +244,26 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
         url: "/global-settings/permissions/create-new-sub-module",
         method: "POST",
         params: { moduleId, subModuleCode },
+      }),
+      invalidatesTags: [SUB_MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
+    }),
+
+    // ── Rename Sub-module ─────────────────────────────────────
+    renameSubModule: builder.mutation<ApiResponse, RenameSubModuleRequest>({
+      query: ({ subModuleId, newSubModuleName }) => ({
+        url: "/global-settings/permissions/rename-sub-module",
+        method: "POST",
+        params: { subModuleId, newSubModuleName },
+      }),
+      invalidatesTags: [SUB_MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
+    }),
+
+    // ── Delete Sub-module ─────────────────────────────────────
+    deleteSubModule: builder.mutation<ApiResponse, { subModuleId: number }>({
+      query: ({ subModuleId }) => ({
+        url: "/global-settings/permissions/delete-sub-module",
+        method: "POST",
+        params: { subModuleId },
       }),
       invalidatesTags: [SUB_MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
     }),
@@ -260,9 +315,13 @@ export const {
   useAddNewRolePermissionMutation,
   useDisableRoleMutation,
   useCreateNewRoleMutation,
+  useRenameRoleMutation,
   useDisableModuleMutation,
   useCreateNewModuleMutation,
+  useRenameModuleMutation,
   useCreateNewSubModuleMutation,
+  useRenameSubModuleMutation,
+  useDeleteSubModuleMutation,
   useGetAllRolePermissionsQuery,
   useGetAllRolePermissionQuery,
 } = globalSettingsPermissionApi;

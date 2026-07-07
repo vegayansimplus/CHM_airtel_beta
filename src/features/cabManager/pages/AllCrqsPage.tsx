@@ -6,12 +6,17 @@ import {
   IconButton,
   MenuItem,
   Paper,
-  Skeleton,
   Stack,
-  Table, TableBody, TableCell, TableHead, TableRow,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 import AddIcon from "@mui/icons-material/Add";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
@@ -24,7 +29,7 @@ import { ImpactChip, SlaBar, StageChip, StatusChip } from "../components/shared/
 import { errMsg } from "../components/shared/errMsg";
 import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
 import type {
-  Circle, CrqFilters, CrqStage, Domain, ImpactCode,
+  Circle, Crq, CrqFilters, CrqStage, Domain, ImpactCode,
 } from "../types/types";
 
 const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"];
@@ -36,6 +41,8 @@ const STAGE_FILTERS: { label: string; value: CrqStage | "all" }[] = [
 
 export function AllCrqsPage() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [filters, setFilters] = useState<CrqFilters>({});
   const [selected, setSelected] = useState<string | null>(null);
   const [openNew, setOpenNew] = useState(false);
@@ -49,6 +56,153 @@ export function AllCrqsPage() {
     () => Object.values(filters).some((v) => v !== undefined && v !== "" && v !== "all"),
     [filters]
   );
+
+  const columns = useMemo<MRT_ColumnDef<Crq>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "CRQ ID",
+        size: 130,
+        Cell: ({ row }) => (
+          <Box>
+            <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>
+              {row.original.id}
+            </Typography>
+            {row.original.assignedToMe && (
+              <Typography sx={{ fontSize: 10, color: "#ED6C02", fontWeight: 600, letterSpacing: 0.3 }}>YOUR APPROVAL</Typography>
+            )}
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "activity",
+        header: "Activity",
+        Cell: ({ row }) => (
+          <Box>
+            <Typography variant="body2">{row.original.activity}</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
+              {row.original.hostname} · {row.original.technology}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "domain",
+        header: "Domain",
+        size: 150,
+        Cell: ({ row }) => (
+          <Box>
+            <Typography variant="body2">{row.original.domain}</Typography>
+            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                Circle {row.original.circle} ·
+              </Typography>
+              <ImpactChip impact={row.original.impact} />
+            </Stack>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "stage",
+        header: "Stage",
+        size: 130,
+        filterVariant: "select",
+        filterSelectOptions: [...STAGES],
+        Cell: ({ cell }) => <StageChip stage={cell.getValue<CrqStage>()} />,
+      },
+      {
+        accessorKey: "sla",
+        header: "SLA",
+        size: 130,
+        Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
+      },
+      {
+        accessorKey: "approver",
+        header: "Approver",
+        size: 130,
+      },
+      {
+        accessorKey: "scheduled",
+        header: "Scheduled",
+        size: 120,
+        Cell: ({ row }) => (
+          <Box>
+            <Typography variant="body2">{row.original.scheduled}</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
+              {row.original.window}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        size: 130,
+        Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["status"]>()} />,
+      },
+      {
+        id: "action",
+        header: "Action",
+        size: 70,
+        enableSorting: false,
+        muiTableHeadCellProps: { align: "right" },
+        muiTableBodyCellProps: { align: "right" },
+        Cell: ({ row }) => (
+          <IconButton size="small" onClick={(e) => { e.stopPropagation(); navigate(`/cabmanager/journey/${row.original.id}`); }}>
+            <MoreVertIcon fontSize="small" />
+          </IconButton>
+        ),
+      },
+    ],
+    [navigate],
+  );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: data ?? [],
+    state: { isLoading },
+    initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },
+    enableTopToolbar: false,
+    enableStickyHeader: true,
+    paginationDisplayMode: "pages",
+    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 } },
+    muiTableHeadCellProps: {
+      sx: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: "text.secondary",
+        py: 0.75,
+        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      },
+    },
+    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
+    muiTableBodyRowProps: ({ row }) => ({
+      hover: true,
+      onClick: () => setSelected(row.original.id),
+      sx: {
+        cursor: "pointer",
+        bgcolor: row.original.assignedToMe ? "rgba(237, 108, 2, 0.04)" : undefined,
+        "&:hover td": { backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.04) },
+        transition: "background-color 100ms ease",
+      },
+    }),
+    muiBottomToolbarProps: {
+      sx: {
+        borderTop: `1px solid ${theme.palette.divider}`,
+        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
+        px: 1,
+      },
+    },
+    muiPaginationProps: {
+      shape: "rounded",
+      size: "small",
+      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
+    },
+  });
 
   return (
     <Box>
@@ -127,81 +281,7 @@ export function AllCrqsPage() {
         )}
 
         {/* Table */}
-        {isLoading ? (
-          <Box sx={{ p: 2 }}>
-            <Stack spacing={1}>
-              {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} variant="rounded" height={56} />)}
-            </Stack>
-          </Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "#FAFAFA" }}>
-                <TableCell>CRQ ID</TableCell>
-                <TableCell>Activity</TableCell>
-                <TableCell>Domain</TableCell>
-                <TableCell>Stage</TableCell>
-                <TableCell>SLA</TableCell>
-                <TableCell>Approver</TableCell>
-                <TableCell>Scheduled</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell align="right">Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {data?.map((r) => (
-                <TableRow
-                  key={r.id}
-                  hover
-                  onClick={() => setSelected(r.id)}
-                  sx={{
-                    cursor: "pointer",
-                    bgcolor: r.assignedToMe ? "rgba(237, 108, 2, 0.04)" : undefined,
-                  }}
-                >
-                  <TableCell sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>
-                    {r.id}
-                    {r.assignedToMe && (
-                      <Typography sx={{ fontSize: 10, color: "#ED6C02", fontWeight: 600, letterSpacing: 0.3 }}>YOUR APPROVAL</Typography>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{r.activity}</Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
-                      {r.hostname} · {r.technology}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Box>
-                        <Typography variant="body2">{r.domain}</Typography>
-                        <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                            Circle {r.circle} ·
-                          </Typography>
-                          <ImpactChip impact={r.impact} />
-                        </Stack>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell><StageChip stage={r.stage} /></TableCell>
-                  <TableCell><SlaBar sla={r.sla} /></TableCell>
-                  <TableCell>{r.approver}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{r.scheduled}</Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{r.window}</Typography>
-                  </TableCell>
-                  <TableCell><StatusChip status={r.status} /></TableCell>
-                  <TableCell align="right">
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); navigate(`/cabmanager/journey/${r.id}`); }}>
-                      <MoreVertIcon fontSize="small" />
-                    </IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <MaterialReactTable table={table} />
       </Paper>
 
       <CrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />

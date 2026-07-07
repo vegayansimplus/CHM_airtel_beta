@@ -15,6 +15,9 @@ interface CreateEntityDrawerProps {
   onCreateRole: (roleCode: string, copiedRoleId?: number) => Promise<void>;
   onCreateModule: (moduleCode: string) => Promise<void>;
   onCreateSubModule: (subModuleCode: string, moduleId: number) => Promise<void>;
+  onRenameRole: (roleId: number, newLabel: string) => Promise<void>;
+  onRenameModule: (moduleId: number, newLabel: string) => Promise<void>;
+  onRenameSubModule: (subModuleId: number, newLabel: string) => Promise<void>;
   c: ReturnType<typeof useTabColorTokens>;
 }
 
@@ -26,22 +29,27 @@ export const CreateEntityDrawer: React.FC<CreateEntityDrawerProps> = ({
   onCreateRole,
   onCreateModule,
   onCreateSubModule,
+  onRenameRole,
+  onRenameModule,
+  onRenameSubModule,
   c,
 }) => {
   const [label, setLabel] = useState("");
   const [copyFromRoleId, setCopyFromRoleId] = useState<number | "">("");
   const [submitting, setSubmitting] = useState(false);
 
+  const isRename = state?.mode === "rename";
+
   useEffect(() => {
     if (!open || !state) return;
-    setLabel("");
+    setLabel(state.mode === "rename" ? (state.initialLabel ?? "") : "");
     setCopyFromRoleId(state.presetCopyFromRoleId ?? "");
   }, [open, state]);
 
   const titleMap: Record<DrawerState["kind"], string> = {
-    role: "Create Role",
-    module: "Create Module",
-    "sub-module": "Add Sub-module",
+    role: isRename ? "Rename Role" : "Create Role",
+    module: isRename ? "Rename Module" : "Create Module",
+    "sub-module": isRename ? "Rename Sub-module" : "Add Sub-module",
   };
 
   const placeholderMap: Record<DrawerState["kind"], string> = {
@@ -55,16 +63,31 @@ export const CreateEntityDrawer: React.FC<CreateEntityDrawerProps> = ({
     if (!trimmed || !state || submitting) return;
     setSubmitting(true);
     try {
-      switch (state.kind) {
-        case "role":
-          await onCreateRole(trimmed, copyFromRoleId === "" ? undefined : copyFromRoleId);
-          break;
-        case "module":
-          await onCreateModule(trimmed);
-          break;
-        case "sub-module":
-          if (state.contextModuleId != null) await onCreateSubModule(trimmed, state.contextModuleId);
-          break;
+      if (isRename) {
+        if (state.entityId == null) return;
+        switch (state.kind) {
+          case "role":
+            await onRenameRole(state.entityId, trimmed);
+            break;
+          case "module":
+            await onRenameModule(state.entityId, trimmed);
+            break;
+          case "sub-module":
+            await onRenameSubModule(state.entityId, trimmed);
+            break;
+        }
+      } else {
+        switch (state.kind) {
+          case "role":
+            await onCreateRole(trimmed, copyFromRoleId === "" ? undefined : copyFromRoleId);
+            break;
+          case "module":
+            await onCreateModule(trimmed);
+            break;
+          case "sub-module":
+            if (state.contextModuleId != null) await onCreateSubModule(trimmed, state.contextModuleId);
+            break;
+        }
       }
     } finally {
       setSubmitting(false);
@@ -150,7 +173,7 @@ export const CreateEntityDrawer: React.FC<CreateEntityDrawerProps> = ({
           </Box>
         </Typography>
 
-        {state?.kind === "role" && (
+        {state?.kind === "role" && !isRename && (
           <>
             <Divider sx={{ borderColor: c.border, my: 2 }} />
             <Typography fontSize="0.72rem" fontWeight={600} color={c.textSecondary} display="block" mb={0.75}>
@@ -201,7 +224,7 @@ export const CreateEntityDrawer: React.FC<CreateEntityDrawerProps> = ({
             cursor: label.trim() && !submitting ? "pointer" : "not-allowed",
           }}
         >
-          {submitting ? "Creating…" : "Create"}
+          {submitting ? (isRename ? "Renaming…" : "Creating…") : isRename ? "Rename" : "Create"}
         </Box>
       </Box>
     </Drawer>
