@@ -9,133 +9,69 @@ import {
   type ThemeOptions,
 } from "@mui/material/styles";
 
-// ─── Color Token Types ─────────────────────────────────────────────────────────
-interface ColorTokens {
-  grey: { [key: number]: string };
-  primary: { [key: number]: string };
-  greenAccent: { [key: number]: string };
-  redAccent: { [key: number]: string };
-  blueAccent: { [key: number]: string };
+/* ================================
+   CONTRAST UTILITIES
+   Small WCAG relative-luminance helpers so every color decision in this
+   file (button text, badge text, chip text) is verifiably accessible
+   instead of guessed — this matters because the brand accent and the
+   status hues below are picked from a swatch list, not fixed values.
+================================ */
+function hexToRgb(hex: string): [number, number, number] {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  return [
+    parseInt(h.slice(0, 2), 16),
+    parseInt(h.slice(2, 4), 16),
+    parseInt(h.slice(4, 6), 16),
+  ];
 }
 
-export const tokens = (mode: "light" | "dark"): ColorTokens => ({
-  ...(mode === "dark"
-    ? {
-        grey: {
-          100: "#e0e0e0",
-          200: "#c2c2c2",
-          300: "#a3a3a3",
-          400: "#858585",
-          500: "#666666",
-          600: "#525252",
-          700: "#3d3d3d",
-          800: "#292929",
-          900: "#141414",
-        },
-        primary: {
-          100: "#d0d1d5",
-          200: "#a1a4ab",
-          300: "#727681",
-          400: "#1F2A40",
-          450: "#202738",
-          500: "#141b2d",
-          600: "#101624",
-          700: "#0c101b",
-          800: "#080b12",
-          900: "#040509",
-        },
-        greenAccent: {
-          100: "#dbf5ee",
-          200: "#b7ebde",
-          300: "#94e2cd",
-          400: "#70d8bd",
-          500: "#4cceac",
-          600: "#3da58a",
-          700: "#2e7c67",
-          800: "#1e5245",
-          900: "#0f2922",
-        },
-        redAccent: {
-          100: "#f8dcdb",
-          200: "#f1b9b7",
-          300: "#e99592",
-          400: "#e2726e",
-          500: "#db4f4a",
-          600: "#af3f3b",
-          700: "#832f2c",
-          800: "#58201e",
-          900: "#2c100f",
-        },
-        blueAccent: {
-          100: "#e1e2fe",
-          200: "#c3c6fd",
-          300: "#a4a9fc",
-          400: "#868dfb",
-          500: "#6870fa",
-          600: "#535ac8",
-          700: "#3e4396",
-          800: "#2a2d64",
-          900: "#151632",
-        },
-      }
-    : {
-        grey: {
-          100: "#141414",
-          200: "#292929",
-          300: "#3d3d3d",
-          400: "#525252",
-          500: "#666666",
-          600: "#858585",
-          700: "#a3a3a3",
-          800: "#c2c2c2",
-          900: "#e0e0e0",
-        },
-        primary: {
-          100: "#040509",
-          200: "#080b12",
-          300: "#0c101b",
-          400: "#f2f0f0",
-          500: "#141b2d",
-          600: "#1F2A40",
-          700: "#727681",
-          800: "#a1a4ab",
-          900: "#d0d1d5",
-        },
-        greenAccent: {
-          100: "#0f2922",
-          200: "#1e5245",
-          300: "#2e7c67",
-          400: "#3da58a",
-          500: "#4cceac",
-          600: "#70d8bd",
-          700: "#94e2cd",
-          800: "#b7ebde",
-          900: "#dbf5ee",
-        },
-        redAccent: {
-          100: "#2c100f",
-          200: "#58201e",
-          300: "#832f2c",
-          400: "#af3f3b",
-          500: "#db4f4a",
-          600: "#e2726e",
-          700: "#e99592",
-          800: "#f1b9b7",
-          900: "#f8dcdb",
-        },
-        blueAccent: {
-          100: "#151632",
-          200: "#2a2d64",
-          300: "#3e4396",
-          400: "#535ac8",
-          500: "#6870fa",
-          600: "#868dfb",
-          700: "#a4a9fc",
-          800: "#c3c6fd",
-          900: "#e1e2fe",
-        },
-      }),
-});
+function relativeLuminance(hex: string): number {
+  const [r, g, b] = hexToRgb(hex).map((c) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function contrastRatio(hexA: string, hexB: string): number {
+  const l1 = relativeLuminance(hexA);
+  const l2 = relativeLuminance(hexB);
+  const [hi, lo] = l1 > l2 ? [l1, l2] : [l2, l1];
+  return (hi + 0.05) / (lo + 0.05);
+}
+
+/** Picks whichever of the two text colors clears WCAG AA (4.5:1) against `bg` — falls back to the higher-contrast option if neither clears it. */
+function pickAccessibleText(
+  bg: string,
+  light = "#FFFFFF",
+  dark = "#0B1420",
+): string {
+  const toLight = contrastRatio(bg, light);
+  const toDark = contrastRatio(bg, dark);
+  if (toLight >= 4.5 && toLight >= toDark) return light;
+  if (toDark >= 4.5) return dark;
+  return toLight >= toDark ? light : dark;
+}
+
+/* ================================
+   SEMANTIC COLOR RAMPS
+   Single source of truth for each status hue. Every surface, border,
+   dim-fill, and alert override below reads from these five stops
+   instead of re-typing hex — that duplication is what let "danger"
+   and "info" tokens drift to different hues than palette.error/info
+   in the previous version of this file.
+   100 = softest tint (light-mode fill)   500 = base / brand hue
+   300 = dark-mode text/fill               700 = light-mode strong accent
+                                            900 = light-mode alert text
+================================ */
+const SUCCESS = { 100: "#E1F5EE", 300: "#5DCAA5", 500: "#1D9E75", 700: "#0F6E56", 900: "#085041" };
+const ERROR = { 100: "#FCEBEB", 300: "#F09595", 500: "#E24B4A", 700: "#A32D2D", 900: "#791F1F" };
+const WARNING = { 100: "#FAEEDA", 300: "#FAC775", 500: "#EF9F27", 700: "#854F0B", 900: "#633806" };
+const INFO = { 100: "#E6F1FB", 300: "#85B7EB", 500: "#378ADD", 700: "#185FA5", 900: "#0C447C" };
+
+/** A surface deliberately darker/lighter than `background.paper` — used only by the sidebar/drawer, which sit visually "below" cards. */
+const SURFACE_SUNKEN = { light: "#FFFFFF", dark: "#0E1621" } as const;
 
 /* ================================
    BRAND / ACCENT COLOR OPTIONS
@@ -173,8 +109,17 @@ export const themeSettings = (
   const primaryMain = primaryColor;
   const primaryLight = lighten(primaryColor, 0.28);
   const primaryDark = darken(primaryColor, 0.28);
+  const primaryContrastText = pickAccessibleText(primaryMain);
   const focusRing = alpha(primaryMain, isDark ? 0.1 : 0.06);
   const focusRingStrong = alpha(primaryMain, isDark ? 0.2 : 0.12);
+
+  const bgDefault = isDark ? "#0C1117" : "#F4F6F9";
+  const bgPaper = isDark ? "#131C2B" : "#FFFFFF";
+  const textPrimary = isDark ? "#E8EDF5" : "#0D1B2A";
+  const textSecondary = isDark ? "#7B90A8" : "#4A5568";
+  const textDisabled = isDark ? "#3E5068" : "#A0AEC0";
+  const borderColor = isDark ? "rgba(255,255,255,0.06)" : "rgba(13,27,42,0.08)";
+  const sidebarSurface = SURFACE_SUNKEN[mode];
 
   return {
     palette: {
@@ -184,50 +129,59 @@ export const themeSettings = (
         main: primaryMain, // User-selectable brand accent — driven by the header theme control
         light: primaryLight,
         dark: primaryDark,
+        contrastText: primaryContrastText,
       },
 
+      // Mirrors `success` exactly — kept as a distinct MUI palette slot only
+      // because a handful of components (AppStepper, ProfileDrawer) read
+      // `palette.secondary` for "completed/positive" accents.
       secondary: {
-        main: "#0F6E56", // Teal-green — success / positive states
-        light: "#1D9E75",
-        dark: "#085041",
+        main: SUCCESS[500],
+        light: SUCCESS[300],
+        dark: SUCCESS[700],
+        contrastText: pickAccessibleText(SUCCESS[500]),
       },
 
       error: {
-        main: "#E24B4A",
-        light: "#F09595",
-        dark: "#A32D2D",
+        main: ERROR[500],
+        light: ERROR[300],
+        dark: ERROR[700],
+        contrastText: pickAccessibleText(ERROR[500]),
       },
 
       warning: {
-        main: "#EF9F27",
-        light: "#FAC775",
-        dark: "#854F0B",
+        main: WARNING[500],
+        light: WARNING[300],
+        dark: WARNING[700],
+        contrastText: pickAccessibleText(WARNING[500]),
       },
 
       info: {
-        main: "#378ADD",
-        light: "#85B7EB",
-        dark: "#185FA5",
+        main: INFO[500],
+        light: INFO[300],
+        dark: INFO[700],
+        contrastText: pickAccessibleText(INFO[500]),
       },
 
       success: {
-        main: "#1D9E75",
-        light: "#5DCAA5",
-        dark: "#0F6E56",
+        main: SUCCESS[500],
+        light: SUCCESS[300],
+        dark: SUCCESS[700],
+        contrastText: pickAccessibleText(SUCCESS[500]),
       },
 
       background: {
-        default: isDark ? "#0C1117" : "#F4F6F9", // Page / outer shell
-        paper: isDark ? "#131C2B" : "#FFFFFF", // Cards / sidebar / header
+        default: bgDefault, // Page / outer shell
+        paper: bgPaper, // Cards / sidebar / header
       },
 
       text: {
-        primary: isDark ? "#E8EDF5" : "#0D1B2A",
-        secondary: isDark ? "#7B90A8" : "#4A5568",
-        disabled: isDark ? "#3E5068" : "#A0AEC0",
+        primary: textPrimary,
+        secondary: textSecondary,
+        disabled: textDisabled,
       },
 
-      divider: isDark ? "rgba(255,255,255,0.06)" : "rgba(13,27,42,0.08)",
+      divider: borderColor,
 
       action: {
         hover: isDark ? "rgba(255,255,255,0.04)" : "rgba(13,27,42,0.04)",
@@ -235,7 +189,7 @@ export const themeSettings = (
         disabledBackground: isDark
           ? "rgba(255,255,255,0.06)"
           : "rgba(13,27,42,0.06)",
-        disabled: isDark ? "#3E5068" : "#A0AEC0",
+        disabled: textDisabled,
       },
     },
 
@@ -277,7 +231,7 @@ export const themeSettings = (
       caption: {
         fontSize: 11,
         letterSpacing: "0.04em",
-        color: isDark ? "#7B90A8" : "#4A5568",
+        color: textSecondary,
       },
 
       overline: {
@@ -293,7 +247,7 @@ export const themeSettings = (
       MuiCssBaseline: {
         styleOverrides: {
           body: {
-            backgroundColor: isDark ? "#0C1117" : "#F4F6F9",
+            backgroundColor: bgDefault,
             "&::-webkit-scrollbar": { width: 6, height: 6 },
             "&::-webkit-scrollbar-track": {
               background: "transparent",
@@ -314,9 +268,7 @@ export const themeSettings = (
         styleOverrides: {
           root: {
             backgroundImage: "none",
-            border: isDark
-              ? "1px solid rgba(255,255,255,0.05)"
-              : "1px solid rgba(13,27,42,0.07)",
+            border: `1px solid ${borderColor}`,
           },
           elevation1: {
             boxShadow: isDark
@@ -331,10 +283,8 @@ export const themeSettings = (
         styleOverrides: {
           root: {
             borderRadius: 12,
-            backgroundColor: isDark ? "#131C2B" : "#FFFFFF",
-            border: isDark
-              ? "1px solid rgba(255,255,255,0.05)"
-              : "1px solid rgba(13,27,42,0.07)",
+            backgroundColor: bgPaper,
+            border: `1px solid ${borderColor}`,
             boxShadow: isDark
               ? "0 4px 20px rgba(0,0,0,0.3)"
               : "0 4px 20px rgba(13,27,42,0.06)",
@@ -356,13 +306,13 @@ export const themeSettings = (
           },
           containedPrimary: {
             backgroundColor: primaryMain,
-            color: "#FFFFFF",
+            color: primaryContrastText,
             "&:hover": { backgroundColor: primaryDark },
             "&.Mui-disabled": {
               backgroundColor: isDark
                 ? "rgba(255,255,255,0.07)"
                 : "rgba(13,27,42,0.07)",
-              color: isDark ? "#3E5068" : "#A0AEC0",
+              color: textDisabled,
             },
           },
           outlinedPrimary: {
@@ -503,7 +453,7 @@ export const themeSettings = (
             fontWeight: 500,
             fontSize: 13,
             minHeight: 44,
-            color: isDark ? "#7B90A8" : "#4A5568",
+            color: textSecondary,
             "&.Mui-selected": {
               color: primaryMain,
               fontWeight: 600,
@@ -521,9 +471,7 @@ export const themeSettings = (
         styleOverrides: {
           root: {
             borderRadius: "10px !important",
-            border: isDark
-              ? "1px solid rgba(255,255,255,0.06)"
-              : "1px solid rgba(13,27,42,0.08)",
+            border: `1px solid ${borderColor}`,
             boxShadow: "none",
             "&:before": { display: "none" },
             "&.Mui-expanded": { margin: 0 },
@@ -540,9 +488,7 @@ export const themeSettings = (
               ? "rgba(255,255,255,0.02)"
               : "rgba(13,27,42,0.015)",
             "&.Mui-expanded": {
-              borderBottom: isDark
-                ? "1px solid rgba(255,255,255,0.06)"
-                : "1px solid rgba(13,27,42,0.08)",
+              borderBottom: `1px solid ${borderColor}`,
             },
             "& .MuiAccordionSummary-content": {
               my: "10px !important",
@@ -565,9 +511,7 @@ export const themeSettings = (
         styleOverrides: {
           root: {
             fontSize: 12,
-            borderColor: isDark
-              ? "rgba(255,255,255,0.05)"
-              : "rgba(13,27,42,0.07)",
+            borderColor: borderColor,
             padding: "8px 12px",
           },
           head: {
@@ -575,7 +519,7 @@ export const themeSettings = (
             fontWeight: 600,
             textTransform: "uppercase",
             letterSpacing: "0.05em",
-            color: isDark ? "#7B90A8" : "#4A5568",
+            color: textSecondary,
             backgroundColor: isDark
               ? "rgba(255,255,255,0.02)"
               : "rgba(13,27,42,0.015)",
@@ -596,6 +540,8 @@ export const themeSettings = (
       },
 
       // ── Alert ──────────────────────────────────────────────────────────
+      // Each variant reads from the same SUCCESS/ERROR/WARNING/INFO ramp
+      // used everywhere else, so "danger" always means the same red.
       MuiAlert: {
         styleOverrides: {
           root: {
@@ -604,32 +550,24 @@ export const themeSettings = (
             alignItems: "center",
           },
           standardInfo: {
-            backgroundColor: isDark ? "rgba(55,138,221,0.12)" : "#E6F1FB",
-            color: isDark ? "#85B7EB" : "#0C447C",
-            border: isDark
-              ? "1px solid rgba(55,138,221,0.25)"
-              : "1px solid #B5D4F4",
+            backgroundColor: isDark ? alpha(INFO[500], 0.12) : INFO[100],
+            color: isDark ? INFO[300] : INFO[900],
+            border: `1px solid ${isDark ? alpha(INFO[500], 0.25) : INFO[300]}`,
           },
           standardWarning: {
-            backgroundColor: isDark ? "rgba(239,159,39,0.12)" : "#FAEEDA",
-            color: isDark ? "#FAC775" : "#633806",
-            border: isDark
-              ? "1px solid rgba(239,159,39,0.25)"
-              : "1px solid #FAC775",
+            backgroundColor: isDark ? alpha(WARNING[500], 0.12) : WARNING[100],
+            color: isDark ? WARNING[300] : WARNING[900],
+            border: `1px solid ${isDark ? alpha(WARNING[500], 0.25) : WARNING[300]}`,
           },
           standardError: {
-            backgroundColor: isDark ? "rgba(226,75,74,0.12)" : "#FCEBEB",
-            color: isDark ? "#F09595" : "#791F1F",
-            border: isDark
-              ? "1px solid rgba(226,75,74,0.25)"
-              : "1px solid #F7C1C1",
+            backgroundColor: isDark ? alpha(ERROR[500], 0.12) : ERROR[100],
+            color: isDark ? ERROR[300] : ERROR[900],
+            border: `1px solid ${isDark ? alpha(ERROR[500], 0.25) : ERROR[300]}`,
           },
           standardSuccess: {
-            backgroundColor: isDark ? "rgba(29,158,117,0.12)" : "#E1F5EE",
-            color: isDark ? "#5DCAA5" : "#085041",
-            border: isDark
-              ? "1px solid rgba(29,158,117,0.25)"
-              : "1px solid #9FE1CB",
+            backgroundColor: isDark ? alpha(SUCCESS[500], 0.12) : SUCCESS[100],
+            color: isDark ? SUCCESS[300] : SUCCESS[900],
+            border: `1px solid ${isDark ? alpha(SUCCESS[500], 0.25) : SUCCESS[300]}`,
           },
         },
       },
@@ -638,10 +576,8 @@ export const themeSettings = (
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            backgroundColor: isDark ? "#0E1621" : "#FFFFFF",
-            borderRight: isDark
-              ? "1px solid rgba(255,255,255,0.06)"
-              : "1px solid rgba(13,27,42,0.08)",
+            backgroundColor: sidebarSurface,
+            borderRight: `1px solid ${borderColor}`,
           },
         },
       },
@@ -653,8 +589,8 @@ export const themeSettings = (
             fontSize: 11,
             fontWeight: 500,
             borderRadius: 6,
-            backgroundColor: isDark ? "#1E2D40" : "#0D1B2A",
-            color: isDark ? "#E8EDF5" : "#F4F6F9",
+            backgroundColor: isDark ? "#1E2D40" : textPrimary,
+            color: isDark ? textPrimary : bgDefault,
             padding: "5px 10px",
           },
         },
@@ -664,9 +600,7 @@ export const themeSettings = (
       MuiDivider: {
         styleOverrides: {
           root: {
-            borderColor: isDark
-              ? "rgba(255,255,255,0.06)"
-              : "rgba(13,27,42,0.08)",
+            borderColor: borderColor,
           },
         },
       },
@@ -739,12 +673,16 @@ export const useMode = (): [
 };
 
 /* ================================
-   TAB COLOR TOKENS
+   SEMANTIC UI TOKENS
+   The canonical token API consumed by feature components — surfaces,
+   borders, and status colors all derive from the active MUI theme
+   (so they always track palette.mode + the selected brand color) and
+   from the SUCCESS/ERROR/WARNING/INFO ramps above (so "danger" here is
+   always the same red as theme.palette.error, never a different one).
 ================================ */
 
 export function useTabColorTokens(theme: Theme) {
   const isDark = theme.palette.mode === "dark";
-  const colors = tokens(theme.palette.mode);
   const primaryMain = theme.palette.primary.main;
 
   return {
@@ -752,6 +690,7 @@ export function useTabColorTokens(theme: Theme) {
     bg: theme.palette.background.default, // #0C1117 / #F4F6F9
     surface: theme.palette.background.paper, // #131C2B / #FFFFFF
     surface2: isDark ? "#1A2436" : "#F0F4F8", // Slightly elevated surface
+    sidebarBg: SURFACE_SUNKEN[theme.palette.mode],
 
     // ── Borders ───────────────────────────────────────────────────────────
     border: theme.palette.divider,
@@ -763,33 +702,32 @@ export function useTabColorTokens(theme: Theme) {
     accentDim: alpha(primaryMain, isDark ? 0.1 : 0.05),
     accentBorder: alpha(primaryMain, isDark ? 0.3 : 0.2),
 
-    // ── Success / teal ────────────────────────────────────────────────────
-    success: theme.palette.secondary.main, // #0F6E56
-    successDim: isDark ? "rgba(15,110,86,0.12)" : "rgba(15,110,86,0.07)",
-    successBorder: isDark ? "rgba(15,110,86,0.30)" : "rgba(15,110,86,0.20)",
+    // ── Success / green ───────────────────────────────────────────────────
+    success: theme.palette.success.main,
+    successDim: alpha(theme.palette.success.main, isDark ? 0.12 : 0.07),
+    successBorder: alpha(theme.palette.success.main, isDark ? 0.3 : 0.2),
 
     // ── Danger / red ──────────────────────────────────────────────────────
-    danger: isDark ? colors.redAccent[400] : colors.redAccent[500],
-    dangerDim: isDark ? "rgba(226,75,74,0.12)" : "rgba(226,75,74,0.07)",
-    dangerBorder: isDark ? "rgba(226,75,74,0.30)" : "rgba(226,75,74,0.20)",
+    danger: theme.palette.error.main,
+    dangerDim: alpha(theme.palette.error.main, isDark ? 0.12 : 0.07),
+    dangerBorder: alpha(theme.palette.error.main, isDark ? 0.3 : 0.2),
 
     // ── Warning / amber ───────────────────────────────────────────────────
-    warning: isDark ? "#FAC775" : "#854F0B",
-    warningDim: isDark ? "rgba(239,159,39,0.12)" : "rgba(239,159,39,0.07)",
-    warningBorder: isDark ? "rgba(239,159,39,0.30)" : "rgba(239,159,39,0.20)",
+    warning: isDark ? WARNING[300] : WARNING[700],
+    warningDim: alpha(theme.palette.warning.main, isDark ? 0.12 : 0.07),
+    warningBorder: alpha(theme.palette.warning.main, isDark ? 0.3 : 0.2),
 
-    // ── Info / lighter blue ───────────────────────────────────────────────
-    info: isDark ? colors.blueAccent[400] : colors.blueAccent[500],
-    infoDim: isDark ? "rgba(104,112,250,0.10)" : "rgba(104,112,250,0.07)",
-    infoBorder: isDark ? "rgba(104,112,250,0.28)" : "rgba(104,112,250,0.22)",
+    // ── Info / blue ───────────────────────────────────────────────────────
+    info: theme.palette.info.main,
+    infoDim: alpha(theme.palette.info.main, isDark ? 0.1 : 0.07),
+    infoBorder: alpha(theme.palette.info.main, isDark ? 0.28 : 0.22),
 
     // ── Text ──────────────────────────────────────────────────────────────
     textPrimary: theme.palette.text.primary,
     textSecondary: theme.palette.text.secondary,
-    textDim: isDark ? "#3E5068" : "#A0AEC0",
+    textDim: theme.palette.text.disabled,
 
     // ── Sidebar / nav specific ────────────────────────────────────────────
-    sidebarBg: isDark ? "#0E1621" : "#FFFFFF",
     selectedRow: alpha(primaryMain, isDark ? 0.12 : 0.07),
     selectedBar: primaryMain,
 

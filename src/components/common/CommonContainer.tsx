@@ -1,9 +1,7 @@
 import { Box, useTheme } from "@mui/material";
-import { tokens } from "../../style/theme";
 
 const CommonContainer = ({ children }: { children: React.ReactNode }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
 
   return (
     <Box
@@ -27,7 +25,7 @@ const CommonContainer = ({ children }: { children: React.ReactNode }) => {
           xl: "8px 16px",
           // xl: "18px",
         },
-        bgcolor: theme.palette.mode === "dark" ? colors.primary[400] : "#f7f9fa",
+        bgcolor: theme.palette.background.default,
       }}
     >
       {children}
