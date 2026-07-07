@@ -1,3 +1,4 @@
+import { memo } from "react";
 import {
   TableCell,
   Stack,
@@ -49,7 +50,9 @@ const getInitials = (name: string) =>
     .substring(0, 2)
     .toUpperCase() || "??";
 
-export const RosterEmployeeCell = ({ user }: any) => {
+export const RosterEmployeeCell = memo(function RosterEmployeeCell({
+  user,
+}: any) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const CELL_BORDER = isDark ? "rgba(255,255,255,.06)" : "#F0F0F2";
@@ -110,4 +113,4 @@ export const RosterEmployeeCell = ({ user }: any) => {
       </Stack>
     </TableCell>
   );
-};
+});

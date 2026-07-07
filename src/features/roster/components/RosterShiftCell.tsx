@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import {
   TableCell,
   Box,
@@ -14,137 +14,10 @@ import dayjs from "dayjs";
 import { isFutureDate } from "../utils/dateUtils";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { usePermission } from "../../auth/hooks/usePermission";
-
-/* ─── Types ─────────────────────────────────────────────────────────────── */
-export interface ShiftStyle {
-  badgeBg: string;
-  cardBg: string;
-  cardBgDark: string;
-  cardBorder: string;
-  cardBorderDark: string;
-  textColor: string;
-  textColorDark: string;
-  glowColor: string;
-}
-
-export const SHIFT_COLOR_MAP: Record<string, ShiftStyle> = {
-  G: {
-    badgeBg: "#3B82F6",
-    cardBg: "#EEF5FF",
-    cardBgDark: "#0c1f3d",
-    cardBorder: "#C3D9FE",
-    cardBorderDark: "#1d4ed8",
-    textColor: "#1E40AF",
-    textColorDark: "#93c5fd",
-    glowColor: "rgba(59,130,246,.22)",
-  },
-  LG: {
-    badgeBg: "#10B981",
-    cardBg: "#EDFBF3",
-    cardBgDark: "#022c22",
-    cardBorder: "#9DECBF",
-    cardBorderDark: "#059669",
-    textColor: "#065F46",
-    textColorDark: "#6ee7b7",
-    glowColor: "rgba(16,185,129,.2)",
-  },
-  B: {
-    badgeBg: "#F59E0B",
-    cardBg: "#FFF8EE",
-    cardBgDark: "#2c1800",
-    cardBorder: "#FCD97D",
-    cardBorderDark: "#d97706",
-    textColor: "#854D0E",
-    textColorDark: "#fcd34d",
-    glowColor: "rgba(245,158,11,.2)",
-  },
-  N: {
-    badgeBg: "#6366F1",
-    cardBg: "#F1F0FF",
-    cardBgDark: "#1e1b4b",
-    cardBorder: "#C0B8FD",
-    cardBorderDark: "#4338ca",
-    textColor: "#3730A3",
-    textColorDark: "#a5b4fc",
-    glowColor: "rgba(99,102,241,.22)",
-  },
-  A: {
-    badgeBg: "#FBBF24",
-    cardBg: "#FFFCEE",
-    cardBgDark: "#271e00",
-    cardBorder: "#FCE98D",
-    cardBorderDark: "#b45309",
-    textColor: "#78350F",
-    textColorDark: "#fde68a",
-    glowColor: "rgba(251,191,36,.2)",
-  },
-  L: {
-    badgeBg: "#EC4899",
-    cardBg: "#FEF0FA",
-    cardBgDark: "#3b0a20",
-    cardBorder: "#F9C4E8",
-    cardBorderDark: "#be185d",
-    textColor: "#9D174D",
-    textColorDark: "#f9a8d4",
-    glowColor: "rgba(236,72,153,.2)",
-  },
-  H: {
-    badgeBg: "#F43F5E",
-    cardBg: "#FFF0F2",
-    cardBgDark: "#2d0a0e",
-    cardBorder: "#FECDD3",
-    cardBorderDark: "#be123c",
-    textColor: "#881337",
-    textColorDark: "#fda4af",
-    glowColor: "rgba(244,63,94,.2)",
-  },
-  C: {
-    badgeBg: "#94A3B8",
-    cardBg: "#F8FAFC",
-    cardBgDark: "#1e293b",
-    cardBorder: "#E2E8F0",
-    cardBorderDark: "#475569",
-    textColor: "#475569",
-    textColorDark: "#cbd5e1",
-    glowColor: "rgba(148,163,184,.15)",
-  },
-  NJ: {
-    badgeBg: "#F59E0B",
-    cardBg: "#FFFBEB",
-    cardBgDark: "#292000",
-    cardBorder: "#FDE68A",
-    cardBorderDark: "#92400e",
-    textColor: "#78350F",
-    textColorDark: "#fcd34d",
-    glowColor: "rgba(245,158,11,.18)",
-  },
-  W: {
-    badgeBg: "#D1D5DB",
-    cardBg: "#FAFAFA",
-    cardBgDark: "#111827",
-    cardBorder: "#E4E7EC",
-    cardBorderDark: "#374151",
-    textColor: "#98A2B3",
-    textColorDark: "#6b7280",
-    glowColor: "rgba(0,0,0,.06)",
-  },
-};
-
-/* ─── Shift key resolver ─────────────────────────────────────────────────── */
-function resolveShiftKey(
-  shift: any,
-  isOff: boolean,
-  isLeave: boolean,
-): string {
-  if (isOff) return "W";
-  if (isLeave) return "L";
-  const d = (shift?.shiftDisplay ?? "").trim();
-  if (d === "New Joinee") return "NJ";
-  if (d === "Holiday") return "H";
-  if (d === "Comp Off" || d === "CO") return "C";
-  if (d.startsWith("LG")) return "LG";
-  return d.charAt(0).toUpperCase() || "W";
-}
+import {
+  SHIFT_COLOR_MAP,
+  resolveShiftKeyFromShift,
+} from "../constant/shiftPalette";
 
 /* ─── Props ─────────────────────────────────────────────────────────────── */
 interface RosterShiftCellProps {
@@ -164,7 +37,7 @@ interface RosterShiftCellProps {
 }
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
-export const RosterShiftCell = ({
+export const RosterShiftCell = memo(function RosterShiftCell({
   shift,
   shiftDate,
   rowUserId,
@@ -173,7 +46,7 @@ export const RosterShiftCell = ({
   isSelectedForSwap,
   isSwapMode,
   highlightShift = "",
-}: RosterShiftCellProps) => {
+}: RosterShiftCellProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { user, role } = useAuth();
@@ -186,7 +59,7 @@ export const RosterShiftCell = ({
     shift?.type === "Leave";
   const isRegular = !isOff && !isLeave;
   const isToday = dayjs(shiftDate).isSame(dayjs(), "day");
-  const shiftKey = resolveShiftKey(shift, isOff, isLeave);
+  const shiftKey = resolveShiftKeyFromShift(shift);
   const style = SHIFT_COLOR_MAP[shiftKey] ?? SHIFT_COLOR_MAP.W;
 
   const cardBg = isDark ? style.cardBgDark : style.cardBg;
@@ -500,4 +373,4 @@ export const RosterShiftCell = ({
       </Tooltip>
     </TableCell>
   );
-};
+});

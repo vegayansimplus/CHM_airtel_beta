@@ -8,6 +8,12 @@ export const getCardSx = (c: Colors) => ({
   border: `1.5px solid ${c.border}`,
   boxShadow: c.isDark ? "0 2px 12px rgba(0,0,0,.4)" : "0 2px 12px rgba(60,60,140,.06)",
   background: c.surface,
+  transition: "box-shadow .22s ease, border-color .22s ease, transform .22s ease",
+  "&:hover": {
+    borderColor: c.borderHover,
+    boxShadow: getHoverShadow(c),
+    transform: "translateY(-2px)",
+  },
 });
 
 export const getHoverShadow = (c: Colors) =>

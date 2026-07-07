@@ -7,6 +7,7 @@ export const MODULE_ROUTE_MAP: Record<string, string[]> = {
   "Roster Managemement":        ["/roster", "/generateroster"],  // note: API has typo, keep it
   "Notification System":        ["/inbox"],
   "Role-Based Access Control":  ["/scheduler"],
+  "Cab Manager":                ["/cabmanager"],
   "Authentication":             [],  // auth module — no dedicated route
 };
 
@@ -17,6 +18,7 @@ export const ROUTE_MODULE_MAP: Record<string, string> = {
   "/roster":           "Roster Managemement",
   "/generateroster":   "Roster Managemement",
   "/scheduler":        "Role-Based Access Control",
+  "/cabmanager":       "Cab Manager",
   "/inbox":            "Notification System",
   "/me":               null,   // available to all authenticated users
   "/home":             null,   // available to all

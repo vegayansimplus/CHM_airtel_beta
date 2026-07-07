@@ -64,4 +64,8 @@ export interface StatCardConfig {
   sub: string;
   tone: ToneKey;
   icon: StatIconKey;
+  /** Small badge next to the label, e.g. "▲ 8%" — tone drives its colour. */
+  delta?: { text: string; tone: ToneKey };
+  /** Last few data points rendered as a mini sparkline at the card foot. */
+  trend?: readonly number[];
 }
