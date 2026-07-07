@@ -13,9 +13,9 @@ export function SectionHeader({ title, subtitle, right, colors }: SectionHeaderP
   return (
     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: "12px" }}>
       <Box>
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary }}>{title}</Typography>
+        <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>{title}</Typography>
         {subtitle && (
-          <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: 0.3, fontWeight: 500 }}>
+          <Typography sx={{ fontSize: 11, color: colors.textSecondary, mt: 0.3, fontWeight: 500 }}>
             {subtitle}
           </Typography>
         )}

@@ -1,7 +1,6 @@
 import React from "react";
-import { Box, Card, Typography, Grid, useTheme } from "@mui/material";
+import { Box, Card, Typography, Grid, useTheme, alpha } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
-import { tokens } from "../../../../style/theme";
 import type { TeamDataEntryType } from "../../types/TeamDataEntryType";
 
 interface TeamTopInfoCardProps {
@@ -20,7 +19,7 @@ const LevelBadge = ({
   value: number;
   bg: string;
   iconColor: string;
-  color?: string;
+  color: string;
   highlight?: boolean;
 }) => (
   <Box
@@ -30,7 +29,7 @@ const LevelBadge = ({
       py: 1.5,
       borderRadius: 2,
       bgcolor: bg,
-      color: color || "inherit",
+      color,
       display: "flex",
       flexDirection: "column",
       alignItems: "center",
@@ -43,13 +42,13 @@ const LevelBadge = ({
       },
     }}
   >
-    <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.5 }}>
+    <Typography variant="caption" sx={{ fontWeight: 700, letterSpacing: 0.5, color: "inherit" }}>
       {label}
     </Typography>
 
     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
       <PersonIcon fontSize="small" sx={{ color: iconColor }} />
-      <Typography variant="h6" fontWeight="bold">
+      <Typography variant="h6" fontWeight="bold" sx={{ color: "inherit" }}>
         {value}
       </Typography>
     </Box>
@@ -60,7 +59,23 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
   levelCount,
 }) => {
   const theme = useTheme();
-  const colors = tokens(theme.palette.mode);
+  const isDark = theme.palette.mode === "dark";
+
+  // Fixed-hue badges (independent of the selectable brand color) with
+  // dark-mode variants — the previous version used light-mode-only pastel
+  // backgrounds combined with an inherited (near-white in dark mode) text
+  // color, which made the label/count fully unreadable in dark mode.
+  // Light-mode text colors are darkened from the raw palette hue until they
+  // clear 4.5:1 against their own tint background (the raw hues read fine
+  // as icon accents but fail WCAG AA once used as caption/value text).
+  const levelStyles = {
+    L1: { bg: isDark ? alpha(theme.palette.info.main, 0.16) : "#E3F2FD", color: isDark ? theme.palette.info.light : "#176DC1" },
+    L2: { bg: isDark ? alpha(theme.palette.success.main, 0.16) : "#E8F5E9", color: isDark ? theme.palette.success.light : "#2E7D32" },
+    L3: { bg: isDark ? alpha(theme.palette.warning.main, 0.16) : "#FFF3E0", color: isDark ? theme.palette.warning.light : "#B65200" },
+    L4: { bg: isDark ? alpha(theme.palette.error.main, 0.16) : "#FBE9E7", color: isDark ? theme.palette.error.light : "#C23C13" },
+  } as const;
+  const totalBg = isDark ? theme.palette.primary.dark : "#1E3A8A";
+  const totalColor = theme.palette.getContrastText(totalBg);
 
   const activeMembers = levelCount.filter(
     (item) => item.status?.toLowerCase() === "active"
@@ -142,33 +157,37 @@ export const TeamTopInfoCard: React.FC<TeamTopInfoCardProps> = ({
             <LevelBadge
               label="L1"
               value={levelCounts["L1"] || 0}
-              bg="#E3F2FD"
-              iconColor="#1976D2"
+              bg={levelStyles.L1.bg}
+              iconColor={levelStyles.L1.color}
+              color={levelStyles.L1.color}
             />
             <LevelBadge
               label="L2"
               value={levelCounts["L2"] || 0}
-              bg="#E8F5E9"
-              iconColor="#2E7D32"
+              bg={levelStyles.L2.bg}
+              iconColor={levelStyles.L2.color}
+              color={levelStyles.L2.color}
             />
             <LevelBadge
               label="L3"
               value={levelCounts["L3"] || 0}
-              bg="#FFF3E0"
-              iconColor="#EF6C00"
+              bg={levelStyles.L3.bg}
+              iconColor={levelStyles.L3.color}
+              color={levelStyles.L3.color}
             />
             <LevelBadge
               label="L4"
               value={levelCounts["L4"] || 0}
-              bg="#FBE9E7"
-              iconColor="#D84315"
+              bg={levelStyles.L4.bg}
+              iconColor={levelStyles.L4.color}
+              color={levelStyles.L4.color}
             />
             <LevelBadge
               label="Total (Active) "
               value={totalActive}
-              bg="#1E3A8A"
-              iconColor="#FFFFFF"
-              color="white"
+              bg={totalBg}
+              iconColor={totalColor}
+              color={totalColor}
             />
     
           </Box>

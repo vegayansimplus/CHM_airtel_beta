@@ -13,6 +13,7 @@ export const PROFILE = {
   id: "B0324261",
 };
 
+export const TODAY_DATE_LABEL = "Fri, Mar 20, 2025";
 export const WORK_LOCATION_DATE_LABEL = "Fri, Mar 21";
 export const WEEKLY_SCHEDULE_RANGE_LABEL = "Mar 15 – 21, 2025";
 
@@ -52,8 +53,42 @@ export const WFH_WEEK: WorkModeDay[] = [
 ];
 
 export const STAT_CARDS: StatCardConfig[] = [
-  { key: "tasks", label: "Total tasks", display: 12, sub: "8 done today", tone: "accent", icon: "trending" },
-  { key: "pending", label: "Pending", display: 4, sub: "1 urgent", tone: "warning", icon: "clock" },
-  { key: "shift", label: "Shift duration", display: "9h", sub: "General", tone: "success", icon: "calendar" },
-  { key: "holiday", label: "Next holiday", display: "8d", sub: "Good Friday", tone: "info", icon: "event" },
+  {
+    key: "tasks",
+    label: "Total tasks",
+    display: 12,
+    sub: "8 done today",
+    tone: "accent",
+    icon: "trending",
+    delta: { text: "▲ 8%", tone: "success" },
+    trend: [5, 7, 6, 9, 8, 11, 12],
+  },
+  {
+    key: "pending",
+    label: "Pending",
+    display: 4,
+    sub: "1 urgent",
+    tone: "warning",
+    icon: "clock",
+    delta: { text: "▼ 2 today", tone: "success" },
+    trend: [9, 7, 8, 6, 6, 5, 4],
+  },
+  {
+    key: "shift",
+    label: "Shift duration",
+    display: "9h",
+    sub: "General · 09:30–18:30",
+    tone: "success",
+    icon: "calendar",
+    trend: [9, 9, 8.5, 9, 9, 8.5, 9],
+  },
+  {
+    key: "holiday",
+    label: "Next holiday",
+    display: "8d",
+    sub: "Good Friday · Mar 29",
+    tone: "info",
+    icon: "event",
+    trend: [13, 12, 11, 10, 9, 8.5, 8],
+  },
 ];

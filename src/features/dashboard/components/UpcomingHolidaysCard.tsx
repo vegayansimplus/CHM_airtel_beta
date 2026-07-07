@@ -15,12 +15,12 @@ export function UpcomingHolidaysCard({ holidays, colors, mounted, delay }: Upcom
   const tones = getToneStyles(colors);
 
   return (
-    <Card sx={{ ...getCardSx(colors), p: "14px", ...fadeIn(mounted, delay) }}>
+    <Card sx={{ ...getCardSx(colors), p: "16px", ...fadeIn(mounted, delay) }}>
       <SectionHeader
         title="Upcoming holidays"
         colors={colors}
         right={
-          <Typography sx={{ fontSize: 10, color: colors.accent, fontWeight: 700, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+          <Typography sx={{ fontSize: 11, color: colors.accent, fontWeight: 700, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
             All
           </Typography>
         }
@@ -55,14 +55,14 @@ export function UpcomingHolidaysCard({ holidays, colors, mounted, delay }: Upcom
                     boxShadow: `0 3px 10px ${tone.border}`,
                   }}
                 >
-                  <Typography sx={{ fontSize: 7, fontWeight: 700, color: "rgba(255,255,255,.75)", letterSpacing: ".7px" }}>
+                  <Typography sx={{ fontSize: 8, fontWeight: 700, color: "rgba(255,255,255,.8)", letterSpacing: ".7px" }}>
                     {h.month}
                   </Typography>
                   <Typography sx={{ fontSize: 18, fontWeight: 900, color: "#fff", lineHeight: 1 }}>{h.day}</Typography>
                 </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700, color: colors.textPrimary }}>{h.name}</Typography>
-                  <Typography sx={{ fontSize: 9, color: colors.textSecondary, mt: "1px" }}>{h.type}</Typography>
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary }}>{h.name}</Typography>
+                  <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px" }}>{h.type}</Typography>
                 </Box>
                 <Chip
                   label={h.countdown}

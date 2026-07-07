@@ -1,5 +1,4 @@
 import { Box, useTheme } from "@mui/material";
-import { useTabColorTokens } from "../../style/theme";
 
 export const CommonContainerWithoutTab = ({
   children,
@@ -7,7 +6,6 @@ export const CommonContainerWithoutTab = ({
   children: React.ReactNode;
 }) => {
   const theme = useTheme();
-  const bg = useTabColorTokens(theme);
 
   return (
     <Box
@@ -32,10 +30,8 @@ export const CommonContainerWithoutTab = ({
           lg: "4px 40px",
           xl: "8px 16px",
         },
-        // Use page background — not the accentDim tint
-        // backgroundColor: theme.palette.background.default,
-        backgroundColor: bg.accentDim,
-        
+        backgroundColor: theme.palette.background.default,
+
       }}
     >
       {children}

@@ -5,7 +5,6 @@ import { CssBaseline, ThemeProvider } from "@mui/material";
 import Header from "./components/layout/Header";
 import SideBar from "./components/layout/SideBar";
 import { Home } from "@mui/icons-material";
-import GlobalBackdrop from "./components/common/GlobalBackdrop";
 import AppRoutes from "./routes/AppRoutes";
 import { PublicRoute } from "./routes/PublicRoute";
 import LoginPage from "./features/auth/pages/LoginPage";
@@ -31,8 +30,6 @@ const App: React.FC = () => {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <div className="app">
-            <GlobalBackdrop />
-
             {isAuth && (
               <>
                 <Header

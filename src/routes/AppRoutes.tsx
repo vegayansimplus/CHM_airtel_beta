@@ -14,7 +14,7 @@ import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
 import MonthlyRosterPageTab from "../features/roster/page/MonthlyRosterPageTab";
 import { RosterViewMain } from "../features/roster/page/RosterViewMain";
 import UserMeMainPageTab from "../features/userMe/pages/UserMeMainPageTab";
-import { UserRosterMain } from "../features/userMe/userRoster/UserRosterMain";
+import { UserRosterMain } from "../features/userMe/pages/UserRosterMain";
 import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
 import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGeneratorTab";

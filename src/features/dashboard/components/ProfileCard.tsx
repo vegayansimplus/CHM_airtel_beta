@@ -1,6 +1,6 @@
 import { Box, Card, Typography } from "@mui/material";
 import type { Colors } from "../types/colorTypes";
-import { fadeIn } from "../constants/dashboard.styles";
+import { fadeIn, getCardSx } from "../constants/dashboard.styles";
 import { RadialProgress } from "./RadialProgress";
 
 interface ProfileCardProps {
@@ -38,9 +38,7 @@ export function ProfileCard({
   return (
     <Card
       sx={{
-        borderRadius: "16px",
-        border: `1.5px solid ${colors.border}`,
-        boxShadow: colors.isDark ? "0 2px 12px rgba(0,0,0,.4)" : "0 2px 12px rgba(60,60,140,.06)",
+        ...getCardSx(colors),
         overflow: "hidden",
         ...fadeIn(mounted, delay),
       }}
@@ -48,7 +46,7 @@ export function ProfileCard({
       <Box
         sx={{
           background: "linear-gradient(130deg,#1e1b4b 0%,#312e81 60%,#4338ca 100%)",
-          p: "20px 18px 0",
+          p: "20px 16px 0",
           position: "relative",
           overflow: "hidden",
         }}
@@ -82,12 +80,12 @@ export function ProfileCard({
             </Box>
             <Box sx={{ position: "absolute", bottom: 1, right: 1, width: 10, height: 10, borderRadius: "50%", background: colors.success, border: "2px solid #1e1b4b" }} />
           </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography sx={{ fontSize: 14, fontWeight: 900, color: "#fff", letterSpacing: "-0.3px" }}>{name}</Typography>
-            <Typography sx={{ fontSize: 9, color: "rgba(199,210,254,.6)", mt: 0.3 }}>{role}</Typography>
-            <Box sx={{ display: "inline-flex", alignItems: "center", gap: "4px", mt: "5px", background: "rgba(255,255,255,.1)", borderRadius: "20px", px: "7px", py: "2px" }}>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: 15, fontWeight: 900, color: "#fff", letterSpacing: "-0.3px" }}>{name}</Typography>
+            <Typography sx={{ fontSize: 10, color: "rgba(199,210,254,.65)", mt: 0.3 }}>{role}</Typography>
+            <Box sx={{ display: "inline-flex", alignItems: "center", gap: "4px", mt: "6px", background: "rgba(255,255,255,.1)", borderRadius: "20px", px: "8px", py: "2px" }}>
               <Box sx={{ width: 5, height: 5, borderRadius: "50%", background: colors.success }} />
-              <Typography sx={{ fontSize: 8, fontWeight: 700, color: "rgba(199,210,254,.8)", letterSpacing: ".4px" }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.8)", letterSpacing: ".4px" }}>
                 ACTIVE · {employeeId}
               </Typography>
             </Box>
@@ -114,7 +112,7 @@ export function ProfileCard({
               }}
             >
               <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{s.v}</Typography>
-              <Typography sx={{ fontSize: 7, fontWeight: 700, color: "rgba(199,210,254,.45)", mt: "3px", letterSpacing: ".6px", textTransform: "uppercase" }}>
+              <Typography sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.5)", mt: "3px", letterSpacing: ".5px", textTransform: "uppercase" }}>
                 {s.l}
               </Typography>
             </Box>
@@ -122,12 +120,12 @@ export function ProfileCard({
         </Box>
       </Box>
 
-      <Box sx={{ p: "10px 14px 12px" }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", mb: "5px" }}>
-          <Typography sx={{ fontSize: 9, fontWeight: 700, color: colors.textSecondary, letterSpacing: ".5px", textTransform: "uppercase" }}>
+      <Box sx={{ p: "12px 16px 14px" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", mb: "6px" }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textSecondary, letterSpacing: ".5px", textTransform: "uppercase" }}>
             Task Progress
           </Typography>
-          <Typography sx={{ fontSize: 9, fontWeight: 700, color: colors.accent }}>
+          <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.accent }}>
             {doneCount} of {totalTasks}
           </Typography>
         </Box>
@@ -142,7 +140,7 @@ export function ProfileCard({
             }}
           />
         </Box>
-        <Typography sx={{ fontSize: 9, color: colors.textSecondary, mt: "4px" }}>
+        <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "5px" }}>
           {Math.round(progressPct)}% complete
         </Typography>
       </Box>

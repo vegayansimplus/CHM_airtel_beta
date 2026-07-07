@@ -30,11 +30,11 @@ export function WorkLocationCard({
   onChangeMode,
 }: WorkLocationCardProps) {
   return (
-    <Card sx={{ ...getCardSx(colors), p: "14px", ...fadeIn(mounted, delay) }}>
+    <Card sx={{ ...getCardSx(colors), p: "16px", ...fadeIn(mounted, delay) }}>
       <SectionHeader
         title="Work location"
         colors={colors}
-        right={<Typography sx={{ fontSize: 10, color: colors.textSecondary, fontWeight: 600 }}>{weekLabel}</Typography>}
+        right={<Typography sx={{ fontSize: 11, color: colors.textSecondary, fontWeight: 600 }}>{weekLabel}</Typography>}
       />
 
       <Box sx={{ display: "flex", gap: "8px", mb: "12px" }}>
@@ -58,14 +58,14 @@ export function WorkLocationCard({
               }}
             >
               {m === "WFH" ? (
-                <HomeIcon sx={{ fontSize: 17, color: active ? colors.accent : colors.textSecondary }} />
+                <HomeIcon sx={{ fontSize: 18, color: active ? colors.accent : colors.textSecondary }} />
               ) : (
-                <BusinessIcon sx={{ fontSize: 17, color: active ? colors.accent : colors.textSecondary }} />
+                <BusinessIcon sx={{ fontSize: 18, color: active ? colors.accent : colors.textSecondary }} />
               )}
-              <Typography sx={{ fontSize: 11, fontWeight: 800, color: active ? colors.accent : colors.textSecondary, display: "block", mt: "2px" }}>
+              <Typography sx={{ fontSize: 12, fontWeight: 800, color: active ? colors.accent : colors.textSecondary, display: "block", mt: "2px" }}>
                 {m}
               </Typography>
-              <Typography sx={{ fontSize: 8, color: active ? colors.accentLight : colors.textDim, mt: "1px" }}>
+              <Typography sx={{ fontSize: 9, color: active ? colors.accentLight : colors.textDim, mt: "1px" }}>
                 {m === "WFH" ? "From Home" : "In Office"}
               </Typography>
             </Box>
@@ -73,17 +73,17 @@ export function WorkLocationCard({
         })}
       </Box>
 
-      <Typography sx={{ fontSize: 8, fontWeight: 700, color: colors.textSecondary, letterSpacing: ".8px", textTransform: "uppercase", mb: "7px" }}>
+      <Typography sx={{ fontSize: 9, fontWeight: 700, color: colors.textSecondary, letterSpacing: ".8px", textTransform: "uppercase", mb: "8px" }}>
         This week
       </Typography>
-      <Box sx={{ display: "flex", gap: "5px" }}>
+      <Box sx={{ display: "flex", gap: "6px" }}>
         {week.map((d, i) => (
           <Tooltip key={i} title={d.t} arrow placement="top">
             <Box
               sx={{
                 flex: 1,
-                py: "5px",
-                borderRadius: "7px",
+                py: "6px",
+                borderRadius: "8px",
                 textAlign: "center",
                 cursor: "pointer",
                 background: d.active ? colors.accentDim : colors.surface2,
@@ -92,8 +92,8 @@ export function WorkLocationCard({
                 "&:hover": { borderColor: colors.accentBorder, transform: "translateY(-1px)" },
               }}
             >
-              <Typography sx={{ fontSize: 9, fontWeight: 800, color: d.active ? colors.accent : colors.textSecondary }}>{d.d}</Typography>
-              <Typography sx={{ fontSize: 7, fontWeight: 700, color: d.active ? colors.accentLight : colors.textDim, mt: "1px" }}>{d.t}</Typography>
+              <Typography sx={{ fontSize: 10, fontWeight: 800, color: d.active ? colors.accent : colors.textSecondary }}>{d.d}</Typography>
+              <Typography sx={{ fontSize: 8, fontWeight: 700, color: d.active ? colors.accentLight : colors.textDim, mt: "1px" }}>{d.t}</Typography>
             </Box>
           </Tooltip>
         ))}

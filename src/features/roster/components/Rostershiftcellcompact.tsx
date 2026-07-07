@@ -1,31 +1,14 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { TableCell, Box, Tooltip, Typography, useTheme } from "@mui/material";
 import dayjs from "dayjs";
 import { isFutureDate } from "../utils/dateUtils";
 import { useAuth } from "../../auth/hooks/useAuth";
 import { usePermission } from "../../auth/hooks/usePermission";
-import { SHIFT_COLOR_MAP } from "./RosterShiftCell";
-
-/* ─── Shift key resolver ─────────────────────────────────────────────────── */
-function resolveShiftKey(shift: any, isOff: boolean, isLeave: boolean): string {
-  if (isOff) return "W";
-  if (isLeave) return "L";
-  const d = (shift?.shiftDisplay ?? "").trim();
-  if (d === "New Joinee") return "NJ";
-  if (d === "Holiday") return "H";
-  if (d === "Comp Off" || d === "CO") return "C";
-  if (d.startsWith("LG")) return "LG";
-  return d.charAt(0).toUpperCase() || "W";
-}
-
-/* ─── Hex → rgb helper ───────────────────────────────────────────────────── */
-function hexToRgb(hex: string): string {
-  const clean = hex.replace("#", "");
-  const r = parseInt(clean.substring(0, 2), 16);
-  const g = parseInt(clean.substring(2, 4), 16);
-  const b = parseInt(clean.substring(4, 6), 16);
-  return `${r},${g},${b}`;
-}
+import {
+  SHIFT_COLOR_MAP,
+  hexToRgb,
+  resolveShiftKeyFromShift,
+} from "../constant/shiftPalette";
 
 /* ─── Props ─────────────────────────────────────────────────────────────── */
 interface RosterShiftCellCompactProps {
@@ -39,7 +22,7 @@ interface RosterShiftCellCompactProps {
 }
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
-export const RosterShiftCellCompact = ({
+export const RosterShiftCellCompact = memo(function RosterShiftCellCompact({
   shift,
   shiftDate,
   rowUserId,
@@ -47,7 +30,7 @@ export const RosterShiftCellCompact = ({
   isSelectedForSwap,
   isSwapMode,
   highlightShift = "",
-}: RosterShiftCellCompactProps) => {
+}: RosterShiftCellCompactProps) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { user, role } = useAuth();
@@ -58,7 +41,7 @@ export const RosterShiftCellCompact = ({
   const isLeave =
     shift?.shiftDisplay?.toLowerCase() === "leave" || shift?.type === "Leave";
   const isToday = dayjs(shiftDate).isSame(dayjs(), "day");
-  const shiftKey = resolveShiftKey(shift, isOff, isLeave);
+  const shiftKey = resolveShiftKeyFromShift(shift);
   const style = SHIFT_COLOR_MAP[shiftKey] ?? SHIFT_COLOR_MAP.W;
 
   const isDimmed = highlightShift !== "" && shiftKey !== highlightShift;
@@ -196,4 +179,4 @@ export const RosterShiftCellCompact = ({
       </Tooltip>
     </TableCell>
   );
-};
+});

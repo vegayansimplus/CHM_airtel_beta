@@ -4,120 +4,37 @@ import {
   Typography,
   Button,
   CircularProgress,
-  Switch,
   useTheme,
   Box,
   Chip,
-  IconButton,
-  Tooltip,
-  Collapse,
-  Select,
-  MenuItem,
-  Checkbox,
-  ListItemText,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import SearchIcon from "@mui/icons-material/Search";
-import CloseIcon from "@mui/icons-material/Close";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import HighlightIcon from "@mui/icons-material/Highlight";
+import { useState } from "react";
 import { CompactShiftCountBar } from "./RosterShiftCountBar";
-import { useState, type KeyboardEvent } from "react";
-
-/* ─── Shift palette (mirrors MonthlyRosterMain PALETTE) ──────────────── */
-const SHIFT_FILTER_PALETTE: Record<
-  string,
-  { label: string; badge: string; bg: string; border: string; text: string }
-> = {
-  G: {
-    label: "General",
-    badge: "#3B82F6",
-    bg: "#EEF5FF",
-    border: "#C3D9FE",
-    text: "#1E40AF",
-  },
-  LG: {
-    label: "LG Shift",
-    badge: "#10B981",
-    bg: "#EDFBF3",
-    border: "#9DECBF",
-    text: "#065F46",
-  },
-  B: {
-    label: "B Shift",
-    badge: "#F59E0B",
-    bg: "#FFF8EE",
-    border: "#FCD97D",
-    text: "#854D0E",
-  },
-  N: {
-    label: "Night",
-    badge: "#6366F1",
-    bg: "#F1F0FF",
-    border: "#C0B8FD",
-    text: "#3730A3",
-  },
-  A: {
-    label: "Afternoon",
-    badge: "#FBBF24",
-    bg: "#FFFCEE",
-    border: "#FCE98D",
-    text: "#78350F",
-  },
-  L: {
-    label: "Leave",
-    badge: "#EC4899",
-    bg: "#FEF0FA",
-    border: "#F9C4E8",
-    text: "#9D174D",
-  },
-  H: {
-    label: "Holiday",
-    badge: "#F43F5E",
-    bg: "#FFF0F2",
-    border: "#FECDD3",
-    text: "#881337",
-  },
-  C: {
-    label: "Comp Off",
-    badge: "#94A3B8",
-    bg: "#F8FAFC",
-    border: "#E2E8F0",
-    text: "#475569",
-  },
-  NJ: {
-    label: "New Joinee",
-    badge: "#F59E0B",
-    bg: "#FFFBEB",
-    border: "#FDE68A",
-    text: "#78350F",
-  },
-  W: {
-    label: "Week Off",
-    badge: "#D1D5DB",
-    bg: "#FAFAFA",
-    border: "#E4E7EC",
-    text: "#98A2B3",
-  },
-};
+import { RosterSearchInput } from "./toolbar/RosterSearchInput";
+import { HighlightShiftSelect } from "./toolbar/HighlightShiftSelect";
+import {
+  FilterToggleButton,
+  RosterFilterPanel,
+} from "./toolbar/RosterFilterPanel";
+import { DetailedViewToggle } from "./toolbar/DetailedViewToggle";
 
 /* ─── Props ───────────────────────────────────────────────────────────── */
-interface Props {
-  startDate: string;
-  endDate: string;
-  domainId?: number;
-  subDomainId?: number;
+export interface RosterSwapControls {
   isSwapMode: boolean;
   onToggleSwapMode: () => void;
   selectedSwapCount: number;
   onApplySwap: () => void;
   isSwapping: boolean;
+}
+
+interface Props {
+  domainId?: number;
+  subDomainId?: number;
   searchTerms: string[];
   onSearchChange: (terms: string[]) => void;
   isDetailed: boolean;
   onToggleDetailed: () => void;
-  // Filter / highlight props
   filterShift: string[];
   onFilterShiftChange: (v: string[]) => void;
   filterLevel: string[];
@@ -125,19 +42,21 @@ interface Props {
   jobLevels: string[];
   highlightShift: string;
   onHighlightShiftChange: (v: string) => void;
+  /** Weekly-only shift-swap controls; omit to hide the swap buttons. */
+  swap?: RosterSwapControls;
+  /** Unique id for the search input element (one per view). */
+  searchInputId?: string;
 }
 
 /* ─── Component ───────────────────────────────────────────────────────── */
+/**
+ * Toolbar shared by the Weekly and Monthly roster views: today's shift
+ * count, multi-term search, highlight picker, filters and density toggle.
+ * The Weekly view additionally passes `swap` for the shift-swap buttons.
+ */
 export const RosterToolbar = ({
-  startDate,
-  endDate,
   domainId,
   subDomainId,
-  isSwapMode,
-  onToggleSwapMode,
-  selectedSwapCount,
-  onApplySwap,
-  isSwapping,
   searchTerms,
   onSearchChange,
   isDetailed,
@@ -149,48 +68,21 @@ export const RosterToolbar = ({
   jobLevels,
   highlightShift,
   onHighlightShiftChange,
+  swap,
+  searchInputId = "roster-search-input",
 }: Props) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const bgColor = isDark ? theme.palette.background.paper : "#F3F4F6";
-  const CELL_BORDER = isDark ? "rgba(255,255,255,.06)" : "#F0F0F2";
 
   const [inputVal, setInputVal] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-
-  /* ── Multi-search helpers ─────────────────────────────────────────── */
-  const commitInput = (raw: string) => {
-    const parts = raw
-      .split(",")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0 && !searchTerms.includes(s));
-    if (parts.length > 0) onSearchChange([...searchTerms, ...parts]);
-    setInputVal("");
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
-      e.preventDefault();
-      commitInput(inputVal);
-    }
-    if (e.key === "Backspace" && inputVal === "" && searchTerms.length > 0)
-      onSearchChange(searchTerms.slice(0, -1));
-  };
-
-  const removeChip = (term: string) =>
-    onSearchChange(searchTerms.filter((t) => t !== term));
-
-  const clearAll = () => {
-    onSearchChange([]);
-    setInputVal("");
-  };
 
   const hasSearch = searchTerms.length > 0 || inputVal.trim().length > 0;
   const hasActiveFilters = Boolean(
     searchTerms.length || filterShift.length || filterLevel.length,
   );
 
-  /* ── Render ───────────────────────────────────────────────────────── */
   return (
     <Box sx={{ mb: 0.5 }}>
       {/* ══════════ MAIN TOOLBAR ROW ══════════ */}
@@ -207,7 +99,7 @@ export const RosterToolbar = ({
           gap: 0.75,
         }}
       >
-        {/* LEFT: today's shift count */}
+        {/* LEFT: shift count + search + highlight + filters */}
         <Stack
           direction="row"
           alignItems="center"
@@ -217,6 +109,7 @@ export const RosterToolbar = ({
           px={1.75}
           py={0.75}
           border={`0.5px solid ${theme.palette.divider}`}
+          flexWrap="wrap"
         >
           <Box
             sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}
@@ -241,101 +134,14 @@ export const RosterToolbar = ({
             </Stack>
           </Box>
 
-                    {/* ── Multi-search input ─────────────────────────────────── */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              flexWrap: "wrap",
-              gap: "4px",
-              minWidth: 220,
-              maxWidth: 380,
-              minHeight: 36,
-              px: "10px",
-              py: "4px",
-              borderRadius: "20px",
-              border: `1px solid ${hasSearch ? theme.palette.primary.main : theme.palette.divider}`,
-              bgcolor: bgColor,
-              cursor: "text",
-              transition: "border-color .15s",
-            }}
-            onClick={() =>
-              document.getElementById("roster-search-input")?.focus()
-            }
-          >
-            <SearchIcon
-              sx={{ fontSize: 16, color: "text.secondary", flexShrink: 0 }}
-            />
+          <RosterSearchInput
+            inputId={searchInputId}
+            searchTerms={searchTerms}
+            onTermsChange={onSearchChange}
+            inputValue={inputVal}
+            onInputChange={setInputVal}
+          />
 
-            {searchTerms.map((term) => (
-              <Chip
-                key={term}
-                label={term}
-                size="small"
-                onDelete={() => removeChip(term)}
-                deleteIcon={<CloseIcon style={{ fontSize: 11 }} />}
-                sx={{
-                  height: 20,
-                  fontSize: "0.65rem",
-                  fontWeight: 600,
-                  bgcolor: isDark ? "primary.dark" : "#EEF5FF",
-                  color: "primary.main",
-                  border: "1px solid",
-                  borderColor: isDark ? "primary.main" : "#C3D9FE",
-                  "& .MuiChip-deleteIcon": {
-                    color: "primary.main",
-                    "&:hover": { color: "error.main" },
-                  },
-                }}
-              />
-            ))}
-
-            <Box
-              id="roster-search-input"
-              component="input"
-              value={inputVal}
-              onChange={(e) => setInputVal(e.target.value)}
-              onKeyDown={handleKeyDown}
-              onBlur={() => {
-                if (inputVal.trim()) commitInput(inputVal);
-              }}
-              placeholder={
-                searchTerms.length === 0 ? "Search employee…" : "Add more…"
-              }
-              sx={{
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                fontSize: "0.75rem",
-                color: "text.primary",
-                flex: 1,
-                minWidth: 90,
-                fontFamily: "inherit",
-              }}
-            />
-
-            {hasSearch && (
-              <Box
-                onClick={(e) => {
-                  e.stopPropagation();
-                  clearAll();
-                }}
-                sx={{
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  color: "text.disabled",
-                  flexShrink: 0,
-                  "&:hover": { color: "error.main" },
-                  transition: "color .15s",
-                }}
-              >
-                <CloseIcon sx={{ fontSize: 14 }} />
-              </Box>
-            )}
-          </Box>
-
-          {/* Search hint */}
           {hasSearch && (
             <Typography
               sx={{ fontSize: "0.6rem", color: "text.disabled", mt: 0.25 }}
@@ -345,81 +151,17 @@ export const RosterToolbar = ({
             </Typography>
           )}
 
-          {/* ── Highlight picker ───────────────────────────────────── */}
-          <Stack direction="row" alignItems="center" gap={0.5}>
-            <HighlightIcon sx={{ fontSize: 14, color: "text.secondary" }} />
-            <Select
-              size="small"
-              displayEmpty
-              value={highlightShift}
-              onChange={(e) => onHighlightShiftChange(e.target.value)}
-              sx={{
-                fontSize: 11,
-                borderRadius: "8px",
-                height: 30,
-                minWidth: 130,
-                bgcolor: isDark ? "background.default" : "#fff",
-              }}
-            >
-              <MenuItem value="">
-                <em>No highlight</em>
-              </MenuItem>
-              {Object.entries(SHIFT_FILTER_PALETTE)
-                .filter(([k]) => k !== "W")
-                .map(([k, p]) => (
-                  <MenuItem key={k} value={k}>
-                    <Stack direction="row" alignItems="center" gap={1}>
-                      <Box
-                        sx={{
-                          width: 8,
-                          height: 8,
-                          borderRadius: "2px",
-                          bgcolor: p.badge,
-                        }}
-                      />
-                      <Typography fontSize={11}>{p.label}</Typography>
-                    </Stack>
-                  </MenuItem>
-                ))}
-            </Select>
-          </Stack>
+          <HighlightShiftSelect
+            value={highlightShift}
+            onChange={onHighlightShiftChange}
+          />
 
-          {/* ── Filters toggle button ──────────────────────────────── */}
-          <Tooltip title="Filters">
-            <IconButton
-              size="small"
-              onClick={() => setShowFilters((p) => !p)}
-              sx={{
-                border: `1px solid ${CELL_BORDER}`,
-                borderRadius: "8px",
-                p: "4px",
-                position: "relative",
-                bgcolor: showFilters
-                  ? alpha(theme.palette.primary.main, 0.08)
-                  : isDark
-                    ? "background.default"
-                    : "#fff",
-                color: hasActiveFilters ? "primary.main" : "inherit",
-              }}
-            >
-              <FilterListIcon sx={{ fontSize: 16 }} />
-              {hasActiveFilters && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: 3,
-                    right: 3,
-                    width: 5,
-                    height: 5,
-                    borderRadius: "50%",
-                    bgcolor: "primary.main",
-                  }}
-                />
-              )}
-            </IconButton>
-          </Tooltip>
+          <FilterToggleButton
+            open={showFilters}
+            onToggle={() => setShowFilters((p) => !p)}
+            hasActiveFilters={hasActiveFilters}
+          />
 
-          {/* Clear all chip */}
           {hasActiveFilters && (
             <Chip
               label="Clear all"
@@ -435,248 +177,51 @@ export const RosterToolbar = ({
           )}
         </Stack>
 
-        {/* RIGHT: controls */}
-        <Stack
-          direction="row"
-          alignItems="center"
-          spacing={1.5}
-          flexWrap="wrap"
-        >
-          {/* Detailed toggle */}
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={0.5}
-            bgcolor={bgColor}
-            borderRadius={6}
-            px={1.5}
-            py={0.5}
-            border={`0.5px solid ${theme.palette.divider}`}
-          >
-            <Switch
-              checked={isDetailed}
-              onChange={onToggleDetailed}
-              size="small"
-              color="primary"
-              sx={{
-                "& .MuiSwitch-thumb": { width: 14, height: 14 },
-                "& .MuiSwitch-track": { borderRadius: 8 },
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: "0.8rem",
-                fontWeight: 500,
-                color: isDetailed ? "primary.main" : "text.secondary",
-                userSelect: "none",
-              }}
-            >
-              Detailed
-            </Typography>
-          </Stack>
+        {/* RIGHT: density + swap controls */}
+        <Stack direction="row" alignItems="center" spacing={1.5} flexWrap="wrap">
+          <DetailedViewToggle checked={isDetailed} onToggle={onToggleDetailed} />
 
-          {/* Swap buttons */}
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant={isSwapMode ? "contained" : "outlined"}
-              color={isSwapMode ? "error" : "primary"}
-              startIcon={<SwapHorizIcon />}
-              onClick={onToggleSwapMode}
-              size="small"
-            >
-              {isSwapMode ? "Cancel Swap" : "Shift Swap"}
-            </Button>
-            {isSwapMode && (
+          {swap && (
+            <Stack direction="row" spacing={1}>
               <Button
-                variant="contained"
-                color="success"
+                variant={swap.isSwapMode ? "contained" : "outlined"}
+                color={swap.isSwapMode ? "error" : "primary"}
+                startIcon={<SwapHorizIcon />}
+                onClick={swap.onToggleSwapMode}
                 size="small"
-                disabled={selectedSwapCount !== 2 || isSwapping}
-                onClick={onApplySwap}
-                startIcon={
-                  isSwapping ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : null
-                }
               >
-                Apply Swap ({selectedSwapCount}/2)
+                {swap.isSwapMode ? "Cancel Swap" : "Shift Swap"}
               </Button>
-            )}
-          </Stack>
-
-
+              {swap.isSwapMode && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  disabled={swap.selectedSwapCount !== 2 || swap.isSwapping}
+                  onClick={swap.onApplySwap}
+                  startIcon={
+                    swap.isSwapping ? (
+                      <CircularProgress size={16} color="inherit" />
+                    ) : null
+                  }
+                >
+                  Apply Swap ({swap.selectedSwapCount}/2)
+                </Button>
+              )}
+            </Stack>
+          )}
         </Stack>
-       
       </Paper>
 
       {/* ══════════ COLLAPSIBLE FILTER PANEL ══════════ */}
-      <Collapse in={showFilters}>
-        <Box
-          display="flex"
-          gap={1}
-          mt={0.5}
-          p={1.5}
-          sx={{
-            border: `1px solid ${CELL_BORDER}`,
-            borderRadius: "8px",
-            bgcolor: isDark ? theme.palette.background.paper : "#FAFAFA",
-          }}
-        >
-          {/* Shift type multi-select */}
-          <Select
-            size="small"
-            displayEmpty
-            multiple
-            value={filterShift}
-            onChange={(e) => onFilterShiftChange(e.target.value as string[])}
-            renderValue={(selected) =>
-              (selected as string[]).length === 0 ? (
-                <em
-                  style={{
-                    fontSize: 11,
-                    color: isDark ? "#6B7280" : "#9CA3AF",
-                  }}
-                >
-                  All shift types
-                </em>
-              ) : (
-                <Typography fontSize={11} noWrap>
-                  {(selected as string[])
-                    .map((k) => SHIFT_FILTER_PALETTE[k]?.label ?? k)
-                    .join(", ")}
-                </Typography>
-              )
-            }
-            sx={{
-              fontSize: 11,
-              borderRadius: "8px",
-              height: 30,
-              minWidth: 190,
-              bgcolor: isDark ? "background.default" : "#fff",
-            }}
-            MenuProps={{
-              PaperProps: { sx: { maxHeight: 280, borderRadius: "8px" } },
-            }}
-          >
-            {Object.entries(SHIFT_FILTER_PALETTE)
-              .filter(([k]) => k !== "W")
-              .map(([k, p]) => (
-                <MenuItem key={k} value={k} sx={{ py: "4px" }}>
-                  <Checkbox
-                    checked={filterShift.includes(k)}
-                    size="small"
-                    sx={{ p: "2px", mr: "6px" }}
-                  />
-                  <Box
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "2px",
-                      bgcolor: p.badge,
-                      flexShrink: 0,
-                      mr: "6px",
-                    }}
-                  />
-                  <ListItemText
-                    primary={`${k} – ${p.label}`}
-                    primaryTypographyProps={{ fontSize: 11 }}
-                  />
-                </MenuItem>
-              ))}
-          </Select>
-
-          {/* Job level multi-select */}
-          <Select
-            size="small"
-            displayEmpty
-            multiple
-            value={filterLevel}
-            onChange={(e) => onFilterLevelChange(e.target.value as string[])}
-            renderValue={(selected) =>
-              (selected as string[]).length === 0 ? (
-                <em
-                  style={{
-                    fontSize: 11,
-                    color: isDark ? "#6B7280" : "#9CA3AF",
-                  }}
-                >
-                  All job levels
-                </em>
-              ) : (
-                <Typography fontSize={11} noWrap>
-                  {(selected as string[]).join(", ")}
-                </Typography>
-              )
-            }
-            sx={{
-              fontSize: 11,
-              borderRadius: "8px",
-              height: 30,
-              minWidth: 150,
-              bgcolor: isDark ? "background.default" : "#fff",
-            }}
-            MenuProps={{
-              PaperProps: { sx: { maxHeight: 280, borderRadius: "8px" } },
-            }}
-          >
-            {jobLevels.map((lvl) => (
-              <MenuItem key={lvl} value={lvl} sx={{ py: "4px" }}>
-                <Checkbox
-                  checked={filterLevel.includes(lvl)}
-                  size="small"
-                  sx={{ p: "2px", mr: "6px" }}
-                />
-                <ListItemText
-                  primary={lvl}
-                  primaryTypographyProps={{ fontSize: 11 }}
-                />
-              </MenuItem>
-            ))}
-          </Select>
-
-          {/* Active filter chip previews */}
-          {(filterShift.length > 0 || filterLevel.length > 0) && (
-            <Stack
-              direction="row"
-              flexWrap="wrap"
-              gap="4px"
-              alignItems="center"
-            >
-              {filterShift.map((k) => (
-                <Chip
-                  key={k}
-                  size="small"
-                  label={SHIFT_FILTER_PALETTE[k]?.label ?? k}
-                  onDelete={() =>
-                    onFilterShiftChange(filterShift.filter((x) => x !== k))
-                  }
-                  sx={{
-                    height: 20,
-                    fontSize: "0.6rem",
-                    fontWeight: 600,
-                    bgcolor: isDark
-                      ? alpha(SHIFT_FILTER_PALETTE[k]?.badge ?? "#000", 0.15)
-                      : SHIFT_FILTER_PALETTE[k]?.bg,
-                    color: SHIFT_FILTER_PALETTE[k]?.text,
-                    border: `1px solid ${SHIFT_FILTER_PALETTE[k]?.border}`,
-                  }}
-                />
-              ))}
-              {filterLevel.map((lvl) => (
-                <Chip
-                  key={lvl}
-                  size="small"
-                  label={lvl}
-                  onDelete={() =>
-                    onFilterLevelChange(filterLevel.filter((x) => x !== lvl))
-                  }
-                  sx={{ height: 20, fontSize: "0.6rem", fontWeight: 600 }}
-                />
-              ))}
-            </Stack>
-          )}
-        </Box>
-      </Collapse>
+      <RosterFilterPanel
+        open={showFilters}
+        filterShift={filterShift}
+        onFilterShiftChange={onFilterShiftChange}
+        filterLevel={filterLevel}
+        onFilterLevelChange={onFilterLevelChange}
+        jobLevels={jobLevels}
+      />
     </Box>
   );
 };

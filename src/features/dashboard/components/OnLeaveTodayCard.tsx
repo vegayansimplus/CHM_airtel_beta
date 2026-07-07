@@ -15,18 +15,18 @@ export function OnLeaveTodayCard({ team, colors, mounted, delay }: OnLeaveTodayC
   const tones = getToneStyles(colors);
 
   return (
-    <Card sx={{ ...getCardSx(colors), p: "14px", ...fadeIn(mounted, delay) }}>
+    <Card sx={{ ...getCardSx(colors), p: "16px", ...fadeIn(mounted, delay) }}>
       <SectionHeader
         title="On leave today"
         colors={colors}
         right={
           <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <Chip
-              label={`${team.length} members`}
+              label={team.length}
               size="small"
-              sx={{ fontSize: 9, fontWeight: 800, color: colors.warning, background: colors.warningDim, borderRadius: "20px", height: "auto", "& .MuiChip-label": { px: "8px", py: "2px" } }}
+              sx={{ fontSize: 10, fontWeight: 800, color: colors.warning, background: colors.warningDim, borderRadius: "20px", height: "auto", "& .MuiChip-label": { px: "8px", py: "2px" } }}
             />
-            <Typography sx={{ fontSize: 10, color: colors.accent, fontWeight: 700, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
+            <Typography sx={{ fontSize: 11, color: colors.accent, fontWeight: 700, cursor: "pointer", "&:hover": { textDecoration: "underline" } }}>
               All
             </Typography>
           </Box>
@@ -70,10 +70,14 @@ export function OnLeaveTodayCard({ team, colors, mounted, delay }: OnLeaveTodayC
                   {p.initials}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary }}>{p.name}</Typography>
-                  <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px" }}>{p.role}</Typography>
+                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.name}
+                  </Typography>
+                  <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {p.role}
+                  </Typography>
                 </Box>
-                <Box sx={{ textAlign: "right" }}>
+                <Box sx={{ textAlign: "right", flexShrink: 0 }}>
                   <Chip
                     label={p.type}
                     size="small"
@@ -88,7 +92,7 @@ export function OnLeaveTodayCard({ team, colors, mounted, delay }: OnLeaveTodayC
                       "& .MuiChip-label": { px: "8px", py: "3px" },
                     }}
                   />
-                  <Typography sx={{ fontSize: 8, color: colors.textSecondary, mt: "3px" }}>Back {p.returnDate}</Typography>
+                  <Typography sx={{ fontSize: 9, color: colors.textSecondary, mt: "3px" }}>Back {p.returnDate}</Typography>
                 </Box>
               </Box>
             </Tooltip>

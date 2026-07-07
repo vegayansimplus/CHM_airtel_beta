@@ -1,4 +1,4 @@
-import { Box, Grid } from "@mui/material";
+import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useTabColorTokens } from "../../../style/theme";
 import { RescheduleNotificationPage } from "../../rescheduleNotification";
@@ -52,17 +52,21 @@ export default function ModernHomeDashboard() {
   return (
     <Box
       sx={{
-        p: "18px 20px",
-        minHeight: "100vh",
-        background: colors.isDark
-          ? `linear-gradient(150deg,${colors.bg} 0%,${colors.surface} 100%)`
-          : "linear-gradient(150deg,#f0f4ff 0%,#fafbff 50%,#f0fdf6 100%)",
+        p: { xs: "12px 4px 28px", md: "16px 8px 32px" },
         fontFamily: "'Plus Jakarta Sans','DM Sans','Segoe UI',sans-serif",
       }}
     >
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: "14px", alignItems: "flex-start" }}>
-        {/* ══ LEFT — Profile + Work Location + Holidays ══ */}
-        <Box sx={{ width: { xs: "100%", lg: 300 }, flexShrink: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* ══ Main grid — fixed left rail + fluid right column ══ */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: { xs: "1fr", lg: "300px minmax(0, 1fr)" },
+          gap: "16px",
+          alignItems: "start",
+        }}
+      >
+        {/* ── LEFT — Profile, Work location, Holidays, On leave ── */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
           <ProfileCard
             name={PROFILE.name}
             role={PROFILE.role}
@@ -88,36 +92,41 @@ export default function ModernHomeDashboard() {
           />
 
           <UpcomingHolidaysCard holidays={HOLIDAYS} colors={colors} mounted={mounted} delay={0.15} />
+
+          <OnLeaveTodayCard team={LEAVE_TEAM} colors={colors} mounted={mounted} delay={0.2} />
         </Box>
 
-        {/* ══ RIGHT — task widgets + schedule + reschedule notifications ══ */}
-        <Box sx={{ flex: 1, minWidth: 0, width: "100%", display: "flex", flexDirection: "column", gap: "14px" }}>
-          <Grid container spacing="14px" alignItems="flex-start">
-            <Grid size={{ xs: 12, md: 6 }}>
-              <TodaysTasksCard
-                tasks={visibleTasks}
-                doneCount={doneCount}
-                remainingCount={TASKS.length - doneCount}
-                taskFilter={taskFilter}
-                checkedTasks={checkedTasks}
-                hoveredTask={hoveredTask}
-                taskMenuAnchor={taskMenuAnchor}
-                colors={colors}
-                mounted={mounted}
-                delay={0.08}
-                onFilterChange={setTaskFilter}
-                onToggleTask={toggleTask}
-                onHoverTask={setHoveredTask}
-                onOpenTaskMenu={openTaskMenu}
-                onCloseTaskMenu={closeTaskMenu}
-                onTaskMenuAction={runTaskMenuAction}
-              />
-            </Grid>
+        {/* ── RIGHT — Tasks + stats (equal height), schedule, notifications ── */}
+        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+              gap: "16px",
+              alignItems: "stretch",
+            }}
+          >
+            <TodaysTasksCard
+              tasks={visibleTasks}
+              doneCount={doneCount}
+              remainingCount={TASKS.length - doneCount}
+              taskFilter={taskFilter}
+              checkedTasks={checkedTasks}
+              hoveredTask={hoveredTask}
+              taskMenuAnchor={taskMenuAnchor}
+              colors={colors}
+              mounted={mounted}
+              delay={0.08}
+              onFilterChange={setTaskFilter}
+              onToggleTask={toggleTask}
+              onHoverTask={setHoveredTask}
+              onOpenTaskMenu={openTaskMenu}
+              onCloseTaskMenu={closeTaskMenu}
+              onTaskMenuAction={runTaskMenuAction}
+            />
 
-            <Grid size={{ xs: 12, md: 6 }}>
-              <StatCardsGrid cards={STAT_CARDS} colors={colors} mounted={mounted} delay={0.05} />
-            </Grid>
-          </Grid>
+            <StatCardsGrid cards={STAT_CARDS} colors={colors} mounted={mounted} delay={0.12} />
+          </Box>
 
           <WeeklyScheduleCard
             week={WEEK}
@@ -125,11 +134,9 @@ export default function ModernHomeDashboard() {
             scheduleHover={scheduleHover}
             colors={colors}
             mounted={mounted}
-            delay={0.1}
+            delay={0.16}
             onHoverChange={setScheduleHover}
           />
-
-          <OnLeaveTodayCard team={LEAVE_TEAM} colors={colors} mounted={mounted} delay={0.15} />
 
           <RescheduleNotificationPage />
         </Box>
