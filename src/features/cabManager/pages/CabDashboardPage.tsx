@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import {
   Alert,
   Box,
@@ -6,18 +7,123 @@ import {
   Paper,
   Skeleton,
   Stack,
-  Table, TableBody, TableCell, TableHead, TableRow,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import { useNavigate } from "react-router";
 import { useGetDashboardQuery } from "../api/cabManagerApiSlice";
 import { SlaBar, StageChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
+import type { Crq } from "../types/types";
 
 export function CabDashboardPage() {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const { data, isLoading, isError, error, refetch } = useGetDashboardQuery();
+
+  const columns = useMemo<MRT_ColumnDef<Crq>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "CRQ ID",
+        size: 110,
+        Cell: ({ cell }) => (
+          <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>
+            {cell.getValue<string>()}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "activity",
+        header: "Activity",
+        Cell: ({ row }) => (
+          <Box>
+            <Typography variant="body2">{row.original.activity}</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {row.original.domain} · Circle {row.original.circle}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "stage",
+        header: "Stage",
+        size: 130,
+        Cell: ({ cell }) => <StageChip stage={cell.getValue<Crq["stage"]>()} />,
+      },
+      {
+        accessorKey: "sla",
+        header: "SLA",
+        size: 130,
+        Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
+      },
+      {
+        accessorKey: "scheduled",
+        header: "Scheduled",
+        size: 100,
+      },
+      {
+        id: "action",
+        header: "Action",
+        size: 90,
+        enableSorting: false,
+        muiTableHeadCellProps: { align: "right" },
+        muiTableBodyCellProps: { align: "right" },
+        Cell: ({ row }) => (
+          <Button
+            size="small"
+            variant="contained"
+            onClick={(e) => { e.stopPropagation(); navigate(`/cabmanager/journey/${row.original.id}`); }}
+          >
+            Open
+          </Button>
+        ),
+      },
+    ],
+    [navigate],
+  );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: data?.actionQueue ?? [],
+    enableTopToolbar: false,
+    enableBottomToolbar: false,
+    enablePagination: false,
+    enableSorting: false,
+    enableColumnActions: false,
+    initialState: { density: "compact" },
+    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableHeadCellProps: {
+      sx: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: "text.secondary",
+        py: 0.75,
+        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      },
+    },
+    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
+    muiTableBodyRowProps: ({ row }) => ({
+      hover: true,
+      onClick: () => navigate(`/cabmanager/journey/${row.original.id}`),
+      sx: {
+        cursor: "pointer",
+        "&:hover td": { backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.04) },
+        transition: "background-color 100ms ease",
+      },
+    }),
+  });
 
   if (isError) {
     return (
@@ -130,42 +236,7 @@ export function CabDashboardPage() {
           <Typography sx={{ fontWeight: 500 }}>{data.actionQueueTitle}</Typography>
           <Button size="small" onClick={() => navigate("/cabmanager/allcrqs")}>View all</Button>
         </Box>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: "#FAFAFA" }}>
-              <TableCell>CRQ ID</TableCell>
-              <TableCell>Activity</TableCell>
-              <TableCell>Stage</TableCell>
-              <TableCell>SLA</TableCell>
-              <TableCell>Scheduled</TableCell>
-              <TableCell align="right">Action</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.actionQueue.map((r) => (
-              <TableRow
-                key={r.id}
-                hover
-                onClick={() => navigate(`/cabmanager/journey/${r.id}`)}
-                sx={{ cursor: "pointer" }}
-              >
-                <TableCell sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{r.id}</TableCell>
-                <TableCell>
-                  <Typography variant="body2">{r.activity}</Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{r.domain} · Circle {r.circle}</Typography>
-                </TableCell>
-                <TableCell><StageChip stage={r.stage} /></TableCell>
-                <TableCell><SlaBar sla={r.sla} /></TableCell>
-                <TableCell>{r.scheduled}</TableCell>
-                <TableCell align="right">
-                  <Button size="small" variant="contained" onClick={(e) => { e.stopPropagation(); navigate(`/cabmanager/journey/${r.id}`); }}>
-                    Open
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+        <MaterialReactTable table={table} />
       </Paper>
     </Box>
   );

@@ -11,9 +11,13 @@ import {
   useAddNewRolePermissionMutation,
   useDisableRoleMutation,
   useCreateNewRoleMutation,
+  useRenameRoleMutation,
   useDisableModuleMutation,
   useCreateNewModuleMutation,
+  useRenameModuleMutation,
   useCreateNewSubModuleMutation,
+  useRenameSubModuleMutation,
+  useDeleteSubModuleMutation,
   type RolePermissionViewModel,
   type GrantedPermissionItem,
 } from "../api/globalSettingsPermissionApi";
@@ -98,9 +102,13 @@ export function useGlobalPermissionsController() {
   const [addNewRolePermission] = useAddNewRolePermissionMutation();
   const [disableRoleMutation] = useDisableRoleMutation();
   const [createNewRoleMutation] = useCreateNewRoleMutation();
+  const [renameRoleMutation] = useRenameRoleMutation();
   const [disableModuleMutation] = useDisableModuleMutation();
   const [createNewModuleMutation] = useCreateNewModuleMutation();
+  const [renameModuleMutation] = useRenameModuleMutation();
   const [createNewSubModuleMutation] = useCreateNewSubModuleMutation();
+  const [renameSubModuleMutation] = useRenameSubModuleMutation();
+  const [deleteSubModuleMutation] = useDeleteSubModuleMutation();
 
   // permissionId → { permissionName, permissionCode }. permissionCode is
   // derived client-side since the catalog endpoint only returns id + name.
@@ -388,6 +396,20 @@ export function useGlobalPermissionsController() {
     [disableRoleMutation],
   );
 
+  // ── Rename Role ─────────────────────────────────────────────
+  const handleRenameRole = useCallback(
+    async (roleId: number, newLabel: string) => {
+      const code = slug(newLabel);
+      try {
+        await renameRoleMutation({ roleId, newRoleCode: code }).unwrap();
+        setSnackbar({ open: true, message: `Role renamed to "${code}".`, severity: "success" });
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to rename role."), severity: "error" });
+      }
+    },
+    [renameRoleMutation],
+  );
+
   // ── Create Module ────────────────────────────────────────────
   const handleCreateModule = useCallback(
     async (moduleCode: string) => {
@@ -417,6 +439,19 @@ export function useGlobalPermissionsController() {
     [disableModuleMutation],
   );
 
+  // ── Rename Module ───────────────────────────────────────────
+  const handleRenameModule = useCallback(
+    async (moduleId: number, newLabel: string) => {
+      try {
+        await renameModuleMutation({ moduleId, newModuleName: newLabel }).unwrap();
+        setSnackbar({ open: true, message: `Module renamed to "${newLabel}".`, severity: "success" });
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to rename module."), severity: "error" });
+      }
+    },
+    [renameModuleMutation],
+  );
+
   // ── Create Sub-module ────────────────────────────────────────
   const handleCreateSubModule = useCallback(
     async (subModuleCode: string, moduleId: number) => {
@@ -428,6 +463,32 @@ export function useGlobalPermissionsController() {
       }
     },
     [createNewSubModuleMutation],
+  );
+
+  // ── Rename Sub-module ────────────────────────────────────────
+  const handleRenameSubModule = useCallback(
+    async (subModuleId: number, newLabel: string) => {
+      try {
+        await renameSubModuleMutation({ subModuleId, newSubModuleName: newLabel }).unwrap();
+        setSnackbar({ open: true, message: `Sub-module renamed to "${newLabel}".`, severity: "success" });
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to rename sub-module."), severity: "error" });
+      }
+    },
+    [renameSubModuleMutation],
+  );
+
+  // ── Delete Sub-module ────────────────────────────────────────
+  const handleDeleteSubModule = useCallback(
+    async (subModuleId: number) => {
+      try {
+        await deleteSubModuleMutation({ subModuleId }).unwrap();
+        setSnackbar({ open: true, message: "Sub-module deleted.", severity: "success" });
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to delete sub-module."), severity: "error" });
+      }
+    },
+    [deleteSubModuleMutation],
   );
 
   // ── Derived ────────────────────────────────────────────────
@@ -470,8 +531,10 @@ export function useGlobalPermissionsController() {
     handleGrantAll, handleRevokeAll, handleResetSubModule,
     // entity creation
     handleCreateRole, handleDuplicateRole, handleCreateModule, handleCreateSubModule,
-    // entity disabling
-    handleDisableRole, handleDisableModule,
+    // entity renaming
+    handleRenameRole, handleRenameModule, handleRenameSubModule,
+    // entity disabling / deleting
+    handleDisableRole, handleDisableModule, handleDeleteSubModule,
     // summaries
     totalGranted, totalRevoked,
     // ui state
