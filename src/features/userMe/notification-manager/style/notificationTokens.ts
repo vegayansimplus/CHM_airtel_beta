@@ -10,6 +10,13 @@ import { useTabColorTokens } from "../../../../style/theme";
  */
 export const useNotifTokens = useTabColorTokens;
 
+/**
+ * Same derivation under a non-hook name, for pure contexts (useMemo
+ * factories, styled callbacks) where the rules-of-hooks lint would flag a
+ * `use*` call. It only reads the theme argument, so this is safe.
+ */
+export const getNotifTokens = useTabColorTokens;
+
 export type NotifTokens = ReturnType<typeof useNotifTokens>;
 
 /** Generates the minimal keyframe + toggle CSS block using live theme values */

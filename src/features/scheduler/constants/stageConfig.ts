@@ -13,7 +13,13 @@ import {
 function buildStageConfig(
   partial: Pick<
     StageConfig,
-    "key" | "label" | "endpointBase" | "reviewQueryUrl" | "buildDonePayload"
+    | "key"
+    | "label"
+    | "endpointBase"
+    | "reviewQueryUrl"
+    | "buildDonePayload"
+    | "stageEnum"
+    | "olmIdField"
   > &
     Partial<Pick<StageConfig, "statusField" | "statusOptions" | "fields">>,
 ): StageConfig {
@@ -41,14 +47,16 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     key: "impactanalysis",
     label: "Impact Analysis",
     endpointBase: "updateimpactanalysis",
-    reviewQueryUrl: "/crqworkflow/crqreview",
+    reviewQueryUrl: "/crqworkflow/impactanalysis",
+    stageEnum: "IMPACT_ANALYSIS",
     statusField: "impactAnalysisStatus",
+    olmIdField: "olmidImpactAnalysis",
     buildDonePayload: (values, crq) => ({
-      olmId: crq?.olmId ?? "",
+      olmId: crq?.olmidImpactAnalysis ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",
-      taskNumber: crq?.taskNumber ?? "",
+      taskNumber: crq?.taskId ?? "",
       ...values,
     }),
   }),
@@ -58,8 +66,11 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     label: "MOP Create",
     endpointBase: "updatemopcreate",
     reviewQueryUrl: "/crqworkflow/mopcreate",
+    stageEnum: "MOP_CREATION",
     statusField: "mopCreateStatus",
+    olmIdField: "olmidMopCreation",
     buildDonePayload: (values, crq) => ({
+      olmId: crq?.olmidMopCreation ?? crq?.olmidMopCreate ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",
@@ -72,8 +83,11 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     label: "MOP Validate",
     endpointBase: "updatemopvalidate",
     reviewQueryUrl: "/crqworkflow/mopvalidate",
+    stageEnum: "MOP_VALIDATION",
     statusField: "mopValidateStatus",
+    olmIdField: "olmidMopValidation",
     buildDonePayload: (values, crq) => ({
+      olmId: crq?.olmidMopValidation ?? crq?.olmidMopValidate ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",
@@ -86,8 +100,11 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     label: "Scheduling",
     endpointBase: "updatescheduling",
     reviewQueryUrl: "/crqworkflow/scheduling",
+    stageEnum: "SCHEDULING_APPROVAL",
     statusField: "schedulingStatus",
+    olmIdField: "olmidSchedulingApproval",
     buildDonePayload: (values, crq) => ({
+      olmId: crq?.olmidSchedulingApproval ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",
@@ -100,12 +117,15 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     label: "Activity Implement",
     endpointBase: "updateactivityimplement",
     reviewQueryUrl: "/crqworkflow/activityimplement",
+    stageEnum: "EXECUTION",
     statusField: "activityImplementStatus",
+    olmIdField: "olmidExecution",
     buildDonePayload: (values, crq) => ({
+      olmId: crq?.olmidExecution ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",
-      taskNumber: crq?.taskNumber ?? "",
+      taskNumber: crq?.taskId ?? "",
       ...values,
     }),
   }),
@@ -115,8 +135,11 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     label: "Closer",
     endpointBase: "updatecloser",
     reviewQueryUrl: "/crqworkflow/crqcloser",
-    statusField: "closerStatus",
+    stageEnum: "CLOSURE",
+    statusField: "crqCloserStatus",
+    olmIdField: "olmidClosure",
     buildDonePayload: (values, crq) => ({
+      olmId: crq?.olmidClosure ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
       planNumber: crq?.planNumber ?? "",

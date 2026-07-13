@@ -45,7 +45,8 @@ interface Props {
   colors: ThemeColors;
   setPanelOpen: (v: boolean) => void;
   onClose: () => void;
-  onExternalSubmit?: (data: any) => void;
+  /** Performs the actual review submission; may return { success } to control the dialog. */
+  onExternalSubmit?: (data: any) => void | Promise<{ success: boolean } | void>;
 }
 
 export const FormPanel: React.FC<Props> = ({
@@ -119,12 +120,20 @@ export const FormPanel: React.FC<Props> = ({
 
       setIsSubmitting(true);
       setSubmissionError(null);
-      setTimeout(() => {
-        setIsSubmitting(false);
-        toast.success(`Review for ${crqNo} submitted!`);
-        onExternalSubmit?.(payload);
+      try {
+        const result = await onExternalSubmit?.(payload);
+        if (result && result.success === false) {
+          setSubmissionError("Submission failed. Please try again.");
+          return;
+        }
         onClose();
-      }, 1500);
+      } catch (err: any) {
+        setSubmissionError(
+          err?.data?.message || err?.message || "Submission failed. Please try again.",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
     },
     [crqNo, crqId, crq, rollbackOwner, onExternalSubmit, onClose],
   );

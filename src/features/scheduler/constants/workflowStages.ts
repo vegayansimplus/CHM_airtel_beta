@@ -54,7 +54,7 @@ export const WORKFLOW_STAGES: WorkflowStageDescriptor[] = [
   }),
 ];
 
-const COMPLETED_VALUES = new Set(["Done", "DONE", "Completed", "completed"]);
+const COMPLETED_VALUES = new Set(["Done", "DONE", "Completed", "completed", "Complete"]);
 const FAILED_VALUES = new Set([
   "Failed",
   "failed",
@@ -63,6 +63,17 @@ const FAILED_VALUES = new Set([
   "Cancel",
 ]);
 const IN_PROGRESS_VALUES = new Set(["In Progress", "in progress"]);
+
+/** Backend CRQ_MASTER_TBL.current_stage enum -> WorkflowStageId. */
+export const STAGE_ENUM_TO_ID: Record<string, WorkflowStageId> = {
+  VALIDATE: "review",
+  IMPACT_ANALYSIS: "impactanalysis",
+  MOP_CREATION: "mopcreate",
+  MOP_VALIDATION: "mopvalidate",
+  SCHEDULING_APPROVAL: "scheduling",
+  EXECUTION: "activityimplement",
+  CLOSURE: "closer",
+};
 
 function readStatus(
   crq: Crq | null | undefined,
@@ -73,9 +84,26 @@ function readStatus(
   return typeof value === "string" && value.length ? value : undefined;
 }
 
-/** Index of the first not-yet-completed stage - the CRQ's "current" stage. */
+/** History entry for a given stage, when the backend supplied history[]. */
+export function findHistoryEntry(crq: Crq | null | undefined, stageId: WorkflowStageId) {
+  return crq?.history?.find((h) => h.stageKey === stageId) ?? null;
+}
+
+/**
+ * Index of the CRQ's current stage. Prefers the authoritative
+ * `crq.currentStage` (CRQ_MASTER_TBL) sent by the new workflow endpoints;
+ * falls back to the legacy first-not-completed status-field scan for
+ * responses that don't carry it.
+ */
 export function resolveCurrentStageIndex(crq: Crq | null | undefined): number {
   if (!crq) return 0;
+
+  const stageId = crq.currentStage ? STAGE_ENUM_TO_ID[crq.currentStage] : undefined;
+  if (stageId) {
+    const idx = WORKFLOW_STAGES.findIndex((s) => s.id === stageId);
+    if (idx >= 0) return idx;
+  }
+
   for (let i = 0; i < WORKFLOW_STAGES.length; i++) {
     const status = readStatus(crq, WORKFLOW_STAGES[i]);
     if (!status || !COMPLETED_VALUES.has(status)) return i;
@@ -90,9 +118,15 @@ export function resolveStageState(
   currentIndex: number,
 ): StageRunState {
   const stage = WORKFLOW_STAGES[stageIndex];
-  const status = readStatus(crq, stage);
+
+  // History (when present) is authoritative: previous stages of the
+  // current-stage pointer are completed by definition of the workflow.
+  const entry = findHistoryEntry(crq, stage.id);
+  const status = entry?.status ?? readStatus(crq, stage);
+
   if (status && COMPLETED_VALUES.has(status)) return "completed";
   if (status && FAILED_VALUES.has(status)) return "failed";
+  if (stageIndex < currentIndex) return "completed";
   if (stageIndex > currentIndex) return "locked";
   if (status && IN_PROGRESS_VALUES.has(status)) return "in_progress";
   return "not_started";
@@ -105,7 +139,7 @@ export interface StageSummaryField {
 
 /** Fields rendered elsewhere (sidebar/header) or structural - never shown
  * again in the generic per-stage field grid. */
-const SUMMARY_EXCLUDED_KEYS = new Set(["tasks"]);
+const SUMMARY_EXCLUDED_KEYS = new Set(["tasks", "history", "actionable"]);
 
 /** Short tokens that should render as an acronym instead of Title-Case. */
 const ACRONYM_WORDS = new Set([

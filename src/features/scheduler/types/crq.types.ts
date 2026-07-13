@@ -23,5 +23,5 @@ export interface PlanInvDialogProps {
   onClose: () => void;
   crq: any;
   colors?: Partial<ThemeColors>;
-  onSubmit?: (data: any) => void;
+  onSubmit?: (data: any) => void | Promise<{ success: boolean } | void>;
 }

@@ -8,7 +8,8 @@ import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 
 import {
-  useGetCrqReviewQuery,
+  useGetCrqWorkflowOverviewQuery,
+  useSubmitCrqReviewDoneMutation,
   useUpdateCrqReviewStatusMutation,
 } from "../../api/crqreviewApiSlice";
 import { getStageConfig } from "../../constants/stageConfig";
@@ -28,11 +29,11 @@ import { CrqWorkflowHeader } from "../crq-workflow/CrqWorkflowHeader";
 import { StageRail } from "../crq-workflow/StageRail";
 import { StageActionBar, type StageMode } from "../crq-workflow/StageActionBar";
 import { StageSummaryGrid } from "../crq-workflow/StageSummaryGrid";
+import { StageHistoryPanel } from "../generic/StageHistoryPanel";
 
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
 import { PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
-import { PREV_CRQ_STATUS_DATA } from "../impact-analysis/mockData";
 
 const GlobalStyleBlock = (
   <GlobalStyles
@@ -89,8 +90,12 @@ export const CrqDetailedView: React.FC = () => {
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
 
-  const { data, isError, error } = useGetCrqReviewQuery({ domainId, subDomainId });
+  // Overview endpoint: every CRQ of the scope regardless of current stage,
+  // each carrying its full per-stage history - so a CRQ stays visible here
+  // after leaving Plan & Inventory (the old /crqreview feed dropped it).
+  const { data, isError, error } = useGetCrqWorkflowOverviewQuery({ domainId, subDomainId });
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
+  const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
 
   // One useStageWorkflow instance per generic stage key - hooks must be
   // called unconditionally, so all six are created up front and the active
@@ -141,7 +146,13 @@ export const CrqDetailedView: React.FC = () => {
 
   const isReviewStage = selectedStageId === "review";
   const activeStageWorkflow = !isReviewStage ? stageWorkflows[selectedStageId as StageKey] : null;
-  const selectedStageStatus = selectedCrq ? (selectedCrq as any)[WORKFLOW_STAGES[selectedStageIndex].statusField] : undefined;
+  // Live status of the selected stage: the history entry (authoritative,
+  // fed by CRQ_MASTER_TBL) first, legacy per-stage status field as fallback.
+  const selectedStageEntry =
+    selectedCrq?.history?.find((h) => h.stageKey === selectedStageId) ?? null;
+  const selectedStageStatus =
+    selectedStageEntry?.status ??
+    (selectedCrq ? (selectedCrq as any)[WORKFLOW_STAGES[selectedStageIndex].statusField] : undefined);
   const isRunning = selectedStageStatus === "In Progress";
 
   // Seed the sidebar's expansion state and the selected stage from the
@@ -179,11 +190,42 @@ export const CrqDetailedView: React.FC = () => {
   );
   const handleSelectStage = useCallback((stageId: WorkflowStageId) => setSelectedStageId(stageId), []);
 
+  /**
+   * Optimistic local update: patches both the legacy per-stage status field
+   * and the matching history entry so the action bar/rail flip immediately;
+   * the CrqReview tag invalidation then refetches the authoritative state.
+   */
+  const applyLocalStageStatus = useCallback(
+    (crqNo: string, stageId: WorkflowStageId, statusField: string, nextStatus: string) => {
+      setPlansOriginal((prev) =>
+        prev.map((plan) => ({
+          ...plan,
+          crqs: plan.crqs.map((c) =>
+            c.crqNo === crqNo
+              ? {
+                  ...c,
+                  [statusField]: nextStatus,
+                  history: c.history?.map((h) =>
+                    h.stageKey === stageId ? { ...h, status: nextStatus } : h,
+                  ),
+                }
+              : c,
+          ),
+        })),
+      );
+    },
+    [],
+  );
+
   const handleStartPause = useCallback(async () => {
     if (!selectedCrq) return;
 
     if (isReviewStage) {
-      const isRunningNow = (selectedCrq.crqReviewStatus ?? "").toLowerCase() === "in progress";
+      const reviewStatus =
+        selectedCrq.history?.find((h) => h.stageKey === "review")?.status ??
+        selectedCrq.crqReviewStatus ??
+        "";
+      const isRunningNow = reviewStatus.toLowerCase() === "in progress";
       const action = isRunningNow ? "pause" : "start";
       try {
         const response = await updateCrqReviewStatus({
@@ -192,16 +234,7 @@ export const CrqDetailedView: React.FC = () => {
           action,
         }).unwrap();
         toast.success(response?.message || "Updated successfully.");
-        setPlansOriginal((prev) =>
-          prev.map((plan) => ({
-            ...plan,
-            crqs: plan.crqs.map((c) =>
-              c.crqNo === selectedCrq.crqNo
-                ? { ...c, crqReviewStatus: isRunningNow ? "Paused" : "In Progress" }
-                : c,
-            ),
-          })),
-        );
+        applyLocalStageStatus(selectedCrq.crqNo, "review", "crqReviewStatus", isRunningNow ? "Paused" : "In Progress");
       } catch (err) {
         toast.error((err as any)?.data?.message || "Failed to update status. Please try again.");
       }
@@ -212,13 +245,8 @@ export const CrqDetailedView: React.FC = () => {
     const result = await activeStageWorkflow.toggleStartPause(selectedCrq);
     if (!result.success) return;
     const statusField = getStageConfig(selectedStageId as StageKey).statusField;
-    setPlansOriginal((prev) =>
-      prev.map((plan) => ({
-        ...plan,
-        crqs: plan.crqs.map((c) => (c.crqNo === selectedCrq.crqNo ? { ...c, [statusField]: result.nextStatus } : c)),
-      })),
-    );
-  }, [selectedCrq, isReviewStage, activeStageWorkflow, selectedStageId, updateCrqReviewStatus]);
+    applyLocalStageStatus(selectedCrq.crqNo, selectedStageId, statusField, result.nextStatus as string);
+  }, [selectedCrq, isReviewStage, activeStageWorkflow, selectedStageId, updateCrqReviewStatus, applyLocalStageStatus]);
 
   const handleSubmitDone = useCallback(
     async (values: Record<string, any>, crq: Crq) => {
@@ -226,35 +254,55 @@ export const CrqDetailedView: React.FC = () => {
       const result = await activeStageWorkflow.submitDone(values, crq);
       if (result.success) {
         const statusField = getStageConfig(selectedStageId as StageKey).statusField;
-        setPlansOriginal((prev) =>
-          prev.map((plan) => ({
-            ...plan,
-            crqs: plan.crqs.map((c) => (c.crqNo === crq.crqNo ? { ...c, [statusField]: values.status } : c)),
-          })),
-        );
+        applyLocalStageStatus(crq.crqNo, selectedStageId, statusField, values.status);
       }
       return result;
     },
-    [isReviewStage, activeStageWorkflow, selectedStageId],
+    [isReviewStage, activeStageWorkflow, selectedStageId, applyLocalStageStatus],
   );
 
+  /**
+   * Plan & Inventory review submit -> /crqworkflow/updatecrqreview/done.
+   * On Pass the backend advances the CRQ to Impact Analysis transactionally.
+   */
+  const handleReviewSubmit = useCallback(
+    async (data: any) => {
+      try {
+        const response = await submitCrqReviewDone({
+          crqNo: data.crqNo,
+          crqId: data.crqId,
+          localStatus: data.status === "Done" ? "DONE" : data.status,
+          remark: data.remark ?? "",
+          olmId: data.olmId,
+        }).unwrap();
+        toast.success(response?.message || `Review for ${data.crqNo} submitted.`);
+        return { success: true };
+      } catch (err) {
+        toast.error((err as any)?.data?.message || "Review submission failed. Please try again.");
+        return { success: false };
+      }
+    },
+    [submitCrqReviewDone],
+  );
+
+  /** Real previous-stage data (crq.history) - replaces the old mock lookup. */
   const handleShowPrevCrqStatus = useCallback(() => {
     if (!selectedCrq) return;
-    let matchedCrq: any = null;
-    for (const plan of PREV_CRQ_STATUS_DATA.plans) {
-      const found = plan.crqs.find((c: any) => c.crqNo === selectedCrq.crqNo);
-      if (found) {
-        matchedCrq = { ...found, planNumber: plan.planNumber, planType: plan.planType };
-        break;
-      }
-    }
-    if (matchedCrq) {
-      setPrevCrqData(matchedCrq);
+    const previousStages = (selectedCrq.history ?? []).filter((h) => !h.current);
+    if (selectedCrq.history?.length) {
+      setPrevCrqData({
+        ...selectedCrq,
+        planNumber: selectedCrq.planNumber ?? selectedPlan?.planNumber,
+        planType: selectedCrq.planType ?? selectedPlan?.planType,
+      });
       setPrevCrqStatusOpen(true);
+      if (!previousStages.length) {
+        toast.info("This CRQ has not completed any previous stage yet.");
+      }
     } else {
       toast.warn("No previous CRQ status found for the selected CRQ.");
     }
-  }, [selectedCrq]);
+  }, [selectedCrq, selectedPlan]);
 
   if (isError) {
     return (
@@ -336,6 +384,11 @@ export const CrqDetailedView: React.FC = () => {
                 />
 
                 <StageSummaryGrid fields={getStageSummaryFields(selectedStageId, selectedCrq)} colors={colors} />
+
+                {/* Completed previous stages - read-only, no actions. */}
+                <Box sx={{ mt: 2.5 }}>
+                  <StageHistoryPanel history={selectedCrq.history} colors={colors} />
+                </Box>
               </Box>
             </>
           )}
@@ -348,9 +401,7 @@ export const CrqDetailedView: React.FC = () => {
           onClose={() => setReviewDialogOpen(false)}
           crq={selectedCrq}
           colors={colors}
-          onSubmit={(data) => {
-            console.log("Review Submitted:", data);
-          }}
+          onSubmit={handleReviewSubmit}
         />
       ) : (
         <StageReviewDialog

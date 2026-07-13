@@ -3,6 +3,21 @@ import { STAGE_CONFIG_MAP } from "../constants/stageConfig";
 import type { CrqReviewResponse } from "../types/crqWorkflow.types";
 import type { StageActionParams, StageDonePayload, StageKey } from "../types/stageWorkflow.types";
 
+/** Workflow order - used to invalidate the next stage's cache after a pass. */
+const STAGE_SEQUENCE: StageKey[] = [
+  "impactanalysis",
+  "mopcreate",
+  "mopvalidate",
+  "scheduling",
+  "activityimplement",
+  "closer",
+];
+
+const nextStageKey = (stageKey: StageKey): StageKey | null => {
+  const idx = STAGE_SEQUENCE.indexOf(stageKey);
+  return idx >= 0 && idx + 1 < STAGE_SEQUENCE.length ? STAGE_SEQUENCE[idx + 1] : null;
+};
+
 export const stageWorkflowApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     getStageData: builder.query<
@@ -31,6 +46,7 @@ export const stageWorkflowApiSlice = api.injectEndpoints({
       }),
       invalidatesTags: (_result, _error, arg) => [
         { type: "StageWorkflow", id: arg.stageKey },
+        "CrqReview",
       ],
     }),
 
@@ -44,9 +60,14 @@ export const stageWorkflowApiSlice = api.injectEndpoints({
         method: "POST",
         params,
       }),
-      invalidatesTags: (_result, _error, arg) => [
-        { type: "StageWorkflow", id: arg.stageKey },
-      ],
+      // A pass moves the CRQ into the next stage, so refresh that stage's
+      // listing (and the overview/cockpit data) alongside this one.
+      invalidatesTags: (_result, _error, arg) => {
+        const tags: any[] = [{ type: "StageWorkflow", id: arg.stageKey }, "CrqReview"];
+        const next = nextStageKey(arg.stageKey);
+        if (next) tags.push({ type: "StageWorkflow", id: next });
+        return tags;
+      },
     }),
   }),
   overrideExisting: false,

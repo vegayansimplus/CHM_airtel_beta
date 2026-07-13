@@ -29,13 +29,16 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import { useUpdateImpactAnalysisStatusMutation } from "../../api/schedulerApiSlice";
 import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
-import { useGetCrqReviewQuery } from "../../api/crqreviewApiSlice";
+import {
+  useGetCrqReviewQuery,
+  useSubmitCrqReviewDoneMutation,
+  useUpdateCrqReviewStatusMutation,
+} from "../../api/crqreviewApiSlice";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import {
   AttributeUpdateDialog,
@@ -190,7 +193,8 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
 }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
-  const [updateImpactAnalysisStatus] = useUpdateImpactAnalysisStatusMutation();
+  const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
+  const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
@@ -199,7 +203,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const [globalSearch, setGlobalSearch] = useState("");
 
   const {
-    data: impactData,
+    data: reviewData,
     isLoading,
     isError,
     error,
@@ -214,10 +218,10 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   );
 
   useEffect(() => {
-    if (impactData?.plans) {
-      setPlansOriginal(impactData.plans);
+    if (reviewData?.plans) {
+      setPlansOriginal(reviewData.plans);
     }
-  }, [impactData]);
+  }, [reviewData]);
 
   useEffect(() => {
     const t = setTimeout(() => setGlobalSearch(globalSearchInput), 300);
@@ -227,12 +231,11 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const handleStartPauseReview = useCallback(
     async (crq: any) => {
       try {
-        const isRunning =
-          (crq.impactAnalysisStatus || crq.crqReviewStatus) === "In Progress";
+        const isRunning = crq.crqReviewStatus === "In Progress";
         const action = isRunning ? "pause" : "start";
 
-        // Call API to update status
-        const response = await updateImpactAnalysisStatus({
+        // Call the Plan & Inventory (VALIDATE) start/pause endpoint
+        const response = await updateCrqReviewStatus({
           crqNo: crq.crqNo,
           crqId: crq.crqId,
           action,
@@ -248,7 +251,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
           draggable: true,
         });
 
-        // Update local state
+        // Update local state (the tag invalidation refetches from DB too)
         setPlansOriginal((prev) =>
           prev.map((plan) => ({
             ...plan,
@@ -256,21 +259,51 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
               c.crqNo === crq.crqNo
                 ? {
                     ...c,
-                    impactAnalysisStatus: isRunning ? "Paused" : "In Progress",
+                    crqReviewStatus: isRunning ? "Paused" : "In Progress",
+                    crqStatus: isRunning ? "Paused" : "In Progress",
                   }
                 : c,
             ),
           })),
         );
       } catch (error) {
-        console.error("Failed to update impact analysis status:", error);
+        console.error("Failed to update review status:", error);
         toast.error(
           (error as any)?.data?.message ||
             "Failed to update status. Please try again.",
         );
       }
     },
-    [updateImpactAnalysisStatus],
+    [updateCrqReviewStatus],
+  );
+
+  /**
+   * "CRQ Review" dialog submit -> POST /crqworkflow/updatecrqreview/done.
+   * On Pass the backend advances the CRQ to Impact Analysis in one
+   * transaction; the CrqReview tag invalidation then refetches this listing
+   * so the CRQ drops off Plan & Inventory with its history preserved.
+   */
+  const handleReviewSubmit = useCallback(
+    async (data: any) => {
+      try {
+        const response = await submitCrqReviewDone({
+          crqNo: data.crqNo,
+          crqId: data.crqId,
+          localStatus: data.status === "Done" ? "DONE" : data.status,
+          remark: data.remark ?? "",
+          olmId: data.olmId,
+        }).unwrap();
+        toast.success(response?.message || `Review for ${data.crqNo} submitted.`);
+        return { success: true };
+      } catch (error) {
+        toast.error(
+          (error as any)?.data?.message ||
+            "Review submission failed. Please try again.",
+        );
+        return { success: false };
+      }
+    },
+    [submitCrqReviewDone],
   );
 
   const toggleFullScreen = () => {
@@ -596,7 +629,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
       >
         <Typography color="error">
-          An error occurred while fetching impact analysis data.{" "}
+          An error occurred while fetching Plan &amp; Inventory data.{" "}
           {(error as any)?.error || "Please retry."}
         </Typography>
       </Box>
@@ -616,9 +649,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         onClose={() => setOpenReviewDialog(false)}
         crq={selectedCrq}
         colors={colors}
-        onSubmit={(data) => {
-          console.log("Review Submitted:", data);
-        }}
+        onSubmit={handleReviewSubmit}
       />
 
       <AttributeUpdateDialog />

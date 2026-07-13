@@ -43,6 +43,7 @@ export const api = createApi({
     "FutureWeekTag",
     "StageWorkflow",
     "Scheduling",
+    "NotificationConfig",
     "CabKpi",
     "CabQueue",
     "CabSession",

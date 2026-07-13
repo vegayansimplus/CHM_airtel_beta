@@ -1,830 +1,434 @@
-import React, { useMemo, useCallback, type CSSProperties } from "react";
+import { useCallback, useMemo, useState } from "react";
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+  alpha,
+} from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import { Box } from "@mui/material";
+import {
+  DeleteOutline,
+  ErrorOutlineOutlined,
+  NotificationsNoneOutlined,
+  RefreshOutlined,
+} from "@mui/icons-material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
+  MRT_GlobalFilterTextField,
   type MRT_ColumnDef,
 } from "material-react-table";
-import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
+import { getNotifTokens } from "../style/notificationTokens";
+import {
+  NOTIFY_ROLES,
+  isAnyNotifyEnabled,
+  type NotifyToggleField,
+} from "../constants/notifyRoles";
+import NotifSwitch from "./NotifSwitch";
+import StatusBadge from "./StatusBadge";
+import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 import {
   useGetNotificationConfigsQuery,
   useUpdateNotificationMutation,
   useDeleteNotificationMutation,
-  type TransformedNotificationSetting,
+  type ApiNotificationSetting,
 } from "../api/notificationApiSlice";
 
-// ─── Custom CSS Animations ───────────────────────────────────────────────────
-const ANIM_CSS = `
-@keyframes ntfRowIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-.ntf-row { animation: ntfRowIn 0.28s ease both; }
-@keyframes ntfPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-.ntf-live { animation: ntfPulse 2.4s infinite; }
-`;
-
-// ─── Toggle Component ─────────────────────────────────────────────────────────
-const Toggle: React.FC<{
-  checked: boolean;
-  onChange: () => void;
-  disabled?: boolean;
-}> = ({ checked, onChange, disabled }) => (
-  <label
-    className="ntf-tog"
-    style={{
-      opacity: disabled ? 0.45 : 1,
-      pointerEvents: disabled ? "none" : "auto",
-    }}
-  >
-    <input type="checkbox" checked={checked} onChange={onChange} />
-    <div className="ntf-track">
-      <div className="ntf-thumb" />
-    </div>
-  </label>
-);
-
-// ─── Status Indicator ─────────────────────────────────────────────────────────
-const StatusIndicator: React.FC<{
-  isActive: boolean;
-  tk: ReturnType<typeof useNotifTokens>;
-}> = ({ isActive, tk }) => {
-  const style: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 5,
-    padding: "4px 10px",
-    borderRadius: 12,
-    fontSize: 12,
-    fontWeight: 600,
-    whiteSpace: "nowrap",
-    background: isActive
-      ? tk.successDim
-      : tk.isDark
-        ? "rgba(255,255,255,0.05)"
-        : "rgba(15,23,42,0.06)",
-    color: isActive ? tk.success : tk.textSecondary,
-    border: `1px solid ${isActive ? tk.successBorder : tk.border}`,
-  };
-
-  return (
-    <span style={style}>
-      {isActive && (
-        <span
-          className="ntf-live"
-          style={{
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "currentColor",
-            flexShrink: 0,
-          }}
-        />
-      )}
-      {isActive ? "Active" : "Inactive"}
-    </span>
-  );
-};
-
-// ─── Main MRT Component ───────────────────────────────────────────────────────
-const NotificationManagementTable: React.FC = () => {
+const NotificationManagementTable = () => {
   const theme = useTheme();
-  const tk = useNotifTokens(theme);
+  // Memoized so the `columns` memo below only rebuilds on a real theme change.
+  const tk = useMemo(() => getNotifTokens(theme), [theme]);
 
   const {
     data: rows = [],
     isLoading,
+    isFetching,
     isError,
+    refetch,
   } = useGetNotificationConfigsQuery();
-
-  const [updateNotification, { isLoading: isUpdating }] =
-    useUpdateNotificationMutation();
+  const [updateNotification] = useUpdateNotificationMutation();
   const [deleteNotification, { isLoading: isDeleting }] =
     useDeleteNotificationMutation();
 
-  const busy = isUpdating || isDeleting;
+  // The rule stays set while the confirm dialog animates closed, so its
+  // content doesn't flash empty — only `confirmOpen` drives visibility.
+  const [ruleToDelete, setRuleToDelete] =
+    useState<ApiNotificationSetting | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Toggles patch the RTK Query cache optimistically (see notificationApiSlice),
+  // so switches flip instantly and no global "busy" lock is needed.
   const handleToggle = useCallback(
-    (
-      row: TransformedNotificationSetting,
-      field: keyof Omit<
-        TransformedNotificationSetting,
-        "configId" | "moduleCode" | "subModuleCode" | "actionCode"
-      >,
-    ) => {
-      const updated = {
-        ...row,
-        [field]: !row[field],
-      };
-      updateNotification(updated);
+    (rule: ApiNotificationSetting, field: NotifyToggleField) => {
+      updateNotification({ ...rule, [field]: !rule[field] });
     },
     [updateNotification],
   );
 
-  const handleDelete = useCallback(
-    (row: TransformedNotificationSetting) => {
-      deleteNotification({ moduleId: row.configId });
-    },
-    [deleteNotification],
-  );
+  const handleConfirmDelete = useCallback(async () => {
+    if (!ruleToDelete) return;
+    try {
+      await deleteNotification({ configId: ruleToDelete.configId }).unwrap();
+    } catch {
+      // The optimistic removal is rolled back by the api slice on failure.
+    } finally {
+      setConfirmOpen(false);
+    }
+  }, [deleteNotification, ruleToDelete]);
 
-  // Styling object replicas from your tokens
-  const moduleBadgeStyle: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "4px 12px",
-    background: tk.infoDim,
-    border: `1px solid ${tk.infoBorder}`,
-    color: tk.info,
-    borderRadius: 6,
-    fontSize: 12,
-    fontWeight: 700,
-    whiteSpace: "nowrap",
-  };
+  const columns = useMemo<MRT_ColumnDef<ApiNotificationSetting>[]>(() => {
+    const centered = {
+      muiTableHeadCellProps: { align: "center" as const },
+      muiTableBodyCellProps: { align: "center" as const },
+    };
 
-  const actionBadgeStyle: CSSProperties = {
-    display: "inline-flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "2px 10px",
-    background: tk.isDark ? "rgba(168,85,247,0.15)" : "rgba(168,85,247,0.1)",
-    border: `1px solid ${
-      tk.isDark ? "rgba(168,85,247,0.3)" : "rgba(168,85,247,0.2)"
-    }`,
-    color: tk.isDark ? "rgba(216,180,255)" : "rgba(147,51,234)",
-    borderRadius: 6,
-    fontSize: 11,
-    fontWeight: 600,
-    whiteSpace: "nowrap",
-  };
-
-  const delBtnBase: CSSProperties = {
-    width: 32,
-    height: 32,
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: tk.dangerDim,
-    border: `1px solid ${tk.dangerBorder}`,
-    borderRadius: 6,
-    color: tk.danger,
-    cursor: "pointer",
-    transition: "all .15s ease",
-    padding: 0,
-    fontSize: 14,
-  };
-
-  // ─── Define MRT Columns ─────────────────────────────────────────────────────
-  const columns = useMemo<MRT_ColumnDef<TransformedNotificationSetting>[]>(
-    () => [
+    return [
       {
         accessorKey: "moduleCode",
         header: "Module",
-        size: 130,
+        size: 140,
         Cell: ({ cell }) => (
-          <span style={moduleBadgeStyle}>
-            <span
-              style={{
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 0.75,
+              px: 1.5,
+              py: 0.5,
+              bgcolor: tk.infoDim,
+              border: `1px solid ${tk.infoBorder}`,
+              color: tk.info,
+              borderRadius: tk.radius,
+              fontSize: 12,
+              fontWeight: 700,
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Box
+              component="span"
+              sx={{
                 width: 6,
                 height: 6,
                 borderRadius: "50%",
-                background: "currentColor",
+                bgcolor: "currentColor",
                 flexShrink: 0,
               }}
             />
             {cell.getValue<string>()}
-          </span>
+          </Box>
         ),
       },
       {
         accessorKey: "subModuleCode",
-        header: "Sub-Module Code",
-        size: 150,
+        header: "Sub-Module",
+        size: 160,
         Cell: ({ cell }) => (
-          <span
-            style={{ fontSize: 13, fontWeight: 500, color: tk.textPrimary }}
+          <Typography
+            component="span"
+            sx={{ fontSize: 13, fontWeight: 500, color: "text.primary" }}
           >
             {cell.getValue<string>()}
-          </span>
+          </Typography>
         ),
       },
       {
         accessorKey: "actionCode",
         header: "Action",
-        size: 120,
+        size: 130,
         Cell: ({ cell }) => (
-          <span style={actionBadgeStyle}>{cell.getValue<string>()}</span>
+          <Box
+            component="span"
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              px: 1.25,
+              py: 0.35,
+              bgcolor: tk.accentDim,
+              border: `1px solid ${tk.accentBorder}`,
+              color: tk.accentLight,
+              borderRadius: tk.radius,
+              fontSize: 11.5,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {cell.getValue<string>()}
+          </Box>
         ),
       },
       {
         id: "status",
         header: "Status",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ row }) => {
-          const isAnyActive =
-            row.original.notifyDomainHead ||
-            row.original.notifyFunctionHead ||
-            row.original.notifySubDomainHead ||
-            row.original.notifySuperAdmin ||
-            row.original.notifyTeamMember ||
-            row.original.notifyVerticalHead;
-          return <StatusIndicator isActive={isAnyActive} tk={tk} />;
-        },
-      },
-      {
-        accessorKey: "notifyDomainHead",
-        header: "Domain Head",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifyDomainHead")}
-              disabled={busy}
-            />
-          </Box>
+        size: 104,
+        enableSorting: false,
+        enableGlobalFilter: false,
+        ...centered,
+        Cell: ({ row }) => (
+          <StatusBadge active={isAnyNotifyEnabled(row.original)} />
         ),
       },
-      {
-        accessorKey: "notifyFunctionHead",
-        header: "Function Head",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
+      ...NOTIFY_ROLES.map<MRT_ColumnDef<ApiNotificationSetting>>(
+        ({ field, label }) => ({
+          accessorKey: field,
+          header: label,
+          size: 104,
+          enableSorting: false,
+          enableGlobalFilter: false,
+          ...centered,
+          Cell: ({ cell, row }) => (
+            <NotifSwitch
               checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifyFunctionHead")}
-              disabled={busy}
+              onChange={() => handleToggle(row.original, field)}
+              inputProps={{
+                "aria-label": `${label} notifications for ${row.original.actionCode}`,
+              }}
             />
-          </Box>
-        ),
-      },
+          ),
+        }),
+      ),
       {
-        accessorKey: "notifySubDomainHead",
-        header: "Sub-Domain Head",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifySubDomainHead")}
-              disabled={busy}
-            />
-          </Box>
-        ),
-      },
-      {
-        accessorKey: "notifySuperAdmin",
-        header: "Super Admin",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifySuperAdmin")}
-              disabled={busy}
-            />
-          </Box>
-        ),
-      },
-      {
-        accessorKey: "notifyTeamMember",
-        header: "Team Member",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifyTeamMember")}
-              disabled={busy}
-            />
-          </Box>
-        ),
-      },
-      {
-        accessorKey: "notifyVerticalHead",
-        header: "Vertical Head",
-        size: 100,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
-        Cell: ({ cell, row }) => (
-          <Box display="flex" justifyContent="center">
-            <Toggle
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, "notifyVerticalHead")}
-              disabled={busy}
-            />
-          </Box>
-        ),
-      },
-      {
-        id: "actions",
+        id: "delete",
         header: "Delete",
         size: 80,
-        muiTableHeadCellProps: { align: "center" },
-        muiTableBodyCellProps: { align: "center" },
+        enableSorting: false,
+        enableGlobalFilter: false,
+        ...centered,
         Cell: ({ row }) => (
-          <button
-            style={delBtnBase}
-            disabled={busy}
-            title="Delete"
-            onClick={() => handleDelete(row.original)}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLElement).style.background = tk.isDark
-                ? "rgba(219,79,74,0.25)"
-                : "rgba(219,79,74,0.16)";
-              (e.currentTarget as HTMLElement).style.transform = "scale(1.08)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLElement).style.background = tk.dangerDim;
-              (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-            }}
-          >
-            <svg
-              width="14"
-              height="14"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+          <Tooltip title="Delete rule">
+            <IconButton
+              size="small"
+              onClick={() => {
+                setRuleToDelete(row.original);
+                setConfirmOpen(true);
+              }}
+              sx={{
+                width: 32,
+                height: 32,
+                borderRadius: tk.radius,
+                color: tk.danger,
+                bgcolor: tk.dangerDim,
+                border: `1px solid ${tk.dangerBorder}`,
+                transition: "background 0.15s, transform 0.15s",
+                "&:hover": {
+                  bgcolor: alpha(tk.danger, tk.isDark ? 0.25 : 0.16),
+                  transform: "scale(1.06)",
+                },
+              }}
             >
-              <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6" />
-              <path d="M10 11v6M14 11v6" />
-            </svg>
-          </button>
+              <DeleteOutline sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Tooltip>
         ),
       },
-    ],
-    [tk, busy, handleToggle, handleDelete],
-  );
+    ];
+  }, [tk, handleToggle]);
 
-  // ─── MRT Table Instance Creation ─────────────────────────────────────────────
   const table = useMaterialReactTable({
     columns,
     data: rows,
-    state: {
-      // isLoading,
-      showAlertBanner: isError,
-    },
-    // Turn off MRT native settings to match visual requirements of custom table
+    getRowId: (row) => String(row.configId),
+    state: { isLoading },
+    initialState: { showGlobalFilter: true },
     enableColumnActions: false,
     enableColumnFilters: false,
     enablePagination: false,
-    enableSorting: false,
-    enableTopToolbar: false,
     enableBottomToolbar: false,
     enableStickyHeader: true,
 
-    // Container Styling
     muiTablePaperProps: {
       sx: {
         background: tk.surface,
         border: `1px solid ${tk.border}`,
-        borderRadius: `${tk.radiusXL}px`,
+        borderRadius: tk.radiusXL,
         boxShadow: tk.isDark
           ? "0 8px 32px rgba(0,0,0,0.45)"
-          : "0 4px 24px rgba(15,23,42,0.08)",
+          : "0 4px 24px rgba(13,27,42,0.08)",
         overflow: "hidden",
       },
     },
-    muiTableContainerProps: {
-      sx: {
-        maxHeight: "83vh",
-      },
+    muiTableContainerProps: { sx: { maxHeight: "76vh" } },
+
+    renderTopToolbar: ({ table }) => (
+      <Box
+        sx={{
+          display: "flex",
+          flexWrap: "wrap",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: 1,
+          px: 2,
+          py: 1.25,
+          borderBottom: `1px solid ${tk.border}`,
+        }}
+      >
+        <Stack direction="row" alignItems="center" gap={0.75}>
+          <NotificationsNoneOutlined
+            sx={{ fontSize: 18, color: "text.secondary" }}
+          />
+          <Typography
+            sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}
+          >
+            Notification Rules
+          </Typography>
+          <Chip
+            label={rows.length}
+            size="small"
+            sx={{
+              height: 19,
+              fontSize: 11,
+              fontWeight: 700,
+              bgcolor: tk.accentDim,
+              color: tk.accentLight,
+            }}
+          />
+        </Stack>
+        <Stack direction="row" alignItems="center" gap={1}>
+          <MRT_GlobalFilterTextField table={table} />
+          <Tooltip title="Refresh">
+            <span>
+              <IconButton
+                size="small"
+                onClick={() => refetch()}
+                disabled={isFetching}
+              >
+                {isFetching ? (
+                  <CircularProgress size={16} />
+                ) : (
+                  <RefreshOutlined sx={{ fontSize: 18 }} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
+        </Stack>
+      </Box>
+    ),
+    muiSearchTextFieldProps: {
+      placeholder: "Search rules…",
+      size: "small",
     },
+
     muiTableHeadCellProps: {
       sx: {
-        background: tk.isDark
-          ? "rgba(255,255,255,0.02) !important"
-          : "rgba(15,23,42,0.03) !important",
+        // Solid paper base + translucent tint keeps the sticky header opaque.
+        backgroundColor: tk.surface,
+        backgroundImage: tk.isDark
+          ? "linear-gradient(rgba(255,255,255,0.03), rgba(255,255,255,0.03))"
+          : "linear-gradient(rgba(13,27,42,0.03), rgba(13,27,42,0.03))",
         color: tk.textSecondary,
         borderBottom: `2px solid ${tk.border}`,
-        padding: "14px 12px",
-        fontSize: "12px",
+        px: 1.5,
+        py: 1.5,
+        fontSize: 11.5,
         fontWeight: 700,
-        letterSpacing: "0.5px",
+        letterSpacing: "0.05em",
         textTransform: "uppercase",
         whiteSpace: "nowrap",
       },
     },
     muiTableBodyCellProps: {
       sx: {
-        padding: "13px 12px",
-        color: tk.textPrimary,
+        px: 1.5,
+        py: 1.4,
+        fontSize: 13,
+        color: "text.primary",
         verticalAlign: "middle",
-        fontSize: "13px",
         borderBottom: `1px solid ${tk.border}`,
       },
     },
     muiTableBodyRowProps: ({ row }) => ({
-      className: "ntf-row",
-      style: {
-        animationDelay: `${row.index * 0.04}s`,
-      },
       sx: {
-        transition: "background .13s",
+        background:
+          row.index % 2 === 1
+            ? tk.isDark
+              ? "rgba(255,255,255,0.015)"
+              : "rgba(13,27,42,0.015)"
+            : "transparent",
+        transition: "background 0.15s",
         "&:hover": {
-          background: tk.isDark
-            ? "rgba(255,255,255,0.025) !important"
-            : "rgba(15,23,42,0.03) !important",
+          background: alpha(tk.accent, tk.isDark ? 0.08 : 0.045),
+        },
+        animation: "ntfRowIn 0.28s ease both",
+        animationDelay: `${Math.min(row.index, 12) * 0.04}s`,
+        "@keyframes ntfRowIn": {
+          from: { opacity: 0, transform: "translateY(5px)" },
+          to: { opacity: 1, transform: "none" },
         },
       },
     }),
+
     renderEmptyRowsFallback: () => (
-      <Box
-        sx={{
-          padding: 40,
-          textAlign: "center",
-          color: tk.textSecondary,
-          fontSize: 14,
-        }}
+      <Stack
+        alignItems="center"
+        justifyContent="center"
+        gap={1}
+        sx={{ py: 8, px: 3, textAlign: "center" }}
       >
-        No notification settings available.
-      </Box>
+        <Box
+          sx={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            bgcolor: isError ? tk.dangerDim : tk.accentDim,
+            border: `1px solid ${isError ? tk.dangerBorder : tk.accentBorder}`,
+            color: isError ? tk.danger : tk.accent,
+          }}
+        >
+          {isError ? (
+            <ErrorOutlineOutlined sx={{ fontSize: 22 }} />
+          ) : (
+            <NotificationsNoneOutlined sx={{ fontSize: 22 }} />
+          )}
+        </Box>
+        <Typography
+          sx={{ fontSize: 14.5, fontWeight: 700, color: "text.primary" }}
+        >
+          {isError
+            ? "Couldn't load notification rules"
+            : "No notification rules yet"}
+        </Typography>
+        <Typography
+          sx={{ fontSize: 12.5, color: "text.secondary", maxWidth: 340 }}
+        >
+          {isError
+            ? "Something went wrong while fetching the configuration. Check your connection and try again."
+            : "Rules you create will show up here with per-role delivery toggles."}
+        </Typography>
+        {isError && (
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<RefreshOutlined />}
+            onClick={() => refetch()}
+            sx={{ mt: 0.5 }}
+          >
+            Try again
+          </Button>
+        )}
+      </Stack>
     ),
   });
 
   return (
     <>
-      <style>{ANIM_CSS + buildToggleCss(tk)}</style>
       <MaterialReactTable table={table} />
+      <ConfirmDeleteDialog
+        open={confirmOpen}
+        rule={ruleToDelete}
+        deleting={isDeleting}
+        onCancel={() => setConfirmOpen(false)}
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 };
 
 export default NotificationManagementTable;
-
-// import React, { useMemo, useCallback } from "react";
-// import {
-//   MaterialReactTable,
-//   useMaterialReactTable,
-//   type MRT_ColumnDef,
-// } from "material-react-table";
-// import { useTheme, Box } from "@mui/material";
-// import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
-// import {
-//   useGetNotificationConfigsQuery,
-//   useUpdateNotificationMutation,
-//   useDeleteNotificationMutation,
-//   type TransformedNotificationSetting,
-// } from "../api/notificationApiSlice";
-
-// // ─── STYLES & ANIMATIONS (Kept from original) ──────────────────────────────
-// const ANIM_CSS = `@keyframes ntfShimmer{0%{background-position:200% 0}100%{background-position:-200% 0}} .ntf-skel{height:13px;border-radius:6px;background-size:200% 100%;animation:ntfShimmer 1.5s infinite} @keyframes ntfRowIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}} .ntf-row{animation:ntfRowIn .28s ease both} @keyframes ntfPulse{0%,100%{opacity:1}50%{opacity:.4}} .ntf-live{animation:ntfPulse 2.4s infinite}`;
-
-// // ─── SUB-COMPONENTS (Kept from original) ────────────────────────────────────
-// const Toggle: React.FC<{
-//   checked: boolean;
-//   onChange: () => void;
-//   disabled?: boolean;
-// }> = ({ checked, onChange, disabled }) => (
-//   <label
-//     className="ntf-tog"
-//     style={{
-//       opacity: disabled ? 0.45 : 1,
-//       pointerEvents: disabled ? "none" : "auto",
-//     }}
-//   >
-//     <input type="checkbox" checked={checked} onChange={onChange} />
-//     <div className="ntf-track">
-//       <div className="ntf-thumb" />
-//     </div>
-//   </label>
-// );
-
-// const StatusIndicator: React.FC<{
-//   isActive: boolean;
-//   tk: ReturnType<typeof useNotifTokens>;
-// }> = ({ isActive, tk }) => (
-//   <Box
-//     sx={{
-//       display: "inline-flex",
-//       alignItems: "center",
-//       gap: "5px",
-//       padding: "4px 10px",
-//       borderRadius: "12px",
-//       fontSize: "12px",
-//       fontWeight: 600,
-//       whiteSpace: "nowrap",
-//       background: isActive
-//         ? tk.successDim
-//         : tk.isDark
-//           ? "rgba(255,255,255,0.05)"
-//           : "rgba(15,23,42,0.06)",
-//       color: isActive ? tk.success : tk.textSecondary,
-//       border: `1px solid ${isActive ? tk.successBorder : tk.border}`,
-//     }}
-//   >
-//     {isActive && (
-//       <span
-//         className="ntf-live"
-//         style={{
-//           width: 6,
-//           height: 6,
-//           borderRadius: "50%",
-//           background: "currentColor",
-//           flexShrink: 0,
-//         }}
-//       />
-//     )}
-//     {isActive ? "Active" : "Inactive"}
-//   </Box>
-// );
-
-// // ─── MAIN TABLE COMPONENT ──────────────────────────────────────────────────
-// const NotificationManagementTable: React.FC = () => {
-//   const theme = useTheme();
-//   const tk = useNotifTokens(theme);
-
-//   const {
-//     data: rows = [],
-//     isLoading,
-//     isError,
-//   } = useGetNotificationConfigsQuery();
-//   const [updateNotification, { isLoading: isUpdating }] =
-//     useUpdateNotificationMutation();
-//   const [deleteNotification, { isLoading: isDeleting }] =
-//     useDeleteNotificationMutation();
-
-//   const busy = isUpdating || isDeleting;
-
-//   const handleToggle = useCallback(
-//     (
-//       row: TransformedNotificationSetting,
-//       field: keyof TransformedNotificationSetting,
-//     ) => {
-//       const updated = { ...row, [field]: !row[field] };
-//       updateNotification(updated);
-//     },
-//     [updateNotification],
-//   );
-
-//   const handleDelete = useCallback(
-//     (row: TransformedNotificationSetting) => {
-//       if (window.confirm("Are you sure you want to delete this config?")) {
-//         deleteNotification({ moduleId: row.configId });
-//       }
-//     },
-//     [deleteNotification],
-//   );
-
-//   // ─── COLUMN DEFINITIONS ───────────────────────────────────────────────────
-//   const columns = useMemo<MRT_ColumnDef<TransformedNotificationSetting>[]>(
-//     () => [
-//       {
-//         accessorKey: "moduleCode",
-//         header: "Module",
-//         size: 110,
-//         Cell: ({ cell }) => (
-//           <span
-//             style={{
-//               display: "inline-flex",
-//               alignItems: "center",
-//               gap: 3,
-//               padding: "4px 12px",
-//               background: tk.infoDim,
-//               border: `1px solid ${tk.infoBorder}`,
-//               color: tk.info,
-//               borderRadius: 6,
-//               fontSize: 12,
-//               fontWeight: 700,
-//             }}
-//           >
-//             <span
-//               style={{
-//                 width: 6,
-//                 height: 6,
-//                 borderRadius: "50%",
-//                 background: "currentColor",
-//               }}
-//             />
-//             {cell.getValue<string>()}
-//           </span>
-//         ),
-//       },
-//       {
-//         accessorKey: "subModuleCode",
-//         header: "Sub-Module Code",
-//         size: 130,
-//         Cell: ({ cell }) => (
-//           <span
-//             style={{ fontSize: 13, fontWeight: 500, color: tk.textPrimary }}
-//           >
-//             {cell.getValue<string>()}
-//           </span>
-//         ),
-//       },
-//       {
-//         accessorKey: "actionCode",
-//         header: "Action",
-//         size: 90,
-//         Cell: ({ cell }) => (
-//           <span
-//             style={{
-//               display: "inline-flex",
-//               alignItems: "center",
-//               padding: "3px 10px",
-//               background: tk.isDark
-//                 ? "rgba(168,85,247,0.15)"
-//                 : "rgba(168,85,247,0.1)",
-//               border: `1px solid ${tk.isDark ? "rgba(168,85,247,0.3)" : "rgba(168,85,247,0.2)"}`,
-//               color: tk.isDark ? "rgba(216,180,255)" : "rgba(147,51,234)",
-//               borderRadius: 6,
-//               fontSize: 11,
-//               fontWeight: 600,
-//             }}
-//           >
-//             {cell.getValue<string>()}
-//           </span>
-//         ),
-//       },
-//       {
-//         id: "status",
-//         header: "Status",
-//         size: 90,
-//         muiTableBodyCellProps: { align: "center" },
-//         Cell: ({ row }) => {
-//           const isAnyActive =
-//             row.original.notifyDomainHead ||
-//             row.original.notifyFunctionHead ||
-//             row.original.notifySubDomainHead ||
-//             row.original.notifySuperAdmin ||
-//             row.original.notifyTeamMember ||
-//             row.original.notifyVerticalHead;
-//           return <StatusIndicator isActive={isAnyActive} tk={tk} />;
-//         },
-//       },
-//       // Reusable Toggle Columns
-//       ...(
-//         [
-//           { key: "notifyDomainHead", label: "Domain Head" },
-//           { key: "notifyFunctionHead", label: "Function Head" },
-//           { key: "notifySubDomainHead", label: "Sub-Domain Head" },
-//           { key: "notifySuperAdmin", label: "Super Admin" },
-//           { key: "notifyTeamMember", label: "Team Member" },
-//           { key: "notifyVerticalHead", label: "Vertical Head" },
-//         ] as const
-//       ).map((col) => ({
-//         accessorKey: col.key,
-//         header: col.label,
-//         size: 90,
-//         muiTableBodyCellProps: { align: "center" as const },
-//         Cell: ({ cell, row }: any) => (
-//           <Toggle
-//             checked={cell.getValue()}
-//             onChange={() => handleToggle(row.original, col.key)}
-//             disabled={busy}
-//           />
-//         ),
-//       })),
-//       {
-//         id: "delete",
-//         header: "Delete",
-//         size: 60,
-//         muiTableBodyCellProps: { align: "center" },
-//         Cell: ({ row }) => (
-//           <button
-//             onClick={() => handleDelete(row.original)}
-//             disabled={busy}
-//             style={{
-//               width: 32,
-//               height: 32,
-//               display: "inline-flex",
-//               alignItems: "center",
-//               justifyContent: "center",
-//               background: tk.dangerDim,
-//               border: `1px solid ${tk.dangerBorder}`,
-//               borderRadius: 6,
-//               color: tk.danger,
-//               cursor: "pointer",
-//               transition: "all .15s ease",
-//             }}
-//             onMouseEnter={(e) => {
-//               (e.currentTarget as HTMLElement).style.background = tk.isDark
-//                 ? "rgba(219,79,74,0.25)"
-//                 : "rgba(219,79,74,0.16)";
-//               (e.currentTarget as HTMLElement).style.transform = "scale(1.08)";
-//             }}
-//             onMouseLeave={(e) => {
-//               (e.currentTarget as HTMLElement).style.background = tk.dangerDim;
-//               (e.currentTarget as HTMLElement).style.transform = "scale(1)";
-//             }}
-//           >
-//             <svg
-//               width="14"
-//               height="14"
-//               viewBox="0 0 24 24"
-//               fill="none"
-//               stroke="currentColor"
-//               strokeWidth="2"
-//             >
-//               <path d="M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6M10 11v6M14 11v6" />
-//             </svg>
-//           </button>
-//         ),
-//       },
-//     ],
-//     [tk, busy, handleToggle, handleDelete],
-//   );
-
-//   const table = useMaterialReactTable({
-//     columns,
-//     data: rows,
-//     state: {
-//       // isLoading,
-//       showAlertBanner: isError,
-//     },
-//     // Styling matches your original 'wrapStyle'
-//     muiTablePaperProps: {
-//       elevation: 0,
-//       style: {
-//         background: tk.surface,
-//         border: `1px solid ${tk.border}`,
-//         borderRadius: tk.radiusXL,
-//         boxShadow: tk.isDark
-//           ? "0 8px 32px rgba(0,0,0,0.45)"
-//           : "0 4px 24px rgba(15,23,42,0.08)",
-//         overflow: "hidden",
-//       },
-//     },
-//     muiTableContainerProps: {
-//       sx: { maxHeight: "70vh" },
-//     },
-//     muiTableHeadCellProps: {
-//       sx: {
-//         padding: "14px 12px",
-//         fontSize: "12px",
-//         fontWeight: 700,
-//         letterSpacing: "0.5px",
-//         textTransform: "uppercase",
-//         color: tk.textSecondary,
-//         background: tk.isDark
-//           ? "rgba(255,255,255,0.02)"
-//           : "rgba(15,23,42,0.03)",
-//         borderBottom: `2px solid ${tk.border}`,
-//       },
-//     },
-
-//     // initialState: {
-//     //   density: "compact",
-//     //   columnPinning: {
-//     //     right: ["delete"],
-//     //   },
-//     // },
-//     muiTableBodyCellProps: {
-//       sx: {
-//         padding: "13px 12px",
-//         color: tk.textPrimary,
-//         fontSize: "13px",
-//         borderBottom: `1px solid ${tk.border}`,
-//       },
-//     },
-//     muiTableBodyRowProps: ({ row }) => ({
-//       className: "ntf-row",
-//       sx: {
-//         animationDelay: `${row.index * 0.04}s`,
-//         transition: "background .13s",
-//         "&:hover": {
-//           background: tk.isDark
-//             ? "rgba(255,255,255,0.025) !important"
-//             : "rgba(15,23,42,0.03) !important",
-//         },
-//       },
-//     }),
-//     // Table Features Configuration
-//     enableColumnActions: false,
-//     enableColumnFilters: false,
-//     enablePagination: false,
-//     enableSorting: false,
-//     enableBottomToolbar: false,
-//     enableTopToolbar: false,
-//     enableStickyHeader: true,
-//     renderEmptyRowsFallback: () => (
-//       <Box sx={{ padding: 10, textAlign: "center", color: tk.textSecondary }}>
-//         No notification settings available.
-//       </Box>
-//     ),
-//   });
-
-//   return (
-//     <>
-//       <style>{ANIM_CSS + buildToggleCss(tk)}</style>
-//       <MaterialReactTable table={table} />
-//     </>
-//   );
-// };
-
-// export default NotificationManagementTable;

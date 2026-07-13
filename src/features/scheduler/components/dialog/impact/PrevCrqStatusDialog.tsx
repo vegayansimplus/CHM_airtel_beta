@@ -27,6 +27,8 @@ import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import RouteIcon from "@mui/icons-material/Route";
 import MemoryIcon from "@mui/icons-material/Memory";
 import WorkspacesIcon from "@mui/icons-material/Workspaces";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import { StageHistoryPanel } from "../../generic/StageHistoryPanel";
 
 /* ───────────────────── types ───────────────────── */
 interface PrevCrqStatusDialogProps {
@@ -255,8 +257,14 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
 }) => {
   if (!crqData) return null;
 
+  // Real workflow data: the current stage entry (from crq.history) is
+  // authoritative; legacy fields remain as fallback for old responses.
+  const currentEntry = crqData.history?.find((h: any) => h.current) ?? null;
+  const currentStageLabel = currentEntry?.stageLabel ?? "Review";
+  const currentStageStatus = currentEntry?.status ?? crqData.crqReviewStatus;
+
   const crqMeta = statusMeta(crqData.crqStatus, colors);
-  const reviewMeta = statusMeta(crqData.crqReviewStatus, colors);
+  const reviewMeta = statusMeta(currentStageStatus, colors);
 
   return (
     <Dialog
@@ -407,7 +415,7 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                   mb: 0.5,
                 }}
               >
-                Review Status
+                {currentStageLabel} Status
               </Typography>
               <Stack
                 direction="row"
@@ -427,7 +435,7 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                 <Typography
                   sx={{ fontSize: 16, fontWeight: 800, color: reviewMeta.fg }}
                 >
-                  {crqData.crqReviewStatus ?? "N/A"}
+                  {currentStageStatus ?? "N/A"}
                 </Typography>
               </Stack>
               <LinearProgress
@@ -496,6 +504,22 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
         </Box>
 
         <Divider sx={{ borderColor: colors.border }} />
+
+        {/* ──────── STAGE HISTORY (read-only, no actions) ──────── */}
+        {(crqData.history?.length ?? 0) > 0 && (
+          <>
+            <Box sx={{ px: 2.5, py: 2 }}>
+              <SectionHeader
+                icon={<HistoryRoundedIcon sx={{ fontSize: 15 }} />}
+                title="Previous Stage Status"
+                colors={colors}
+                badge={crqData.history.filter((h: any) => !h.current).length}
+              />
+              <StageHistoryPanel history={crqData.history} colors={colors} dense title="Completed Stages" />
+            </Box>
+            <Divider sx={{ borderColor: colors.border }} />
+          </>
+        )}
 
         {/* ──────── PLAN INFO ──────── */}
         <Box sx={{ px: 2.5, py: 2 }}>

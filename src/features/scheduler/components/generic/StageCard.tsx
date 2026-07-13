@@ -1,10 +1,11 @@
 import React from "react";
-import { Box, Chip, IconButton, Stack, Tooltip, Typography, alpha } from "@mui/material";
+import { Box, Chip, Collapse, IconButton, Stack, Tooltip, Typography, alpha } from "@mui/material";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
 import type { StageConfig } from "../../types/stageWorkflow.types";
-// import type { StageConfig } from "../../types/stageWorkflow.types";
+import { StageHistoryPanel } from "./StageHistoryPanel";
 
 interface StageCardProps {
   crq: any;
@@ -43,10 +44,26 @@ export const StageCard: React.FC<StageCardProps> = ({
 }) => {
   const status = crq?.[stageConfig.statusField] ?? "Not Started";
   const isRunning = status === "In Progress";
+  const currentIdx = crq?.history?.findIndex((h: any) => h.current) ?? -1;
+  const historyCount =
+    crq?.history?.filter(
+      (h: any, i: number) => !h.current && (currentIdx === -1 || i < currentIdx),
+    ).length ?? 0;
 
   return (
     <Box
       className="crq-card"
+      sx={{
+        mb: 1,
+        borderRadius: colors.radiusL ?? 2,
+        border: `1px solid ${isSelected ? colors.accent : colors.border}`,
+        bgcolor: isSelected ? colors.accentDim : colors.surface,
+        transition: "all 0.15s ease",
+        "&:hover": { borderColor: colors.accentBorder },
+        overflow: "hidden",
+      }}
+    >
+    <Box
       onClick={onSelect}
       sx={{
         display: "flex",
@@ -54,13 +71,7 @@ export const StageCard: React.FC<StageCardProps> = ({
         gap: 1.25,
         px: 1.75,
         py: 1.1,
-        mb: 1,
-        borderRadius: colors.radiusL ?? 2,
-        border: `1px solid ${isSelected ? colors.accent : colors.border}`,
-        bgcolor: isSelected ? colors.accentDim : colors.surface,
         cursor: "pointer",
-        transition: "all 0.15s ease",
-        "&:hover": { borderColor: colors.accentBorder },
       }}
     >
       <IconButton
@@ -102,6 +113,25 @@ export const StageCard: React.FC<StageCardProps> = ({
         sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
       />
 
+      {historyCount > 0 && (
+        <Tooltip title={`${historyCount} completed previous stage${historyCount > 1 ? "s" : ""} — expand to view`}>
+          <Chip
+            icon={<HistoryRoundedIcon sx={{ fontSize: "13px !important" }} />}
+            label={historyCount}
+            size="small"
+            sx={{
+              height: 22,
+              fontSize: 11,
+              fontWeight: 700,
+              bgcolor: colors.trackOff,
+              color: colors.textSecondary,
+              border: `1px solid ${colors.border}`,
+              "& .MuiChip-icon": { color: colors.textDim },
+            }}
+          />
+        </Tooltip>
+      )}
+
       <Tooltip title={isRunning ? `Pause ${stageConfig.label}` : `Start ${stageConfig.label}`}>
         <IconButton
           size="small"
@@ -124,6 +154,14 @@ export const StageCard: React.FC<StageCardProps> = ({
           )}
         </IconButton>
       </Tooltip>
+    </Box>
+
+    {/* Expanded body: read-only previous-stage history (no actions). */}
+    <Collapse in={isOpen} timeout="auto" unmountOnExit>
+      <Box sx={{ px: 2, pb: 1.5, pt: 0.5, borderTop: `1px dashed ${colors.border}` }}>
+        <StageHistoryPanel history={crq?.history} colors={colors} dense />
+      </Box>
+    </Collapse>
     </Box>
   );
 };

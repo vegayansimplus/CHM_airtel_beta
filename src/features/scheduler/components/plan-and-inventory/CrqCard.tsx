@@ -19,6 +19,7 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import { format } from "date-fns";
+import { StageHistoryPanel } from "../generic/StageHistoryPanel";
 interface CrqCardProps {
   crq: any;
   plan: any;
@@ -40,7 +41,8 @@ export const CrqCard: React.FC<CrqCardProps> = ({
   onStartPause,
 }) => {
   const isFailed = ["canceled", "cancel", "Canceled"].includes(crq.crqStatus);
-  const status = crq.impactAnalysisStatus || crq.crqReviewStatus;
+  // Plan & Inventory card - the review (VALIDATE) status drives Start/Pause.
+  const status = crq.crqReviewStatus || crq.impactAnalysisStatus;
   const isRunning = status === "In Progress";
 
   const formatDate = (dateString?: string) =>
@@ -259,6 +261,14 @@ export const CrqCard: React.FC<CrqCardProps> = ({
             <CrqTaskTable tasks={crq.tasks} colors={colors} />
           </Box>
         </Box>
+
+        {/* Read-only previous-stage history (populated once the CRQ has
+            advanced past at least one stage; empty for fresh CRQs). */}
+        {(crq.history?.length ?? 0) > 0 && (
+          <Box sx={{ mx: 2, mb: 1.5 }}>
+            <StageHistoryPanel history={crq.history} colors={colors} dense />
+          </Box>
+        )}
       </Collapse>
     </Paper>
   );

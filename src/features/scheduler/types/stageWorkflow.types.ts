@@ -82,6 +82,10 @@ export interface StageConfig {
   endpointBase: string;
   /** e.g. "/crqworkflow/mopcreate" -> GET listing endpoint */
   reviewQueryUrl: string;
+  /** Backend stage enum (CRQ_MASTER_TBL.current_stage), e.g. "MOP_CREATION" */
+  stageEnum: string;
+  /** CRQ field holding this stage's assigned OLM id, e.g. "olmidExecution" */
+  olmIdField: string;
   /** Field on the CRQ object that represents this stage's running status */
   statusField: string;
   /** Outcome options shown in the review/validate dialog */

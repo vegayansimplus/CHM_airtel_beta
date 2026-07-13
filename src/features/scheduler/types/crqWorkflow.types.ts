@@ -1,3 +1,25 @@
+/**
+ * One workflow stage of a CRQ as returned by the backend (crq.history[]).
+ * Past stages are immutable audit records (readOnly: true, no actions);
+ * exactly one entry carries current: true - the CRQ's live stage.
+ */
+export interface StageHistoryEntry {
+  /** Backend stage enum: VALIDATE | IMPACT_ANALYSIS | MOP_CREATION | ... */
+  stage: string;
+  /** Frontend stage key: review | impactanalysis | mopcreate | ... */
+  stageKey: string | null;
+  /** Human label: "Plan & Inventory", "Impact Analysis", ... */
+  stageLabel: string | null;
+  /** Final (past stage) or live (current stage) status display value. */
+  status: string | null;
+  assignedTo?: string | null;
+  performedBy?: string | null;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  current: boolean;
+  readOnly: boolean;
+}
+
 export interface Task {
   taskId: string;
   neLabel: string;
@@ -61,6 +83,13 @@ export interface Crq {
   reviewStartDate?: string | null;
   reviewEndDate?: string | null;
   workflow?: string | null;
+
+  /** Backend stage enum of the CRQ's live stage (CRQ_MASTER_TBL.current_stage). */
+  currentStage?: string | null;
+  /** Whether this record is the CRQ's current actionable stage record. */
+  actionable?: boolean | null;
+  /** Complete per-stage history in workflow order (previous stages read-only). */
+  history?: StageHistoryEntry[] | null;
 
   tasks: Task[];
 
