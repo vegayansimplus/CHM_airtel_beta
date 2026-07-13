@@ -220,10 +220,10 @@ const SideBar: React.FC<SideBarProps> = ({
   const [flyoutItem, setFlyoutItem] = useState<NavItem | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { data: countData } = useGetUnreadNotificationCountQuery(undefined, {
-    refetchOnFocus: true,
-    refetchOnReconnect: true,
-  });
+  // Shares the NotificationBell's cache entry/poll — kept here as a plain
+  // read so this component doesn't layer its own refetch triggers on top
+  // (that previously combined with the bell's poll to over-fetch).
+  const { data: countData } = useGetUnreadNotificationCountQuery();
   const inboxCount = countData?.notificationCount ?? 0;
   const sidebarItems = useSidebarNav();
 

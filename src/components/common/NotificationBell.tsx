@@ -148,9 +148,16 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
 
   // ── API calls ──────────────────────────────────────────────────────────────
 
-  // 1) Live unread COUNT for badge (polls every 60s)
+  // 1) Live unread COUNT for badge — polls every 60s while the tab is
+  // focused (skipped in background tabs), and refetches immediately on
+  // focus/reconnect. Mutations below also invalidate NotificationCount,
+  // so acknowledging/approving/rejecting updates the badge right away
+  // instead of waiting for the next poll.
   const { data: countData } = useGetUnreadNotificationCountQuery(undefined, {
     pollingInterval: 60000,
+    skipPollingIfUnfocused: true,
+    refetchOnFocus: true,
+    refetchOnReconnect: true,
   });
 
   // 2) Full notification list — fetched when panel opens

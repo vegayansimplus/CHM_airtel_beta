@@ -17,7 +17,6 @@ import UserMeMainPageTab from "../features/userMe/pages/UserMeMainPageTab";
 import { UserRosterMain } from "../features/userMe/pages/UserRosterMain";
 import InboxPageTab from "../features/inbox/InboxPageTab";
 import TaskInbox from "../features/inbox/components/TaskInbox";
-import RosterGeneratorTabView from "../features/rosterGenerator/pages/RosterGeneratorTab";
 import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
 import NotificationManagerMain from "../features/userMe/pages/NotificationManagerMain";
 import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
@@ -195,8 +194,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<Navigate to="view" replace />} />
-          <Route path="view" element={<RosterViewMain />} />
-          <Route path="monthly" element={<>Monthly Roster</>} />
+          <Route path="generation" element={<RosterGenerationMain />} />
           <Route path="view" element={<RosterViewMain />} />
         </Route>
 
@@ -254,29 +252,9 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         </Route>
 
         <Route
-          path="generateroster"
-          element={
-            <PrivateRoute
-              element={
-                <RosterGeneratorTabView
-                  setDynamicHeaderText={setDynamicHeaderText}
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
-                />
-              }
-            />
-          }
-        >
-          <Route index element={<Navigate to="rostergeneration" replace />} />
-          <Route path="rostergeneration" element={<RosterGenerationMain />} />
-          <Route
-            path="test"
-            element={
-              <>
-                <>Notifications</>
-              </>
-            }
-          />
-        </Route>
+          path="generateroster/*"
+          element={<Navigate to="/roster/generation" replace />}
+        />
 
         <Route
           path="user-management"

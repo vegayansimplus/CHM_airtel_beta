@@ -38,6 +38,7 @@ export const inboxApiSlice = api.injectEndpoints({
       void
     >({
       query: () => `/notification/notificationcount?readFlag=0`,
+      providesTags: ["NotificationCount"],
     }),
 
       managerShiftSwapAction: builder.mutation<any, { notificationId: number; status: string; reason?: string }>({
@@ -45,7 +46,7 @@ export const inboxApiSlice = api.injectEndpoints({
         url: `/notification/swapreqmanageraction?notificationId=${notificationId}&status=${status}&shiftSwapRejectReason=${encodeURIComponent(reason || '')}`,
         method: "POST",
       }),
-      // invalidatesTags: ['Notifications'], // Refreshes the inbox automatically
+      invalidatesTags: ["NotificationCount"],
     }),
     employeeShiftSwapAction: builder.mutation<
       any,
@@ -55,7 +56,7 @@ export const inboxApiSlice = api.injectEndpoints({
         url: `/notification/swapreqempaction?notificationId=${notificationId}&status=${status}&rejectReason=${encodeURIComponent(reason || "")}`,
         method: "POST",
       }),
-      // invalidatesTags: ['Notifications'],
+      invalidatesTags: ["NotificationCount"],
     }),
 
     // GENERIC ACKNOWLEDGE (READ) API ---
@@ -64,7 +65,7 @@ export const inboxApiSlice = api.injectEndpoints({
         url: `/notification/acknowledge?notificationId=${notificationId}`, // Update with your actual ACK API
         method: "POST",
       }),
-      // invalidatesTags: ['Notifications'],
+      invalidatesTags: ["NotificationCount"],
     }),
   }),
 });

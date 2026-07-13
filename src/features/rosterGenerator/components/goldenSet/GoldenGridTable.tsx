@@ -376,25 +376,34 @@ export default function GoldenGridTable({
                       }}
                       sx={{
                         ...weekHeadSx,
+                        width: (CELL_W + 6) * 7,
+                        minWidth: (CELL_W + 6) * 7,
                         fontSize: 10,
                         fontWeight: 700,
                         letterSpacing: ".06em",
                         textTransform: "uppercase",
                         borderLeft: w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
-                        background: `${weekCellBg} !important`,
-                        backgroundColor: `${weekCellBg} !important`,
+                        // weekCellBg is a translucent tint (alpha < 1), so
+                        // assigning it directly as `background` (as the
+                        // corner cell does with its opaque empColBg) lets
+                        // body rows scrolling underneath show through the
+                        // sticky header. Layering it as a gradient over an
+                        // opaque paperBg base composites it to a flat,
+                        // fully opaque color instead.
+                        background: `linear-gradient(${weekCellBg}, ${weekCellBg}), ${paperBg} !important`,
+                        backgroundColor: `${paperBg} !important`,
                         color: w % 2 === 1 ? tk.accent : tk.textSecondary,
                         cursor: editing && editMode === "week" ? "context-menu" : "default",
                         "&:hover":
                           editing && editMode === "week"
                             ? {
-                                background: `${alpha(tk.accent, 0.12)} !important`,
-                                backgroundColor: `${alpha(tk.accent, 0.12)} !important`,
+                                background: `linear-gradient(${alpha(tk.accent, 0.12)}, ${alpha(tk.accent, 0.12)}), ${paperBg} !important`,
+                                backgroundColor: `${paperBg} !important`,
                               }
                             : undefined,
                       }}
                     >
-                      Week {w + 1}
+                      Week {w + 1} 
                       {editing && editMode === "week" && (
                         <Typography
                           component="span"
@@ -423,8 +432,16 @@ export default function GoldenGridTable({
                 ))}
               </TableRow>
 
-              {/* Row 2: Day headers — top = measured week-row height */}
-              <TableRow>
+              {/* Row 2: Day headers — top = measured week-row height.
+                  Keyed on dayRowTop so that when the ResizeObserver corrects
+                  it from the WEEK_ROW_H fallback to the real measured value,
+                  React remounts this row instead of patching its `top`
+                  in place. A live style patch to an already-stuck
+                  `position: sticky` element's offset lets the browser keep a
+                  stale sticky constraint calculated from the old value,
+                  which only surfaces once you actually scroll past it (and
+                  never self-corrects) — remounting forces a fresh layout. */}
+              <TableRow key={dayRowTop}>
                 {Array.from({ length: TOTAL_COLS }, (_, i) => {
                   const d = i % 7;
                   const w = Math.floor(i / 7);
@@ -440,8 +457,8 @@ export default function GoldenGridTable({
                         fontSize: 10.5,
                         fontWeight: 600,
                         borderLeft: d === 0 && w > 0 ? `2.5px solid ${alpha(tk.textPrimary, 0.12)}` : undefined,
-                        background: `${dayCellBg} !important`,
-                        backgroundColor: `${dayCellBg} !important`,
+                        background: `linear-gradient(${dayCellBg}, ${dayCellBg}), ${paperBg} !important`,
+                        backgroundColor: `${paperBg} !important`,
                       }}
                     >
                       {DOW_SHORT[d]}

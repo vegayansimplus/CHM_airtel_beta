@@ -1,10 +1,10 @@
 import { useMemo, type ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import PersonIcon from "@mui/icons-material/Person";
-import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2";
 import AltRouteIcon from "@mui/icons-material/AltRoute";
 import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
+import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 
 import {
   FilterTiltShift,
@@ -117,12 +117,6 @@ const ALL_NAV_ITEMS: NavItem[] = [
     ],
   },
   {
-    to: "/generateroster",
-    text: "Roster Generator",
-    icon: <ViewTimelineOutlinedIcon />,
-    requiredModule: "Roster Managemement",
-  },
-  {
     to: "/team",
     text: "Team Management",
     icon: <Groups2Icon />,
@@ -168,9 +162,25 @@ const ALL_NAV_ITEMS: NavItem[] = [
   },
   {
     to: "/roster",
-    text: "Roster View",
+    text: "Roster",
     icon: <CalendarMonth />,
     requiredModule: "Roster Managemement",
+    children: [
+      {
+        to: "/roster/view",
+        text: "Roster View",
+        icon: <CalendarMonth />,
+        requiredModule: "Roster Managemement",
+        matchPaths: ["/roster/view"],
+      },
+      {
+        to: "/roster/generation",
+        text: "Roster Generation",
+        icon: <ViewTimelineOutlinedIcon />,
+        requiredModule: "Roster Managemement",
+        matchPaths: ["/roster/generation"],
+      },
+    ],
   },
   {
     to: "/inbox",

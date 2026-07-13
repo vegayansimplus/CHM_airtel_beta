@@ -103,11 +103,18 @@ function buildRowMap(
 // ─── Sx helpers ────────────────────────────────────────────────────────────────
 
 function stickyHeaderCellSx(isDark: boolean) {
+  const bg = isDark ? "#1E293B" : "#F8FAFC";
   return {
     position: "sticky" as const,
     top: 0,
     zIndex: 4,
-    bgcolor: isDark ? "#1E293B" : "#F8FAFC",
+    // Both the shorthand and the longhand must be forced: MUI's theme applies
+    // a semi-transparent `backgroundColor` to every head-variant TableCell
+    // (see MuiTableCell.styleOverrides.head in style/theme.ts) — without
+    // `!important` on backgroundColor, that rule wins the cascade and lets
+    // scrolling body rows show through the "sticky" header.
+    background: `${bg} !important`,
+    backgroundColor: `${bg} !important`,
     backgroundImage: "none",
     backdropFilter: "none",
     borderBottom: `2px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.10)"}`,
@@ -133,12 +140,14 @@ function stickyEmpCellSx(isDark: boolean) {
 }
 
 function stickyEmpHeadCellSx(isDark: boolean) {
+  const bg = isDark ? "#1E293B" : "#F8FAFC";
   return {
     position: "sticky" as const,
     left: 0,
     top: 0,
     zIndex: 6,
-    bgcolor: isDark ? "#1E293B" : "#F8FAFC",
+    background: `${bg} !important`,
+    backgroundColor: `${bg} !important`,
     backgroundImage: "none",
     backdropFilter: "none",
     borderRight: `1px solid ${isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.10)"}`,
@@ -156,9 +165,11 @@ function weekendBodyCellSx(isDark: boolean) {
 }
 
 function weekendHeaderCellSx(isDark: boolean) {
+  const bg = isDark ? "#1A1629" : "#F5F0FA";
   return {
     ...stickyHeaderCellSx(isDark),
-    bgcolor: isDark ? "#1A1629" : "#F5F0FA",
+    background: `${bg} !important`,
+    backgroundColor: `${bg} !important`,
     backgroundImage: "none",
   };
 }

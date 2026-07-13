@@ -10,6 +10,13 @@ import type { MRT_PaginationState } from "material-react-table";
 import { useAppSelector } from "../../../app/hooks";
 import { Box } from "@mui/material";
 
+// Fetched once per subDomain/status selection so search & pagination can run
+// client-side over the complete matching dataset (see TeamSkillSetTable).
+// The backing stored procedure has no server-side search parameter, and the
+// realistic team size for a sub-domain (hundreds, not tens of thousands)
+// makes a single full fetch far cheaper than getting search wrong.
+const FETCH_ALL_SIZE = 2000;
+
 export const TeamManagementMain = () => {
   //  ALL hooks before any conditional return
   const user = useAppSelector((s) => s.auth.user);
@@ -28,8 +35,8 @@ export const TeamManagementMain = () => {
     {
       subDomainId: subDomainId as number,
       employeeStatus: status,
-      page: pagination.pageIndex,
-      size: pagination.pageSize,
+      page: 0,
+      size: FETCH_ALL_SIZE,
     },
     { skip: !subDomainId },
   );
@@ -47,15 +54,10 @@ export const TeamManagementMain = () => {
     setFilteredRows(tableData);
   }, [tableData]);
 
-  // Adjust page size when total record count is known
+  // Reset to page 1 whenever the underlying dataset changes (new filter/status)
   useEffect(() => {
-    if (!totalRowCount) return;
-    setPagination((prev) => ({
-      ...prev,
-      pageIndex: 0,
-      pageSize: totalRowCount < 14 ? totalRowCount : 14,
-    }));
-  }, [totalRowCount]);
+    setPagination((prev) => ({ ...prev, pageIndex: 0 }));
+  }, [subDomainId, status]);
 
   //  Early return AFTER all hooks
   if (!user) return <Box>No user found</Box>;

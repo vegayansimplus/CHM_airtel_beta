@@ -24,8 +24,7 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
   /* =====================================================
      URL IS THE SINGLE SOURCE OF TRUTH
      Route structure:
-     /roster/weekly
-     /roster/monthly
+     /roster/generation
      /roster/view
   ===================================================== */
 
@@ -33,10 +32,7 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
     const segments = location.pathname.split("/");
     const lastSegment = segments[segments.length - 1];
 
-    // if (["weekly", "monthly", "view"].includes(lastSegment)) {
-    //   return lastSegment;
-    // }
-    if (["view"].includes(lastSegment)) {
+    if (["generation", "view"].includes(lastSegment)) {
       return lastSegment;
     }
 
@@ -47,14 +43,12 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
 
   useEffect(() => {
     switch (activeTab) {
-      // case "monthly":
-      //   setDynamicHeaderText("Monthly Roster");
-      //   break;
-      case "view":
-        setDynamicHeaderText("Roster View");
+      case "generation":
+        setDynamicHeaderText("Roster Generation");
         break;
+      case "view":
       default:
-        setDynamicHeaderText("Weekly Roster");
+        setDynamicHeaderText("Roster View");
     }
 
     setDynamicHeaderIcon(HEADER_ICON);
@@ -157,11 +151,13 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
             },
           }}
         >
-          {/* <Tab label="Weekly" value="weekly" to="weekly" component={Link} />
-
-          <Tab label="Monthly" value="monthly" to="monthly" component={Link} /> */}
-
           <Tab label="Roster View" value="view" to="view" component={Link} />
+          <Tab
+            label="Roster Generation"
+            value="generation"
+            to="generation"
+            component={Link}
+          />
         </Tabs>
       </Box>
 

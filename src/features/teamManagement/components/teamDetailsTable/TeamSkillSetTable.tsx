@@ -316,13 +316,17 @@ const TeamSkillSetTable: React.FC<Props> = ({
   const table = useMaterialReactTable({
     columns,
     data,
-    manualPagination: true,
-    rowCount: totalRowCount,
+    // Client-side pagination/filtering/sorting: `data` holds the complete
+    // matching dataset (fetched once per subDomain/status in
+    // TeamManagementMain), so search and column filters can find a match on
+    // any page instead of only the currently loaded server page.
+    manualPagination: false,
     onPaginationChange: setPagination,
     state: { pagination, columnVisibility },
     onColumnVisibilityChange: setColumnVisibility,
     enablePagination: true,
     enableColumnFilters: true,
+    enableGlobalFilter: true,
     enableSorting: true,
     enableStickyHeader: true,
     enableColumnPinning: true,
@@ -430,6 +434,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
     onFilteredRowsChange(filtered);
   }, [
     table.getState().columnFilters,
+    table.getState().globalFilter,
     data, // re-run when server data refreshes
   ]);
 
@@ -453,7 +458,6 @@ const TeamSkillSetTable: React.FC<Props> = ({
   return (
     <>
       <MaterialReactTable table={table} />
-
       {dialogOpen && (
         <CreateEditMemberDialog
           open={dialogOpen}
