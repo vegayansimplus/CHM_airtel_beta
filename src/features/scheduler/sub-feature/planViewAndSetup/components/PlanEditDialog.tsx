@@ -61,6 +61,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
   const isDark = theme.palette.mode === "dark";
 
   const [formData, setFormData] = useState<FormDataState | null>(null);
+  const [errors, setErrors] = useState<Partial<Record<keyof FormDataState, string>>>({});
   const [updatePlan, { isLoading: isUpdating }] = useUpdatePlanMutation();
   const loggedUser = authStorage.getUser();
 
@@ -73,16 +74,38 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
     // chmDomainId/chmSubDomainId now come straight from the backend
     // (GET /plan/view), no more guessing the ID from a label match.
     setFormData(data ? { ...data } : null);
+    setErrors({});
   }, [data, open]);
 
   if (!data || !formData) return null;
 
   const handleChange = (key: keyof FormDataState, value: any) => {
     setFormData((prev) => (prev ? { ...prev, [key]: value } : null));
+    if (errors[key]) {
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
+    }
+  };
+
+  /** Mirrors UpdatePlanRequest's required fields (see planApiSlice.ts). */
+  const validateForm = (data: FormDataState): boolean => {
+    const newErrors: Partial<Record<keyof FormDataState, string>> = {};
+
+    if (!data.planType?.trim()) newErrors.planType = "Required";
+    if (!data.status) newErrors.status = "Required";
+    if (!data.chmDomainId) newErrors.chmDomainId = "Required";
+    if (!data.chmSubDomainId) newErrors.chmSubDomainId = "Required";
+    if (!data.networkDomain?.trim()) newErrors.networkDomain = "Required";
+    if (!data.layer?.trim()) newErrors.layer = "Required";
+    if (!data.planVendor?.trim()) newErrors.planVendor = "Required";
+    if (!data.changeImpact) newErrors.changeImpact = "Required";
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSaveClick = async () => {
     if (formData) {
+      if (!validateForm(formData)) return;
       try {
         const updatePayload = {
           actorUserId: loggedUser?.id ?? 0,
@@ -114,16 +137,32 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
     }
   };
 
-  // Define fields that shouldn't be editable by the user
-  const readOnlyFields = ["id", "planId", "createdAt", "updatedAt", "createdBy"];
+  // Explicit editable field list — mirrors UpdatePlanRequest exactly, so a new
+  // field on PlanViewRow no longer silently becomes an editable input.
+  type FieldConfig =
+    | { key: keyof FormDataState; label: string; kind: "text" }
+    | { key: keyof FormDataState; label: string; kind: "dropdown"; options: FilterOption[] };
 
-  // Fields that are dropdown selects
-  const dropdownFields: Record<string, FilterOption[]> = {
-    chmDomain: chmDomainOptions,
-    chmSubDomain: chmSubDomainOptions,
-    changeImpact: CHANGE_IMPACT_OPTIONS.map((v) => ({ label: v, value: v as any })),
-    status: STATUS_OPTIONS.map((v) => ({ label: v, value: v as any })),
-  };
+  const FIELDS: FieldConfig[] = [
+    { key: "chmDomainId", label: "CHM Domain", kind: "dropdown", options: chmDomainOptions },
+    { key: "chmSubDomainId", label: "CHM Sub Domain", kind: "dropdown", options: chmSubDomainOptions },
+    { key: "networkDomain", label: "Network Domain", kind: "text" },
+    { key: "layer", label: "Layer", kind: "text" },
+    { key: "planType", label: "Plan Type", kind: "text" },
+    { key: "planVendor", label: "Plan Vendor", kind: "text" },
+    {
+      key: "changeImpact",
+      label: "Change Impact",
+      kind: "dropdown",
+      options: CHANGE_IMPACT_OPTIONS.map((v) => ({ label: v, value: v as any })),
+    },
+    {
+      key: "status",
+      label: "Status",
+      kind: "dropdown",
+      options: STATUS_OPTIONS.map((v) => ({ label: v, value: v as any })),
+    },
+  ];
 
   return (
     <Dialog
@@ -203,26 +242,9 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
       {/* ── Form Content ── */}
       <DialogContent sx={{ p: 4 }}>
         <Grid container spacing={3}>
-          {Object.entries(formData).map(([key, value]) => {
-            const isReadOnly = readOnlyFields.includes(key);
-            const isDropdown =
-              key === "chmDomain" ||
-              key === "chmSubDomain" ||
-              key === "changeImpact" ||
-              key === "status";
-
-            if (key === "chmDomainId" || key === "chmSubDomainId") return null; // Skip IDs
-
-            const displayKey =
-              key === "chmDomainId"
-                ? "chmDomain"
-                : key === "chmSubDomainId"
-                  ? "chmSubDomain"
-                  : key;
-
-            const label = displayKey
-              .replace(/([A-Z])/g, " $1")
-              .trim(); // camelCase to Title Case
+          {FIELDS.map(({ key, label, kind, options }) => {
+            const value = formData[key];
+            const hasError = !!errors[key];
 
             return (
               <Grid size={{ xs: 12, sm: 6 }} key={key}>
@@ -236,44 +258,25 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                     textTransform: "capitalize",
                   }}
                 >
-                  {label}
+                  {label} <span style={{ color: "red" }}>*</span>
                 </Typography>
 
-                {isDropdown ? (
+                {kind === "dropdown" ? (
                   <TextField
                     select
                     fullWidth
-                    disabled={isReadOnly}
                     size="small"
                     variant="outlined"
-                    value={
-                      key === "chmDomain"
-                        ? formData.chmDomainId ?? ""
-                        : key === "chmSubDomain"
-                          ? formData.chmSubDomainId ?? ""
-                          : value ?? ""
-                    }
-                    onChange={(e) =>
-                      handleChange(
-                        key === "chmDomain"
-                          ? "chmDomainId"
-                          : key === "chmSubDomain"
-                            ? "chmSubDomainId"
-                            : (key as keyof FormDataState),
-                        e.target.value,
-                      )
-                    }
+                    error={hasError}
+                    value={value ?? ""}
+                    onChange={(e) => handleChange(key, e.target.value)}
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: 2,
-                        bgcolor: isReadOnly
-                          ? alpha(theme.palette.action.disabledBackground, 0.5)
-                          : theme.palette.background.paper,
+                        bgcolor: theme.palette.background.paper,
                         transition: "all 0.2s ease-in-out",
                         "&:hover fieldset": {
-                          borderColor: isReadOnly
-                            ? "transparent"
-                            : theme.palette.primary.main,
+                          borderColor: theme.palette.primary.main,
                         },
                         "&.Mui-focused fieldset": {
                           borderWidth: "1.5px",
@@ -281,7 +284,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                       },
                     }}
                   >
-                    {dropdownFields[displayKey]?.map((option) => (
+                    {options.map((option) => (
                       <MenuItem key={option.value} value={option.value}>
                         {option.label}
                       </MenuItem>
@@ -290,25 +293,19 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                 ) : (
                   <TextField
                     fullWidth
-                    disabled={isReadOnly}
                     size="small"
                     variant="outlined"
                     placeholder={`Enter ${label.toLowerCase()}`}
+                    error={hasError}
                     value={value !== null && value !== undefined ? value : ""}
-                    onChange={(e) =>
-                      handleChange(key as keyof FormDataState, e.target.value)
-                    }
+                    onChange={(e) => handleChange(key, e.target.value)}
                     sx={{
                       "& .MuiOutlinedInput-root": {
                         borderRadius: 2,
-                        bgcolor: isReadOnly
-                          ? alpha(theme.palette.action.disabledBackground, 0.5)
-                          : theme.palette.background.paper,
+                        bgcolor: theme.palette.background.paper,
                         transition: "all 0.2s ease-in-out",
                         "&:hover fieldset": {
-                          borderColor: isReadOnly
-                            ? "transparent"
-                            : theme.palette.primary.main,
+                          borderColor: theme.palette.primary.main,
                         },
                         "&.Mui-focused fieldset": {
                           borderWidth: "1.5px",
@@ -316,6 +313,11 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
                       },
                     }}
                   />
+                )}
+                {hasError && (
+                  <Typography sx={{ fontSize: 11, color: "error.main", mt: 0.5 }}>
+                    {errors[key]}
+                  </Typography>
                 )}
               </Grid>
             );

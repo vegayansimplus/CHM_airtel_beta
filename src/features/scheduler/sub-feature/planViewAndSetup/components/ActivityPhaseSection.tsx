@@ -1,28 +1,30 @@
-import React, { useState } from "react";
+import React, { memo, useState } from "react";
 import {
   Accordion,
   AccordionDetails,
   AccordionSummary,
   Box,
+  Chip,
   FormControl,
   FormHelperText,
   InputAdornment,
   InputLabel,
   MenuItem,
   Select,
-  TextField,
   Typography,
 } from "@mui/material";
 import {
   AccessTime,
   CalendarMonth,
+  CheckCircle,
   ExpandMore,
-  Groups,
   QueryBuilder,
   Schedule,
   SignalCellularAlt,
   Update,
 } from "@mui/icons-material";
+import TeamAssignmentSelect from "../../../../orgHierarchy/components/TeamAssignmentSelect";
+import NumericField from "../../../../../components/common/NumericField";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -33,6 +35,7 @@ interface Props {
   onChange: (field: string, value: any) => void;
   phaseIndex: number;
   shiftError?: boolean;
+  teamError?: boolean;
 }
 
 // ─── Accent colors per phase ─────────────────────────────────────────────────
@@ -40,6 +43,12 @@ interface Props {
 const ACCENT_COLORS = [
   "#5C6BC0", "#26A69A", "#FFA726", "#AB47BC", "#42A5F5", "#EF5350",
 ];
+
+const FIELD_GRID_SX = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
+  gap: 2,
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -50,13 +59,15 @@ const ActivityPhaseSection: React.FC<Props> = ({
   onChange,
   phaseIndex,
   shiftError,
+  teamError,
 }) => {
   const [manuallyExpanded, setManuallyExpanded] = useState(phaseIndex === 0);
   const accent = ACCENT_COLORS[phaseIndex % ACCENT_COLORS.length];
+  const isConfigured = !!value.shift && !!value.minimumLevelRequirement;
 
   // Auto-expand so a validation error is actually visible, not hidden in a
   // collapsed accordion, without needing an effect.
-  const expanded = manuallyExpanded || !!shiftError;
+  const expanded = manuallyExpanded || !!shiftError || !!teamError;
 
   return (
     <Accordion
@@ -66,43 +77,66 @@ const ActivityPhaseSection: React.FC<Props> = ({
       elevation={0}
       sx={{
         border: "1px solid",
-        borderColor: "divider",
+        borderColor: shiftError || teamError ? "error.main" : "divider",
         borderRadius: "12px !important",
         "&::before": { display: "none" },
         overflow: "hidden",
+        transition: "border-color 0.15s",
       }}
     >
       <AccordionSummary
         expandIcon={<ExpandMore />}
-        sx={{ bgcolor: "grey.50", px: 2.5, minHeight: 56 }}
+        sx={{ bgcolor: "grey.50", px: 2.5, minHeight: 60 }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
           <Box
             sx={{
-              width: 4,
-              height: 28,
-              borderRadius: 1,
-              bgcolor: shiftError ? "error.main" : accent,
+              width: 30,
+              height: 30,
+              flexShrink: 0,
+              borderRadius: "50%",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 13,
+              fontWeight: 700,
+              color: "#fff",
+              bgcolor: shiftError || teamError ? "error.main" : accent,
             }}
-          />
-          <Typography fontWeight={700}>{title}</Typography>
-          {shiftError && (
-            <Typography variant="caption" color="error.main" fontWeight={600}>
-              Shift is required
-            </Typography>
-          )}
+          >
+            {phaseIndex + 1}
+          </Box>
+          <Typography fontWeight={700} sx={{ flexShrink: 0 }}>
+            {title}
+          </Typography>
+
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, ml: 0.5, flexWrap: "wrap" }}>
+            {isConfigured && !shiftError && !teamError && (
+              <Chip
+                icon={<CheckCircle sx={{ fontSize: 14 }} />}
+                label="Configured"
+                size="small"
+                color="success"
+                variant="outlined"
+                sx={{ height: 22, fontSize: 11 }}
+              />
+            )}
+            {(shiftError || teamError) && (
+              <Typography variant="caption" color="error.main" fontWeight={600}>
+                {shiftError && teamError
+                  ? "Shift and team are required"
+                  : shiftError
+                    ? "Shift is required"
+                    : "Team assignment is required"}
+              </Typography>
+            )}
+          </Box>
         </Box>
       </AccordionSummary>
 
-      <AccordionDetails sx={{ p: 2.5 }}>
-        {/* ── Row 1: always 4 fields ──────────────────────────────── */}
-        <Box
-          sx={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 2,
-          }}
-        >
+      <AccordionDetails sx={{ p: 2.5, bgcolor: "background.paper" }}>
+        {/* ── Row 1: core fields ──────────────────────────────── */}
+        <Box sx={FIELD_GRID_SX}>
           {/* Shift */}
           <FormControl fullWidth size="small" error={shiftError}>
             <InputLabel>Shift</InputLabel>
@@ -144,15 +178,12 @@ const ActivityPhaseSection: React.FC<Props> = ({
           </FormControl>
 
           {/* Time (Min) */}
-          <TextField
+          <NumericField
             fullWidth
             size="small"
-            type="number"
             label="Time (Min)"
             value={value.requiredTimeMinutes}
-            onChange={(e) =>
-              onChange("requiredTimeMinutes", Number(e.target.value))
-            }
+            onChange={(n) => onChange("requiredTimeMinutes", n)}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -163,45 +194,46 @@ const ActivityPhaseSection: React.FC<Props> = ({
           />
 
           {/* Assigned Team */}
-          <TextField
-            fullWidth
-            size="small"
-            type="number"
-            label="Assigned Team"
-            value={value.assignedToTeam}
-            onChange={(e) =>
-              onChange("assignedToTeam", Number(e.target.value))
-            }
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Groups fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-          />
+          <Box sx={{ gridColumn: "1 / -1" }}>
+            <Typography
+              fontSize={12}
+              color={teamError ? "error.main" : "text.secondary"}
+              sx={{ mb: 0.5 }}
+            >
+              Assign Team
+            </Typography>
+            <TeamAssignmentSelect
+              value={value.assignedToTeam || undefined}
+              onChange={(subDomainId) =>
+                onChange("assignedToTeam", subDomainId ?? 0)
+              }
+            />
+            {teamError && (
+              <Typography variant="caption" color="error.main" sx={{ display: "block", mt: 0.5 }}>
+                Team assignment is required
+              </Typography>
+            )}
+          </Box>
         </Box>
 
         {/* ── Row 2: only for crqExecution (variant === "full") ─── */}
         {variant === "full" && (
           <Box
             sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(3, 1fr)",
-              gap: 2,
+              ...FIELD_GRID_SX,
+              gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
               mt: 2,
+              pt: 2,
+              borderTop: "1px dashed",
+              borderColor: "divider",
             }}
           >
-            {/* Days Margin */}
-            <TextField
+            <NumericField
               fullWidth
               size="small"
-              type="number"
               label="Days Margin"
               value={value.daysMargin}
-              onChange={(e) =>
-                onChange("daysMargin", Number(e.target.value))
-              }
+              onChange={(n) => onChange("daysMargin", n)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -211,16 +243,12 @@ const ActivityPhaseSection: React.FC<Props> = ({
               }}
             />
 
-            {/* Reservation Margin */}
-            <TextField
+            <NumericField
               fullWidth
               size="small"
-              type="number"
               label="Reservation Margin"
               value={value.reservationMargin}
-              onChange={(e) =>
-                onChange("reservationMargin", Number(e.target.value))
-              }
+              onChange={(n) => onChange("reservationMargin", n)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -230,16 +258,12 @@ const ActivityPhaseSection: React.FC<Props> = ({
               }}
             />
 
-            {/* Rollback Time */}
-            <TextField
+            <NumericField
               fullWidth
               size="small"
-              type="number"
               label="Rollback Time"
               value={value.rollbackTime}
-              onChange={(e) =>
-                onChange("rollbackTime", Number(e.target.value))
-              }
+              onChange={(n) => onChange("rollbackTime", n)}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -255,290 +279,4 @@ const ActivityPhaseSection: React.FC<Props> = ({
   );
 };
 
-export default ActivityPhaseSection;
-
-// import React, { useState } from "react";
-// import {
-//   Box,
-//   Chip,
-//   Collapse,
-//   Grid,
-//   IconButton,
-//   MenuItem,
-//   Paper,
-//   TextField,
-//   Tooltip,
-//   Typography,
-// } from "@mui/material";
-// import {
-//   AccessTime,
-//   CalendarToday,
-//   ExpandLess,
-//   ExpandMore,
-//   Groups,
-//   Loop,
-//   Schedule,
-//   SignalCellularAlt,
-//   WatchLater,
-// } from "@mui/icons-material";
-
-// const SHIFTS = ["General", "Morning", "Evening", "Night"];
-// const LEVELS = ["L1", "L2", "L3", "L4"];
-
-// const SHIFT_COLORS: Record<string, "default" | "primary" | "warning" | "info"> = {
-//   General: "default",
-//   Morning: "primary",
-//   Evening: "warning",
-//   Night: "info",
-// };
-
-// const FIELD_META: Record<
-//   string,
-//   { icon: React.ReactNode; tooltip: string; label: string }
-// > = {
-//   shift: {
-//     icon: <Schedule fontSize="small" />,
-//     tooltip: "Work shift for this phase",
-//     label: "Shift",
-//   },
-//   minimumLevelRequirement: {
-//     icon: <SignalCellularAlt fontSize="small" />,
-//     tooltip: "Minimum skill/competency level required",
-//     label: "Min Level",
-//   },
-//   requiredTimeMinutes: {
-//     icon: <AccessTime fontSize="small" />,
-//     tooltip: "Estimated time required in minutes",
-//     label: "Time (Min)",
-//   },
-//   daysMargin: {
-//     icon: <CalendarToday fontSize="small" />,
-//     tooltip: "Buffer days allowed for the phase",
-//     label: "Days Margin",
-//   },
-//   reservationMargin: {
-//     icon: <WatchLater fontSize="small" />,
-//     tooltip: "Reservation buffer margin",
-//     label: "Reservation Margin",
-//   },
-//   rollbackTime: {
-//     icon: <Loop fontSize="small" />,
-//     tooltip: "Time allocated for rollback if needed",
-//     label: "Rollback Time",
-//   },
-//   assignedToTeam: {
-//     icon: <Groups fontSize="small" />,
-//     tooltip: "Team ID assigned to this phase",
-//     label: "Assigned Team",
-//   },
-// };
-
-// const PHASE_COLORS = [
-//   "#4F46E5",
-//   "#0891B2",
-//   "#059669",
-//   "#D97706",
-//   "#DC2626",
-//   "#7C3AED",
-//   "#DB2777",
-// ];
-
-// interface Props {
-//   title: string;
-//   value: any;
-//   onChange: (field: string, value: any) => void;
-//   phaseIndex?: number;
-// }
-
-// const ActivityPhaseSection: React.FC<Props> = ({
-//   title,
-//   value,
-//   onChange,
-//   phaseIndex = 0,
-// }) => {
-//   const [expanded, setExpanded] = useState(true);
-//   const accentColor = PHASE_COLORS[phaseIndex % PHASE_COLORS.length];
-
-//   const isConfigured =
-//     value.shift !== "" || value.minimumLevelRequirement !== "";
-
-//   return (
-//     <Paper
-//       elevation={0}
-//       sx={{
-//         border: "1px solid",
-//         borderColor: "divider",
-//         borderRadius: 2,
-//         overflow: "hidden",
-//         transition: "box-shadow 0.2s",
-//         "&:hover": { boxShadow: "0 2px 12px rgba(0,0,0,0.08)" },
-//       }}
-//     >
-//       {/* Header */}
-//       <Box
-//         onClick={() => setExpanded(!expanded)}
-//         sx={{
-//           display: "flex",
-//           alignItems: "center",
-//           gap: 1.5,
-//           px: 2.5,
-//           py: 1.5,
-//           cursor: "pointer",
-//           bgcolor: expanded ? "action.hover" : "background.paper",
-//           borderBottom: expanded ? "1px solid" : "none",
-//           borderColor: "divider",
-//           userSelect: "none",
-//           transition: "background-color 0.15s",
-//           "&:hover": { bgcolor: "action.hover" },
-//         }}
-//       >
-//         <Box
-//           sx={{
-//             width: 4,
-//             height: 28,
-//             borderRadius: 1,
-//             bgcolor: accentColor,
-//             flexShrink: 0,
-//           }}
-//         />
-//         <Typography fontWeight={600} fontSize={14} sx={{ flex: 1 }}>
-//           {title}
-//         </Typography>
-//         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-//           {isConfigured && value.shift && (
-//             <Chip
-//               label={value.shift}
-//               size="small"
-//               color={SHIFT_COLORS[value.shift] ?? "default"}
-//               sx={{ height: 20, fontSize: 11 }}
-//             />
-//           )}
-//           {isConfigured && value.minimumLevelRequirement && (
-//             <Chip
-//               label={value.minimumLevelRequirement}
-//               size="small"
-//               variant="outlined"
-//               sx={{ height: 20, fontSize: 11 }}
-//             />
-//           )}
-//         </Box>
-//         <IconButton size="small" sx={{ ml: 0.5 }}>
-//           {expanded ? (
-//             <ExpandLess fontSize="small" />
-//           ) : (
-//             <ExpandMore fontSize="small" />
-//           )}
-//         </IconButton>
-//       </Box>
-
-//       {/* Body */}
-//       <Collapse in={expanded}>
-//         <Box sx={{ px: 2.5, py: 2 }}>
-//           <Grid container spacing={2}>
-//             {/* Shift */}
-//             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-//               <Tooltip title={FIELD_META.shift.tooltip} placement="top" arrow>
-//                 <TextField
-//                   fullWidth
-//                   select
-//                   size="small"
-//                   label={
-//                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-//                       {FIELD_META.shift.icon}
-//                       {FIELD_META.shift.label}
-//                     </Box>
-//                   }
-//                   value={value.shift}
-//                   onChange={(e) => onChange("shift", e.target.value)}
-//                   sx={{
-//                     "& .MuiInputLabel-root": {
-//                       display: "flex",
-//                       alignItems: "center",
-//                     },
-//                   }}
-//                 >
-//                   {SHIFTS.map((s) => (
-//                     <MenuItem key={s} value={s}>
-//                       {s}
-//                     </MenuItem>
-//                   ))}
-//                 </TextField>
-//               </Tooltip>
-//             </Grid>
-
-//             {/* Min Level */}
-//             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-//               <Tooltip
-//                 title={FIELD_META.minimumLevelRequirement.tooltip}
-//                 placement="top"
-//                 arrow
-//               >
-//                 <TextField
-//                   fullWidth
-//                   select
-//                   size="small"
-//                   label={
-//                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-//                       {FIELD_META.minimumLevelRequirement.icon}
-//                       {FIELD_META.minimumLevelRequirement.label}
-//                     </Box>
-//                   }
-//                   value={value.minimumLevelRequirement}
-//                   onChange={(e) =>
-//                     onChange("minimumLevelRequirement", e.target.value)
-//                   }
-//                 >
-//                   {LEVELS.map((l) => (
-//                     <MenuItem key={l} value={l}>
-//                       {l}
-//                     </MenuItem>
-//                   ))}
-//                 </TextField>
-//               </Tooltip>
-//             </Grid>
-
-//             {/* Numeric fields */}
-//             {(
-//               [
-//                 "requiredTimeMinutes",
-//                 "daysMargin",
-//                 "reservationMargin",
-//                 "rollbackTime",
-//                 "assignedToTeam",
-//               ] as const
-//             ).map((fieldKey) => (
-//               <Grid size={{ xs: 12, sm: 6, md: 3 }} key={fieldKey}>
-//                 <Tooltip
-//                   title={FIELD_META[fieldKey].tooltip}
-//                   placement="top"
-//                   arrow
-//                 >
-//                   <TextField
-//                     fullWidth
-//                     size="small"
-//                     type="number"
-//                     inputProps={{ min: 0 }}
-//                     label={
-//                       <Box
-//                         sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-//                       >
-//                         {FIELD_META[fieldKey].icon}
-//                         {FIELD_META[fieldKey].label}
-//                       </Box>
-//                     }
-//                     value={value[fieldKey]}
-//                     onChange={(e) =>
-//                       onChange(fieldKey, Number(e.target.value))
-//                     }
-//                   />
-//                 </Tooltip>
-//               </Grid>
-//             ))}
-//           </Grid>
-//         </Box>
-//       </Collapse>
-//     </Paper>
-//   );
-// };
-
-// export default ActivityPhaseSection;
+export default memo(ActivityPhaseSection);

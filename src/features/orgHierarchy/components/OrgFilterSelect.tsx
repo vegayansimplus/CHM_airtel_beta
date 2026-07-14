@@ -1,4 +1,5 @@
 import { MenuItem, TextField } from "@mui/material";
+import { memo } from "react";
 import type { OrgFilterOption } from "../types/orgHierarchy.types";
 
 interface Props {
@@ -58,7 +59,7 @@ const OrgFilterSelect = ({
   );
 };
 
-export default OrgFilterSelect;
+export default memo(OrgFilterSelect);
 
 // // In current text field height of this text field is too long I want it more compact,and best
 // // give me implemenatiion and provide final copy past code

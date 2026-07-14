@@ -23,9 +23,7 @@ import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionM
 // import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
 import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
 // import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
-// import { ActivityViewAndSetupMain } from "../features/scheduler/page/ActivityViewAndSetupMain";
 import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
-// import { ActivityViewAndSetup } from "../features/activityViewAndSetup/page/ActivityViewAndSetup";
 // import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 // import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
 import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
@@ -35,7 +33,6 @@ import { UserLogs } from "../features/userManagement/pages/UserLogs";
 import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
 import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
 import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup";
-// import { PlanVIewAndSetupMainPage } from "../features/scheduler/sub-feature/planViewAndSetup/PlanVIewAndSetupMainPage";
 import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
@@ -229,7 +226,6 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="crqWorkflow" replace />} />
           {/* <Route path="crqWorkflow" element={<PlanAndInventoryMain />} /> */}
           <Route path="crqWorkflow" element={<PlanAndInventoryMain />} />
-          {/* <Route path="planviewandsetup" element={<PlanViewAndSetup />} /> */}
           <Route
             path="action"
             element={

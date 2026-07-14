@@ -51,14 +51,18 @@ export interface AddPlanRequest {
 // ─── Activity Phase View Types (GET response) ─────────────────────────────────
 
 export interface PhaseConfig {
+  activityPhaseConfigId?: number | null;
   assignTeam?: string | null;
+  assignedSubDomainId?: number | null;
   minimumLevelRequirement?: string | null;
   shift?: string | null;
   time?: number | null;
 }
 
 export interface ExecutionConfig {
+  activityPhaseConfigId?: number | null;
   assignTeam?: string | null;
+  assignedSubDomainId?: number | null;
   daysMargin?: number | null;
   minimumLevelRequirement?: string | null;
   reservationMargin?: number | null;
@@ -118,6 +122,19 @@ export interface AddActivityRequest {
   [key: string]: string | number;
 }
 
+// ─── Activity Phase Update Types (POST /activity/phase-update payload) ────────
+
+export interface UpdateActivityPhaseRequest {
+  activityPhaseConfigId: number;
+  shift: string;
+  minimumLevelRequirement: string;
+  requiredTimeMinutes: number;
+  assignedToTeam: number;
+  daysMargin?: number | null;
+  reservationMargin?: number | null;
+  rollbackTime?: number | null;
+}
+
 // ─── Shift Dropdown ───────────────────────────────────────────────────────────
 
 export interface ShiftDropdown {
@@ -156,6 +173,17 @@ export const planApi = api.injectEndpoints({
       }),
       invalidatesTags: ["ActivityPhase"],
     }),
+    updateActivityPhase: builder.mutation<
+      { status?: string; message?: string },
+      UpdateActivityPhaseRequest
+    >({
+      query: (body) => ({
+        url: "/activity/phase-update",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["ActivityPhase"],
+    }),
     updatePlan: builder.mutation<{ status?: string; message?: string }, UpdatePlanRequest>({
       query: (body) => ({
         url: "/activity/updateplan",
@@ -180,6 +208,7 @@ export const {
   useGetActivityPhaseViewQuery,
   useGetShiftDropdownsQuery,
   useAddActivityMutation,
+  useUpdateActivityPhaseMutation,
   useUpdatePlanMutation,
   useAddPlanMutation,
 } = planApi;

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -9,6 +9,7 @@ import {
   Divider,
   IconButton,
   InputAdornment,
+  LinearProgress,
   Stack,
   TextField,
   ToggleButton,
@@ -56,35 +57,47 @@ const PHASES = [
 
 type PhaseKey = (typeof PHASES)[number]["key"];
 
+const INITIAL_FORM = {
+  activityName: "",
+  crqReview:      { ...INITIAL_PHASE_SLIM },
+  impactAnalysis:  { ...INITIAL_PHASE_SLIM },
+  scheduling:      { ...INITIAL_PHASE_SLIM },
+  mopCreate:       { ...INITIAL_PHASE_SLIM },
+  mopValidate:     { ...INITIAL_PHASE_SLIM },
+  crqExecution:    { ...INITIAL_PHASE_FULL },
+};
+
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
   open: boolean;
   plan: PlanViewRow;
   onClose: () => void;
+  /** Existing activity names on this plan, for a friendly duplicate-name check. */
+  existingActivityNames?: string[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
+const AddActivityDialog: React.FC<Props> = ({
+  open,
+  plan,
+  onClose,
+  existingActivityNames = [],
+}) => {
   const [addActivity, { isLoading }] = useAddActivityMutation();
 
-  const [form, setForm] = useState({
-    activityName: "",
-    crqReview:      { ...INITIAL_PHASE_SLIM },
-    impactAnalysis:  { ...INITIAL_PHASE_SLIM },
-    scheduling:      { ...INITIAL_PHASE_SLIM },
-    mopCreate:       { ...INITIAL_PHASE_SLIM },
-    mopValidate:     { ...INITIAL_PHASE_SLIM },
-    crqExecution:    { ...INITIAL_PHASE_FULL },
-  });
+  const [form, setForm] = useState(INITIAL_FORM);
 
-  const [activityNameError, setActivityNameError] = useState(false);
+  const [activityNameError, setActivityNameError] = useState<string | null>(null);
   const [phaseShiftErrors, setPhaseShiftErrors] = useState<Set<PhaseKey>>(new Set());
+  const [phaseTeamErrors, setPhaseTeamErrors] = useState<Set<PhaseKey>>(new Set());
 
   // ── Helpers ────────────────────────────────────────────────────────────────
 
-  const updatePhase = (phase: PhaseKey, field: string, value: any) => {
+  /** Stable across renders (functional setState) so memoized phase sections
+   *  don't re-render just because a sibling phase or the activity name changed. */
+  const updatePhase = useCallback((phase: PhaseKey, field: string, value: any) => {
     setForm((prev) => ({
       ...prev,
       [phase]: {
@@ -100,22 +113,56 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
         return next;
       });
     }
-  };
+    if (field === "assignedToTeam" && value) {
+      setPhaseTeamErrors((prev) => {
+        if (!prev.has(phase)) return prev;
+        const next = new Set(prev);
+        next.delete(phase);
+        return next;
+      });
+    }
+  }, []);
 
-  /** Matches ActivityInsertRequestDTO's @NotBlank on every phase's shift + activityName */
+  // One stable onChange callback per phase, created once, so each
+  // ActivityPhaseSection's props stay referentially identical across
+  // renders that don't touch that phase - this is what lets React.memo
+  // actually skip re-rendering the other 5 phases while one is being edited.
+  const phaseOnChangeHandlers = useMemo(
+    () =>
+      Object.fromEntries(
+        PHASES.map(({ key }) => [
+          key,
+          (field: string, value: any) => updatePhase(key, field, value),
+        ]),
+      ) as Record<PhaseKey, (field: string, value: any) => void>,
+    [updatePhase],
+  );
+
+  /** Matches ActivityInsertRequestDTO's @NotBlank/@NotNull on every phase's shift + team + activityName */
   const validateForm = (): boolean => {
     const missingShifts = new Set(
       PHASES.filter(({ key }) => !form[key].shift).map(({ key }) => key),
     );
-    const nameMissing = !form.activityName.trim();
+    const missingTeams = new Set(
+      PHASES.filter(({ key }) => !form[key].assignedToTeam).map(({ key }) => key),
+    );
+    const trimmedName = form.activityName.trim();
+    const isDuplicate = existingActivityNames.some(
+      (name) => name.trim().toLowerCase() === trimmedName.toLowerCase(),
+    );
 
-    setActivityNameError(nameMissing);
+    let nameError: string | null = null;
+    if (!trimmedName) nameError = "Activity Name is required";
+    else if (isDuplicate) nameError = "An activity with this name already exists on this plan";
+
+    setActivityNameError(nameError);
     setPhaseShiftErrors(missingShifts);
+    setPhaseTeamErrors(missingTeams);
 
-    return !nameMissing && missingShifts.size === 0;
+    return !nameError && missingShifts.size === 0 && missingTeams.size === 0;
   };
 
-  const applyShiftToAll = (_: React.MouseEvent, shift: string | null) => {
+  const applyShiftToAll = useCallback((_: React.MouseEvent, shift: string | null) => {
     if (!shift) return;
     setForm((prev) => {
       const updated = { ...prev };
@@ -124,14 +171,14 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
       });
       return updated;
     });
-  };
+  }, []);
 
   // ── Build API payload with prefixed param names ────────────────────────────
 
   const buildPayload = () => {
     const payload: Record<string, any> = {
       planId: plan.planId,
-      activityName: form.activityName,
+      activityName: form.activityName.trim(),
     };
 
     PHASES.forEach(({ key, variant }) => {
@@ -165,11 +212,25 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
     try {
       await addActivity(buildPayload()).unwrap();
       toast.success("Activity added successfully!");
+      setForm(INITIAL_FORM);
+      setActivityNameError(null);
+      setPhaseShiftErrors(new Set());
+      setPhaseTeamErrors(new Set());
       onClose();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to add activity. Please try again.");
+      const msg =
+        (err as any)?.data?.message || (err as any)?.message || "Failed to add activity. Please try again.";
+      toast.error(msg);
     }
+  };
+
+  const handleCancel = () => {
+    setForm(INITIAL_FORM);
+    setActivityNameError(null);
+    setPhaseShiftErrors(new Set());
+    setPhaseTeamErrors(new Set());
+    onClose();
   };
 
   // ── Derived state ──────────────────────────────────────────────────────────
@@ -178,11 +239,12 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
     ({ key }) =>
       form[key].shift !== "" || form[key].minimumLevelRequirement !== "",
   ).length;
+  const progress = Math.round((configuredCount / PHASES.length) * 100);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="lg" scroll="paper">
+    <Dialog open={open} onClose={handleCancel} fullWidth maxWidth="lg" scroll="paper">
       <DialogTitle
         sx={{
           display: "flex", alignItems: "center", gap: 1.5,
@@ -191,20 +253,20 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
       >
         <Box
           sx={{
-            width: 36, height: 36, borderRadius: 1.5,
+            width: 40, height: 40, borderRadius: 2,
             bgcolor: "primary.main", display: "flex",
             alignItems: "center", justifyContent: "center",
-            color: "primary.contrastText",
+            color: "primary.contrastText", flexShrink: 0,
           }}
         >
           <Add />
         </Box>
-        <Box sx={{ flex: 1 }}>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography variant="h6" fontWeight={700} lineHeight={1.2}>
             Add New Activity
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Configure all phases for this activity
+            Plan #{plan.planId} · Configure all six phases for this activity
           </Typography>
         </Box>
         <Chip
@@ -213,10 +275,16 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
           color={configuredCount === PHASES.length ? "success" : "default"}
           variant="outlined"
         />
-        <IconButton size="small" onClick={onClose} sx={{ ml: 1 }}>
+        <IconButton size="small" onClick={handleCancel} sx={{ ml: 1 }} disabled={isLoading}>
           <Close fontSize="small" />
         </IconButton>
       </DialogTitle>
+
+      <LinearProgress
+        variant="determinate"
+        value={progress}
+        sx={{ height: 3 }}
+      />
 
       <DialogContent sx={{ p: 3 }}>
         <Stack spacing={3} sx={{ pt: 2 }}>
@@ -226,10 +294,11 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
             placeholder="e.g. Network Maintenance Upgrade"
             value={form.activityName}
             onChange={(e) => {
-              setForm((prev) => ({ ...prev, activityName: e.target.value }));
-              if (e.target.value.trim()) setActivityNameError(false);
+              const next = e.target.value;
+              setForm((prev) => ({ ...prev, activityName: next }));
+              if (activityNameError && next.trim()) setActivityNameError(null);
             }}
-            error={activityNameError}
+            error={!!activityNameError}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -238,9 +307,8 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               ),
             }}
             helperText={
-              activityNameError
-                ? "Activity Name is required"
-                : "Enter a descriptive name that identifies this activity"
+              activityNameError ??
+              "Enter a descriptive name that identifies this activity"
             }
           />
 
@@ -284,9 +352,10 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               title={label}
               variant={variant}
               value={form[key]}
-              onChange={(f, v) => updatePhase(key, f, v)}
+              onChange={phaseOnChangeHandlers[key]}
               phaseIndex={idx}
               shiftError={phaseShiftErrors.has(key)}
+              teamError={phaseTeamErrors.has(key)}
             />
           ))}
         </Stack>
@@ -306,7 +375,7 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
             : `${configuredCount} of ${PHASES.length} phases configured`}
         </Typography>
         <Box sx={{ display: "flex", gap: 1.5 }}>
-          <Button variant="outlined" color="inherit" onClick={onClose}
+          <Button variant="outlined" color="inherit" onClick={handleCancel}
             startIcon={<Close />} disabled={isLoading}>
             Cancel
           </Button>

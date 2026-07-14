@@ -3,8 +3,7 @@ import { setupListeners } from "@reduxjs/toolkit/query";
 import authReducer from "../features/auth/slices/auth.slice";
 import { api } from "../service/api";
 import loadingReducer from "./loadingSlice";
-import rosterReducer from "../features/roster/slices/roster.slice"; 
-import { activityReducer } from "../features/activityViewAndSetup";
+import rosterReducer from "../features/roster/slices/roster.slice";
 import { crqJourneyReducer } from "../features/crqJourney";
 import { attributeUpdateReducer } from "../features/scheduler/sub-feature/attributeUpdate";
 import { planViewAndSetupReducer } from "../features/scheduler/sub-feature/planViewAndSetup";
@@ -15,7 +14,6 @@ export const store = configureStore({
     auth: authReducer,
     loading: loadingReducer,
     roster:rosterReducer,
-    activity: activityReducer,
      crqJourney: crqJourneyReducer,
     attributeUpdate: attributeUpdateReducer,
     planViewAndSetup: planViewAndSetupReducer,
