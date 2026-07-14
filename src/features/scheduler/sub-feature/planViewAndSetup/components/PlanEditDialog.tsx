@@ -43,21 +43,16 @@ const Transition = React.forwardRef(function Transition(
 interface PlanEditDialogProps {
   open: boolean;
   onClose: () => void;
-  onSave: (updatedData: PlanViewRow) => void;
   data: PlanViewRow | null;
   chmDomainOptions?: FilterOption[];
   chmSubDomainOptions?: FilterOption[];
 }
 
-interface FormDataState extends PlanViewRow {
-  chmDomainId?: number;
-  chmSubDomainId?: number;
-}
+type FormDataState = PlanViewRow;
 
 export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
   open,
   onClose,
-  onSave,
   data,
   chmDomainOptions = [],
   chmSubDomainOptions = [],
@@ -71,28 +66,14 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
 
   // CHANGE_IMPACT options
   const CHANGE_IMPACT_OPTIONS = ["SA", "NSA"];
+  // Matches PLAN_MASTER.status enum('Active','Inactive')
+  const STATUS_OPTIONS = ["Active", "Inactive"];
 
   useEffect(() => {
-    if (data) {
-      // Match chmDomain string to its ID from options
-      const matchedDomainId = chmDomainOptions.find(
-        (opt) => opt.label === data.chmDomain,
-      )?.value;
-
-      // Match chmSubDomain string to its ID from options
-      const matchedSubDomainId = chmSubDomainOptions.find(
-        (opt) => opt.label === data.chmSubDomain,
-      )?.value;
-
-      setFormData({
-        ...data,
-        chmDomainId: matchedDomainId,
-        chmSubDomainId: matchedSubDomainId,
-      });
-    } else {
-      setFormData(null);
-    }
-  }, [data, open, chmDomainOptions, chmSubDomainOptions]);
+    // chmDomainId/chmSubDomainId now come straight from the backend
+    // (GET /plan/view), no more guessing the ID from a label match.
+    setFormData(data ? { ...data } : null);
+  }, [data, open]);
 
   if (!data || !formData) return null;
 
@@ -108,8 +89,8 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
           planId: formData.planId,
           planType: formData.planType,
           status: formData.status,
-          chmDomainId: formData.chmDomainId ?? 0,
-          chmSubDomain: formData.chmSubDomainId ?? 0,
+          chmDomainId: formData.chmDomainId,
+          chmSubDomain: formData.chmSubDomainId,
           networkDomain: formData.networkDomain,
           layer: formData.layer,
           planVendor: formData.planVendor,
@@ -117,14 +98,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
         };
 
         const res = await updatePlan(updatePayload).unwrap();
-        // Show toast notification on success
-        try {
-          const msg = (res && (res.message || (res.data && res.data.message))) || "Plan Updated Successfully";
-          toast.success(msg);
-        } catch (e) {
-          toast.success("Plan Updated Successfully");
-        }
-        onSave(formData);
+        toast.success(res?.message || "Plan Updated Successfully");
         onClose();
       } catch (error) {
         console.error("Failed to update plan:", error);
@@ -148,12 +122,7 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
     chmDomain: chmDomainOptions,
     chmSubDomain: chmSubDomainOptions,
     changeImpact: CHANGE_IMPACT_OPTIONS.map((v) => ({ label: v, value: v as any })),
-  };
-
-  // Map display fields to actual form data keys
-  const fieldMapping: Record<string, keyof FormDataState> = {
-    chmDomain: "chmDomainId",
-    chmSubDomain: "chmSubDomainId",
+    status: STATUS_OPTIONS.map((v) => ({ label: v, value: v as any })),
   };
 
   return (
@@ -239,7 +208,8 @@ export const PlanEditDialog: React.FC<PlanEditDialogProps> = ({
             const isDropdown =
               key === "chmDomain" ||
               key === "chmSubDomain" ||
-              key === "changeImpact";
+              key === "changeImpact" ||
+              key === "status";
 
             if (key === "chmDomainId" || key === "chmSubDomainId") return null; // Skip IDs
 

@@ -23,8 +23,6 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useActivity } from "../hooks/useActivity";
 import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
 import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
-// import { PlanAddDialog } from "./PlanAddDialog";
-import DeleteIcon from "@mui/icons-material/Delete";
 import { PlanAddDialog } from "./PlanAddDialog";
 
 interface Props {
@@ -133,10 +131,6 @@ export const PlanViewTable: React.FC<Props> = ({
     setSelectedRowData(null);
   };
 
-  const handleSaveEdit = async (updatedData: PlanViewRow) => {
-    console.log("Data to save:", updatedData);
-  };
-
   const handleAddPlanSuccess = () => {
     refetch();
   };
@@ -242,27 +236,15 @@ export const PlanViewTable: React.FC<Props> = ({
     enableRowActions: true,
     positionActionsColumn: "last",
     renderRowActions: ({ row }) => (
-      <Box sx={{ display: "flex", gap: 0.5 }}>
-        <Tooltip title="Edit Row">
-          <IconButton
-            size="small"
-            onClick={() => handleOpenEdit(row.original)}
-            sx={{ color: "text.secondary" }}
-          >
-            <EditOutlinedIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-
-        <Tooltip title="Delete Row">
-          <IconButton
-            size="small"
-            onClick={() => console.log("Delete:", row.original.planId)}
-            sx={{ color: "text.secondary", "&:hover": { color: "error.main" } }}
-          >
-            <DeleteIcon fontSize="small" />
-          </IconButton>
-        </Tooltip>
-      </Box>
+      <Tooltip title="Edit Row">
+        <IconButton
+          size="small"
+          onClick={() => handleOpenEdit(row.original)}
+          sx={{ color: "text.secondary" }}
+        >
+          <EditOutlinedIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
     ),
 
     renderToolbarInternalActions: () => (
@@ -466,7 +448,6 @@ export const PlanViewTable: React.FC<Props> = ({
         open={editDialogOpen}
         onClose={handleCloseEdit}
         data={selectedRowData}
-        onSave={handleSaveEdit}
         chmDomainOptions={chmDomainOptions}
         chmSubDomainOptions={chmSubDomainOptions}
       />

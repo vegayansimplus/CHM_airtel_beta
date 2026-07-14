@@ -7,6 +7,7 @@ import rosterReducer from "../features/roster/slices/roster.slice";
 import { activityReducer } from "../features/activityViewAndSetup";
 import { crqJourneyReducer } from "../features/crqJourney";
 import { attributeUpdateReducer } from "../features/scheduler/sub-feature/attributeUpdate";
+import { planViewAndSetupReducer } from "../features/scheduler/sub-feature/planViewAndSetup";
 
 export const store = configureStore({
   reducer: {
@@ -17,6 +18,7 @@ export const store = configureStore({
     activity: activityReducer,
      crqJourney: crqJourneyReducer,
     attributeUpdate: attributeUpdateReducer,
+    planViewAndSetup: planViewAndSetupReducer,
   },
   middleware: (gDM) =>
     gDM({ serializableCheck: false }).concat(api.middleware),

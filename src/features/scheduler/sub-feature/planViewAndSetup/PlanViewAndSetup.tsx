@@ -1,24 +1,14 @@
-import { Alert, Box, Dialog, Snackbar } from "@mui/material";
+import { Box } from "@mui/material";
 import { useActivity } from "./hooks/useActivity";
 import { authStorage } from "../../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { PlanViewTable } from "./components/PlanViewTable";
-import { CreateActivity } from "./components/CreateActivity";
-import { ConfigurePhases } from "./components/ConfigurePhases";
 import { PlanDetailDialog } from "./components/PlanDetailDialog";
 
 export const PlanViewAndSetup = () => {
-  const {
-    viewMode,
-    goToList,
-    snackbar,
-    handleCloseSnackbar,
-    selectedPlan,
-    planDialogOpen,
-    handleClosePlanDialog,
-  } = useActivity();
+  const { selectedPlan, planDialogOpen, handleClosePlanDialog } = useActivity();
 
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
@@ -61,44 +51,6 @@ export const PlanViewAndSetup = () => {
           plan={selectedPlan}
           onClose={handleClosePlanDialog}
         />
-
-        <Dialog
-          open={viewMode === "create"}
-          onClose={goToList}
-          maxWidth="sm"
-          fullWidth
-          PaperProps={{ sx: { borderRadius: 3, overflow: "hidden" } }}
-        >
-          {viewMode === "create" && <CreateActivity />}
-        </Dialog>
-
-        <Dialog
-          open={viewMode === "configure"}
-          onClose={goToList}
-          maxWidth="lg"
-          fullWidth
-          PaperProps={{
-            sx: { borderRadius: 3, overflow: "hidden", minHeight: "85vh" },
-          }}
-        >
-          {viewMode === "configure" && <ConfigurePhases />}
-        </Dialog>
-
-        <Snackbar
-          open={snackbar.open}
-          autoHideDuration={3000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbar.severity}
-            variant="filled"
-            sx={{ width: "100%" }}
-          >
-            {snackbar.message}
-          </Alert>
-        </Snackbar>
       </Box>
     </>
   );

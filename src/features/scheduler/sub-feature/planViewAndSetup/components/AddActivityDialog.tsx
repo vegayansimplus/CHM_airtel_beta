@@ -79,6 +79,9 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
     crqExecution:    { ...INITIAL_PHASE_FULL },
   });
 
+  const [activityNameError, setActivityNameError] = useState(false);
+  const [phaseShiftErrors, setPhaseShiftErrors] = useState<Set<PhaseKey>>(new Set());
+
   // ── Helpers ────────────────────────────────────────────────────────────────
 
   const updatePhase = (phase: PhaseKey, field: string, value: any) => {
@@ -89,6 +92,27 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
         [field]: value,
       },
     }));
+    if (field === "shift" && value) {
+      setPhaseShiftErrors((prev) => {
+        if (!prev.has(phase)) return prev;
+        const next = new Set(prev);
+        next.delete(phase);
+        return next;
+      });
+    }
+  };
+
+  /** Matches ActivityInsertRequestDTO's @NotBlank on every phase's shift + activityName */
+  const validateForm = (): boolean => {
+    const missingShifts = new Set(
+      PHASES.filter(({ key }) => !form[key].shift).map(({ key }) => key),
+    );
+    const nameMissing = !form.activityName.trim();
+
+    setActivityNameError(nameMissing);
+    setPhaseShiftErrors(missingShifts);
+
+    return !nameMissing && missingShifts.size === 0;
   };
 
   const applyShiftToAll = (_: React.MouseEvent, shift: string | null) => {
@@ -134,6 +158,10 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
   // ── Submit ─────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      toast.error("Please fill in the required fields highlighted below.");
+      return;
+    }
     try {
       await addActivity(buildPayload()).unwrap();
       toast.success("Activity added successfully!");
@@ -197,9 +225,11 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
             label="Activity Name"
             placeholder="e.g. Network Maintenance Upgrade"
             value={form.activityName}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, activityName: e.target.value }))
-            }
+            onChange={(e) => {
+              setForm((prev) => ({ ...prev, activityName: e.target.value }));
+              if (e.target.value.trim()) setActivityNameError(false);
+            }}
+            error={activityNameError}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -207,7 +237,11 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
                 </InputAdornment>
               ),
             }}
-            helperText="Enter a descriptive name that identifies this activity"
+            helperText={
+              activityNameError
+                ? "Activity Name is required"
+                : "Enter a descriptive name that identifies this activity"
+            }
           />
 
           <Box
@@ -252,6 +286,7 @@ const AddActivityDialog: React.FC<Props> = ({ open, plan, onClose }) => {
               value={form[key]}
               onChange={(f, v) => updatePhase(key, f, v)}
               phaseIndex={idx}
+              shiftError={phaseShiftErrors.has(key)}
             />
           ))}
         </Stack>

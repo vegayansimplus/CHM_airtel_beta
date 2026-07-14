@@ -19,4 +19,4 @@ export { useActivity } from "./hooks/useActivity";
 export type * from "./types/activity.types";
 
 // Data
-export { MOCK_ACTIVITIES } from "./data/activity.mock";
+export * from "./data/activityOptions";

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -16,7 +16,6 @@ import {
   alpha,
   MenuItem,
   CircularProgress,
-  Alert,
   FormControl,
   Select,
 } from "@mui/material";
@@ -26,7 +25,6 @@ import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import SaveOutlinedIcon from "@mui/icons-material/SaveOutlined";
 import { toast } from "react-toastify";
 import { useAddPlanMutation, type AddPlanRequest } from "../api/planApiSlice";
-import { authStorage } from "../../../../../app/store/auth.storage";
 
 export interface FilterOption {
   label: string;
@@ -166,16 +164,7 @@ export const PlanAddDialog: React.FC<PlanAddDialogProps> = ({
       };
 
       const res = await addPlan(payload).unwrap();
-
-      // Show success toast
-      try {
-        const msg =
-          (res && (res.message || (res.data && res.data.message))) ||
-          "Plan created successfully";
-        toast.success(msg);
-      } catch (e) {
-        toast.success("Plan created successfully");
-      }
+      toast.success(res?.message || "Plan created successfully");
 
       onSuccess();
       onClose();

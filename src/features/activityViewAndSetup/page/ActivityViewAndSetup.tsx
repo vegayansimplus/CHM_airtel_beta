@@ -1,10 +1,9 @@
 import { Alert, Box, Dialog, Snackbar } from "@mui/material";
-import { useTheme } from "@mui/material";
 
 import { useActivity } from "../hooks/useActivity";
-import { ActivityList } from "../components/activitySetup/ActivityList";
-import { CreateActivity } from "../components/activitySetup/CreateActivity";
-import { ConfigurePhases } from "../components/activitySetup/ConfigurePhases";
+import { ActivityList } from "../components/activitySetup/ActivityList/ActivityList";
+import { CreateActivity } from "../components/activitySetup/CreateActivity/CreateActivity";
+import { ConfigurePhases } from "../components/activitySetup/ConfigurePhases/ConfigurePhases";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { authStorage } from "../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
@@ -12,7 +11,6 @@ import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchy
 
 export const ActivityViewAndSetup = () => {
   const { viewMode, goToList, snackbar, handleCloseSnackbar } = useActivity();
-  const theme = useTheme();
 
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";

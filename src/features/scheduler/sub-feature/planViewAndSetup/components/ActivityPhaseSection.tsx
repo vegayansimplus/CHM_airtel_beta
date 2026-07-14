@@ -5,6 +5,7 @@ import {
   AccordionSummary,
   Box,
   FormControl,
+  FormHelperText,
   InputAdornment,
   InputLabel,
   MenuItem,
@@ -31,6 +32,7 @@ interface Props {
   value: Record<string, any>;
   onChange: (field: string, value: any) => void;
   phaseIndex: number;
+  shiftError?: boolean;
 }
 
 // ─── Accent colors per phase ─────────────────────────────────────────────────
@@ -47,14 +49,19 @@ const ActivityPhaseSection: React.FC<Props> = ({
   value,
   onChange,
   phaseIndex,
+  shiftError,
 }) => {
-  const [expanded, setExpanded] = useState(phaseIndex === 0);
+  const [manuallyExpanded, setManuallyExpanded] = useState(phaseIndex === 0);
   const accent = ACCENT_COLORS[phaseIndex % ACCENT_COLORS.length];
+
+  // Auto-expand so a validation error is actually visible, not hidden in a
+  // collapsed accordion, without needing an effect.
+  const expanded = manuallyExpanded || !!shiftError;
 
   return (
     <Accordion
       expanded={expanded}
-      onChange={() => setExpanded((prev) => !prev)}
+      onChange={() => setManuallyExpanded((prev) => !prev)}
       disableGutters
       elevation={0}
       sx={{
@@ -70,8 +77,20 @@ const ActivityPhaseSection: React.FC<Props> = ({
         sx={{ bgcolor: "grey.50", px: 2.5, minHeight: 56 }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box sx={{ width: 4, height: 28, borderRadius: 1, bgcolor: accent }} />
+          <Box
+            sx={{
+              width: 4,
+              height: 28,
+              borderRadius: 1,
+              bgcolor: shiftError ? "error.main" : accent,
+            }}
+          />
           <Typography fontWeight={700}>{title}</Typography>
+          {shiftError && (
+            <Typography variant="caption" color="error.main" fontWeight={600}>
+              Shift is required
+            </Typography>
+          )}
         </Box>
       </AccordionSummary>
 
@@ -85,7 +104,7 @@ const ActivityPhaseSection: React.FC<Props> = ({
           }}
         >
           {/* Shift */}
-          <FormControl fullWidth size="small">
+          <FormControl fullWidth size="small" error={shiftError}>
             <InputLabel>Shift</InputLabel>
             <Select
               value={value.shift}
@@ -102,6 +121,7 @@ const ActivityPhaseSection: React.FC<Props> = ({
               <MenuItem value="Evening">Evening</MenuItem>
               <MenuItem value="Night">Night</MenuItem>
             </Select>
+            {shiftError && <FormHelperText>Required</FormHelperText>}
           </FormControl>
 
           {/* Min Level */}
