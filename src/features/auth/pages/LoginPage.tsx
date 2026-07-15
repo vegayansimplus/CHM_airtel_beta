@@ -11,6 +11,7 @@ import {
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
+import { postAuthMessage } from "../../../app/store/authChannel";
 import { normalizeRBAC } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
@@ -204,12 +205,20 @@ const LoginPage: React.FC = () => {
 
     dispatch(setUser(user));
     authStorage.setToken(res.accessToken);
-    authStorage.setUser({
+    const storedUser = {
       olmId: user.olmId,
       employeeName: user.employeeName,
       roleCode: user.roleCode,
       userId: user.userId,
       modules: user.modules,
+    };
+    authStorage.setUser(storedUser);
+    // Let any other open tab (e.g. one still sitting on /login) adopt this
+    // session immediately instead of waiting for its own hydration cycle.
+    postAuthMessage({
+      type: "SESSION_SYNC",
+      token: res.accessToken,
+      user: storedUser,
     });
     navigate("/home", { replace: true });
   };

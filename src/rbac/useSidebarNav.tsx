@@ -7,10 +7,11 @@ import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 
 import {
-  FilterTiltShift,
   CalendarMonth,
   SupervisedUserCircle,
 } from "@mui/icons-material";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -125,7 +126,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   {
     to: "/scheduler",
     text: "Scheduler",
-    icon: <FilterTiltShift />,
+    icon: <ScheduleIcon />,
     requiredModule: "Scheduler",
     children: [
       {
@@ -140,7 +141,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
       {
         to: "/scheduler/planviewandsetup",
         text: "Plan",
-        icon: <SchemaIcon />,
+        icon: <AssignmentIcon />,
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskconfig", "/scheduler/planviewandsetup"],
       },

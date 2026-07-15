@@ -54,7 +54,14 @@ export const AdminSettingDashboard: React.FC = () => {
     height: "100%",
     overflow: "hidden",
   } as const;
-  const railHeadSx = { px: 2, pt: 2, pb: 1.25, display: "flex", alignItems: "center", justifyContent: "space-between" } as const;
+  const railHeadSx = {
+    px: 2,
+    pt: 2,
+    pb: 1.25,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+  } as const;
   const searchInputSx = {
     mx: 1.5,
     mb: 1,
@@ -66,7 +73,10 @@ export const AdminSettingDashboard: React.FC = () => {
     display: "flex",
     alignItems: "center",
     gap: 1,
-    "&:focus-within": { border: `1px solid ${c.accent}`, boxShadow: `0 0 0 3px ${alpha(c.accent, 0.12)}` },
+    "&:focus-within": {
+      border: `1px solid ${c.accent}`,
+      boxShadow: `0 0 0 3px ${alpha(c.accent, 0.12)}`,
+    },
   } as const;
   const iconBtnSx = {
     display: "inline-flex",
@@ -80,7 +90,11 @@ export const AdminSettingDashboard: React.FC = () => {
     color: c.textSecondary,
     cursor: "pointer",
     transition: "all 0.1s",
-    "&:hover": { bgcolor: c.accentDim, color: c.accent, border: `1px solid ${c.accentBorder}` },
+    "&:hover": {
+      bgcolor: c.accentDim,
+      color: c.accent,
+      border: `1px solid ${c.accentBorder}`,
+    },
   } as const;
   const btnSx = {
     display: "inline-flex",
@@ -98,27 +112,58 @@ export const AdminSettingDashboard: React.FC = () => {
   } as const;
 
   return (
-    <Box sx={{ display: "grid", gridTemplateRows: "0px 1fr", height: "80vh", bgcolor: c.bg, overflow: "hidden" }}>
+    <Box
+      sx={{
+        display: "grid",
+        gridTemplateRows: "0px 1fr",
+        height: "80vh",
+        bgcolor: c.bg,
+        overflow: "hidden",
+      }}
+    >
       <Box />
 
-      <Box sx={{ display: "grid", gridTemplateColumns: "256px 236px 1fr", overflow: "hidden" }}>
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: "256px 236px 1fr",
+          overflow: "hidden",
+        }}
+      >
         {/* ── Rail 1: Roles ── */}
         <Box sx={railSx}>
           <Box sx={railHeadSx}>
-            <Typography fontSize="0.68rem" fontWeight={700} color={c.textDim} letterSpacing="0.08em" textTransform="uppercase">
+            <Typography
+              fontSize="0.68rem"
+              fontWeight={700}
+              color={c.textDim}
+              letterSpacing="0.08em"
+              textTransform="uppercase"
+            >
               Roles
             </Typography>
-            <Box component="button" sx={iconBtnSx} onClick={() => s.setDrawerState({ kind: "role" })}>
+            <Box
+              component="button"
+              sx={iconBtnSx}
+              onClick={() => s.setDrawerState({ kind: "role" })}
+            >
               <AddOutlined sx={{ fontSize: 14 }} />
             </Box>
           </Box>
           <Box sx={searchInputSx}>
-            <SearchOutlined sx={{ fontSize: 14, color: c.textDim, flexShrink: 0 }} />
+            <SearchOutlined
+              sx={{ fontSize: 14, color: c.textDim, flexShrink: 0 }}
+            />
             <InputBase
               value={s.roleQuery}
               onChange={(e) => s.setRoleQuery(e.target.value)}
               placeholder="Search roles…"
-              sx={{ fontSize: "0.78rem", color: c.textPrimary, flex: 1, "& input": { p: 0 } }}
+              sx={{
+                fontSize: "0.78rem",
+                color: c.textPrimary,
+                flex: 1,
+                "& input": { p: 0 },
+              }}
             />
           </Box>
           <Box sx={{ flex: 1, overflowY: "auto", px: 1, pb: 1.5 }}>
@@ -135,7 +180,12 @@ export const AdminSettingDashboard: React.FC = () => {
                   isActive={r.roleId === s.activeRoleId}
                   icon={<ShieldOutlined sx={{ fontSize: 13 }} />}
                   onClick={() => s.setActiveRoleId(r.roleId)}
-                  onMenuClick={(e) => s.setRailMenuAnchor({ el: e.currentTarget as HTMLElement, roleId: r.roleId })}
+                  onMenuClick={(e) =>
+                    s.setRailMenuAnchor({
+                      el: e.currentTarget as HTMLElement,
+                      roleId: r.roleId,
+                    })
+                  }
                   c={c}
                 />
               ))
@@ -149,22 +199,47 @@ export const AdminSettingDashboard: React.FC = () => {
         </Box>
 
         {/* ── Rail 2: Modules ── */}
-        <Box sx={{ ...railSx, bgcolor: c.isDark ? "rgba(255,255,255,0.01)" : "rgba(13,27,42,0.015)", width: 236 }}>
+        <Box
+          sx={{
+            ...railSx,
+            bgcolor: c.isDark
+              ? "rgba(255,255,255,0.01)"
+              : "rgba(13,27,42,0.015)",
+            width: 236,
+          }}
+        >
           <Box sx={railHeadSx}>
-            <Typography fontSize="0.68rem" fontWeight={700} color={c.textDim} letterSpacing="0.08em" textTransform="uppercase">
+            <Typography
+              fontSize="0.68rem"
+              fontWeight={700}
+              color={c.textDim}
+              letterSpacing="0.08em"
+              textTransform="uppercase"
+            >
               Modules
             </Typography>
-            <Box component="button" sx={iconBtnSx} onClick={() => s.setDrawerState({ kind: "module" })}>
+            <Box
+              component="button"
+              sx={iconBtnSx}
+              onClick={() => s.setDrawerState({ kind: "module" })}
+            >
               <AddOutlined sx={{ fontSize: 14 }} />
             </Box>
           </Box>
           <Box sx={searchInputSx}>
-            <SearchOutlined sx={{ fontSize: 14, color: c.textDim, flexShrink: 0 }} />
+            <SearchOutlined
+              sx={{ fontSize: 14, color: c.textDim, flexShrink: 0 }}
+            />
             <InputBase
               value={s.modQuery}
               onChange={(e) => s.setModQuery(e.target.value)}
               placeholder="Search modules…"
-              sx={{ fontSize: "0.78rem", color: c.textPrimary, flex: 1, "& input": { p: 0 } }}
+              sx={{
+                fontSize: "0.78rem",
+                color: c.textPrimary,
+                flex: 1,
+                "& input": { p: 0 },
+              }}
             />
           </Box>
           <Box sx={{ flex: 1, overflowY: "auto", px: 1, pb: 1.5 }}>
@@ -177,11 +252,20 @@ export const AdminSettingDashboard: React.FC = () => {
                 <RailItem
                   key={m.moduleId}
                   label={m.moduleName}
-                  sublabel={m.moduleId === s.activeModuleId ? `${s.rolePermData.length} sub-modules` : ""}
+                  sublabel={
+                    m.moduleId === s.activeModuleId
+                      ? `${s.rolePermData.length} sub-modules`
+                      : ""
+                  }
                   isActive={m.moduleId === s.activeModuleId}
                   icon={<ViewModuleOutlined sx={{ fontSize: 13 }} />}
                   onClick={() => s.setActiveModuleId(m.moduleId)}
-                  onMenuClick={(e) => s.setModuleMenuAnchor({ el: e.currentTarget as HTMLElement, moduleId: m.moduleId })}
+                  onMenuClick={(e) =>
+                    s.setModuleMenuAnchor({
+                      el: e.currentTarget as HTMLElement,
+                      moduleId: m.moduleId,
+                    })
+                  }
                   c={c}
                 />
               ))
@@ -195,9 +279,24 @@ export const AdminSettingDashboard: React.FC = () => {
         </Box>
 
         {/* ── Main panel ── */}
-        <Box component="main" sx={{ flex: 1, overflow: "auto", px: 3.5, pt: 3, pb: 10, bgcolor: c.bg }}>
+        <Box
+          component="main"
+          sx={{
+            flex: 1,
+            overflow: "auto",
+            px: 3.5,
+            pt: 3,
+            pb: 10,
+            bgcolor: c.bg,
+          }}
+        >
           {s.isPageLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center" py={10}>
+            <Box
+              display="flex"
+              justifyContent="center"
+              alignItems="center"
+              py={10}
+            >
               <CircularProgress size={28} sx={{ color: c.accent }} />
               <Typography ml={2} fontSize="0.82rem" color={c.textSecondary}>
                 Loading…
@@ -205,10 +304,31 @@ export const AdminSettingDashboard: React.FC = () => {
             </Box>
           ) : (
             <>
-              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", mb: 2.5, gap: 3, flexWrap: "wrap" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  mb: 2.5,
+                  gap: 3,
+                  flexWrap: "wrap",
+                }}
+              >
                 <Box>
-                  <Box sx={{ display: "flex", alignItems: "baseline", gap: 1, flexWrap: "wrap" }}>
-                    <Typography fontSize="1.2rem" fontWeight={600} color={c.textPrimary} letterSpacing="-0.02em">
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 1,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Typography
+                      fontSize="1.2rem"
+                      fontWeight={600}
+                      color={c.textPrimary}
+                      letterSpacing="-0.02em"
+                    >
                       {s.activeModule?.moduleName ?? "—"}
                     </Typography>
                     <Box
@@ -227,25 +347,48 @@ export const AdminSettingDashboard: React.FC = () => {
                       {s.activeRole?.roleCode ?? "—"}
                     </Box>
                   </Box>
-                  <Typography fontSize="0.82rem" color={c.textSecondary} mt={0.5} maxWidth="60ch">
-                    Each sub-module shows only the permissions it has on record. Hover a chip to disable & hide it, or click{" "}
+                  <Typography
+                    fontSize="0.82rem"
+                    color={c.textSecondary}
+                    mt={0.5}
+                    maxWidth="60ch"
+                  >
+                    Each sub-module shows only the permissions it has on record.
+                    Hover a chip to disable & hide it, or click{" "}
                     <strong>+ Add</strong> to attach another from the catalog.
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: "flex", gap: 1, flexShrink: 0, alignItems: "center", flexWrap: "wrap" }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 1,
+                    flexShrink: 0,
+                    alignItems: "center",
+                    flexWrap: "wrap",
+                  }}
+                >
                   {s.activeModuleId && (
                     <Tooltip title="Add a new sub-module" placement="top">
                       <Box
                         component="button"
-                        onClick={() => s.setDrawerState({ kind: "sub-module", contextModuleId: s.activeModuleId! })}
+                        onClick={() =>
+                          s.setDrawerState({
+                            kind: "sub-module",
+                            contextModuleId: s.activeModuleId!,
+                          })
+                        }
                         sx={{
                           ...btnSx,
                           height: 30,
                           border: `1px solid ${c.border}`,
                           bgcolor: "transparent",
                           color: c.textSecondary,
-                          "&:hover": { bgcolor: c.accentDim, color: c.accent, border: `1px solid ${c.accentBorder}` },
+                          "&:hover": {
+                            bgcolor: c.accentDim,
+                            color: c.accent,
+                            border: `1px solid ${c.accentBorder}`,
+                          },
                         }}
                       >
                         <AddOutlined sx={{ fontSize: 13 }} /> Add sub-module
@@ -253,51 +396,60 @@ export const AdminSettingDashboard: React.FC = () => {
                     </Tooltip>
                   )}
 
-                  {!s.isPermsLoading && !s.rolePermsIsError && s.rolePermData.length > 0 && (
-                    <>
-                      <Box
-                        sx={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 0.75,
-                          px: 1.25,
-                          py: 0.5,
-                          borderRadius: "7px",
-                          bgcolor: alpha(c.accent, 0.08),
-                          border: `1px solid ${alpha(c.accent, 0.2)}`,
-                          color: c.accent,
-                          fontSize: "0.72rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <LockOpenOutlined sx={{ fontSize: 12 }} />
-                        {s.totalGranted} granted
-                      </Box>
-                      <Box
-                        sx={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 0.75,
-                          px: 1.25,
-                          py: 0.5,
-                          borderRadius: "7px",
-                          bgcolor: c.isDark ? "rgba(255,255,255,0.04)" : "rgba(13,27,42,0.04)",
-                          border: `1px solid ${c.border}`,
-                          color: c.textSecondary,
-                          fontSize: "0.72rem",
-                          fontWeight: 600,
-                        }}
-                      >
-                        <LockOutlined sx={{ fontSize: 12 }} />
-                        {s.totalRevoked} revoked
-                      </Box>
-                    </>
-                  )}
+                  {!s.isPermsLoading &&
+                    !s.rolePermsIsError &&
+                    s.rolePermData.length > 0 && (
+                      <>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            px: 1.25,
+                            py: 0.5,
+                            borderRadius: "7px",
+                            bgcolor: alpha(c.accent, 0.08),
+                            border: `1px solid ${alpha(c.accent, 0.2)}`,
+                            color: c.accent,
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <LockOpenOutlined sx={{ fontSize: 12 }} />
+                          {s.totalGranted} granted
+                        </Box>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 0.75,
+                            px: 1.25,
+                            py: 0.5,
+                            borderRadius: "7px",
+                            bgcolor: c.isDark
+                              ? "rgba(255,255,255,0.04)"
+                              : "rgba(13,27,42,0.04)",
+                            border: `1px solid ${c.border}`,
+                            color: c.textSecondary,
+                            fontSize: "0.72rem",
+                            fontWeight: 600,
+                          }}
+                        >
+                          <LockOutlined sx={{ fontSize: 12 }} />
+                          {s.totalRevoked} revoked
+                        </Box>
+                      </>
+                    )}
                 </Box>
               </Box>
 
               {s.isPermsLoading ? (
-                <Box display="flex" justifyContent="center" alignItems="center" py={8}>
+                <Box
+                  display="flex"
+                  justifyContent="center"
+                  alignItems="center"
+                  py={8}
+                >
                   <CircularProgress size={24} sx={{ color: c.accent }} />
                   <Typography ml={2} fontSize="0.82rem" color={c.textSecondary}>
                     Loading permissions…
@@ -306,20 +458,41 @@ export const AdminSettingDashboard: React.FC = () => {
               ) : s.rolePermsIsError ? (
                 <PermissionsErrorState
                   error={s.rolePermsError}
-                  roleName={ROLE_LABEL[s.activeRole?.roleCode ?? ""] ?? s.activeRole?.roleCode ?? "—"}
+                  roleName={
+                    ROLE_LABEL[s.activeRole?.roleCode ?? ""] ??
+                    s.activeRole?.roleCode ??
+                    "—"
+                  }
                   moduleName={s.activeModule?.moduleName ?? "—"}
                   onRetry={s.refetchRolePerms}
                   c={c}
                 />
               ) : s.rolePermData.length === 0 ? (
-                <Box sx={{ border: `1px dashed ${c.border}`, borderRadius: "12px", px: 3, py: 6, textAlign: "center", color: c.textDim }}>
-                  <ViewModuleOutlined sx={{ fontSize: 32, color: c.border, mb: 1.5 }} />
-                  <Typography fontSize="0.9rem" fontWeight={500} color={c.textSecondary}>
+                <Box
+                  sx={{
+                    border: `1px dashed ${c.border}`,
+                    borderRadius: "12px",
+                    px: 3,
+                    py: 6,
+                    textAlign: "center",
+                    color: c.textDim,
+                  }}
+                >
+                  <ViewModuleOutlined
+                    sx={{ fontSize: 32, color: c.border, mb: 1.5 }}
+                  />
+                  <Typography
+                    fontSize="0.9rem"
+                    fontWeight={500}
+                    color={c.textSecondary}
+                  >
                     No sub-modules found
                   </Typography>
                 </Box>
               ) : (
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                <Box
+                  sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                >
                   {s.rolePermData.map((row) => {
                     const attached = s.buildAttachedPermissions(row);
                     const addable = s.buildAddablePermissions(row);
@@ -332,10 +505,32 @@ export const AdminSettingDashboard: React.FC = () => {
                         addablePermissions={addable}
                         catalogLoading={s.catalogLoading}
                         loadingPermId={loadingPermId}
-                        onToggle={(permId, currentGranted) => s.handleToggle(row.subModuleId, permId, currentGranted)}
-                        onRemove={(permId, granted) => s.handleRemovePermissionFromSubModule(row.subModuleId, permId, granted)}
-                        onAdd={(perm) => s.handleAddPermissionToSubModule(row.subModuleId, perm)}
-                        onMenuClick={(e) => s.setSubMenuAnchor({ el: e.currentTarget as HTMLElement, row })}
+                        onToggle={(permId, currentGranted) =>
+                          s.handleToggle(
+                            row.subModuleId,
+                            permId,
+                            currentGranted,
+                          )
+                        }
+                        onRemove={(permId, granted) =>
+                          s.handleRemovePermissionFromSubModule(
+                            row.subModuleId,
+                            permId,
+                            granted,
+                          )
+                        }
+                        onAdd={(perm) =>
+                          s.handleAddPermissionToSubModule(
+                            row.subModuleId,
+                            perm,
+                          )
+                        }
+                        onMenuClick={(e) =>
+                          s.setSubMenuAnchor({
+                            el: e.currentTarget as HTMLElement,
+                            row,
+                          })
+                        }
                         onGrantAll={() => s.handleGrantAll(row)}
                         onRevokeAll={() => s.handleRevokeAll(row)}
                         c={c}
@@ -354,7 +549,14 @@ export const AdminSettingDashboard: React.FC = () => {
         anchorEl={s.railMenuAnchor?.el}
         open={!!s.railMenuAnchor}
         onClose={() => s.setRailMenuAnchor(null)}
-        PaperProps={{ sx: { bgcolor: c.surface, border: `1px solid ${c.border}`, borderRadius: "8px", minWidth: 200 } }}
+        PaperProps={{
+          sx: {
+            bgcolor: c.surface,
+            border: `1px solid ${c.border}`,
+            borderRadius: "8px",
+            minWidth: 200,
+          },
+        }}
       >
         <MenuItem
           sx={{ fontSize: "0.8rem", color: c.textPrimary }}
@@ -362,26 +564,40 @@ export const AdminSettingDashboard: React.FC = () => {
             const roleId = s.railMenuAnchor!.roleId;
             const role = s.roles.find((r) => r.roleId === roleId);
             s.setRailMenuAnchor(null);
-            s.setDrawerState({ kind: "role", mode: "rename", entityId: roleId, initialLabel: role?.roleCode ?? "" });
+            s.setDrawerState({
+              kind: "role",
+              mode: "rename",
+              entityId: roleId,
+              initialLabel: role?.roleCode ?? "",
+            });
           }}
         >
           <ListItemIcon sx={{ minWidth: 28 }}>
-            <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+            <DriveFileRenameOutlineOutlined
+              sx={{ fontSize: 14, color: c.textSecondary }}
+            />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename role…</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+            Rename role…
+          </ListItemText>
         </MenuItem>
 
         <MenuItem
           sx={{ fontSize: "0.8rem", color: c.textPrimary }}
           onClick={() => {
-            if (s.railMenuAnchor) s.handleDuplicateRole(s.railMenuAnchor.roleId);
+            if (s.railMenuAnchor)
+              s.handleDuplicateRole(s.railMenuAnchor.roleId);
             s.setRailMenuAnchor(null);
           }}
         >
           <ListItemIcon sx={{ minWidth: 28 }}>
-            <ContentCopyOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+            <ContentCopyOutlined
+              sx={{ fontSize: 14, color: c.textSecondary }}
+            />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Duplicate role…</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+            Duplicate role…
+          </ListItemText>
         </MenuItem>
 
         <Divider sx={{ borderColor: c.border, my: "4px" }} />
@@ -391,7 +607,9 @@ export const AdminSettingDashboard: React.FC = () => {
           onClick={() => {
             const roleId = s.railMenuAnchor!.roleId;
             const role = s.roles.find((r) => r.roleId === roleId);
-            const label = (role && (ROLE_LABEL[role.roleCode] ?? role.roleCode)) ?? "this role";
+            const label =
+              (role && (ROLE_LABEL[role.roleCode] ?? role.roleCode)) ??
+              "this role";
             s.setRailMenuAnchor(null);
             s.setConfirmDialog({
               open: true,
@@ -407,7 +625,11 @@ export const AdminSettingDashboard: React.FC = () => {
           <ListItemIcon sx={{ minWidth: 28 }}>
             <BlockOutlined sx={{ fontSize: 14, color: c.danger }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Disable role…</ListItemText>
+          <ListItemText
+            primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}
+          >
+            Disable role…
+          </ListItemText>
         </MenuItem>
       </Menu>
 
@@ -416,7 +638,14 @@ export const AdminSettingDashboard: React.FC = () => {
         anchorEl={s.moduleMenuAnchor?.el}
         open={!!s.moduleMenuAnchor}
         onClose={() => s.setModuleMenuAnchor(null)}
-        PaperProps={{ sx: { bgcolor: c.surface, border: `1px solid ${c.border}`, borderRadius: "8px", minWidth: 200 } }}
+        PaperProps={{
+          sx: {
+            bgcolor: c.surface,
+            border: `1px solid ${c.border}`,
+            borderRadius: "8px",
+            minWidth: 200,
+          },
+        }}
       >
         <MenuItem
           sx={{ fontSize: "0.8rem", color: c.textPrimary }}
@@ -424,13 +653,22 @@ export const AdminSettingDashboard: React.FC = () => {
             const moduleId = s.moduleMenuAnchor!.moduleId;
             const mod = s.modules.find((m) => m.moduleId === moduleId);
             s.setModuleMenuAnchor(null);
-            s.setDrawerState({ kind: "module", mode: "rename", entityId: moduleId, initialLabel: mod?.moduleName ?? "" });
+            s.setDrawerState({
+              kind: "module",
+              mode: "rename",
+              entityId: moduleId,
+              initialLabel: mod?.moduleName ?? "",
+            });
           }}
         >
           <ListItemIcon sx={{ minWidth: 28 }}>
-            <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+            <DriveFileRenameOutlineOutlined
+              sx={{ fontSize: 14, color: c.textSecondary }}
+            />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename module…</ListItemText>
+          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+            Rename module…
+          </ListItemText>
         </MenuItem>
 
         <Divider sx={{ borderColor: c.border, my: "4px" }} />
@@ -456,7 +694,11 @@ export const AdminSettingDashboard: React.FC = () => {
           <ListItemIcon sx={{ minWidth: 28 }}>
             <BlockOutlined sx={{ fontSize: 14, color: c.danger }} />
           </ListItemIcon>
-          <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Disable module…</ListItemText>
+          <ListItemText
+            primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}
+          >
+            Disable module…
+          </ListItemText>
         </MenuItem>
       </Menu>
 
@@ -465,7 +707,14 @@ export const AdminSettingDashboard: React.FC = () => {
         anchorEl={s.subMenuAnchor?.el}
         open={!!s.subMenuAnchor}
         onClose={() => s.setSubMenuAnchor(null)}
-        PaperProps={{ sx: { bgcolor: c.surface, border: `1px solid ${c.border}`, borderRadius: "8px", minWidth: 220 } }}
+        PaperProps={{
+          sx: {
+            bgcolor: c.surface,
+            border: `1px solid ${c.border}`,
+            borderRadius: "8px",
+            minWidth: 220,
+          },
+        }}
       >
         {s.subMenuAnchor && (
           <>
@@ -483,9 +732,13 @@ export const AdminSettingDashboard: React.FC = () => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 28 }}>
-                <DriveFileRenameOutlineOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+                <DriveFileRenameOutlineOutlined
+                  sx={{ fontSize: 14, color: c.textSecondary }}
+                />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Rename sub-module…</ListItemText>
+              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+                Rename sub-module…
+              </ListItemText>
             </MenuItem>
 
             <Divider sx={{ borderColor: c.border, my: "4px" }} />
@@ -498,9 +751,13 @@ export const AdminSettingDashboard: React.FC = () => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 28 }}>
-                <SelectAllOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+                <SelectAllOutlined
+                  sx={{ fontSize: 14, color: c.textSecondary }}
+                />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Grant all permissions</ListItemText>
+              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+                Grant all permissions
+              </ListItemText>
             </MenuItem>
 
             <MenuItem
@@ -511,9 +768,13 @@ export const AdminSettingDashboard: React.FC = () => {
               }}
             >
               <ListItemIcon sx={{ minWidth: 28 }}>
-                <DeselectOutlined sx={{ fontSize: 14, color: c.textSecondary }} />
+                <DeselectOutlined
+                  sx={{ fontSize: 14, color: c.textSecondary }}
+                />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>Revoke all permissions</ListItemText>
+              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem" }}>
+                Revoke all permissions
+              </ListItemText>
             </MenuItem>
 
             <Divider sx={{ borderColor: c.border, my: "4px" }} />
@@ -537,7 +798,11 @@ export const AdminSettingDashboard: React.FC = () => {
               <ListItemIcon sx={{ minWidth: 28 }}>
                 <RestartAltOutlined sx={{ fontSize: 14, color: c.danger }} />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Reset to defaults…</ListItemText>
+              <ListItemText
+                primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}
+              >
+                Reset to defaults…
+              </ListItemText>
             </MenuItem>
 
             <MenuItem
@@ -559,7 +824,11 @@ export const AdminSettingDashboard: React.FC = () => {
               <ListItemIcon sx={{ minWidth: 28 }}>
                 <DeleteOutlineOutlined sx={{ fontSize: 14, color: c.danger }} />
               </ListItemIcon>
-              <ListItemText primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}>Delete sub-module…</ListItemText>
+              <ListItemText
+                primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}
+              >
+                Delete sub-module…
+              </ListItemText>
             </MenuItem>
           </>
         )}
@@ -581,7 +850,11 @@ export const AdminSettingDashboard: React.FC = () => {
       />
 
       {/* ── Confirm dialog (Reset to defaults) ── */}
-      <ConfirmDialog state={s.confirmDialog} onClose={() => s.setConfirmDialog((d) => ({ ...d, open: false }))} c={c} />
+      <ConfirmDialog
+        state={s.confirmDialog}
+        onClose={() => s.setConfirmDialog((d) => ({ ...d, open: false }))}
+        c={c}
+      />
 
       {/* ── Snackbar ── */}
       <Snackbar
