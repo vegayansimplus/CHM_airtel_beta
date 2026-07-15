@@ -23,6 +23,7 @@ export const api = createApi({
     "RosterVIew",
     "Leave",
     "NotificationCount",
+    "NotificationList",
     "ImpactAnalysis",
     "CrqReview",
     "MopCreateView",

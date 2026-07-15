@@ -1,72 +1,46 @@
-// src/features/inbox/config/notificationActionConfig.ts
+// Single dynamic registry describing, per sub-module, how the Reject dialog
+// should collect a remark. useNotificationAction.ts owns the actual API
+// dispatch (RTK Query hooks must be called unconditionally at hook top
+// level), but every subModule -> "which mutation to call" mapping lives in
+// one lookup table there, keyed off the same subModule strings this file
+// exposes - adding a new actionable sub-module means adding one entry here
+// and one case there, nothing in the UI components.
 
 const MANAGER_ROLES = new Set([
-  "TEAM_LEAD", "DOMAIN_HEAD", "FUNCTION_HEAD", "VERTICAL_HEAD", "SUPER_ADMIN"
+  "TEAM_LEAD",
+  "DOMAIN_HEAD",
+  "FUNCTION_HEAD",
+  "VERTICAL_HEAD",
+  "SUPER_ADMIN",
+  "SUB_DOMAIN_HEAD",
 ]);
-
-export type ActionConfig = {
-  approveUrl: (notificationId: number, rejectReason?: string) => string;
-  rejectUrl:  (notificationId: number, rejectReason?: string) => string;
-};
-
-export type AcknowledgeConfig = {
-  acknowledgeUrl: (notificationId: number) => string;
-};
-
-// ─── Approve / Reject registry ────────────────────────────────────────────────
-// Key pattern: `${SUB_MODULE}:${roleTier}`  where roleTier = "MANAGER" | "MEMBER"
-
-const actionRegistry: Record<string, ActionConfig> = {
-
-  "SHIFT_SWAP:MANAGER": {
-    approveUrl: (id) =>
-      `/notification/swapreqmanageraction?notificationId=${id}&status=APPROVED`,
-    rejectUrl:  (id, reason = "") =>
-      `/notification/swapreqmanageraction?notificationId=${id}&status=REJECTED&shiftSwapRejectReason=${encodeURIComponent(reason)}`,
-  },
-
-  "SHIFT_SWAP:MEMBER": {
-    approveUrl: (id) =>
-      `/notification/swapreqempaction?notificationId=${id}&status=APPROVED`,
-    rejectUrl:  (id, reason = "") =>
-      `/notification/swapreqempaction?notificationId=${id}&status=REJECTED&rejectReason=${encodeURIComponent(reason)}`,
-  },
-
-  // ── Add future modules here ──────────────────────────────────────────────────
-  // "LEAVE_REQUEST:MANAGER": { approveUrl: ..., rejectUrl: ... },
-  // "LEAVE_REQUEST:MEMBER":  { approveUrl: ..., rejectUrl: ... },
-  // "ATTENDANCE_CORRECTION:MANAGER": { ... },
-};
-
-// ─── Acknowledge registry ─────────────────────────────────────────────────────
-
-const acknowledgeRegistry: Record<string, AcknowledgeConfig> = {
-
-  "SHIFT_SWAP": {
-    acknowledgeUrl: (id) => `/notification/acknowledge?notificationId=${id}`,
-  },
-
-  // "LEAVE_REQUEST": { acknowledgeUrl: (id) => `/notification/leaveack?notificationId=${id}` },
-};
-
-// ─── Public helpers ───────────────────────────────────────────────────────────
 
 export function getRoleTier(roleCode: string): "MANAGER" | "MEMBER" {
   return MANAGER_ROLES.has(roleCode) ? "MANAGER" : "MEMBER";
 }
 
-export function getActionConfig(
-  subModule: string | null | undefined,
-  roleCode: string,
-): ActionConfig | null {
-  if (!subModule) return null;
-  const tier = getRoleTier(roleCode);
-  return actionRegistry[`${subModule}:${tier}`] ?? null;
+export type RejectInputKind = "TEXT" | "CAB_REASON_LIST";
+
+export interface SubModuleActionMeta {
+  subModule: string;
+  rejectInput: RejectInputKind;
+  rejectRequired: boolean;
 }
 
-export function getAcknowledgeConfig(
+const SUB_MODULE_ACTIONS: Record<string, SubModuleActionMeta> = {
+  SHIFT_SWAP: { subModule: "SHIFT_SWAP", rejectInput: "TEXT", rejectRequired: true },
+  SHIFT_CHANGE: { subModule: "SHIFT_CHANGE", rejectInput: "TEXT", rejectRequired: true },
+  LEAVE: { subModule: "LEAVE", rejectInput: "TEXT", rejectRequired: true },
+  CAB_APPROVER: { subModule: "CAB_APPROVER", rejectInput: "CAB_REASON_LIST", rejectRequired: true },
+};
+
+export function getSubModuleActionMeta(
   subModule: string | null | undefined,
-): AcknowledgeConfig | null {
+): SubModuleActionMeta | null {
   if (!subModule) return null;
-  return acknowledgeRegistry[subModule] ?? null;
+  return SUB_MODULE_ACTIONS[subModule] ?? null;
+}
+
+export function isActionableSubModuleSupported(subModule: string | null | undefined): boolean {
+  return getSubModuleActionMeta(subModule) !== null;
 }

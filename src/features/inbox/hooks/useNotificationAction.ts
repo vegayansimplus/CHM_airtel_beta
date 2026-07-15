@@ -3,83 +3,107 @@ import {
   useAcknowledgeNotificationMutation,
   useEmployeeShiftSwapActionMutation,
   useManagerShiftSwapActionMutation,
+  useRosterLeaveActionMutation,
+  useShiftChangeNotificationActionMutation,
+  useCabCrqNotificationActionMutation,
 } from "../api/inboxApiSlice";
 import type { InboxItem } from "../components/TaskInbox";
+import { getRoleTier, getSubModuleActionMeta } from "../config/notificationActionConfig";
 
-const MANAGER_ROLES = [
-  "TEAM_LEAD",
-  "DOMAIN_HEAD",
-  "FUNCTION_HEAD",
-  "VERTICAL_HEAD",
-  "SUPER_ADMIN",
-  "SUB_DOMAIN_HEAD" 
-];
+export interface NotificationActionExtra {
+  // Free-text remark (SHIFT_SWAP/SHIFT_CHANGE/LEAVE reject reason, or the
+  // additional comment that accompanies a CAB reject reason).
+  reason?: string;
+  // Structured reason label for CAB_APPROVER rejects, picked from
+  // useGetCabRejectReasonsQuery.
+  reasonText?: string;
+}
 
 export const useNotificationAction = () => {
-  const [managerAction, { isLoading: isManagerLoading }] =
-    useManagerShiftSwapActionMutation();
-  const [employeeAction, { isLoading: isEmpLoading }] =
-    useEmployeeShiftSwapActionMutation();
-  const [acknowledge, { isLoading: isAckLoading }] =
-    useAcknowledgeNotificationMutation();
+  const [managerAction, { isLoading: isManagerLoading }] = useManagerShiftSwapActionMutation();
+  const [employeeAction, { isLoading: isEmpLoading }] = useEmployeeShiftSwapActionMutation();
+  const [acknowledge, { isLoading: isAckLoading }] = useAcknowledgeNotificationMutation();
+  const [leaveAction, { isLoading: isLeaveLoading }] = useRosterLeaveActionMutation();
+  const [shiftChangeAction, { isLoading: isShiftChangeLoading }] = useShiftChangeNotificationActionMutation();
+  const [cabCrqAction, { isLoading: isCabLoading }] = useCabCrqNotificationActionMutation();
 
-  const isLoading = isManagerLoading || isEmpLoading || isAckLoading;
+  const isLoading =
+    isManagerLoading ||
+    isEmpLoading ||
+    isAckLoading ||
+    isLeaveLoading ||
+    isShiftChangeLoading ||
+    isCabLoading;
 
   const handleAction = async (
     item: InboxItem,
     actionType: "APPROVED" | "REJECTED" | "ACKNOWLEDGE",
-    userRole: string, // Pass the logged-in user's role here
-    reason?: string,
+    userRole: string,
+    extra?: NotificationActionExtra,
   ): Promise<any> => {
     const { notificationId, subModule } = item.originalData;
 
     try {
-      // 1. Handle Generic Acknowledge
       if (actionType === "ACKNOWLEDGE") {
-        const response = await acknowledge({ notificationId }).unwrap();
-        return response;
+        return await acknowledge({ notificationId }).unwrap();
       }
 
-      // 2. Route based on Sub-Module
-      switch (subModule) {
-        case "SHIFT_SWAP":
-          if (MANAGER_ROLES.includes(userRole)) {
-            // Manager API
-            const managerResponse = await managerAction({
-              notificationId,
-              status: actionType,
-              reason,
-            }).unwrap();
-            return managerResponse;
-          } else if (userRole === "TEAM_MEMBER") {
-            // Employee API
-            const empResponse = await employeeAction({
-              notificationId,
-              status: actionType,
-              reason,
-            }).unwrap();
-            return empResponse;
-          } else {
-            // console.error("Unauthorized role for SHIFT_SWAP action");
-            toast.error("You do not have permission to perform this action.");
-            throw new Error("Unauthorized role");
-          }
+      const meta = getSubModuleActionMeta(subModule);
+      if (!meta) {
+        toast.error("This type of notification cannot be processed.");
+        throw new Error(`No API mapping found for submodule: ${subModule}`);
+      }
 
-        case "LEAVE_REQUEST":
-          // In the future, just add another case here for different sub-modules!
-          // const leaveResponse = await leaveRequestAction({ notificationId, status: actionType }).unwrap();
-          // return leaveResponse;
-          throw new Error("Leave request processing not yet implemented");
+      switch (meta.subModule) {
+        case "SHIFT_SWAP": {
+          const tier = getRoleTier(userRole);
+          if (tier === "MANAGER") {
+            return await managerAction({
+              notificationId,
+              status: actionType,
+              reason: extra?.reason,
+            }).unwrap();
+          }
+          if (userRole === "TEAM_MEMBER") {
+            return await employeeAction({
+              notificationId,
+              status: actionType,
+              reason: extra?.reason,
+            }).unwrap();
+          }
+          toast.error("You do not have permission to perform this action.");
+          throw new Error("Unauthorized role");
+        }
+
+        case "SHIFT_CHANGE":
+          return await shiftChangeAction({
+            notificationId,
+            status: actionType,
+            rejectReason: extra?.reason,
+          }).unwrap();
+
+        case "LEAVE":
+          return await leaveAction({
+            notificationId,
+            status: actionType,
+            rejectReason: extra?.reason,
+          }).unwrap();
+
+        case "CAB_APPROVER":
+          return await cabCrqAction({
+            notificationId,
+            status: actionType,
+            reason: extra?.reasonText,
+            comment: extra?.reason,
+          }).unwrap();
 
         default:
-          //   console.warn(`No API mapping found for submodule: ${subModule}`);
           toast.error("This type of notification cannot be processed.");
           throw new Error(`No API mapping found for submodule: ${subModule}`);
       }
     } catch (error) {
-      //   console.error("Failed to process notification action:", error);
       toast.error("Failed to process your action. Please try again.");
-      throw error; // Let UI handle the error alert
+      throw error;
     }
   };
 

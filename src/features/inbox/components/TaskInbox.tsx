@@ -12,6 +12,7 @@ import { NotificationList } from "./NotificationList";
 import { DetailView } from "./DetailView";
 import { getModuleIcon } from "../utils/getModuleIcon";
 import { formatModuleName } from "../utils/formatModuleName";
+import { isNotificationUnread, coerceBoolean } from "../utils/notificationType";
 
 export interface InboxItem {
   id: string;
@@ -60,14 +61,8 @@ export default function DynamicTaskInbox() {
         parsedPayload.module_code ||
         (notification as any).module ||
         "SYSTEM_ALERTS";
-      const isUnread =
-        notification.readFlag === "0" ||
-        notification.readFlag === "false" ||
-        !notification.readFlag;
-      const isActionable =
-        notification.isActionable === "1" ||
-        notification.isActionable === "true" ||
-        Boolean(notification.isActionable);
+      const isUnread = isNotificationUnread(notification.readFlag);
+      const isActionable = coerceBoolean(notification.isActionable);
       return {
         id: `${notification.createdAt}-${index}`,
         originalData: notification,
@@ -85,7 +80,12 @@ export default function DynamicTaskInbox() {
         isUnread,
         isActionable,
         priorityTag: isActionable ? "Action Required" : "Update",
-        status: notification.requestStatus === "PENDING" ? "Pending" : "Read",
+        status:
+          notification.requestStatus === "PENDING"
+            ? "Pending"
+            : notification.requestStatus === "COMPLETED"
+              ? "Completed"
+              : "Read",
         message: parsedPayload.body || "No details provided.",
       };
     });
