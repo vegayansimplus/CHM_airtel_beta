@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import {
   Box,
@@ -38,11 +38,13 @@ import { SubModuleCard } from "./components/SubModuleCard";
 import { PermissionsErrorState } from "./components/PermissionsErrorState";
 import { CreateEntityDrawer } from "./components/CreateEntityDrawer";
 import { ConfirmDialog } from "./components/ConfirmDialog";
+import { AddModulePopover } from "./components/AddModulePopover";
 
 export const AdminSettingDashboard: React.FC = () => {
   const theme = useTheme();
   const c = useTabColorTokens(theme);
   const s = useGlobalPermissionsController();
+  const [fetchModuleAnchor, setFetchModuleAnchor] = useState<HTMLElement | null>(null);
 
   const railSx = {
     width: 256,
@@ -221,7 +223,10 @@ export const AdminSettingDashboard: React.FC = () => {
             <Box
               component="button"
               sx={iconBtnSx}
-              onClick={() => s.setDrawerState({ kind: "module" })}
+              onClick={(e) => {
+                s.loadUnassignedModules();
+                setFetchModuleAnchor(e.currentTarget as HTMLElement);
+              }}
             >
               <AddOutlined sx={{ fontSize: 14 }} />
             </Box>
@@ -270,7 +275,46 @@ export const AdminSettingDashboard: React.FC = () => {
                 />
               ))
             )}
-            {!s.modulesLoading && s.filteredModules.length === 0 && (
+            {!s.modulesLoading && s.modules.length === 0 && (
+              <Box
+                sx={{
+                  mx: 0.5,
+                  mt: 1,
+                  px: 1.5,
+                  py: 2,
+                  borderRadius: "10px",
+                  border: `1px dashed ${c.border}`,
+                  textAlign: "center",
+                }}
+              >
+                <Typography fontSize="0.72rem" fontWeight={600} color={c.textSecondary} mb={0.25}>
+                  No Assigned Modules
+                </Typography>
+                <Typography fontSize="0.68rem" color={c.textDim} mb={1.25} lineHeight={1.5}>
+                  This role has no modules yet. Fetch an existing one or create a new one.
+                </Typography>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                  <Box
+                    component="button"
+                    onClick={(e) => {
+                      s.loadUnassignedModules();
+                      setFetchModuleAnchor(e.currentTarget as HTMLElement);
+                    }}
+                    sx={{
+                      ...btnSx,
+                      justifyContent: "center",
+                      border: `1px solid ${c.textPrimary}`,
+                      bgcolor: c.textPrimary,
+                      color: c.bg,
+                    }}
+                  >
+                    Add Module
+                  </Box>
+                </Box>
+              </Box>
+            )}
+
+            {!s.modulesLoading && s.modules.length > 0 && s.filteredModules.length === 0 && (
               <Typography fontSize="0.75rem" color={c.textDim} px={1.5} py={2}>
                 No modules match.
               </Typography>
@@ -525,6 +569,7 @@ export const AdminSettingDashboard: React.FC = () => {
                             perm,
                           )
                         }
+                        onCreatePermission={s.handleCreateNewPermission}
                         onMenuClick={(e) =>
                           s.setSubMenuAnchor({
                             el: e.currentTarget as HTMLElement,
@@ -543,6 +588,17 @@ export const AdminSettingDashboard: React.FC = () => {
           )}
         </Box>
       </Box>
+
+      <AddModulePopover
+        anchorEl={fetchModuleAnchor}
+        open={!!fetchModuleAnchor}
+        loading={s.unassignedModulesLoading}
+        availableModules={s.unassignedModules}
+        onClose={() => setFetchModuleAnchor(null)}
+        onSelect={(m) => s.handleAssignModuleFromCatalog(m.moduleId, m.moduleName)}
+        onCreate={(moduleName) => s.handleCreateModule(moduleName)}
+        c={c}
+      />
 
       {/* ── Role rail context menu ── */}
       <Menu
@@ -679,25 +735,26 @@ export const AdminSettingDashboard: React.FC = () => {
             const moduleId = s.moduleMenuAnchor!.moduleId;
             const mod = s.modules.find((m) => m.moduleId === moduleId);
             const label = mod?.moduleName ?? "this module";
+            const roleLabel = ROLE_LABEL[s.activeRole?.roleCode ?? ""] ?? s.activeRole?.roleCode ?? "this role";
             s.setModuleMenuAnchor(null);
             s.setConfirmDialog({
               open: true,
-              title: "Disable module?",
-              body: `Disabling "${label}" hides it and its sub-modules from every role. This action cannot be undone from this screen.`,
+              title: "Delete module?",
+              body: `This permanently removes "${label}" from ${roleLabel}. Other roles that still use it are unaffected; if no role uses it anymore, it is permanently deleted from the system. This cannot be undone.`,
               onConfirm: () => {
-                s.handleDisableModule(moduleId);
+                s.handleDeleteModule(moduleId);
                 s.setConfirmDialog((d) => ({ ...d, open: false }));
               },
             });
           }}
         >
           <ListItemIcon sx={{ minWidth: 28 }}>
-            <BlockOutlined sx={{ fontSize: 14, color: c.danger }} />
+            <DeleteOutlineOutlined sx={{ fontSize: 14, color: c.danger }} />
           </ListItemIcon>
           <ListItemText
             primaryTypographyProps={{ fontSize: "0.8rem", color: c.danger }}
           >
-            Disable module…
+            Delete module…
           </ListItemText>
         </MenuItem>
       </Menu>

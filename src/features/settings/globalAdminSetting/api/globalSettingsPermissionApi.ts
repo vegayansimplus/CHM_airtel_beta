@@ -81,11 +81,23 @@ export interface CreateRoleRequest {
 
 export interface CreateModuleRequest {
   moduleCode: string;
+  roleId: number;
 }
 
 export interface CreateSubModuleRequest {
   moduleId: number;
   subModuleCode: string;
+  roleId: number;
+}
+
+export interface CreatePermissionRequest {
+  permissionCode: string;
+  permissionName: string;
+}
+
+export interface AssignModuleToRoleRequest {
+  roleId: number;
+  moduleId: number;
 }
 
 export interface RenameRoleRequest {
@@ -123,6 +135,35 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
     getModules: builder.query<ModuleModel[], void>({
       query: () => ({ url: "/global-settings/permissions/dropdown/modules", method: "GET" }),
       providesTags: [MODULES_LIST_TAG],
+    }),
+
+    // ── Modules assigned to a specific role (drives the Modules rail) ────
+    getModulesForRole: builder.query<ModuleModel[], number>({
+      query: (roleId) => ({
+        url: "/global-settings/permissions/dropdown/modules-for-role",
+        method: "GET",
+        params: { roleId },
+      }),
+      providesTags: [MODULES_LIST_TAG],
+    }),
+
+    // ── Catalog modules a role doesn't have yet ("Fetch from Database") ──
+    getUnassignedModulesForRole: builder.query<ModuleModel[], number>({
+      query: (roleId) => ({
+        url: "/global-settings/permissions/dropdown/unassigned-modules",
+        method: "GET",
+        params: { roleId },
+      }),
+      providesTags: [MODULES_LIST_TAG],
+    }),
+
+    // ── Resolve a just-created role-owned module's id ────────────────────
+    getModuleByRoleAndCode: builder.query<ModuleModel[], { roleId: number; moduleCode: string }>({
+      query: ({ roleId, moduleCode }) => ({
+        url: "/global-settings/permissions/dropdown/module-by-role-code",
+        method: "GET",
+        params: { roleId, moduleCode },
+      }),
     }),
 
     getSubModules: builder.query<SubModuleModel[], number>({
@@ -208,12 +249,12 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
       invalidatesTags: [ROLES_LIST_TAG],
     }),
 
-    // ── Create Module ────────────────────────────────────────
+    // ── Create Module (always owned by the creating role) ────────────────
     createNewModule: builder.mutation<ApiResponse, CreateModuleRequest>({
-      query: ({ moduleCode }) => ({
+      query: ({ moduleCode, roleId }) => ({
         url: "/global-settings/permissions/create-new-module",
         method: "POST",
-        params: { moduleCode },
+        params: { moduleCode, roleId },
       }),
       invalidatesTags: [MODULES_LIST_TAG],
     }),
@@ -238,14 +279,44 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
       invalidatesTags: [MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
     }),
 
+    // ── Assign an existing catalog module to a role ("Fetch from Database") ─
+    assignModuleToRole: builder.mutation<ApiResponse, AssignModuleToRoleRequest>({
+      query: ({ roleId, moduleId }) => ({
+        url: "/global-settings/permissions/assign-module-to-role",
+        method: "POST",
+        params: { roleId, moduleId },
+      }),
+      invalidatesTags: [MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
+    }),
+
+    // ── Role-scoped, permanent-when-orphaned module delete ──────────────
+    deleteModuleForRole: builder.mutation<ApiResponse, AssignModuleToRoleRequest>({
+      query: ({ roleId, moduleId }) => ({
+        url: "/global-settings/permissions/delete-module-for-role",
+        method: "POST",
+        params: { roleId, moduleId },
+      }),
+      invalidatesTags: [MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
+    }),
+
     // ── Create Sub-module ────────────────────────────────────
     createNewSubModule: builder.mutation<ApiResponse, CreateSubModuleRequest>({
-      query: ({ moduleId, subModuleCode }) => ({
+      query: ({ moduleId, subModuleCode, roleId }) => ({
         url: "/global-settings/permissions/create-new-sub-module",
         method: "POST",
-        params: { moduleId, subModuleCode },
+        params: { moduleId, subModuleCode, roleId },
       }),
-      invalidatesTags: [SUB_MODULES_LIST_TAG, PERMISSIONS_LIST_TAG],
+      invalidatesTags: [SUB_MODULES_LIST_TAG, PERMISSIONS_LIST_TAG, MODULES_LIST_TAG],
+    }),
+
+    // ── Create a brand-new permission in the flat catalog ────────────────
+    createNewPermission: builder.mutation<ApiResponse, CreatePermissionRequest>({
+      query: ({ permissionCode, permissionName }) => ({
+        url: "/global-settings/permissions/create-new-permission",
+        method: "POST",
+        params: { permissionCode, permissionName },
+      }),
+      invalidatesTags: [PERMISSIONS_LIST_TAG],
     }),
 
     // ── Rename Sub-module ─────────────────────────────────────
@@ -305,6 +376,9 @@ export const globalSettingsPermissionApi = api.injectEndpoints({
 export const {
   useGetRolesQuery,
   useGetModulesQuery,
+  useGetModulesForRoleQuery,
+  useLazyGetUnassignedModulesForRoleQuery,
+  useLazyGetModuleByRoleAndCodeQuery,
   useGetSubModulesQuery,
   useGetPermissionTypesQuery,
   useUpdatePermissionMutation,
@@ -317,9 +391,12 @@ export const {
   useCreateNewRoleMutation,
   useRenameRoleMutation,
   useDisableModuleMutation,
+  useAssignModuleToRoleMutation,
+  useDeleteModuleForRoleMutation,
   useCreateNewModuleMutation,
   useRenameModuleMutation,
   useCreateNewSubModuleMutation,
+  useCreateNewPermissionMutation,
   useRenameSubModuleMutation,
   useDeleteSubModuleMutation,
   useGetAllRolePermissionsQuery,

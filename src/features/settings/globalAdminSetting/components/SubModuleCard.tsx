@@ -19,6 +19,7 @@ interface SubModuleCardProps {
   onToggle: (permissionId: number, currentGranted: boolean) => void;
   onRemove: (permissionId: number, granted: boolean) => void;
   onAdd: (perm: AddablePermission) => void;
+  onCreatePermission: (permissionName: string) => void | Promise<void>;
   onMenuClick: (e: React.MouseEvent<HTMLButtonElement>) => void;
   onGrantAll: () => void;
   onRevokeAll: () => void;
@@ -34,6 +35,7 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
   onToggle,
   onRemove,
   onAdd,
+  onCreatePermission,
   onMenuClick,
   onGrantAll,
   onRevokeAll,
@@ -308,6 +310,7 @@ export const SubModuleCard: React.FC<SubModuleCardProps> = ({
         availablePermissions={addablePermissions}
         onClose={() => setAddAnchorEl(null)}
         onSelect={onAdd}
+        onCreate={onCreatePermission}
         c={c}
       />
     </Box>
