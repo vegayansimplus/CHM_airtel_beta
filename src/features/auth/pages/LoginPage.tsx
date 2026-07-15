@@ -12,7 +12,7 @@ import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
 import { postAuthMessage } from "../../../app/store/authChannel";
-import { normalizeRBAC } from "../utils/rbacNormalizer";
+import { normalizeRBAC, normalizeModuleHierarchy } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
@@ -200,6 +200,7 @@ const LoginPage: React.FC = () => {
       roleCode: userRes.roleCode,
       userId: userRes.userId,
       modules: normalizeRBAC(userRes),
+      moduleHierarchy: normalizeModuleHierarchy(userRes),
       authenticated: true,
     };
 
@@ -211,6 +212,7 @@ const LoginPage: React.FC = () => {
       roleCode: user.roleCode,
       userId: user.userId,
       modules: user.modules,
+      moduleHierarchy: user.moduleHierarchy,
     };
     authStorage.setUser(storedUser);
     // Let any other open tab (e.g. one still sitting on /login) adopt this

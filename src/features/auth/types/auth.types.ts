@@ -1,13 +1,28 @@
-export interface ModulePermission {
+export interface PermissionInfo {
+  permissionId: number;
+  permissionName: string;
+  permissionCode: string;
+}
+
+export interface SubModuleHierarchy {
+  subModuleId: number;
+  subModuleCode: string;
+  subModuleName: string;
+  permissions: PermissionInfo[];
+}
+
+export interface ModuleHierarchy {
+  moduleId: number;
+  moduleCode: string;
   moduleName: string;
-  permissions: string[];
+  subModules: SubModuleHierarchy[];
 }
 
 export interface LoggedUserApiResponse {
   olmId: string;
   employeeName: string;
   roleCode: string;
-  modules: ModulePermission[];
+  modules: ModuleHierarchy[];
   userId: string;
 }
 
@@ -17,6 +32,7 @@ export interface AuthUser {
   roleCode: string;
   userId: string;
   modules: Record<string, string[]>;
+  moduleHierarchy: ModuleHierarchy[];
   authenticated: boolean;
 }
 
@@ -26,6 +42,7 @@ export interface StoredUser {
   roleCode: string;
   userId: string;
   modules: Record<string, string[]>;
+  moduleHierarchy: ModuleHierarchy[];
 }
 
 
