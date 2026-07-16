@@ -17,14 +17,12 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import AddIcon from "@mui/icons-material/Add";
-import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetAllCrqsQuery } from "../api/cabManagerApiSlice";
 import { CrqDetailDrawer } from "../components/shared/CrqDetailDrawer";
-import { NewCrqModal } from "../components/modals/NewCrqModal";
+// import { NewCrqModal } from "../components/modals/NewCrqModal";
 import { ImpactChip, SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
@@ -45,7 +43,7 @@ export function AllCrqsPage() {
   const isDark = theme.palette.mode === "dark";
   const [filters, setFilters] = useState<CrqFilters>({});
   const [selected, setSelected] = useState<string | null>(null);
-  const [openNew, setOpenNew] = useState(false);
+  // const [openNew, setOpenNew] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useGetAllCrqsQuery(filters);
 
@@ -214,12 +212,6 @@ export function AllCrqsPage() {
             Track every change request across domains, circles, and stages of the approval workflow.
           </Typography>
         </Box>
-        <Stack direction="row" spacing={1.5} flexShrink={0}>
-          <Button variant="outlined" startIcon={<FileDownloadOutlinedIcon />}>Export</Button>
-          <Button variant="contained" startIcon={<AddIcon />} onClick={() => setOpenNew(true)}>
-            New CRQ
-          </Button>
-        </Stack>
       </Stack>
 
       <Paper sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }} elevation={0}>
@@ -285,7 +277,7 @@ export function AllCrqsPage() {
       </Paper>
 
       <CrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
-      <NewCrqModal open={openNew} onClose={() => setOpenNew(false)} />
+      {/* <NewCrqModal open={openNew} onClose={() => setOpenNew(false)} /> */}
     </Box>
   );
 }
