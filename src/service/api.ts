@@ -1,21 +1,69 @@
-import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import {
+  createApi,
+  fetchBaseQuery,
+  type BaseQueryFn,
+  type FetchArgs,
+  type FetchBaseQueryError,
+} from "@reduxjs/toolkit/query/react";
+import { toast } from "react-toastify";
 import type { RootState } from "../app/store";
+import { authStorage } from "../app/store/auth.storage";
+import { logout } from "../features/auth/slices/auth.slice";
+
+const rawBaseQuery = fetchBaseQuery({
+  baseUrl: import.meta.env.VITE_REACT_APP_BASE_URL,
+  // Send the httpOnly `jwt` cookie the backend already issues on login.
+  // It can't be read or stolen via JS/XSS (unlike the bearer token), so
+  // this gives the API a second, tamper-resistant way to authenticate
+  // the request even if the Authorization header is ever missing.
+  credentials: "include",
+  prepareHeaders: (headers, { getState }) => {
+    const token = (getState() as RootState).auth.token;
+    if (token) headers.set("Authorization", `Bearer ${token}`);
+    return headers;
+  },
+});
+
+// Endpoints where a 401/403 is an expected outcome of the call itself
+// (bad credentials, already logged in elsewhere) rather than a signal
+// that a previously-valid session has gone stale.
+const AUTH_LIFECYCLE_PATHS = ["/auth/v1/signin", "/auth/v1/logout"];
+
+const isAuthLifecycleRequest = (args: string | FetchArgs): boolean => {
+  const url = typeof args === "string" ? args : args.url;
+  return AUTH_LIFECYCLE_PATHS.some((path) => url.includes(path));
+};
+
+// Global session-expiration handler: any endpoint (other than login/logout
+// themselves) that comes back 401/403 means the token was rejected by the
+// backend — clear the cached session so PrivateRoute redirects to /login,
+// instead of leaving the UI in a broken, half-authenticated state.
+const baseQueryWithReauth: BaseQueryFn<
+  string | FetchArgs,
+  unknown,
+  FetchBaseQueryError
+> = async (args, api, extraOptions) => {
+  const result = await rawBaseQuery(args, api, extraOptions);
+
+  if (result.error && !isAuthLifecycleRequest(args)) {
+    const status = result.error.status;
+    if (status === 401 || status === 403) {
+      const wasAuthenticated = (api.getState() as RootState).auth
+        .isAuthenticated;
+      authStorage.clear();
+      api.dispatch(logout());
+      if (wasAuthenticated) {
+        toast.error("Your session has expired. Please sign in again.");
+      }
+    }
+  }
+
+  return result;
+};
 
 export const api = createApi({
   reducerPath: "api",
-  baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_REACT_APP_BASE_URL,
-    // Send the httpOnly `jwt` cookie the backend already issues on login.
-    // It can't be read or stolen via JS/XSS (unlike the bearer token), so
-    // this gives the API a second, tamper-resistant way to authenticate
-    // the request even if the Authorization header is ever missing.
-    credentials: "include",
-    prepareHeaders: (headers, { getState }) => {
-      const token = (getState() as RootState).auth.token;
-      if (token) headers.set("Authorization", `Bearer ${token}`);
-      return headers;
-    },
-  }),
+  baseQuery: baseQueryWithReauth,
   endpoints: () => ({}),
   tagTypes: [
     "ORG_HIERARCHY",
@@ -52,9 +100,6 @@ export const api = createApi({
     "CabAdmin",
     "CabAudit",
     "CabCrq",
-    "CabImpl"
-   
-    
+    "CabImpl",
   ],
 });
-   

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { Box, Typography } from "@mui/material";
 
@@ -11,7 +11,6 @@ import {
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
-import { postAuthMessage } from "../../../app/store/authChannel";
 import { normalizeRBAC, normalizeModuleHierarchy } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
@@ -88,6 +87,7 @@ const LoginPage: React.FC = () => {
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const captcha = useCaptcha(!CAPTCHA_DISABLED);
 
@@ -215,14 +215,11 @@ const LoginPage: React.FC = () => {
       moduleHierarchy: user.moduleHierarchy,
     };
     authStorage.setUser(storedUser);
-    // Let any other open tab (e.g. one still sitting on /login) adopt this
-    // session immediately instead of waiting for its own hydration cycle.
-    postAuthMessage({
-      type: "SESSION_SYNC",
-      token: res.accessToken,
-      user: storedUser,
-    });
-    navigate("/home", { replace: true });
+    // Writing to localStorage above already notifies any other open tab
+    // via the native `storage` event (see AuthHydrator), so no separate
+    // broadcast is needed here.
+    const from = (location.state as { from?: string } | null)?.from;
+    navigate(from && from !== "/login" ? from : "/home", { replace: true });
   };
 
   const handleForceLogout = async () => {

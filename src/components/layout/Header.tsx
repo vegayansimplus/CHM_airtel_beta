@@ -37,7 +37,6 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useLogoutMutation } from "../../features/auth/api/auth.api";
 import { logout } from "../../features/auth/slices/auth.slice";
 import { authStorage } from "../../app/store/auth.storage";
-import { postAuthMessage } from "../../app/store/authChannel";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
 
 // ── Import the notification bell ──────────────────────────────────────────────
@@ -103,11 +102,10 @@ const Header: React.FC<HeaderProps> = ({
       // Only clear the auth keys, not the whole storage — a blanket
       // localStorage.clear() also wiped unrelated saved preferences
       // (theme, brand colour, sidebar state) on every logout.
+      // Clearing these keys fires the native `storage` event in every
+      // other open tab, which AuthHydrator listens for to log them out too.
       authStorage.clear();
       dispatch(logout());
-      // Mirror the logout to every other open tab so none of them keep
-      // using a session that's now been invalidated server-side.
-      postAuthMessage({ type: "LOGOUT" });
       navigate("/login", { replace: true });
       setLoading(false);
     }

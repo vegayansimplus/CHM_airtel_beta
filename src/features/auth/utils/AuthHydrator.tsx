@@ -1,111 +1,91 @@
 import { useEffect } from "react";
 import { useAppDispatch } from "../../../app/hooks";
-import { authStorage } from "../../../app/store/auth.storage";
+import { authStorage, TOKEN_KEY } from "../../../app/store/auth.storage";
+import { useLazyGetLoggedUserQuery } from "../api/auth.api";
 import {
-  authChannel,
-  postAuthMessage,
-  type AuthChannelMessage,
-} from "../../../app/store/authChannel";
-import {
-  finishHydration,
-  logout,
-  setToken,
-  setUser,
-} from "../slices/auth.slice";
-
-// How long a tab with no session of its own waits for another tab to
-// answer a REQUEST_SESSION before concluding the user is genuinely logged
-// out. Cross-tab BroadcastChannel delivery is effectively instant, so this
-// only guards against a slow/unresponsive other tab.
-const SESSION_REQUEST_TIMEOUT_MS = 400;
+  normalizeRBAC,
+  normalizeModuleHierarchy,
+} from "../utils/rbacNormalizer";
+import { finishHydration, logout, setToken, setUser } from "../slices/auth.slice";
+import type { AuthUser } from "../types/auth.types";
 
 const AuthHydrator = () => {
   const dispatch = useAppDispatch();
+  const [fetchUser] = useLazyGetLoggedUserQuery();
 
   useEffect(() => {
-    const token = authStorage.getToken();
-    const user = authStorage.getUser();
+    const validateAndHydrate = async (token: string) => {
+      dispatch(setToken(token));
 
-    if (!authChannel) {
-      if (token) {
-        dispatch(setToken(token));
-        if (user) dispatch(setUser({ ...user, authenticated: true }));
-      } else {
-        dispatch(logout());
-      }
-      dispatch(finishHydration());
-      return;
-    }
-
-    let hydrated = false;
-    const finish = () => {
-      if (hydrated) return;
-      hydrated = true;
-      dispatch(finishHydration());
-    };
-
-    // Kept alive for the lifetime of the app (this component never
-    // unmounts), so it also handles logout/login sync between tabs after
-    // initial hydration is done, not just the first-load handshake below.
-    const handleMessage = (event: MessageEvent<AuthChannelMessage>) => {
-      const message = event.data;
-
-      if (message.type === "REQUEST_SESSION") {
-        const activeToken = authStorage.getToken();
-        if (activeToken) {
-          postAuthMessage({
-            type: "SESSION_SYNC",
-            token: activeToken,
-            user: authStorage.getUser(),
-          });
-        }
-        return;
+      // Paint the last-known user immediately so the UI doesn't blank out
+      // while the validation call below is in flight; it gets overwritten
+      // with the server's response (or discarded on failure) either way.
+      const cachedUser = authStorage.getUser();
+      if (cachedUser) {
+        dispatch(setUser({ ...cachedUser, authenticated: true }));
       }
 
-      if (message.type === "SESSION_SYNC") {
-        if (!authStorage.getToken()) {
-          authStorage.setToken(message.token);
-          if (message.user) authStorage.setUser(message.user);
-          dispatch(setToken(message.token));
-          if (message.user) {
-            dispatch(setUser({ ...message.user, authenticated: true }));
-          }
-        }
-        finish();
-        return;
-      }
+      try {
+        const userRes = await fetchUser().unwrap();
 
-      if (message.type === "LOGOUT") {
+        const user: AuthUser = {
+          olmId: userRes.olmId,
+          employeeName: userRes.employeeName,
+          roleCode: userRes.roleCode,
+          userId: userRes.userId,
+          modules: normalizeRBAC(userRes),
+          moduleHierarchy: normalizeModuleHierarchy(userRes),
+          authenticated: true,
+        };
+
+        dispatch(setUser(user));
+        authStorage.setToken(token);
+        authStorage.setUser({
+          olmId: user.olmId,
+          employeeName: user.employeeName,
+          roleCode: user.roleCode,
+          userId: user.userId,
+          modules: user.modules,
+          moduleHierarchy: user.moduleHierarchy,
+        });
+      } catch {
+        // Backend rejected the token (expired / invalid / revoked) — only
+        // now is it correct to treat the user as logged out.
         authStorage.clear();
         dispatch(logout());
+      } finally {
+        dispatch(finishHydration());
       }
     };
 
-    authChannel.addEventListener("message", handleMessage);
-
-    let timeoutId: number | undefined;
+    const token = authStorage.getToken();
     if (token) {
-      dispatch(setToken(token));
-      if (user) dispatch(setUser({ ...user, authenticated: true }));
-      finish();
+      void validateAndHydrate(token);
     } else {
-      // No session in this tab — ask any other open tab before redirecting
-      // to /login, so Ctrl+Click / middle-click / manual URL entry into a
-      // protected route doesn't bounce an already-authenticated user.
-      postAuthMessage({ type: "REQUEST_SESSION" });
-      timeoutId = window.setTimeout(() => {
-        if (!hydrated) {
-          dispatch(logout());
-          finish();
-        }
-      }, SESSION_REQUEST_TIMEOUT_MS);
+      dispatch(logout());
+      dispatch(finishHydration());
     }
 
-    return () => {
-      if (timeoutId) window.clearTimeout(timeoutId);
-      authChannel.removeEventListener("message", handleMessage);
+    // Cross-tab sync: this fires in every OTHER tab whenever localStorage
+    // changes here (never in the tab that made the write), so there's no
+    // race to lose — a brand-new tab reads localStorage synchronously on
+    // its very first render via authStorage.getToken() above.
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== TOKEN_KEY) return;
+
+      if (!event.newValue) {
+        dispatch(logout());
+        return;
+      }
+
+      if (event.newValue !== event.oldValue) {
+        void validateAndHydrate(event.newValue);
+      }
     };
-  }, [dispatch]);
+
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
+  }, [dispatch, fetchUser]);
 
   return null;
 };
