@@ -31,6 +31,7 @@ import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab"
 import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
 import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
 import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
+import { OrganizationConfigPage } from "../features/settings/orgConfig";
 import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
 import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
 import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
@@ -257,6 +258,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
               element={<Holidayandnetworkschedulemanagermain />}
             />
             <Route path="adminsetting" element={<AdminSettingDashboard />} />
+            <Route path="orgconfig" element={<OrganizationConfigPage />} />
           </Route>
         </Route>
         <Route index element={<Navigate to="/home" replace />} />

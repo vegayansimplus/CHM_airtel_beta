@@ -226,6 +226,13 @@ const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "Global Settings",
         requiredSubModule: "Admin Settings",
       },
+      {
+        to: "/global-settings/orgconfig",
+        text: "Organization Settings",
+        icon: <SchemaIcon />,
+        requiredModule: "Global Settings",
+        requiredSubModule: "Organization Settings",
+      },
     ],
   },
 ];

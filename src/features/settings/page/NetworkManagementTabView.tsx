@@ -25,6 +25,10 @@ const NetworkManagementTabView: React.FC = () => {
       return "adminsetting";
     }
 
+    if (path.includes("orgconfig")) {
+      return "orgconfig";
+    }
+
     return "adminsetting"; // default
   }, [location.pathname]);
 
@@ -121,6 +125,14 @@ const NetworkManagementTabView: React.FC = () => {
             label="Admin Setting"
             value="adminsetting"
             to="adminsetting"
+            component={Link}
+          />
+
+          {/* ✅ TAB 3 */}
+          <Tab
+            label="Organization Configuration"
+            value="orgconfig"
+            to="orgconfig"
             component={Link}
           />
         </Tabs>
