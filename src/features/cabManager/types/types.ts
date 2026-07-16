@@ -96,8 +96,6 @@ export interface DashboardData {
 }
 
 // ── My CRQs ─────────────────────────────────────────────────────────────────
-export type MyCrqsMode = "approve" | "assign" | "requester";
-
 export interface MyCrqsStats {
   awaitingMe: number;
   approvedThisWeek: number;
@@ -105,7 +103,6 @@ export interface MyCrqsStats {
 }
 
 export interface MyCrqsResponse {
-  mode: MyCrqsMode;
   title: string;
   subtitle: string;
   stats: MyCrqsStats;
@@ -290,12 +287,6 @@ export interface AuditEntry {
 }
 
 // ── Mutation payloads ───────────────────────────────────────────────────────
-export interface ApproveCrqPayload   { crqId: string; comment?: string; }
-export interface RejectCrqPayload    { crqId: string; reason: string; comment: string; }
-export interface DelegateCrqPayload  { crqId: string; delegateTo: string; reason: string; }
-export interface ReschedulePayload   { crqId: string; newDate: string; newWindow: string; reason: string; }
-export interface AssignSpocPayload   { crqId: string; spoc: string; }
-export interface AssignFePayload     { crqId: string; fieldEngineer: string; }
 export interface PlanCabPayload      { crqIds: string[]; date: string; type: CabSession["type"]; host: string; }
 export interface NewCrqPayload {
   activity: string;

@@ -9,16 +9,10 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
-import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
-import { ApproveCrqModal } from "../modals/ApproveCrqModal";
-import { DelegateCrqModal } from "../modals/DelegateCrqModal";
-import { RejectCrqModal } from "../modals/RejectCrqModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -26,7 +20,6 @@ export function CrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onCl
   const open = !!crqId;
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetCrqByIdQuery(crqId ?? "", { skip: !crqId });
-  const [modal, setModal] = useState<"approve" | "reject" | "delegate" | null>(null);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -60,15 +53,6 @@ export function CrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onCl
 
         {data && (
           <>
-            {data.assignedToMe && (
-              <Box sx={{ display: "flex", gap: 1.5, p: 1.5, bgcolor: "#FFF4E5", border: "1px solid #FFE0B2", borderRadius: 1, mb: 2 }}>
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                  <Box component="span" sx={{ fontWeight: 500, color: "text.primary" }}>Action required.</Box>{" "}
-                  This CRQ is awaiting your approval at the {data.stage} stage. SLA at {data.sla}%.
-                </Typography>
-              </Box>
-            )}
-
             <Button
               fullWidth
               variant="outlined"
@@ -121,25 +105,6 @@ export function CrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onCl
           </>
         )}
       </Box>
-
-      {/* Footer actions */}
-      {data?.assignedToMe && data.status === "pending" && (
-        <Box sx={{ p: 2, borderTop: "1px solid", borderColor: "divider", bgcolor: "#FAFAFA" }}>
-          <Stack direction="row" spacing={1}>
-            <Button fullWidth variant="outlined" color="error" startIcon={<CloseIcon />} onClick={() => setModal("reject")}>Reject</Button>
-            <Button fullWidth variant="outlined" startIcon={<SwapHorizIcon />} onClick={() => setModal("delegate")}>Delegate</Button>
-            <Button fullWidth variant="contained" color="success" startIcon={<CheckIcon />} onClick={() => setModal("approve")}>Approve</Button>
-          </Stack>
-        </Box>
-      )}
-
-      {data && (
-        <>
-          <ApproveCrqModal  open={modal === "approve"}  crqId={data.id} onClose={() => setModal(null)} />
-          <RejectCrqModal   open={modal === "reject"}   crqId={data.id} onClose={() => setModal(null)} />
-          <DelegateCrqModal open={modal === "delegate"} crqId={data.id} onClose={() => setModal(null)} />
-        </>
-      )}
     </Drawer>
   );
 }

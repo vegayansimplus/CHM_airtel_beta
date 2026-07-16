@@ -14,13 +14,8 @@ import {
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
-import SwapHorizIcon from "@mui/icons-material/SwapHoriz";
-import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { useGetCrqJourneyQuery } from "../api/cabManagerApiSlice";
-import { ApproveCrqModal } from "../components/modals/ApproveCrqModal";
-import { DelegateCrqModal } from "../components/modals/DelegateCrqModal";
-import { RejectCrqModal } from "../components/modals/RejectCrqModal";
 import { StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 
@@ -44,7 +39,6 @@ export function CrqJourneyPage() {
   const navigate = useNavigate();
   const { id = "" } = useParams<{ id: string }>();
   const { data, isLoading, isError, error, refetch } = useGetCrqJourneyQuery(id, { skip: !id });
-  const [modal, setModal] = useState<"approve" | "reject" | "delegate" | null>(null);
 
   if (isError) {
     return <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void refetch()}>Retry</Button>}>{errMsg(error)}</Alert>;
@@ -54,7 +48,6 @@ export function CrqJourneyPage() {
   }
 
   const { crq, approvalChain, parallelTracks, remarks } = data;
-  const showActions = crq.assignedToMe && crq.status === "pending";
   const slaColor = crq.sla >= 80 ? "#D32F2F" : crq.sla >= 50 ? "#ED6C02" : "#2E7D32";
 
   return (
@@ -76,13 +69,6 @@ export function CrqJourneyPage() {
             Raised by <Box component="span" sx={{ color: "text.primary" }}>{crq.raisedBy}</Box> · {crq.raisedOn}
           </Typography>
         </Box>
-        {showActions && (
-          <Stack direction="row" spacing={1} flexShrink={0}>
-            <Button variant="outlined" color="error" startIcon={<CloseIcon />} onClick={() => setModal("reject")}>Reject</Button>
-            <Button variant="outlined" startIcon={<SwapHorizIcon />} onClick={() => setModal("delegate")}>Delegate</Button>
-            <Button variant="contained" color="success" startIcon={<CheckIcon />} onClick={() => setModal("approve")}>Approve</Button>
-          </Stack>
-        )}
       </Stack>
 
       {/* Approval chain timeline */}
@@ -220,10 +206,6 @@ export function CrqJourneyPage() {
           </Paper>
         </Stack>
       </Box>
-
-      <ApproveCrqModal  open={modal === "approve"}  crqId={crq.id} onClose={() => setModal(null)} />
-      <RejectCrqModal   open={modal === "reject"}   crqId={crq.id} onClose={() => setModal(null)} />
-      <DelegateCrqModal open={modal === "delegate"} crqId={crq.id} onClose={() => setModal(null)} />
     </Box>
   );
 }

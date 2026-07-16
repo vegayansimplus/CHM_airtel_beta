@@ -30,11 +30,8 @@ import {
 import type {
   AdminAnalytics,
   AdminUser,
-  ApproveCrqPayload,
-  AssignFePayload,
   AssignMatrixCell,
   AssignRule,
-  AssignSpocPayload,
   AuditEntry,
   BlockRingPayload,
   CabPlanDate,
@@ -45,17 +42,13 @@ import type {
   CrqFilters,
   CrqJourney,
   DashboardData,
-  DelegateCrqPayload,
   EscalationRow,
   ImplementationDetail,
   MyCrqsResponse,
   NewCrqPayload,
   PlanCabPayload,
   ProceedRingPayload,
-  RejectCrqPayload,
   RejectionReason,
-  ReschedulePayload,
-  Role,
   SendChatPayload,
   ServiceApprovalRule,
 } from "../types/types";
@@ -182,27 +175,16 @@ export const cabPortalApi = api.injectEndpoints({
       providesTags: (_r, _e, id) => [{ type: "CabCrq" as const, id }],
     }),
 
-    // // ── MY CRQs ───────────────────────────────────────────────────────────
-    // getMyCrqs: builder.query<MyCrqsResponse, Role>({
-    //   queryFn: async (role, _apiArg, _extraOptions, baseQuery) =>
-    //     networkOrMock(
-    //       { url: "/cab/crqs/mine", method: "GET", params: { role } },
-    //       baseQuery,
-    //       async () => await mockDelay(buildMyCrqs(role))
-    //     ),
-    //   providesTags: [{ type: "CabCrq", id: "MINE" }],
-    // }),
     // ── MY CRQs ───────────────────────────────────────────────────────────
-
-
-// Inside cabManagerApiSlice.ts
-getMyCrqs: builder.query<MyCrqsResponse, Role>({
-  queryFn: async (roleArg) => {
-    const mockData = await mockDelay(buildMyCrqs(roleArg));
-    return { data: mockData };
-  },
-  providesTags: [{ type: "CabCrq", id: "MINE" }],
-}),
+    getMyCrqs: builder.query<MyCrqsResponse, void>({
+      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/crqs/mine", method: "GET" },
+          baseQuery,
+          async () => await mockDelay(buildMyCrqs())
+        ),
+      providesTags: [{ type: "CabCrq", id: "MINE" }],
+    }),
 
     // ── CRQ JOURNEY ───────────────────────────────────────────────────────
     getCrqJourney: builder.query<CrqJourney, string>({
@@ -379,113 +361,6 @@ getImplementation: builder.query<ImplementationDetail, void>({
     }),
 
     // ── Mutations ─────────────────────────────────────────────────────────
-    approveCrq: builder.mutation<{ ok: boolean }, ApproveCrqPayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/approve`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "LIST" },
-        { type: "CabCrq", id: "MINE" },
-        "CabDashboard",
-      ],
-    }),
-
-    rejectCrq: builder.mutation<{ ok: boolean }, RejectCrqPayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/reject`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "LIST" },
-        { type: "CabCrq", id: "MINE" },
-        "CabDashboard",
-      ],
-    }),
-
-    delegateCrq: builder.mutation<{ ok: boolean }, DelegateCrqPayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/delegate`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "MINE" },
-        "CabAudit",
-      ],
-    }),
-
-    rescheduleCrq: builder.mutation<{ ok: boolean }, ReschedulePayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/reschedule`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "LIST" },
-      ],
-    }),
-
-    assignSpoc: builder.mutation<{ ok: boolean }, AssignSpocPayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-spoc`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "MINE" },
-      ],
-    }),
-
-    assignFe: builder.mutation<{ ok: boolean }, AssignFePayload>({
-      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          {
-            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-fe`,
-            method: "POST",
-            body,
-          },
-          baseQuery,
-          async () => await mockDelay({ ok: true })
-        ),
-      invalidatesTags: (_r, _e, b) => [
-        { type: "CabCrq", id: b.crqId },
-        { type: "CabCrq", id: "MINE" },
-      ],
-    }),
-
     planCab: builder.mutation<CabSession, PlanCabPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
@@ -606,12 +481,6 @@ export const {
   useGetAdminUsersQuery,
   useGetAuditLogQuery,
   // mutations
-  useApproveCrqMutation,
-  useRejectCrqMutation,
-  useDelegateCrqMutation,
-  useRescheduleCrqMutation,
-  useAssignSpocMutation,
-  useAssignFeMutation,
   usePlanCabMutation,
   useCreateCrqMutation,
   useProceedRingMutation,

@@ -25,12 +25,6 @@ export { CrqDetailDrawer }         from "./components/shared/CrqDetailDrawer";
 export { ImpactChip, SlaBar, StageChip, StatusChip } from "./components/shared/Chips";
 
 // Modals
-export { ApproveCrqModal }   from "./components/modals/ApproveCrqModal";
-export { RejectCrqModal }    from "./components/modals/RejectCrqModal";
-export { DelegateCrqModal }  from "./components/modals/DelegateCrqModal";
-export { RescheduleCrqModal } from "./components/modals/RescheduleCrqModal";
-export { AssignSpocModal }   from "./components/modals/AssignSpocModal";
-export { AssignFeModal }     from "./components/modals/AssignFeModal";
 export { PlanCabModal }      from "./components/modals/PlanCabModal";
 export { NewCrqModal }       from "./components/modals/NewCrqModal";
 

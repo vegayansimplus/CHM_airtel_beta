@@ -248,36 +248,13 @@ export const buildDashboard = (crqs: Crq[] = MOCK_CRQS): DashboardData => {
 };
 
 export const buildMyCrqs = (
-  role: Role,
   crqs: Crq[] = MOCK_CRQS
 ): MyCrqsResponse => {
-  // 👇 If you want Requester to see Assign SPOC, it must map to "assign" here!
-  const mode: MyCrqsResponse["mode"] =
-    role === "cabEngineer" || role === "requester" 
-      ? "assign" 
-      : role === "stakeholder" 
-        ? "requester" 
-        : "approve";
-
-  const rows =
-    mode === "assign"
-      ? crqs.filter((c) => c.stage === "Scheduling" || c.stage === "CAB Review")
-      : mode === "requester"
-        ? crqs.filter((c) =>
-            c.raisedBy.toLowerCase().includes("karan mehta") ||
-            c.raisedBy.toLowerCase().includes("priya deshmukh")
-          )
-        : crqs.filter((c) => c.assignedToMe);
+  const rows = crqs.filter((c) => c.assignedToMe);
 
   return {
-    mode,
-    title: mode === "assign" ? "Assignment Queue" : mode === "requester" ? "My Requests" : "My CRQs",
-    subtitle:
-      mode === "assign"
-        ? "CRQs awaiting SPOC / Field Engineer assignment from the CAB Engineer."
-        : mode === "requester"
-          ? "Track the CRQs you raised, their current stage, and the latest status."
-          : "Approve, reject, delegate or reschedule CRQs that need your sign-off.",
+    title: "My CRQs",
+    subtitle: "CRQs assigned to you. SPOC and Field Engineer assignment is view-only.",
     stats: {
       awaitingMe: rows.filter((c) => c.status === "pending").length,
       approvedThisWeek: 3,
