@@ -30,8 +30,10 @@ import {
 import type {
   AdminAnalytics,
   AdminUser,
+  AssignFePayload,
   AssignMatrixCell,
   AssignRule,
+  AssignSpocPayload,
   AuditEntry,
   BlockRingPayload,
   CabPlanDate,
@@ -455,6 +457,40 @@ getImplementation: builder.query<ImplementationDetail, void>({
         ),
       invalidatesTags: (_r, _e, b) => [{ type: "CabSession", id: b.sessionId }],
     }),
+
+    assignSpoc: builder.mutation<{ ok: boolean }, AssignSpocPayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-spoc`,
+            method: "POST",
+            body,
+          },
+          baseQuery,
+          async () => await mockDelay({ ok: true })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq", id: b.crqId },
+        { type: "CabCrq", id: "MINE" },
+      ],
+    }),
+
+    assignFe: builder.mutation<{ ok: boolean }, AssignFePayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-fe`,
+            method: "POST",
+            body,
+          },
+          baseQuery,
+          async () => await mockDelay({ ok: true })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq", id: b.crqId },
+        { type: "CabCrq", id: "MINE" },
+      ],
+    }),
   }),
   overrideExisting: false,
 });
@@ -486,4 +522,6 @@ export const {
   useProceedRingMutation,
   useBlockRingMutation,
   useSendCabChatMutation,
+  useAssignSpocMutation,
+  useAssignFeMutation,
 } = cabPortalApi;

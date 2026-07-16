@@ -254,7 +254,7 @@ export const buildMyCrqs = (
 
   return {
     title: "My CRQs",
-    subtitle: "CRQs assigned to you. SPOC and Field Engineer assignment is view-only.",
+    subtitle: "CRQs assigned to you. Open a CRQ to re-assign SPOC or Field Engineer.",
     stats: {
       awaitingMe: rows.filter((c) => c.status === "pending").length,
       approvedThisWeek: 3,

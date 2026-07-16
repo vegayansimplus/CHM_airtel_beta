@@ -6,14 +6,11 @@ import {
   Skeleton,
   Stack,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Tooltip,
   Typography,
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
-import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import { useState } from "react";
 import { useGetMyCrqsQuery } from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
@@ -68,12 +65,11 @@ export function MyCrqsPage() {
               <TableCell>Scheduled</TableCell>
               <TableCell>SPOC</TableCell>
               <TableCell>Field Engineer</TableCell>
-              <TableCell align="right">Action</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {data.rows.length === 0 ? (
-              <TableRow><TableCell colSpan={7} align="center" sx={{ py: 6, color: "text.secondary" }}>No CRQs assigned to you right now.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>No CRQs assigned to you right now.</TableCell></TableRow>
             ) : (
               data.rows.map((r) => (
                 <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => setSelected(r.id)}>
@@ -92,24 +88,6 @@ export function MyCrqsPage() {
                   </TableCell>
                   <TableCell>{r.spoc ?? <Typography variant="caption" sx={{ color: "text.secondary" }}>Unassigned</Typography>}</TableCell>
                   <TableCell>{r.fieldEngineer ?? <Typography variant="caption" sx={{ color: "text.secondary" }}>Unassigned</Typography>}</TableCell>
-                  <TableCell align="right">
-                    <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                      <Tooltip title="View only">
-                        <span>
-                          <Button size="small" variant="outlined" startIcon={<PersonAddAlt1OutlinedIcon />} disabled>
-                            Re-assign SPOC
-                          </Button>
-                        </span>
-                      </Tooltip>
-                      <Tooltip title="View only">
-                        <span>
-                          <Button size="small" variant="outlined" startIcon={<EngineeringOutlinedIcon />} disabled>
-                            Re-assign FE
-                          </Button>
-                        </span>
-                      </Tooltip>
-                    </Stack>
-                  </TableCell>
                 </TableRow>
               ))
             )}

@@ -302,6 +302,9 @@ export interface NewCrqPayload {
 
 export interface SendChatPayload { sessionId: string; text: string; }
 
+export interface AssignSpocPayload { crqId: string; spoc: string; }
+export interface AssignFePayload   { crqId: string; fieldEngineer: string; }
+
 // ── Persona (role switcher) ─────────────────────────────────────────────────
 export interface Persona {
   role: Role;

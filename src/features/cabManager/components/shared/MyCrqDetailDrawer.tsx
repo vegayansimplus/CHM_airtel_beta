@@ -11,8 +11,13 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
+import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
+import { AssignSpocModal } from "../modals/AssignSpocModal";
+import { AssignFeModal } from "../modals/AssignFeModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -20,6 +25,8 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
   const open = !!crqId;
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetCrqByIdQuery(crqId ?? "", { skip: !crqId });
+  const [assignSpocOpen, setAssignSpocOpen] = useState(false);
+  const [assignFeOpen, setAssignFeOpen] = useState(false);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -87,6 +94,31 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
 
             <Divider sx={{ mb: 2 }} />
             <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
+              Assignment
+            </Typography>
+            <Stack spacing={1.5} sx={{ mb: 3 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>SPOC</Typography>
+                  <Typography variant="body2">{data.spoc ?? "Unassigned"}</Typography>
+                </Box>
+                <Button size="small" variant="outlined" startIcon={<PersonAddAlt1OutlinedIcon />} onClick={() => setAssignSpocOpen(true)}>
+                  Re-assign SPOC
+                </Button>
+              </Stack>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Box>
+                  <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>Field Engineer</Typography>
+                  <Typography variant="body2">{data.fieldEngineer ?? "Unassigned"}</Typography>
+                </Box>
+                <Button size="small" variant="outlined" startIcon={<EngineeringOutlinedIcon />} onClick={() => setAssignFeOpen(true)}>
+                  Re-assign FE
+                </Button>
+              </Stack>
+            </Stack>
+
+            <Divider sx={{ mb: 2 }} />
+            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
               Impacted Parties
             </Typography>
             <Typography variant="body2" sx={{ mb: 2 }}>{(data.impactedParties ?? []).join(", ")}</Typography>
@@ -105,6 +137,9 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
           </>
         )}
       </Box>
+
+      <AssignSpocModal open={assignSpocOpen} crqId={crqId} onClose={() => setAssignSpocOpen(false)} />
+      <AssignFeModal open={assignFeOpen} crqId={crqId} onClose={() => setAssignFeOpen(false)} />
     </Drawer>
   );
 }
