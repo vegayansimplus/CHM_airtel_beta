@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   useGetRolesQuery,
-  useGetModulesQuery,
+  useGetModulesForRoleQuery,
+  useLazyGetUnassignedModulesForRoleQuery,
+  useLazyGetModuleByRoleAndCodeQuery,
   useGetPermissionTypesQuery,
   useGetAllRolePermissionsQuery,
   useEnablePermissionMutation,
@@ -12,10 +14,12 @@ import {
   useDisableRoleMutation,
   useCreateNewRoleMutation,
   useRenameRoleMutation,
-  useDisableModuleMutation,
+  useAssignModuleToRoleMutation,
+  useDeleteModuleForRoleMutation,
   useCreateNewModuleMutation,
   useRenameModuleMutation,
   useCreateNewSubModuleMutation,
+  useCreateNewPermissionMutation,
   useRenameSubModuleMutation,
   useDeleteSubModuleMutation,
   type RolePermissionViewModel,
@@ -79,8 +83,16 @@ export function useGlobalPermissionsController() {
 
   // ── Queries ──────────────────────────────────────────────────
   const { data: roles = [], isLoading: rolesLoading } = useGetRolesQuery();
-  const { data: modules = [], isLoading: modulesLoading } = useGetModulesQuery();
+  const { data: modules = [], isLoading: modulesLoading } = useGetModulesForRoleQuery(
+    activeRoleId ?? 0,
+    { skip: !activeRoleId },
+  );
   const { data: permissionCatalog = [], isLoading: catalogLoading } = useGetPermissionTypesQuery();
+
+  const [triggerUnassignedModules, { data: unassignedModules = [], isFetching: unassignedModulesLoading }] =
+    useLazyGetUnassignedModulesForRoleQuery();
+
+  const [triggerModuleByRoleAndCode] = useLazyGetModuleByRoleAndCodeQuery();
 
   const {
     data: rolePermData = [],
@@ -103,10 +115,12 @@ export function useGlobalPermissionsController() {
   const [disableRoleMutation] = useDisableRoleMutation();
   const [createNewRoleMutation] = useCreateNewRoleMutation();
   const [renameRoleMutation] = useRenameRoleMutation();
-  const [disableModuleMutation] = useDisableModuleMutation();
+  const [assignModuleToRoleMutation] = useAssignModuleToRoleMutation();
+  const [deleteModuleForRoleMutation] = useDeleteModuleForRoleMutation();
   const [createNewModuleMutation] = useCreateNewModuleMutation();
   const [renameModuleMutation] = useRenameModuleMutation();
   const [createNewSubModuleMutation] = useCreateNewSubModuleMutation();
+  const [createNewPermissionMutation] = useCreateNewPermissionMutation();
   const [renameSubModuleMutation] = useRenameSubModuleMutation();
   const [deleteSubModuleMutation] = useDeleteSubModuleMutation();
 
@@ -124,6 +138,12 @@ export function useGlobalPermissionsController() {
   useEffect(() => {
     if (roles.length && !activeRoleId) setActiveRoleId(roles[0].roleId);
   }, [roles, activeRoleId]);
+
+  // Modules are role-scoped, so a module id picked under one role is
+  // meaningless under another — drop it and let the effect below re-pick.
+  useEffect(() => {
+    setActiveModuleId(null);
+  }, [activeRoleId]);
 
   useEffect(() => {
     if (modules.length && !activeModuleId) setActiveModuleId(modules[0].moduleId);
@@ -410,33 +430,84 @@ export function useGlobalPermissionsController() {
     [renameRoleMutation],
   );
 
-  // ── Create Module ────────────────────────────────────────────
+  // ── Create Module (brand new catalog entry; not yet assigned to any role
+  //     until it has at least one sub-module — prompt straight into that) ──
   const handleCreateModule = useCallback(
     async (moduleCode: string) => {
+      if (!activeRoleId) return;
       try {
-        await createNewModuleMutation({ moduleCode }).unwrap();
-        setSnackbar({ open: true, message: `Module "${moduleCode}" created.`, severity: "success" });
-        const created = modules.find((m) => m.moduleName === moduleCode);
-        if (created) setActiveModuleId(created.moduleId);
+        await createNewModuleMutation({ moduleCode, roleId: activeRoleId }).unwrap();
+        // The new module is owned by this role alone, so it won't show up via
+        // getModulesForRole (no grants yet) or the unassigned/"fetch" list
+        // (role-owned modules are excluded from that on purpose) — resolve
+        // its id directly instead.
+        const matches = await triggerModuleByRoleAndCode({ roleId: activeRoleId, moduleCode }).unwrap();
+        const created = matches[0];
+        if (created) {
+          setActiveModuleId(created.moduleId);
+          setDrawerState({ kind: "sub-module", contextModuleId: created.moduleId });
+          setSnackbar({
+            open: true,
+            message: `Module "${moduleCode}" created. Add a sub-module to assign it to this role.`,
+            severity: "info",
+          });
+        } else {
+          setSnackbar({ open: true, message: `Module "${moduleCode}" created.`, severity: "success" });
+        }
       } catch (err: unknown) {
         setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to create module."), severity: "error" });
       }
     },
-    [createNewModuleMutation, modules],
+    [activeRoleId, createNewModuleMutation, triggerModuleByRoleAndCode],
   );
 
-  // ── Disable Module ────────────────────────────────────────────
-  const handleDisableModule = useCallback(
+  // ── Delete Module (role-scoped; permanently purged once no role uses it) ─
+  const handleDeleteModule = useCallback(
     async (moduleId: number) => {
+      if (!activeRoleId) return;
       try {
-        await disableModuleMutation({ moduleId }).unwrap();
-        setSnackbar({ open: true, message: "Module disabled.", severity: "success" });
+        const response = await deleteModuleForRoleMutation({ roleId: activeRoleId, moduleId }).unwrap();
+        setSnackbar({ open: true, message: response.message ?? "Module deleted.", severity: "success" });
         setActiveModuleId((prev) => (prev === moduleId ? null : prev));
       } catch (err: unknown) {
-        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to disable module."), severity: "error" });
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to delete module."), severity: "error" });
       }
     },
-    [disableModuleMutation],
+    [activeRoleId, deleteModuleForRoleMutation],
+  );
+
+  // ── Assign an existing catalog module to the active role ("Fetch from DB") ─
+  const handleAssignModuleFromCatalog = useCallback(
+    async (moduleId: number, moduleName: string) => {
+      if (!activeRoleId) return;
+      try {
+        await assignModuleToRoleMutation({ roleId: activeRoleId, moduleId }).unwrap();
+        setSnackbar({ open: true, message: `"${moduleName}" assigned to this role.`, severity: "success" });
+        setActiveModuleId(moduleId);
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to assign module."), severity: "error" });
+      }
+    },
+    [activeRoleId, assignModuleToRoleMutation],
+  );
+
+  // ── Load the "Fetch from Database" module picker on demand ──────────────
+  const loadUnassignedModules = useCallback(() => {
+    if (!activeRoleId) return;
+    triggerUnassignedModules(activeRoleId);
+  }, [activeRoleId, triggerUnassignedModules]);
+
+  // ── Create a brand-new permission in the flat catalog ────────────────────
+  const handleCreateNewPermission = useCallback(
+    async (permissionName: string) => {
+      try {
+        await createNewPermissionMutation({ permissionCode: slug(permissionName), permissionName }).unwrap();
+        setSnackbar({ open: true, message: `Permission "${permissionName}" created.`, severity: "success" });
+      } catch (err: unknown) {
+        setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to create permission."), severity: "error" });
+      }
+    },
+    [createNewPermissionMutation],
   );
 
   // ── Rename Module ───────────────────────────────────────────
@@ -452,17 +523,18 @@ export function useGlobalPermissionsController() {
     [renameModuleMutation],
   );
 
-  // ── Create Sub-module ────────────────────────────────────────
+  // ── Create Sub-module (default permissions go to the active role) ───────
   const handleCreateSubModule = useCallback(
     async (subModuleCode: string, moduleId: number) => {
+      if (!activeRoleId) return;
       try {
-        await createNewSubModuleMutation({ moduleId, subModuleCode }).unwrap();
+        await createNewSubModuleMutation({ moduleId, subModuleCode, roleId: activeRoleId }).unwrap();
         setSnackbar({ open: true, message: `Sub-module "${subModuleCode}" added.`, severity: "success" });
       } catch (err: unknown) {
         setSnackbar({ open: true, message: extractApiErrorMessage(err, "Failed to create sub-module."), severity: "error" });
       }
     },
-    [createNewSubModuleMutation],
+    [activeRoleId, createNewSubModuleMutation],
   );
 
   // ── Rename Sub-module ────────────────────────────────────────
@@ -493,7 +565,11 @@ export function useGlobalPermissionsController() {
 
   // ── Derived ────────────────────────────────────────────────
   const activeRole = roles.find((r) => r.roleId === activeRoleId);
-  const activeModule = modules.find((m) => m.moduleId === activeModuleId);
+  // Falls back to the "not yet assigned" list right after a brand-new module
+  // is created (it has no grants yet, so it isn't in the role-scoped list).
+  const activeModule =
+    modules.find((m) => m.moduleId === activeModuleId) ??
+    unassignedModules.find((m) => m.moduleId === activeModuleId);
   const isPageLoading = rolesLoading || modulesLoading;
   const isPermsLoading = rolePermsLoading || rolePermsFetching;
 
@@ -520,6 +596,7 @@ export function useGlobalPermissionsController() {
     activeRoleId, setActiveRoleId, activeModuleId, setActiveModuleId, activeRole, activeModule,
     // lists
     roles, modules, filteredRoles, filteredModules, rolePermData,
+    unassignedModules, unassignedModulesLoading, loadUnassignedModules,
     // query state
     rolesLoading, modulesLoading, catalogLoading, isPageLoading, isPermsLoading,
     rolePermsIsError, rolePermsError, refetchRolePerms,
@@ -531,10 +608,11 @@ export function useGlobalPermissionsController() {
     handleGrantAll, handleRevokeAll, handleResetSubModule,
     // entity creation
     handleCreateRole, handleDuplicateRole, handleCreateModule, handleCreateSubModule,
+    handleAssignModuleFromCatalog, handleCreateNewPermission,
     // entity renaming
     handleRenameRole, handleRenameModule, handleRenameSubModule,
     // entity disabling / deleting
-    handleDisableRole, handleDisableModule, handleDeleteSubModule,
+    handleDisableRole, handleDeleteModule, handleDeleteSubModule,
     // summaries
     totalGranted, totalRevoked,
     // ui state

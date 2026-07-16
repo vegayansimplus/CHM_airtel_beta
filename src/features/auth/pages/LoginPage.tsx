@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { Box, Typography } from "@mui/material";
 
@@ -11,7 +11,7 @@ import {
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
-import { normalizeRBAC } from "../utils/rbacNormalizer";
+import { normalizeRBAC, normalizeModuleHierarchy } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
@@ -87,6 +87,7 @@ const LoginPage: React.FC = () => {
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useAppDispatch();
   const captcha = useCaptcha(!CAPTCHA_DISABLED);
 
@@ -199,19 +200,26 @@ const LoginPage: React.FC = () => {
       roleCode: userRes.roleCode,
       userId: userRes.userId,
       modules: normalizeRBAC(userRes),
+      moduleHierarchy: normalizeModuleHierarchy(userRes),
       authenticated: true,
     };
 
     dispatch(setUser(user));
     authStorage.setToken(res.accessToken);
-    authStorage.setUser({
+    const storedUser = {
       olmId: user.olmId,
       employeeName: user.employeeName,
       roleCode: user.roleCode,
       userId: user.userId,
       modules: user.modules,
-    });
-    navigate("/home", { replace: true });
+      moduleHierarchy: user.moduleHierarchy,
+    };
+    authStorage.setUser(storedUser);
+    // Writing to localStorage above already notifies any other open tab
+    // via the native `storage` event (see AuthHydrator), so no separate
+    // broadcast is needed here.
+    const from = (location.state as { from?: string } | null)?.from;
+    navigate(from && from !== "/login" ? from : "/home", { replace: true });
   };
 
   const handleForceLogout = async () => {

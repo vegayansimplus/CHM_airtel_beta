@@ -7,10 +7,11 @@ import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 
 import {
-  FilterTiltShift,
   CalendarMonth,
   SupervisedUserCircle,
 } from "@mui/icons-material";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import AssignmentIcon from "@mui/icons-material/Assignment";
 import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
@@ -33,6 +34,8 @@ export interface NavItem {
   text: string;
   icon: ReactNode;
   requiredModule: string | null;
+  /** When set, gates this item on a specific sub-module of requiredModule instead of the whole module. */
+  requiredSubModule?: string;
   showBadge?: boolean;
 
   matchPaths?: string[];
@@ -63,6 +66,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Dashboard",
         icon: <DashboardIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "Dashboard",
         matchPaths: ["/cabmanager/dashboard"],
       },
       {
@@ -70,6 +74,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Cab Planning",
         icon: <EventNoteOutlinedIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "Cab Planning",
         matchPaths: ["/cabmanager/planning"],
       },
       {
@@ -77,6 +82,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Cab Sessions",
         icon: <Groups2Icon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "Cab Sessions",
         matchPaths: ["/cabmanager/sessions"],
       },
       {
@@ -84,6 +90,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "My CRQs",
         icon: <CheckCircleOutlineIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "My CRQs",
         matchPaths: ["/cabmanager/mycrqs"],
       },
       {
@@ -91,6 +98,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "All CRQs",
         icon: <ListAltOutlinedIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "All CRQs",
         matchPaths: ["/cabmanager/allcrqs"],
       },
       {
@@ -98,6 +106,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "CRQ Journey",
         icon: <AltRouteIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "CRQ Journey",
         matchPaths: ["/cabmanager/journey"],
       },
       {
@@ -105,6 +114,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Implementation",
         icon: <PlayArrowOutlinedIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "Implementation",
         matchPaths: ["/cabmanager/implementation"],
       },
       {
@@ -112,6 +122,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Admin Config",
         icon: <SettingsIcon />,
         requiredModule: "Cab Manager",
+        requiredSubModule: "Admin Config",
         matchPaths: ["/cabmanager/admin"],
       },
     ],
@@ -125,7 +136,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
   {
     to: "/scheduler",
     text: "Scheduler",
-    icon: <FilterTiltShift />,
+    icon: <ScheduleIcon />,
     requiredModule: "Scheduler",
     children: [
       {
@@ -140,7 +151,7 @@ const ALL_NAV_ITEMS: NavItem[] = [
       {
         to: "/scheduler/planviewandsetup",
         text: "Plan",
-        icon: <SchemaIcon />,
+        icon: <AssignmentIcon />,
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskconfig", "/scheduler/planviewandsetup"],
       },
@@ -206,19 +217,33 @@ const ALL_NAV_ITEMS: NavItem[] = [
         text: "Network Settings",
         icon: <NotificationsNoneIcon />,
         requiredModule: "Global Settings",
+        requiredSubModule: "Network Settings",
       },
       {
         to: "/global-settings/adminsetting",
         text: "Admin Settings",
         icon: <TuneIcon />,
         requiredModule: "Global Settings",
+        requiredSubModule: "Admin Settings",
       },
     ],
   },
 ];
 
+const isNavItemAllowed = (
+  item: Pick<NavItem, "requiredModule" | "requiredSubModule">,
+  hasModule: (moduleName: string) => boolean,
+  hasSubModule: (moduleName: string, subModuleName: string) => boolean,
+): boolean => {
+  if (item.requiredModule === null) return true;
+  if (item.requiredSubModule) {
+    return hasSubModule(item.requiredModule, item.requiredSubModule);
+  }
+  return hasModule(item.requiredModule);
+};
+
 export const useSidebarNav = (): NavItem[] => {
-  const { hasModule } = usePermission();
+  const { hasModule, hasSubModule } = usePermission();
   const { role: cabRole } = useCabRole();
 
   return useMemo(() => {
@@ -234,8 +259,8 @@ export const useSidebarNav = (): NavItem[] => {
       "/cabmanager/admin": "admin",
     };
 
-    return ALL_NAV_ITEMS.filter(
-      (item) => item.requiredModule === null || hasModule(item.requiredModule),
+    return ALL_NAV_ITEMS.filter((item) =>
+      isNavItemAllowed(item, hasModule, hasSubModule),
     ).map((item) => {
       // For Cab Manager apply role-based child filtering using the active CAB persona
       if (item.to === "/cabmanager") {
@@ -249,11 +274,10 @@ export const useSidebarNav = (): NavItem[] => {
 
       return {
         ...item,
-        children: item.children?.filter(
-          (child) =>
-            child.requiredModule === null || hasModule(child.requiredModule),
+        children: item.children?.filter((child) =>
+          isNavItemAllowed(child, hasModule, hasSubModule),
         ),
       };
     });
-  }, [hasModule, cabRole]);
+  }, [hasModule, hasSubModule, cabRole]);
 };

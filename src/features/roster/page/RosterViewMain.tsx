@@ -16,12 +16,7 @@ import {
 } from "./components/RosterViewSwitch";
 import { RosterDateNavigator } from "./components/RosterDateNavigator";
 
-/**
- * Roster page shell: view toggle (weekly/monthly), date navigation and
- * org-hierarchy filters. The grids themselves are rendered by
- * WeeklyRosterMain / MonthlyRosterMain, which share the same component
- * tree (toolbar, table frame, header cells, legend).
- */
+
 export const RosterViewMain = () => {
   const [view, setView] = useState<RosterViewMode>("weekly");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());

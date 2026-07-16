@@ -9,6 +9,8 @@ export interface PermissionUtils {
   can: (moduleName: string, action: PermAction) => boolean;
   /** Check if the user has any access to a module at all */
   hasModule: (moduleName: string) => boolean;
+  /** Check if the user has any access to a specific sub-module within a module */
+  hasSubModule: (moduleName: string, subModuleName: string) => boolean;
   /** Check multiple actions at once — returns true if user has ALL of them */
   canAll: (moduleName: string, actions: PermAction[]) => boolean;
   /** Check multiple actions — returns true if user has ANY of them */
@@ -24,6 +26,7 @@ export const usePermission = (): PermissionUtils => {
 
   return useMemo(() => {
     const modules = user?.modules ?? {};
+    const moduleHierarchy = user?.moduleHierarchy ?? [];
     const roleCode = user?.roleCode ?? null;
     const isSuperAdmin = roleCode === "SUPER_ADMIN";
 
@@ -38,12 +41,21 @@ export const usePermission = (): PermissionUtils => {
       return !!modules[moduleName] && modules[moduleName].length > 0;
     };
 
+    const hasSubModule = (moduleName: string, subModuleName: string): boolean => {
+      if (isSuperAdmin) return true;
+      const mod = moduleHierarchy.find((m) => m.moduleName === moduleName);
+      const subModule = mod?.subModules.find(
+        (sm) => sm.subModuleName === subModuleName,
+      );
+      return !!subModule && subModule.permissions.length > 0;
+    };
+
     const canAll = (moduleName: string, actions: PermAction[]): boolean =>
       actions.every((a) => can(moduleName, a));
 
     const canAny = (moduleName: string, actions: PermAction[]): boolean =>
       actions.some((a) => can(moduleName, a));
 
-    return { can, hasModule, canAll, canAny, isSuperAdmin, roleCode };
+    return { can, hasModule, hasSubModule, canAll, canAny, isSuperAdmin, roleCode };
   }, [user]);
 };

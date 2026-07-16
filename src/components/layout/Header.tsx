@@ -102,6 +102,8 @@ const Header: React.FC<HeaderProps> = ({
       // Only clear the auth keys, not the whole storage — a blanket
       // localStorage.clear() also wiped unrelated saved preferences
       // (theme, brand colour, sidebar state) on every logout.
+      // Clearing these keys fires the native `storage` event in every
+      // other open tab, which AuthHydrator listens for to log them out too.
       authStorage.clear();
       dispatch(logout());
       navigate("/login", { replace: true });

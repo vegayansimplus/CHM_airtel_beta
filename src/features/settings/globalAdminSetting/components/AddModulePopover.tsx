@@ -1,39 +1,42 @@
 import React, { useState } from "react";
-import { Box, Popover, Typography, alpha } from "@mui/material";
+import { Box, CircularProgress, Popover, Typography, alpha } from "@mui/material";
 import { AddOutlined } from "@mui/icons-material";
 import type { useTabColorTokens } from "../../../../style/theme";
-import type { AddablePermission } from "../types/permissionTypes";
+import type { ModuleModel } from "../api/globalSettingsPermissionApi";
 
-interface AddPermissionPopoverProps {
+interface AddModulePopoverProps {
   anchorEl: HTMLElement | null;
   open: boolean;
-  availablePermissions: AddablePermission[];
+  loading: boolean;
+  availableModules: ModuleModel[];
   onClose: () => void;
-  onSelect: (perm: AddablePermission) => void;
-  /** Create a brand-new permission in the flat catalog (Name only — code is derived). */
-  onCreate: (permissionName: string) => void | Promise<void>;
+  onSelect: (module: ModuleModel) => void;
+  /** Create a brand-new module (owned by the active role) instead of fetching an existing one. */
+  onCreate: (moduleName: string) => void | Promise<void>;
   c: ReturnType<typeof useTabColorTokens>;
 }
 
-export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
+export const AddModulePopover: React.FC<AddModulePopoverProps> = ({
   anchorEl,
   open,
-  availablePermissions,
+  loading,
+  availableModules,
   onClose,
   onSelect,
   onCreate,
   c,
 }) => {
-  const [newPermName, setNewPermName] = useState("");
+  const [newModuleName, setNewModuleName] = useState("");
   const [creating, setCreating] = useState(false);
 
   const handleCreate = async () => {
-    const trimmed = newPermName.trim();
+    const trimmed = newModuleName.trim();
     if (!trimmed || creating) return;
     setCreating(true);
     try {
       await onCreate(trimmed);
-      setNewPermName("");
+      setNewModuleName("");
+      onClose();
     } finally {
       setCreating(false);
     }
@@ -61,21 +64,25 @@ export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
   >
     <Box sx={{ px: 1.5, py: 1, borderBottom: `1px solid ${c.border}` }}>
       <Typography fontSize="0.65rem" fontWeight={700} color={c.textDim} letterSpacing="0.08em" textTransform="uppercase">
-        Add Permission
+        Fetch From Database
       </Typography>
     </Box>
-    <Box sx={{ maxHeight: 260, overflowY: "auto", py: 0.5 }}>
-      {availablePermissions.length === 0 ? (
+    <Box sx={{ maxHeight: 200, overflowY: "auto", py: 0.5 }}>
+      {loading ? (
+        <Box display="flex" justifyContent="center" py={3}>
+          <CircularProgress size={16} sx={{ color: c.accent }} />
+        </Box>
+      ) : availableModules.length === 0 ? (
         <Typography fontSize="0.78rem" color={c.textDim} fontStyle="italic" px={1.5} py={2} textAlign="center">
-          All available permissions are already added.
+          Every catalog module is already assigned to this role.
         </Typography>
       ) : (
-        availablePermissions.map((p) => (
+        availableModules.map((m) => (
           <Box
-            key={p.permissionId}
+            key={m.moduleId}
             component="button"
             onClick={() => {
-              onSelect(p);
+              onSelect(m);
               onClose();
             }}
             sx={{
@@ -95,22 +102,8 @@ export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
           >
             <AddOutlined sx={{ fontSize: 13, color: c.accent }} />
             <Typography fontSize="0.82rem" color={c.textPrimary} fontWeight={500} sx={{ flex: 1 }}>
-              {p.permissionName}
+              {m.moduleName}
             </Typography>
-            <Box
-              component="span"
-              sx={{
-                fontFamily: "'JetBrains Mono', monospace",
-                fontSize: "0.62rem",
-                px: "5px",
-                py: "1px",
-                borderRadius: "3px",
-                bgcolor: c.isDark ? "rgba(255,255,255,0.06)" : "rgba(13,27,42,0.05)",
-                color: c.textSecondary,
-              }}
-            >
-              {p.permissionCode}
-            </Box>
           </Box>
         ))
       )}
@@ -118,10 +111,10 @@ export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
 
     <Box sx={{ px: 1.5, py: 1.25, borderTop: `1px solid ${c.border}`, display: "flex", gap: "6px" }}>
       <input
-        value={newPermName}
-        onChange={(e) => setNewPermName(e.target.value)}
+        value={newModuleName}
+        onChange={(e) => setNewModuleName(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-        placeholder="Create new permission…"
+        placeholder="Create new module…"
         style={{
           flex: 1,
           minWidth: 0,
@@ -138,7 +131,7 @@ export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
       <Box
         component="button"
         onClick={handleCreate}
-        disabled={!newPermName.trim() || creating}
+        disabled={!newModuleName.trim() || creating}
         sx={{
           display: "inline-flex",
           alignItems: "center",
@@ -150,8 +143,8 @@ export const AddPermissionPopover: React.FC<AddPermissionPopoverProps> = ({
           color: c.textSecondary,
           fontSize: "0.75rem",
           fontFamily: "inherit",
-          cursor: newPermName.trim() && !creating ? "pointer" : "not-allowed",
-          opacity: newPermName.trim() && !creating ? 1 : 0.5,
+          cursor: newModuleName.trim() && !creating ? "pointer" : "not-allowed",
+          opacity: newModuleName.trim() && !creating ? 1 : 0.5,
           "&:hover:not(:disabled)": { bgcolor: alpha(c.accent, 0.08), color: c.accent, border: `1px solid ${alpha(c.accent, 0.3)}` },
         }}
       >

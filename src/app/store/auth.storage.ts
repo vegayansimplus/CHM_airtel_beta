@@ -1,34 +1,35 @@
 import type { StoredUser } from "../../features/auth/types/auth.types";
 
 
-const USER_KEY = "auth_user";
-const TOKEN_KEY = "access_token";
+export const USER_KEY = "auth_user";
+export const TOKEN_KEY = "access_token";
 
-// Session-scoped storage: the app is served over plain HTTP in this
-// deployment, so the JWT cannot be protected in transit by a `Secure`
-// cookie flag. Keeping it in sessionStorage (cleared when the browser/tab
-// closes) instead of localStorage limits how long a stolen token or an
-// XSS payload can reuse it, without requiring any backend change.
+// Shared across all tabs/windows of the origin (unlike sessionStorage),
+// so a new tab, a pasted/typed URL, or a bookmark can rehydrate the
+// session immediately instead of racing another tab to hand it over.
+// The token itself is still re-validated against the backend on every
+// bootstrap (see AuthHydrator), so a cleared/expired copy here can't be
+// used to skip that check.
 export const authStorage = {
   setUser(user: StoredUser) {
-    sessionStorage.setItem(USER_KEY, JSON.stringify(user));
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
   },
 
   getUser() {
-    const raw = sessionStorage.getItem(USER_KEY);
+    const raw = localStorage.getItem(USER_KEY);
     return raw ? JSON.parse(raw) : null;
   },
 
   setToken(token: string) {
-    sessionStorage.setItem(TOKEN_KEY, token);
+    localStorage.setItem(TOKEN_KEY, token);
   },
 
   getToken() {
-    return sessionStorage.getItem(TOKEN_KEY);
+    return localStorage.getItem(TOKEN_KEY);
   },
 
   clear() {
-    sessionStorage.removeItem(USER_KEY);
-    sessionStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    localStorage.removeItem(TOKEN_KEY);
   },
 };

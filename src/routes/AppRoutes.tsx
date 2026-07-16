@@ -1,11 +1,5 @@
-import React, { type JSX, useEffect, Suspense } from "react";
-import {
-  Routes,
-  Route,
-  useLocation,
-  useNavigate,
-  Navigate,
-} from "react-router";
+import React, { type JSX, Suspense } from "react";
+import { Routes, Route, Navigate } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
 import CommonContainer from "../components/common/CommonContainer";
 import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
@@ -61,23 +55,6 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   setDynamicHeaderText,
   setDynamicHeaderIcon,
 }) => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  useEffect(() => {
-    console.log("navigate ", navigate);
-    console.log("location ", location);
-    if (location.pathname === "/") {
-      const storedRoute = localStorage.getItem("currentRoute") || "/login";
-      navigate(storedRoute, { replace: true });
-    }
-  }, [navigate, location.pathname]);
-
-  useEffect(() => {
-    if (location.pathname !== "/login") {
-      localStorage.setItem("currentRoute", location.pathname);
-    }
-  }, [location.pathname]);
   return (
     <Suspense fallback={<div>Loading...</div>}>
       <Routes>

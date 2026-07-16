@@ -31,8 +31,19 @@ import {
   useAcknowledgeNotificationMutation,
   useManagerShiftSwapActionMutation,
   useEmployeeShiftSwapActionMutation,
+  useShiftChangeNotificationActionMutation,
+  useRosterLeaveActionMutation,
+  useCabCrqNotificationActionMutation,
   type NotificationItem,
 } from "../../features/inbox/api/inboxApiSlice";
+import { toast } from "react-toastify";
+import { authStorage } from "../../app/store/auth.storage";
+import {
+  getRoleTier,
+  getSubModuleActionMeta,
+} from "../../features/inbox/config/notificationActionConfig";
+import { RejectRemarksDialog } from "../../features/inbox/components/RejectRemarksDialog";
+import { coerceBoolean } from "../../features/inbox/utils/notificationType";
 
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -122,6 +133,14 @@ function parsePayloadBody(raw: string): string {
   }
 }
 
+function parsePayloadModule(raw: string): string {
+  try {
+    return JSON.parse(raw)?.module_code ?? "";
+  } catch {
+    return "";
+  }
+}
+
 // ─── Tab type ─────────────────────────────────────────────────────────────────
 
 type TabType = "All" | "Unread" | "Action";
@@ -145,6 +164,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   const [dismissed, setDismissed] = useState<Record<number, boolean>>({});
   const [expanded, setExpanded] = useState<number | null>(null);
   const [pulse, setPulse] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<NotificationItem | null>(null);
+  const currentUserRole = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
 
   // ── API calls ──────────────────────────────────────────────────────────────
 
@@ -173,8 +194,13 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
 
   // 3) Mutations
   const [acknowledgeNotification] = useAcknowledgeNotificationMutation();
-  const [managerShiftSwapAction] = useManagerShiftSwapActionMutation();
-  const [employeeShiftSwapAction] = useEmployeeShiftSwapActionMutation();
+  const [managerShiftSwapAction, { isLoading: isManagerLoading }] = useManagerShiftSwapActionMutation();
+  const [employeeShiftSwapAction, { isLoading: isEmpLoading }] = useEmployeeShiftSwapActionMutation();
+  const [shiftChangeAction, { isLoading: isShiftChangeLoading }] = useShiftChangeNotificationActionMutation();
+  const [leaveAction, { isLoading: isLeaveLoading }] = useRosterLeaveActionMutation();
+  const [cabCrqAction, { isLoading: isCabLoading }] = useCabCrqNotificationActionMutation();
+  const isActionLoading =
+    isManagerLoading || isEmpLoading || isShiftChangeLoading || isLeaveLoading || isCabLoading;
 
   // Bell count: prefer API count, fall back to list length
   const badgeCount = countData?.notificationCount ?? apiNotifications.length;
@@ -202,8 +228,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   // Tab filter
   const filtered = active.filter((n) => {
     if (tab === "Unread") return !localReadIds[n.notificationId];
-    if (tab === "Action")
-      return n.isActionable === true || n.isActionable === ("true" as any);
+    if (tab === "Action") return coerceBoolean(n.isActionable);
     return true;
   });
 
@@ -245,39 +270,72 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   const toggleExpand = (id: number) =>
     setExpanded((p) => (p === id ? null : id));
 
-  const handleActionableApprove = (n: NotificationItem) => {
-    if (n.subModule === "CAB_APPROVER") {
-      managerShiftSwapAction({
-        notificationId: n.notificationId,
-        status: "APPROVED",
-      });
-    } else {
-      employeeShiftSwapAction({
-        notificationId: n.notificationId,
-        status: "APPROVED",
-      });
+  // Dispatches by the notification's actual subModule + the caller's role
+  // tier - the same registry DetailView/useNotificationAction use, so this
+  // dropdown and the full inbox page never disagree on routing again.
+  const handleActionableApprove = async (n: NotificationItem) => {
+    const meta = getSubModuleActionMeta(n.subModule);
+    if (!meta) {
+      toast.error("This type of notification cannot be processed.");
+      return;
     }
-    dismiss(n.notificationId);
+    try {
+      if (meta.subModule === "SHIFT_SWAP") {
+        const tier = getRoleTier(currentUserRole);
+        if (tier === "MANAGER") {
+          await managerShiftSwapAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+        } else {
+          await employeeShiftSwapAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+        }
+      } else if (meta.subModule === "SHIFT_CHANGE") {
+        await shiftChangeAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+      } else if (meta.subModule === "LEAVE") {
+        await leaveAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+      } else if (meta.subModule === "CAB_APPROVER") {
+        await cabCrqAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+      }
+      toast.success("Approved successfully.");
+      setExpanded(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Failed to approve request");
+    }
   };
 
   const handleActionableReject = (n: NotificationItem) => {
-    if (n.subModule === "CAB_APPROVER") {
-      managerShiftSwapAction({
-        notificationId: n.notificationId,
-        status: "REJECTED",
-      });
-    } else {
-      employeeShiftSwapAction({
-        notificationId: n.notificationId,
-        status: "REJECTED",
-      });
+    setRejectTarget(n);
+  };
+
+  const confirmReject = async (remark: string, reasonText?: string) => {
+    if (!rejectTarget) return;
+    const meta = getSubModuleActionMeta(rejectTarget.subModule);
+    if (!meta) return;
+    try {
+      if (meta.subModule === "SHIFT_SWAP") {
+        const tier = getRoleTier(currentUserRole);
+        if (tier === "MANAGER") {
+          await managerShiftSwapAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: remark }).unwrap();
+        } else {
+          await employeeShiftSwapAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: remark }).unwrap();
+        }
+      } else if (meta.subModule === "SHIFT_CHANGE") {
+        await shiftChangeAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", rejectReason: remark }).unwrap();
+      } else if (meta.subModule === "LEAVE") {
+        await leaveAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", rejectReason: remark }).unwrap();
+      } else if (meta.subModule === "CAB_APPROVER") {
+        await cabCrqAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
+      }
+      toast.success("Rejected successfully.");
+      setExpanded(null);
+      setRejectTarget(null);
+    } catch (err: any) {
+      toast.error(err?.data?.message || err?.message || "Failed to reject request");
     }
-    dismiss(n.notificationId);
   };
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
+    <>
     <ClickAwayListener onClickAway={() => setOpen(false)}>
       <Box sx={{ position: "relative", display: "flex", alignItems: "center" }}>
         {/* ── Bell Button ──────────────────────────────────────────────────── */}
@@ -672,11 +730,11 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                       {items.map((n) => {
                         const isRead = !!localReadIds[n.notificationId];
                         const isExpanded = expanded === n.notificationId;
-                        const s = getModuleStyle(n.module);
+                        const moduleCode = parsePayloadModule(n.payload);
+                        const s = getModuleStyle(moduleCode);
                         const bodyText = parsePayloadBody(n.payload);
-                        const isActionable =
-                          n.isActionable === true ||
-                          n.isActionable === ("true" as any);
+                        const isActionable = coerceBoolean(n.isActionable);
+                        const actionMeta = getSubModuleActionMeta(n.subModule);
 
                         return (
                           <Box key={n.notificationId}>
@@ -733,7 +791,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                   position: "relative",
                                 }}
                               >
-                                <ModuleIcon module={n.module} size={17} />
+                                <ModuleIcon module={moduleCode} size={17} />
                                 {!isRead && (
                                   <Box
                                     sx={{
@@ -919,13 +977,16 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                     flexWrap: "wrap",
                                   }}
                                 >
-                                  {/* Approve / Reject for actionable */}
+                                  {/* Approve / Reject for actionable - only when we know how to
+                                      dispatch this subModule, matching DetailView's fallback */}
                                   {isActionable &&
-                                    n.requestStatus === "PENDING" && (
+                                    n.requestStatus === "PENDING" &&
+                                    actionMeta && (
                                       <>
                                         <Button
                                           size="small"
                                           variant="contained"
+                                          disabled={isActionLoading}
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleActionableApprove(n);
@@ -950,6 +1011,7 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
                                         <Button
                                           size="small"
                                           variant="contained"
+                                          disabled={isActionLoading}
                                           onClick={(e) => {
                                             e.stopPropagation();
                                             handleActionableReject(n);
@@ -1103,5 +1165,17 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
         </Fade>
       </Box>
     </ClickAwayListener>
+
+      {rejectTarget && (
+        <RejectRemarksDialog
+          open={!!rejectTarget}
+          title={`Reject "${rejectTarget.subject ?? "notification"}"`}
+          rejectInput={getSubModuleActionMeta(rejectTarget.subModule)?.rejectInput ?? "TEXT"}
+          isLoading={isActionLoading}
+          onCancel={() => setRejectTarget(null)}
+          onConfirm={confirmReject}
+        />
+      )}
+    </>
   );
 }
