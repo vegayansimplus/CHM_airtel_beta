@@ -16,7 +16,7 @@ import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import { useState } from "react";
 import { useGetMyCrqsQuery } from "../api/cabManagerApiSlice";
-import { CrqDetailDrawer } from "../components/shared/CrqDetailDrawer";
+import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
 import { StageChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 
@@ -117,7 +117,7 @@ export function MyCrqsPage() {
         </Table>
       </Paper>
 
-      <CrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
+      <MyCrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
     </Box>
   );
 }

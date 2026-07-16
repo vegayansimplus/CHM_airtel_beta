@@ -16,7 +16,7 @@ import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
-export function CrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onClose: () => void }) {
+export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onClose: () => void }) {
   const open = !!crqId;
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetCrqByIdQuery(crqId ?? "", { skip: !crqId });

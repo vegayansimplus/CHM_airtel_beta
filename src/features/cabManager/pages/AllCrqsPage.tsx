@@ -21,7 +21,7 @@ import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetAllCrqsQuery } from "../api/cabManagerApiSlice";
-import { CrqDetailDrawer } from "../components/shared/CrqDetailDrawer";
+import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
 import { ImpactChip, SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
@@ -276,7 +276,7 @@ export function AllCrqsPage() {
         <MaterialReactTable table={table} />
       </Paper>
 
-      <CrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
+      <AllCrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
       {/* <NewCrqModal open={openNew} onClose={() => setOpenNew(false)} /> */}
     </Box>
   );
