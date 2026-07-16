@@ -132,7 +132,14 @@ export const CreateEditEntityDrawer: React.FC<CreateEditEntityDrawerProps> = ({
         <input
           autoFocus
           value={code}
-          onChange={(e) => setCode(e.target.value.slice(0, CODE_MAX))}
+          onChange={(e) =>
+            setCode(
+              e.target.value
+                .toUpperCase()
+                .replace(/[^A-Z0-9_]/g, "")
+                .slice(0, CODE_MAX),
+            )
+          }
           onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
           placeholder="e.g. NOC"
           maxLength={CODE_MAX}
