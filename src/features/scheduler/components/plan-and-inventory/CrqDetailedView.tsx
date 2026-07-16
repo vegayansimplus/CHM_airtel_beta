@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { Box, GlobalStyles, Stack, Typography, useTheme } from "@mui/material";
+import { Box, GlobalStyles, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
-import CustomActionButton from "../../../../components/common/CustomActionButton";
 
 import {
   useGetCrqWorkflowOverviewQuery,
@@ -28,12 +28,17 @@ import { CrqWorkflowSidebar } from "../crq-workflow/CrqWorkflowSidebar";
 import { CrqWorkflowHeader } from "../crq-workflow/CrqWorkflowHeader";
 import { StageRail } from "../crq-workflow/StageRail";
 import { StageActionBar, type StageMode } from "../crq-workflow/StageActionBar";
+import { CRQActionToolbar, type CRQAction } from "../crq-workflow/CRQActionToolbar";
 import { StageSummaryGrid } from "../crq-workflow/StageSummaryGrid";
 import { StageHistoryPanel } from "../generic/StageHistoryPanel";
 
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
 import { PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
+import {
+  AttributeUpdateDialog,
+  useOpenAttributeUpdate,
+} from "../../sub-feature/attributeUpdate";
 
 const GlobalStyleBlock = (
   <GlobalStyles
@@ -89,6 +94,7 @@ export const CrqDetailedView: React.FC = () => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
+  const openAttributeUpdate = useOpenAttributeUpdate();
 
   // Overview endpoint: every CRQ of the scope regardless of current stage,
   // each carrying its full per-stage history - so a CRQ stays visible here
@@ -304,6 +310,26 @@ export const CrqDetailedView: React.FC = () => {
     }
   }, [selectedCrq, selectedPlan]);
 
+  const crqActions: CRQAction[] = useMemo(
+    () => [
+      {
+        key: "attribute-update",
+        label: "Attribute Update",
+        icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
+        disabled: !selectedCrq,
+        onClick: () => selectedCrq && openAttributeUpdate(selectedCrq, selectedStageId),
+      },
+      {
+        key: "show-prev-crq-status",
+        label: "Show Prev CRQ Status",
+        icon: <VisibilityIcon sx={{ fontSize: 16 }} />,
+        disabled: !selectedCrq,
+        onClick: handleShowPrevCrqStatus,
+      },
+    ],
+    [selectedCrq, selectedStageId, openAttributeUpdate, handleShowPrevCrqStatus],
+  );
+
   if (isError) {
     return (
       <Box sx={{ p: 3 }}>
@@ -364,14 +390,7 @@ export const CrqDetailedView: React.FC = () => {
               />
 
               <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-                <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.5 }}>
-                  <CustomActionButton
-                    label="Show Prev CRQ Status"
-                    onClick={handleShowPrevCrqStatus}
-                    startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-                    colors={colors}
-                  />
-                </Stack>
+                <CRQActionToolbar actions={crqActions} colors={colors} />
 
                 <StageActionBar
                   stageLabel={WORKFLOW_STAGES[selectedStageIndex].label}
@@ -420,6 +439,8 @@ export const CrqDetailedView: React.FC = () => {
         crqData={prevCrqData}
         colors={colors}
       />
+
+      <AttributeUpdateDialog />
     </Box>
   );
 };

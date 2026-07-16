@@ -1,28 +1,23 @@
 import React, { useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
-// import RateReviewRoundedIcon from "@mui/icons-material/RateReviewRounded";
 
-import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   Box,
   Typography,
   IconButton,
   Tooltip,
   Stack,
-  // Button,
   TextField,
   Chip,
   InputAdornment,
   useTheme,
-  GlobalStyles,
 } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-// import OpenInNewRoundedIcon from "@mui/icons-material/OpenInNewRounded";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -33,52 +28,16 @@ import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
-import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
+import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import {
   useGetCrqReviewQuery,
-  useSubmitCrqReviewDoneMutation,
   useUpdateCrqReviewStatusMutation,
 } from "../../api/crqreviewApiSlice";
-import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
-import {
-  AttributeUpdateDialog,
-  useOpenAttributeUpdate,
-} from "../../sub-feature/attributeUpdate";
 
 interface PlanAndInventoryPageProps {
   domainId?: number;
   subDomainId?: number;
 }
-
-// Global Styles
-const PlanPageGlobalStyles = (
-  <GlobalStyles
-    styles={{
-      "@keyframes fadeSlideIn": {
-        from: { opacity: 0, transform: "translateY(5px)" },
-        to: { opacity: 1, transform: "translateY(0)" },
-      },
-      ".crq-card": { animation: "fadeSlideIn 0.22s ease both" },
-      ".crq-card:nth-of-type(1)": { animationDelay: "0.02s" },
-      ".crq-card:nth-of-type(2)": { animationDelay: "0.05s" },
-      ".crq-card:nth-of-type(3)": { animationDelay: "0.08s" },
-      ".crq-card:nth-of-type(4)": { animationDelay: "0.11s" },
-      ".crq-card:nth-of-type(n+5)": { animationDelay: "0.14s" },
-
-      ".expand-chevron": {
-        transition: "transform 0.22s cubic-bezier(.4,0,.2,1)",
-        display: "flex",
-      },
-      ".expand-chevron.open": { transform: "rotate(90deg)" },
-
-      ".plan-table-scroll::-webkit-scrollbar": { height: "6px", width: "6px" },
-      ".plan-table-scroll::-webkit-scrollbar-track": {
-        background: "transparent",
-      },
-      ".plan-table-scroll::-webkit-scrollbar-thumb": { borderRadius: "99px" },
-    }}
-  />
-);
 
 type Colors = ReturnType<typeof useTabColorTokens>;
 
@@ -194,13 +153,16 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
-  const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
+
+  useEffect(() => {
+    injectGlobalStyles();
+  }, []);
 
   const {
     data: reviewData,
@@ -275,35 +237,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       }
     },
     [updateCrqReviewStatus],
-  );
-
-  /**
-   * "CRQ Review" dialog submit -> POST /crqworkflow/updatecrqreview/done.
-   * On Pass the backend advances the CRQ to Impact Analysis in one
-   * transaction; the CrqReview tag invalidation then refetches this listing
-   * so the CRQ drops off Plan & Inventory with its history preserved.
-   */
-  const handleReviewSubmit = useCallback(
-    async (data: any) => {
-      try {
-        const response = await submitCrqReviewDone({
-          crqNo: data.crqNo,
-          crqId: data.crqId,
-          localStatus: data.status === "Done" ? "DONE" : data.status,
-          remark: data.remark ?? "",
-          olmId: data.olmId,
-        }).unwrap();
-        toast.success(response?.message || `Review for ${data.crqNo} submitted.`);
-        return { success: true };
-      } catch (error) {
-        toast.error(
-          (error as any)?.data?.message ||
-            "Review submission failed. Please try again.",
-        );
-        return { success: false };
-      }
-    },
-    [submitCrqReviewDone],
   );
 
   const toggleFullScreen = () => {
@@ -388,17 +321,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     [colors],
   );
 
-  const [openReviewDialog, setOpenReviewDialog] = useState(false);
-  const openAttributeUpdate = useOpenAttributeUpdate();
-
-  const handleOpenReviewDialog = () => {
-    if (!selectedCrq) return;
-    setOpenReviewDialog(true);
-  };
-
-  const handleCloseReviewDialog = () => {
-    setOpenReviewDialog(false);
-  };
   const renderTopToolbarCustomActions = () => (
     <Stack direction="row" alignItems="center" spacing={1.2} flexWrap="wrap">
       <TextField
@@ -467,22 +389,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
             ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
             : undefined
         }
-        colors={colors}
-      />
-
-      <CustomActionButton
-        label="Review CRQ"
-        disabled={!selectedCrq}
-        onClick={handleOpenReviewDialog}
-        startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-        colors={colors}
-      />
-
-      <CustomActionButton
-        label="Attribute Update"
-        disabled={!selectedCrq}
-        onClick={() => selectedCrq && openAttributeUpdate(selectedCrq, "review")}
-        startIcon={<EditNoteRoundedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
 
@@ -641,18 +547,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       id="planning-container"
       sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
     >
-      {PlanPageGlobalStyles}
       <MaterialReactTable table={table} />
-
-      <PlanInvDialog
-        open={openReviewDialog}
-        onClose={() => setOpenReviewDialog(false)}
-        crq={selectedCrq}
-        colors={colors}
-        onSubmit={handleReviewSubmit}
-      />
-
-      <AttributeUpdateDialog />
     </Box>
   );
 };

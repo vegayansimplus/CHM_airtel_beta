@@ -52,6 +52,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "impactAnalysisStatus",
     olmIdField: "olmidImpactAnalysis",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidImpactAnalysis ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
@@ -70,6 +72,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "mopCreateStatus",
     olmIdField: "olmidMopCreation",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidMopCreation ?? crq?.olmidMopCreate ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
@@ -87,6 +91,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "mopValidateStatus",
     olmIdField: "olmidMopValidation",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidMopValidation ?? crq?.olmidMopValidate ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
@@ -104,6 +110,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "schedulingStatus",
     olmIdField: "olmidSchedulingApproval",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidSchedulingApproval ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
@@ -121,6 +129,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "activityImplementStatus",
     olmIdField: "olmidExecution",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidExecution ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",
@@ -139,6 +149,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     statusField: "crqCloserStatus",
     olmIdField: "olmidClosure",
     buildDonePayload: (values, crq) => ({
+      crqNo: crq?.crqNo ?? "",
+      crqId: crq?.crqId ?? "",
       olmId: crq?.olmidClosure ?? "",
       localStatus: values.status === "Done" ? "DONE" : values.status,
       remark: values.remark ?? "",

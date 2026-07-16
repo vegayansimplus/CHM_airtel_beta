@@ -10,8 +10,8 @@ import {
   Typography,
 } from "@mui/material";
 import type { Colors } from "../../types/colorTypes";
-import CrqInfoCards from "./CrqInfoCards";
-import CrqTaskTable from "./CrqTaskTable";
+import CrqInfoCards from "../generic/CrqInfoCards";
+import CrqTaskTable from "../generic/CrqTaskTable";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 
 import StopRoundedIcon from "@mui/icons-material/StopRounded";

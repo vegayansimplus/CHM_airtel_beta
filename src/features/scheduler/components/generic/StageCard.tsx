@@ -1,11 +1,24 @@
 import React from "react";
-import { Box, Chip, Collapse, IconButton, Stack, Tooltip, Typography, alpha } from "@mui/material";
+import {
+  Box,
+  Button,
+  Checkbox,
+  Chip,
+  Collapse,
+  IconButton,
+  Paper,
+  Stack,
+  Typography,
+} from "@mui/material";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
-import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
+import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import { format } from "date-fns";
 import type { StageConfig } from "../../types/stageWorkflow.types";
 import { StageHistoryPanel } from "./StageHistoryPanel";
+import CrqInfoCards from "./CrqInfoCards";
+import CrqTaskTable from "./CrqTaskTable";
 
 interface StageCardProps {
   crq: any;
@@ -26,11 +39,15 @@ const STATUS_COLOR: Record<string, "default" | "success" | "warning" | "info"> =
   canceled: "default",
 };
 
+const formatDate = (dateString?: string | null) =>
+  dateString ? format(new Date(dateString), "dd-MMM-yyyy HH:mm") : "-";
+
 /**
  * Stage-agnostic replacement for the original `CrqCard`. Reads its status
- * value from `stageConfig.statusField`, so the same component renders
- * Impact Analysis, MOP Create, MOP Validate, Scheduling, Activity
- * Implement and Closer cards without modification.
+ * and OLM ID from `stageConfig`, so the same component renders Impact
+ * Analysis, MOP Create, MOP Validate, Scheduling, Activity Implement and
+ * Closer cards - with the same checkbox/expand/info-cards/task-table
+ * fidelity as the Plan & Inventory reference implementation.
  */
 export const StageCard: React.FC<StageCardProps> = ({
   crq,
@@ -44,125 +61,228 @@ export const StageCard: React.FC<StageCardProps> = ({
 }) => {
   const status = crq?.[stageConfig.statusField] ?? "Not Started";
   const isRunning = status === "In Progress";
-  const currentIdx = crq?.history?.findIndex((h: any) => h.current) ?? -1;
-  const historyCount =
-    crq?.history?.filter(
-      (h: any, i: number) => !h.current && (currentIdx === -1 || i < currentIdx),
-    ).length ?? 0;
+  const isFailed = ["canceled", "cancel", "Canceled", "Failed"].includes(status);
+
+  const infoItems = [
+    { label: "CRQ No", value: crq.crqNo || "-" },
+    { label: "Start Date", value: formatDate(crq.activityPlanStartDate) },
+    { label: "End Date", value: formatDate(crq.activityPlanEndDate) },
+    { label: "CRQ Status", value: crq.crqStatus || "-" },
+    { label: `${stageConfig.label} Status`, value: crq?.[stageConfig.statusField] || "-" },
+    { label: `${stageConfig.label} OLM ID`, value: crq?.[stageConfig.olmIdField] || "-" },
+  ];
 
   return (
-    <Box
+    <Paper
+      elevation={0}
       className="crq-card"
       sx={{
-        mb: 1,
-        borderRadius: colors.radiusL ?? 2,
-        border: `1px solid ${isSelected ? colors.accent : colors.border}`,
+        mb: 1.5,
+        borderRadius: colors.radiusL,
+        border: `1.5px solid ${isSelected ? colors.accentBorder : colors.border}`,
         bgcolor: isSelected ? colors.accentDim : colors.surface,
-        transition: "all 0.15s ease",
-        "&:hover": { borderColor: colors.accentBorder },
         overflow: "hidden",
+        transition:
+          "border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease",
+        "&:hover": {
+          borderColor: isSelected ? colors.accent : colors.borderHover,
+          boxShadow: colors.isDark
+            ? "0 4px 22px rgba(0,0,0,0.32)"
+            : "0 4px 22px rgba(99,102,241,0.10)",
+        },
       }}
     >
-    <Box
-      onClick={onSelect}
-      sx={{
-        display: "flex",
-        alignItems: "center",
-        gap: 1.25,
-        px: 1.75,
-        py: 1.1,
-        cursor: "pointer",
-      }}
-    >
-      <IconButton
-        size="small"
-        onClick={(e) => {
-          e.stopPropagation();
-          onToggle();
+      {/* ── Header Row ── */}
+      <Stack
+        direction="row"
+        alignItems="center"
+        sx={{
+          px: 1.5,
+          py: 1.1,
+          gap: 1.5,
+          borderLeft: `3px solid ${isSelected ? colors.accent : "transparent"}`,
+          transition: "border-color 0.18s ease",
+          overflowX: "auto",
+          "&::-webkit-scrollbar": { display: "none" },
         }}
       >
-        <ChevronRightRoundedIcon
-          className={`expand-chevron ${isOpen ? "open" : ""}`}
-          sx={{ fontSize: 18, color: colors.textSecondary }}
-        />
-      </IconButton>
-
-      <Stack sx={{ flex: 1, minWidth: 0 }}>
-        <Typography
+        <IconButton
+          size="small"
+          onClick={onToggle}
           sx={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            fontFamily: "monospace",
-            color: colors.textPrimary,
+            width: 28,
+            height: 28,
+            borderRadius: "7px",
+            flexShrink: 0,
+            bgcolor: isOpen ? colors.accentDim : colors.trackOff,
+            color: isOpen ? colors.accent : colors.textSecondary,
+            border: `1px solid ${isOpen ? colors.accentBorder : colors.border}`,
+            "&:hover": {
+              bgcolor: colors.accentDim,
+              color: colors.accent,
+              borderColor: colors.accentBorder,
+            },
           }}
-          noWrap
         >
-          {crq.crqNo}
-        </Typography>
-        {crq.description && (
-          <Typography sx={{ fontSize: 11.5, color: colors.textDim }} noWrap>
-            {crq.description}
-          </Typography>
-        )}
-      </Stack>
+          <Box className={`expand-chevron${isOpen ? " open" : ""}`}>
+            <ChevronRightRoundedIcon sx={{ fontSize: 16 }} />
+          </Box>
+        </IconButton>
 
-      <Chip
-        label={status}
-        size="small"
-        color={STATUS_COLOR[status] ?? "default"}
-        sx={{ height: 22, fontSize: 11, fontWeight: 700 }}
-      />
+        <Checkbox
+          checked={isSelected}
+          onChange={onSelect}
+          size="small"
+          sx={{
+            p: 0,
+            flexShrink: 0,
+            color: colors.border,
+            "&.Mui-checked": { color: colors.accent },
+          }}
+        />
 
-      {historyCount > 0 && (
-        <Tooltip title={`${historyCount} completed previous stage${historyCount > 1 ? "s" : ""} — expand to view`}>
+        <Box sx={{ flex: 1, overflowX: "scroll", width: "60vw" }}>
+          <CrqInfoCards colors={colors} data={crq} items={infoItems} />
+        </Box>
+
+        <Chip
+          label={status}
+          size="small"
+          color={STATUS_COLOR[status] ?? "default"}
+          sx={{ height: 22, fontSize: 11, fontWeight: 700, flexShrink: 0 }}
+        />
+
+        {(crq.tasks?.length ?? 0) > 0 && (
           <Chip
-            icon={<HistoryRoundedIcon sx={{ fontSize: "13px !important" }} />}
-            label={historyCount}
+            icon={<AssignmentOutlinedIcon style={{ fontSize: 12 }} />}
+            label={crq.tasks.length}
             size="small"
             sx={{
               height: 22,
               fontSize: 11,
               fontWeight: 700,
-              bgcolor: colors.trackOff,
-              color: colors.textSecondary,
-              border: `1px solid ${colors.border}`,
-              "& .MuiChip-icon": { color: colors.textDim },
+              flexShrink: 0,
+              bgcolor: colors.infoDim,
+              color: colors.info,
+              border: `1px solid ${colors.infoBorder}`,
+              "& .MuiChip-icon": { color: colors.info, ml: 0.7, mr: -0.4 },
+              "& .MuiChip-label": { px: 0.8 },
             }}
           />
-        </Tooltip>
-      )}
+        )}
 
-      <Tooltip title={isRunning ? `Pause ${stageConfig.label}` : `Start ${stageConfig.label}`}>
-        <IconButton
+        <Button
+          variant="outlined"
           size="small"
-          onClick={(e) => {
-            e.stopPropagation();
-            onStartPause();
-          }}
+          disabled={isFailed}
+          startIcon={
+            isRunning ? (
+              <PauseRoundedIcon sx={{ fontSize: "14px !important" }} />
+            ) : (
+              <PlayArrowRoundedIcon sx={{ fontSize: "14px !important" }} />
+            )
+          }
+          onClick={onStartPause}
           sx={{
-            width: 30,
+            flexShrink: 0,
             height: 30,
+            minWidth: 90,
+            fontSize: 11,
+            fontWeight: 700,
+            letterSpacing: 0.3,
             borderRadius: "8px",
-            bgcolor: isRunning ? alpha(colors.warning ?? "#f59e0b", 0.12) : colors.accentDim,
-            color: isRunning ? colors.warning ?? "#f59e0b" : colors.accent,
+            px: 1.5,
+            transition: "all 0.15s ease",
+            ...(isFailed
+              ? {
+                  bgcolor: colors.trackOff,
+                  color: colors.textDim,
+                  borderColor: colors.trackOffBorder,
+                  "&.Mui-disabled": {
+                    bgcolor: colors.trackOff,
+                    color: colors.textDim,
+                    borderColor: colors.trackOffBorder,
+                  },
+                }
+              : isRunning
+                ? {
+                    bgcolor: colors.dangerDim,
+                    color: colors.danger,
+                    borderColor: colors.dangerBorder,
+                    "&:hover": {
+                      bgcolor: colors.danger,
+                      color: "#fff",
+                      borderColor: colors.danger,
+                    },
+                  }
+                : {
+                    bgcolor: colors.successDim,
+                    color: colors.success,
+                    borderColor: colors.successBorder,
+                    "&:hover": {
+                      bgcolor: colors.success,
+                      color: "#fff",
+                      borderColor: colors.success,
+                    },
+                  }),
           }}
         >
-          {isRunning ? (
-            <PauseRoundedIcon sx={{ fontSize: 17 }} />
-          ) : (
-            <PlayArrowRoundedIcon sx={{ fontSize: 17 }} />
-          )}
-        </IconButton>
-      </Tooltip>
-    </Box>
+          {isFailed ? "Disabled" : isRunning ? "Pause" : "Start"}
+        </Button>
+      </Stack>
 
-    {/* Expanded body: read-only previous-stage history (no actions). */}
-    <Collapse in={isOpen} timeout="auto" unmountOnExit>
-      <Box sx={{ px: 2, pb: 1.5, pt: 0.5, borderTop: `1px dashed ${colors.border}` }}>
-        <StageHistoryPanel history={crq?.history} colors={colors} dense />
-      </Box>
-    </Collapse>
-    </Box>
+      {/* ── Tasks + History Collapse ── */}
+      <Collapse in={isOpen} timeout="auto" unmountOnExit>
+        <Box
+          sx={{
+            mx: 2,
+            mb: 1.5,
+            borderRadius: colors.radius,
+            border: `1px solid ${colors.border}`,
+            overflow: "hidden",
+          }}
+        >
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1}
+            sx={{
+              px: 1.5,
+              py: 0.85,
+              bgcolor: colors.infoDim,
+              borderBottom: `1px solid ${colors.infoBorder}`,
+            }}
+          >
+            <AssignmentOutlinedIcon sx={{ fontSize: 13, color: colors.info }} />
+            <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.info }}>
+              Tasks
+            </Typography>
+            <Chip
+              label={crq.tasks?.length ?? 0}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: 10,
+                fontWeight: 800,
+                bgcolor: `${colors.info}22`,
+                color: colors.info,
+                "& .MuiChip-label": { px: 0.7 },
+              }}
+            />
+          </Stack>
+          <Box sx={{ bgcolor: colors.surface }}>
+            <CrqTaskTable tasks={crq.tasks} colors={colors} />
+          </Box>
+        </Box>
+
+        {/* Read-only previous-stage history (no actions). */}
+        {(crq.history?.length ?? 0) > 0 && (
+          <Box sx={{ mx: 2, mb: 1.5 }}>
+            <StageHistoryPanel history={crq.history} colors={colors} dense />
+          </Box>
+        )}
+      </Collapse>
+    </Paper>
   );
 };
 

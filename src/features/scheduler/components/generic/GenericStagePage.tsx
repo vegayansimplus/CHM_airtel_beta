@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Chip,
-  GlobalStyles,
   IconButton,
   InputAdornment,
   Stack,
@@ -19,46 +18,23 @@ import {
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
-// import type { StageKey } from "../../types/stageWorkflow.types";
 import { getStageConfig } from "../../constants/stageConfig";
 import { useGetStageDataQuery } from "../../api/stageWorkflowApiSlice";
-// import { useStageWorkflow } from "../../hooks/useStageWorkflow";
-// import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { StageDetailPanel } from "./StageDetailPanel";
-import { StageReviewDialog } from "./dialog/StageReviewDialog";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
+import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import type { StageKey } from "../../types/stageWorkflow.types";
-import {
-  AttributeUpdateDialog,
-  useOpenAttributeUpdate,
-} from "../../sub-feature/attributeUpdate";
 
 interface GenericStagePageProps {
   stageKey: StageKey;
   domainId?: number;
   subDomainId?: number;
 }
-
-const GlobalStyleBlock = (
-  <GlobalStyles
-    styles={{
-      "@keyframes fadeSlideIn": {
-        from: { opacity: 0, transform: "translateY(5px)" },
-        to: { opacity: 1, transform: "translateY(0)" },
-      },
-      ".crq-card": { animation: "fadeSlideIn 0.22s ease both" },
-      ".expand-chevron": { transition: "transform 0.22s cubic-bezier(.4,0,.2,1)", display: "flex" },
-      ".expand-chevron.open": { transform: "rotate(90deg)" },
-    }}
-  />
-);
 
 /**
  * The single page component rendered by every stage route (Impact
@@ -81,8 +57,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const colors = useTabColorTokens(theme);
   const stageConfig = getStageConfig(stageKey);
 
-  const { toggleStartPause, submitDone } = useStageWorkflow(stageKey);
-  const openAttributeUpdate = useOpenAttributeUpdate();
+  const { toggleStartPause } = useStageWorkflow(stageKey);
 
   const [plansOriginal, setPlansOriginal] = useState<any[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
@@ -90,7 +65,10 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
-  const [openReviewDialog, setOpenReviewDialog] = useState(false);
+
+  useEffect(() => {
+    injectGlobalStyles();
+  }, []);
 
   const {
     data: stageData,
@@ -122,21 +100,6 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         ),
       })),
     );
-  };
-
-  const handleSubmitDone = async (values: Record<string, any>, crq: any) => {
-    const result = await submitDone(values, crq);
-    if (result.success) {
-      setPlansOriginal((prev) =>
-        prev.map((plan) => ({
-          ...plan,
-          crqs: plan.crqs.map((c: any) =>
-            c.crqNo === crq.crqNo ? { ...c, [stageConfig.statusField]: values.status } : c,
-          ),
-        })),
-      );
-    }
-    return result;
   };
 
   const toggleFullScreen = () => {
@@ -228,22 +191,6 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         }
         colors={colors}
       />
-      <CustomActionButton
-        label={`Review ${stageConfig.label}`}
-        disabled={!selectedCrq}
-        onClick={() => selectedCrq && setOpenReviewDialog(true)}
-        startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-        colors={colors}
-      />
-
-      <CustomActionButton
-        label="Attribute Update"
-        disabled={!selectedCrq}
-        onClick={() => selectedCrq && openAttributeUpdate(selectedCrq, stageKey)}
-        startIcon={<EditNoteRoundedIcon sx={{ fontSize: 16 }} />}
-        colors={colors}
-      />
-
       <Stack direction="row" spacing={0.8}>
         <Chip label={`${filteredPlans.length} plans`} size="small" sx={{ height: 24, fontSize: 11, fontWeight: 700 }} />
         <Chip
@@ -310,19 +257,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
 
   return (
     <Box id={`${stageKey}-container`} sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}>
-      {GlobalStyleBlock}
       <MaterialReactTable table={table} />
-
-      <StageReviewDialog
-        open={openReviewDialog}
-        onClose={() => setOpenReviewDialog(false)}
-        crq={selectedCrq}
-        colors={colors}
-        stageConfig={stageConfig}
-        onSubmitDone={handleSubmitDone}
-      />
-
-      <AttributeUpdateDialog />
     </Box>
   );
 };
