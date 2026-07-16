@@ -167,41 +167,57 @@ const StatCard: React.FC<StatCardProps> = ({ label, value, icon, color }) => (
   <Paper
     elevation={0}
     sx={{
-      p: "10px 14px",
+      position: "relative",
+      p: "6px 10px 6px 12px",
       border: "1px solid",
       borderColor: "divider",
-      borderRadius: 2,
+      borderRadius: 1.5,
       display: "flex",
       alignItems: "center",
-      gap: 1.5,
+      gap: 1,
+      overflow: "hidden",
+      minWidth: 0,
     }}
   >
     <Box
       sx={{
-        width: 36,
-        height: 36,
-        borderRadius: 1.5,
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        bgcolor: color,
+      }}
+    />
+    <Box
+      sx={{
+        width: 26,
+        height: 26,
+        borderRadius: 1,
         bgcolor: `${color}18`,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         color,
         flexShrink: 0,
+        "& svg": { fontSize: 15 },
       }}
     >
       {icon}
     </Box>
-    <Box>
+    <Box sx={{ minWidth: 0 }}>
       <Typography
-        sx={{ fontSize: 11, color: "text.secondary", lineHeight: 1.2 }}
+        noWrap
+        sx={{ fontSize: 10.5, color: "text.secondary", lineHeight: 1.2 }}
       >
         {label}
       </Typography>
       <Typography
+        noWrap
         sx={{
-          fontSize: 20,
+          fontSize: 16,
           fontWeight: 700,
-          lineHeight: 1.3,
+          lineHeight: 1.25,
           color: "text.primary",
         }}
       >
@@ -666,6 +682,7 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
     enableSorting: true,
     enablePagination: false,
     enableRowSelection: false,
+    enableStickyHeader: true,
     initialState: { density: "compact" },
     muiTablePaperProps: {
       elevation: 0,
@@ -674,6 +691,18 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
         borderColor: "divider",
         borderRadius: 2,
         overflow: "hidden",
+      },
+    },
+    muiTableContainerProps: {
+      sx: {
+        maxHeight: {
+          xs: "calc(100vh - 400px)",
+          sm: "calc(100vh - 380px)",
+          md: "calc(100vh - 360px)",
+          lg: "calc(100vh - 340px)",
+          xl: "calc(100vh - 320px)",
+        },
+        minHeight: 240,
       },
     },
 
@@ -699,45 +728,7 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
         textAlign: "center",
       },
     },
-    // renderTopToolbarCustomActions: () => (
-    //   <Box
-    //     sx={{
-    //       display: "flex",
-    //       alignItems: "center",
-    //       gap: 1,
-    //       flexWrap: "wrap",
-    //       py: 0.5,
-    //     }}
-    //   >
-    //     {table.getSelectedRowModel().rows.length > 0 && (
-    //       <>
-    //         <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-    //           {table.getSelectedRowModel().rows.length} selected:
-    //         </Typography>
-    //         <Button
-    //           size="small"
-    //           variant="outlined"
-    //           color="success"
-    //           startIcon={<LockOpenOutlinedIcon />}
-    //           onClick={() => handleBulkAction(table, true)}
-    //           sx={{ fontSize: 12, py: 0.25 }}
-    //         >
-    //           Enable all
-    //         </Button>
-    //         <Button
-    //           size="small"
-    //           variant="outlined"
-    //           color="error"
-    //           startIcon={<LockOutlinedIcon />}
-    //           onClick={() => handleBulkAction(table, false)}
-    //           sx={{ fontSize: 12, py: 0.25 }}
-    //         >
-    //           Disable all
-    //         </Button>
-    //       </>
-    //     )}
-    //   </Box>
-    // ),
+    
   });
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -756,9 +747,13 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
           gap: 1,
-          mb: 2,
+          mb: 1.5,
         }}
       >
         <StatCard
