@@ -2,7 +2,11 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { Box, IconButton, Typography } from "@mui/material";
-import { ArrowForward, DarkModeOutlined, LightModeOutlined } from "@mui/icons-material";
+import {
+  ArrowForward,
+  DarkModeOutlined,
+  LightModeOutlined,
+} from "@mui/icons-material";
 
 import {
   useForceLogoutMutation,
@@ -12,7 +16,10 @@ import {
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
-import { normalizeRBAC, normalizeModuleHierarchy } from "../utils/rbacNormalizer";
+import {
+  normalizeRBAC,
+  normalizeModuleHierarchy,
+} from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
@@ -20,6 +27,17 @@ import ConnectionSecurityBadge from "../components/ConnectionSecurityBadge";
 import LoginForm from "../components/LoginForm";
 import AirtelLogo from "../../../assets/svg/AiretLogoSvg.svg";
 import VegayanLogo from "../../../assets/images/logo_vega.png";
+
+import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/500.css";
+import "@fontsource/space-grotesk/600.css";
+import "@fontsource/space-grotesk/700.css";
+import "@fontsource/ibm-plex-sans/300.css";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/500.css";
 
 const CAPTCHA_DISABLED = true;
 const MAX_ATTEMPTS = 5;
@@ -171,28 +189,6 @@ function injectGlobalCss() {
   document.head.appendChild(s);
 }
 
-function injectGlobalFonts() {
-  if (document.querySelector("[data-lp-fonts]")) return;
-  const preconnect1 = document.createElement("link");
-  preconnect1.rel = "preconnect";
-  preconnect1.href = "https://fonts.googleapis.com";
-  preconnect1.dataset.lpFonts = "1";
-
-  const preconnect2 = document.createElement("link");
-  preconnect2.rel = "preconnect";
-  preconnect2.href = "https://fonts.gstatic.com";
-  preconnect2.crossOrigin = "anonymous";
-
-  const stylesheet = document.createElement("link");
-  stylesheet.rel = "stylesheet";
-  stylesheet.href =
-    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";
-
-  document.head.appendChild(preconnect1);
-  document.head.appendChild(preconnect2);
-  document.head.appendChild(stylesheet);
-}
-
 const VegaOrb: React.FC<{ size: number }> = ({ size }) => (
   <Box
     sx={{
@@ -208,7 +204,11 @@ const VegaOrb: React.FC<{ size: number }> = ({ size }) => (
       flexShrink: 0,
     }}
   >
-    <img src={VegayanLogo} alt="Vegayan logo" style={{ width: "62%", height: "62%", objectFit: "contain" }} />
+    <img
+      src={VegayanLogo}
+      alt="Vegayan logo"
+      style={{ width: "62%", height: "62%", objectFit: "contain" }}
+    />
   </Box>
 );
 
@@ -221,7 +221,9 @@ const LoginPage: React.FC = () => {
   const [btnLoading, setBtnLoading] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
   const [theme, setTheme] = useState<"light" | "dark">("light");
-  const [splashStage, setSplashStage] = useState<"shown" | "opening" | "hidden">("shown");
+  const [splashStage, setSplashStage] = useState<
+    "shown" | "opening" | "hidden"
+  >("shown");
 
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
@@ -238,7 +240,6 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     injectGlobalCss();
-    injectGlobalFonts();
   }, []);
 
   useEffect(() => {
@@ -406,7 +407,15 @@ const LoginPage: React.FC = () => {
       }}
     >
       {/* ── PERSISTENT HERO BACKGROUND ─────────────────────────────────── */}
-      <Box sx={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", background: "var(--lp-hero-bg)" }}>
+      <Box
+        sx={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 0,
+          overflow: "hidden",
+          background: "var(--lp-hero-bg)",
+        }}
+      >
         <Box
           sx={{
             position: "absolute",
@@ -417,8 +426,10 @@ const LoginPage: React.FC = () => {
               "linear-gradient(var(--lp-grid) 1px,transparent 1px),linear-gradient(90deg, var(--lp-grid) 1px,transparent 1px)",
             backgroundSize: "44px 44px",
             animation: "lp-gridPan 12s linear infinite",
-            maskImage: "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
-            WebkitMaskImage: "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
+            maskImage:
+              "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
+            WebkitMaskImage:
+              "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
           }}
         />
 
@@ -431,7 +442,8 @@ const LoginPage: React.FC = () => {
             height: 520,
             borderRadius: "50%",
             pointerEvents: "none",
-            background: "radial-gradient(circle at center, rgba(37,99,235,0.5), transparent 66%)",
+            background:
+              "radial-gradient(circle at center, rgba(37,99,235,0.5), transparent 66%)",
             filter: "blur(34px)",
             animation: "lp-blobDrift 16s ease-in-out infinite",
           }}
@@ -445,7 +457,8 @@ const LoginPage: React.FC = () => {
             height: 480,
             borderRadius: "50%",
             pointerEvents: "none",
-            background: "radial-gradient(circle at center, rgba(237,28,36,0.35), transparent 66%)",
+            background:
+              "radial-gradient(circle at center, rgba(237,28,36,0.35), transparent 66%)",
             filter: "blur(36px)",
             animation: "lp-blobDrift2 19s ease-in-out infinite",
           }}
@@ -467,23 +480,92 @@ const LoginPage: React.FC = () => {
             transition: "left .9s cubic-bezier(.4,.2,.2,1)",
           }}
         >
-          <Box sx={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px dashed rgba(120,160,255,0.28)", animation: "lp-ringSpin 80s linear infinite" }}>
-            <Box sx={{ position: "absolute", top: -5, left: "50%", width: 10, height: 10, borderRadius: "50%", bgcolor: "#4f8dff", boxShadow: "0 0 14px #4f8dff", transform: "translateX(-50%)" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              borderRadius: "50%",
+              border: "1px dashed rgba(120,160,255,0.28)",
+              animation: "lp-ringSpin 80s linear infinite",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -5,
+                left: "50%",
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: "#4f8dff",
+                boxShadow: "0 0 14px #4f8dff",
+                transform: "translateX(-50%)",
+              }}
+            />
           </Box>
-          <Box sx={{ position: "absolute", inset: "10%", borderRadius: "50%", border: "1px dashed rgba(237,90,90,0.24)", animation: "lp-ringSpin 55s linear infinite reverse" }}>
-            <Box sx={{ position: "absolute", top: -4, left: "50%", width: 8, height: 8, borderRadius: "50%", bgcolor: "#ED1C24", boxShadow: "0 0 12px #ED1C24", transform: "translateX(-50%)" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: "10%",
+              borderRadius: "50%",
+              border: "1px dashed rgba(237,90,90,0.24)",
+              animation: "lp-ringSpin 55s linear infinite reverse",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -4,
+                left: "50%",
+                width: 8,
+                height: 8,
+                borderRadius: "50%",
+                bgcolor: "#ED1C24",
+                boxShadow: "0 0 12px #ED1C24",
+                transform: "translateX(-50%)",
+              }}
+            />
           </Box>
-          <Box sx={{ position: "absolute", inset: "22%", borderRadius: "50%", border: "1px solid rgba(120,160,255,0.2)", animation: "lp-ringSpin 40s linear infinite" }}>
-            <Box sx={{ position: "absolute", top: -3, left: "50%", width: 6, height: 6, borderRadius: "50%", bgcolor: "#7db8ff", transform: "translateX(-50%)" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: "22%",
+              borderRadius: "50%",
+              border: "1px solid rgba(120,160,255,0.2)",
+              animation: "lp-ringSpin 40s linear infinite",
+            }}
+          >
+            <Box
+              sx={{
+                position: "absolute",
+                top: -3,
+                left: "50%",
+                width: 6,
+                height: 6,
+                borderRadius: "50%",
+                bgcolor: "#7db8ff",
+                transform: "translateX(-50%)",
+              }}
+            />
           </Box>
-          <Box sx={{ position: "absolute", inset: "30%", borderRadius: "50%", background: "radial-gradient(circle, rgba(237,28,36,0.32) 0%, transparent 70%)", filter: "blur(14px)" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: "30%",
+              borderRadius: "50%",
+              background:
+                "radial-gradient(circle, rgba(237,28,36,0.32) 0%, transparent 70%)",
+              filter: "blur(14px)",
+            }}
+          />
           <Box
             sx={{
               position: "absolute",
               inset: "32%",
               borderRadius: "50%",
               bgcolor: "rgba(255,255,255,0.92)",
-              boxShadow: "0 6px 24px rgba(20,30,80,0.28), 0 0 0 3px rgba(255,255,255,0.5), 0 0 40px rgba(237,28,36,0.3)",
+              boxShadow:
+                "0 6px 24px rgba(20,30,80,0.28), 0 0 0 3px rgba(255,255,255,0.5), 0 0 40px rgba(237,28,36,0.3)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -493,7 +575,11 @@ const LoginPage: React.FC = () => {
                   : "lp-coreFloat 6s ease-in-out infinite",
             }}
           >
-            <img src={AirtelLogo} alt="Airtel logo" style={{ width: "78%", height: "78%", objectFit: "contain" }} />
+            <img
+              src={AirtelLogo}
+              alt="Airtel logo"
+              style={{ width: "78%", height: "78%", objectFit: "contain" }}
+            />
           </Box>
         </Box>
       </Box>
@@ -533,7 +619,14 @@ const LoginPage: React.FC = () => {
               color: "var(--lp-text-strong)",
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2.5 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 2.5,
+              }}
+            >
               <Box
                 sx={{
                   display: "inline-flex",
@@ -547,8 +640,25 @@ const LoginPage: React.FC = () => {
                   backdropFilter: "blur(10px)",
                 }}
               >
-                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#34d399", animation: "lp-dotPulse 2s ease-in-out infinite" }} />
-                <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", letterSpacing: ".14em", color: "#059669", fontWeight: 600, whiteSpace: "nowrap" }}>
+                <Box
+                  sx={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    bgcolor: "#34d399",
+                    animation: "lp-dotPulse 2s ease-in-out infinite",
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: "10.5px",
+                    letterSpacing: ".14em",
+                    color: "#059669",
+                    fontWeight: 600,
+                    whiteSpace: "nowrap",
+                  }}
+                >
                   ALL SYSTEMS OPERATIONAL
                 </Typography>
               </Box>
@@ -605,9 +715,32 @@ const LoginPage: React.FC = () => {
                   System
                 </span>
               </Typography>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, mt: 2.75 }}>
-                <Box sx={{ width: 48, height: 3, borderRadius: "2px", background: "linear-gradient(90deg,#2563eb,#ED1C24)", boxShadow: "0 0 14px rgba(37,99,235,0.6)" }} />
-                <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: ".24em", color: "var(--lp-hero-mono)", textTransform: "uppercase" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.75,
+                  mt: 2.75,
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 48,
+                    height: 3,
+                    borderRadius: "2px",
+                    background: "linear-gradient(90deg,#2563eb,#ED1C24)",
+                    boxShadow: "0 0 14px rgba(37,99,235,0.6)",
+                  }}
+                />
+                <Typography
+                  sx={{
+                    fontFamily: "'IBM Plex Mono', monospace",
+                    fontSize: "11px",
+                    letterSpacing: ".24em",
+                    color: "var(--lp-hero-mono)",
+                    textTransform: "uppercase",
+                  }}
+                >
                   by Vegayan
                 </Typography>
               </Box>
@@ -618,142 +751,218 @@ const LoginPage: React.FC = () => {
 
       {/* ── GLASS CARD ───────────────────────────────────────────────────── */}
       {splashStage === "hidden" && (
-      <Box
-        sx={{
-          position: "relative",
-          zIndex: 10,
-          width: "100%",
-          maxWidth: 520,
-          height: "auto",
-          maxHeight: 860,
-          background: "var(--lp-shell-glass)",
-          border: "1px solid var(--lp-shell-border-glass)",
-          borderRadius: "32px",
-          boxShadow: "0 40px 120px -30px rgba(20,30,80,0.4), 0 12px 32px -12px rgba(20,30,80,0.2), inset 0 1px 0 rgba(255,255,255,0.35)",
-          overflow: "hidden",
-          backdropFilter: "blur(22px) saturate(140%)",
-          WebkitBackdropFilter: "blur(22px) saturate(140%)",
-          animation: "lp-riseIn 0.7s cubic-bezier(0.22,1,0.36,1) both",
-        }}
-      >
-        <IconButton
-          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-          aria-label="Toggle theme"
-          disableRipple
+        <Box
           sx={{
-            position: "absolute",
-            top: 18,
-            right: 18,
-            zIndex: 20,
-            display: "flex",
-            alignItems: "center",
-            gap: 0.8,
-            px: 1.4,
-            py: 0.7,
-            borderRadius: "999px",
-            border: "1px solid var(--lp-toggle-border)",
-            background: "var(--lp-toggle-bg)",
-            backdropFilter: "blur(10px)",
-            color: "var(--lp-toggle-icon)",
-            fontFamily: "'IBM Plex Mono', monospace",
-            fontSize: "11px",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            transition: "all .25s ease",
-            "&:hover": { borderColor: "var(--lp-link)", color: "var(--lp-text-strong)", background: "var(--lp-toggle-bg)" },
+            position: "relative",
+            zIndex: 10,
+            width: "100%",
+            maxWidth: 520,
+            height: "auto",
+            maxHeight: 860,
+            background: "var(--lp-shell-glass)",
+            border: "1px solid var(--lp-shell-border-glass)",
+            borderRadius: "32px",
+            boxShadow:
+              "0 40px 120px -30px rgba(20,30,80,0.4), 0 12px 32px -12px rgba(20,30,80,0.2), inset 0 1px 0 rgba(255,255,255,0.35)",
+            overflow: "hidden",
+            backdropFilter: "blur(22px) saturate(140%)",
+            WebkitBackdropFilter: "blur(22px) saturate(140%)",
+            animation: "lp-riseIn 0.7s cubic-bezier(0.22,1,0.36,1) both",
           }}
         >
-          {dark ? <LightModeOutlined sx={{ fontSize: 15 }} /> : <DarkModeOutlined sx={{ fontSize: 15 }} />}
-          <Typography component="span" sx={{ fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}>
-            {dark ? "Light" : "Dark"}
-          </Typography>
-        </IconButton>
+          <IconButton
+            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+            aria-label="Toggle theme"
+            disableRipple
+            sx={{
+              position: "absolute",
+              top: 18,
+              right: 18,
+              zIndex: 20,
+              display: "flex",
+              alignItems: "center",
+              gap: 0.8,
+              px: 1.4,
+              py: 0.7,
+              borderRadius: "999px",
+              border: "1px solid var(--lp-toggle-border)",
+              background: "var(--lp-toggle-bg)",
+              backdropFilter: "blur(10px)",
+              color: "var(--lp-toggle-icon)",
+              fontFamily: "'IBM Plex Mono', monospace",
+              fontSize: "11px",
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              transition: "all .25s ease",
+              "&:hover": {
+                borderColor: "var(--lp-link)",
+                color: "var(--lp-text-strong)",
+                background: "var(--lp-toggle-bg)",
+              },
+            }}
+          >
+            {dark ? (
+              <LightModeOutlined sx={{ fontSize: 15 }} />
+            ) : (
+              <DarkModeOutlined sx={{ fontSize: 15 }} />
+            )}
+            <Typography
+              component="span"
+              sx={{
+                fontFamily: "inherit",
+                fontSize: "inherit",
+                letterSpacing: "inherit",
+              }}
+            >
+              {dark ? "Light" : "Dark"}
+            </Typography>
+          </IconButton>
 
-        <Box sx={{ position: "relative", padding: "36px clamp(28px, 5vw, 56px)", display: "flex", flexDirection: "column", minWidth: 0 }}>
-          {/* Brand header */}
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+          <Box
+            sx={{
+              position: "relative",
+              padding: "36px clamp(28px, 5vw, 56px)",
+              display: "flex",
+              flexDirection: "column",
+              minWidth: 0,
+            }}
+          >
+            {/* Brand header */}
             <Box
               sx={{
-                display: "inline-flex",
+                display: "flex",
                 alignItems: "center",
-                gap: 1.2,
-                pl: 0.7,
-                pr: 1.6,
-                py: 0.6,
-                borderRadius: "999px",
-                border: "1px solid var(--lp-shell-border-glass)",
-                background: "var(--lp-toggle-bg)",
-                backdropFilter: "blur(8px)",
+                justifyContent: "space-between",
+                gap: 1.5,
               }}
             >
-              <VegaOrb size={28} />
-              <Box>
-                <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "13px", color: "var(--lp-text-strong)", letterSpacing: "-0.01em", lineHeight: 1.15 }}>
-                  Airtel CHM
-                </Typography>
-                <Typography sx={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: "9px", color: "var(--lp-text-mut)", letterSpacing: "0.03em" }}>
-                  by Vegayan System
-                </Typography>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1.2,
+                  pl: 0.7,
+                  pr: 1.6,
+                  py: 0.6,
+                  borderRadius: "999px",
+                  border: "1px solid var(--lp-shell-border-glass)",
+                  background: "var(--lp-toggle-bg)",
+                  backdropFilter: "blur(8px)",
+                }}
+              >
+                <VegaOrb size={28} />
+                <Box>
+                  <Typography
+                    sx={{
+                      fontFamily: "'Space Grotesk', sans-serif",
+                      fontWeight: 600,
+                      fontSize: "13px",
+                      color: "var(--lp-text-strong)",
+                      letterSpacing: "-0.01em",
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    Airtel CHM
+                  </Typography>
+                  <Typography
+                    sx={{
+                      fontFamily: "'IBM Plex Sans', sans-serif",
+                      fontSize: "9px",
+                      color: "var(--lp-text-mut)",
+                      letterSpacing: "0.03em",
+                    }}
+                  >
+                    by Vegayan System
+                  </Typography>
+                </Box>
               </Box>
+
+              <ConnectionSecurityBadge />
             </Box>
 
-            <ConnectionSecurityBadge />
-          </Box>
+            {/* Header */}
+            <Box sx={{ mt: 3.5, textAlign: "center" }}>
+              <Typography
+                component="h1"
+                sx={{
+                  m: 0,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(26px, 3.2vw, 34px)",
+                  lineHeight: 1.1,
+                  letterSpacing: "-0.02em",
+                  color: "var(--lp-text-strong)",
+                }}
+              >
+                Welcome back
+              </Typography>
+              <Typography
+                sx={{
+                  mt: 1,
+                  fontSize: "13px",
+                  color: "var(--lp-text-sub)",
+                  lineHeight: 1.5,
+                }}
+              >
+                Sign in to the Change Management Portal
+              </Typography>
+            </Box>
 
-          {/* Header */}
-          <Box sx={{ mt: 3.5, textAlign: "center" }}>
-            <Typography
-              component="h1"
+            {/* Form */}
+            <Box sx={{ mt: 3 }}>
+              <LoginForm
+                olmId={olmId}
+                password={password}
+                onOlmIdChange={handleOlmIdChange}
+                onPasswordChange={handlePasswordChange}
+                onSubmit={handleLogin}
+                loading={loading}
+                error={error}
+                captcha={captcha}
+                isAlreadyLogged={isAlreadyLogged}
+                onForceLogout={handleForceLogout}
+                lockoutSecondsRemaining={lockoutRemaining}
+                shakeKey={shakeKey}
+              />
+            </Box>
+
+            {/* Footer */}
+            <Box
               sx={{
-                m: 0,
-                fontFamily: "'Space Grotesk', sans-serif",
-                fontWeight: 700,
-                fontSize: "clamp(26px, 3.2vw, 34px)",
-                lineHeight: 1.1,
-                letterSpacing: "-0.02em",
-                color: "var(--lp-text-strong)",
+                mt: 2.5,
+                pt: 2,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 1.5,
               }}
             >
-              Welcome back
-            </Typography>
-            <Typography sx={{ mt: 1, fontSize: "13px", color: "var(--lp-text-sub)", lineHeight: 1.5 }}>
-              Sign in to the Change Management Portal
-            </Typography>
-          </Box>
-
-          {/* Form */}
-          <Box sx={{ mt: 3 }}>
-            <LoginForm
-              olmId={olmId}
-              password={password}
-              onOlmIdChange={handleOlmIdChange}
-              onPasswordChange={handlePasswordChange}
-              onSubmit={handleLogin}
-              loading={loading}
-              error={error}
-              captcha={captcha}
-              isAlreadyLogged={isAlreadyLogged}
-              onForceLogout={handleForceLogout}
-              lockoutSecondsRemaining={lockoutRemaining}
-              shakeKey={shakeKey}
-            />
-          </Box>
-
-          {/* Footer */}
-          <Box sx={{ mt: 2.5, pt: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
-            <Typography
-              component="a"
-              href="#"
-              sx={{ fontSize: "12px", color: "var(--lp-link)", textDecoration: "none", fontWeight: 500, "&:hover": { color: "var(--lp-link-hover)" } }}
-            >
-              Need help?
-            </Typography>
-            <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", letterSpacing: "0.06em", color: "var(--lp-footer)" }}>
-              © {new Date().getFullYear()} · Vegayan
-            </Typography>
+              <Typography
+                component="a"
+                href="#"
+                sx={{
+                  fontSize: "12px",
+                  color: "var(--lp-link)",
+                  textDecoration: "none",
+                  fontWeight: 500,
+                  "&:hover": { color: "var(--lp-link-hover)" },
+                }}
+              >
+                Need help?
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "10.5px",
+                  letterSpacing: "0.06em",
+                  color: "var(--lp-footer)",
+                }}
+              >
+                © {new Date().getFullYear()} · Vegayan
+              </Typography>
+            </Box>
           </Box>
         </Box>
-      </Box>
       )}
     </Box>
   );
