@@ -1,0 +1,210 @@
+import React from "react";
+import { Box, Button, Chip, Divider, Stack, Typography } from "@mui/material";
+import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
+import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import CustomActionButton from "../../../../components/common/CustomActionButton";
+import type { Colors } from "../../types/colorTypes";
+
+export type StageMode = "editable" | "view" | "locked";
+
+export interface CRQAction {
+  key: string;
+  label: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}
+
+interface CrqActionPanelProps {
+  stageLabel: string;
+  mode: StageMode;
+  isRunning: boolean;
+  onStartPause: () => void;
+  onReview: () => void;
+  isBusy?: boolean;
+  /** Record-level actions that apply regardless of the selected stage
+   * (Attribute Update, Show Prev CRQ Status, ...). Adding a future action is
+   * a one-line addition to this array - no changes needed here. */
+  recordActions: CRQAction[];
+  colors: Colors;
+}
+
+const MODE_COPY: Record<StageMode, { badge: string; note: string }> = {
+  editable: {
+    badge: "Editable",
+    note: "This is the active stage — its output is editable and actionable here.",
+  },
+  view: {
+    badge: "View only",
+    note: "Completed stage — output is retained for reference and is read-only.",
+  },
+  locked: {
+    badge: "Locked",
+    note: "This stage has not been reached yet for this CRQ.",
+  },
+};
+
+/**
+ * Single sticky Action Panel for the CRQ cockpit - every action available on
+ * this CRQ (record-level + stage-level) lives in one container so there is
+ * one obvious place to look for "what can I do here", instead of the actions
+ * being split across a separate toolbar and a stage banner.
+ */
+export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
+  stageLabel,
+  mode,
+  isRunning,
+  onStartPause,
+  onReview,
+  isBusy,
+  recordActions,
+  colors,
+}) => {
+  const copy = MODE_COPY[mode];
+  const badgePalette =
+    mode === "editable"
+      ? { bg: colors.successDim, fg: colors.success }
+      : { bg: colors.trackOff, fg: colors.textDim };
+
+  return (
+    <Stack
+      direction={{ xs: "column", lg: "row" }}
+      alignItems={{ xs: "stretch", lg: "center" }}
+      justifyContent="space-between"
+      spacing={1.5}
+      sx={{
+        position: "sticky",
+        top: 0,
+        zIndex: 2,
+        bgcolor: colors.surface,
+        border: `1px solid ${colors.border}`,
+        borderRadius: colors.radiusL,
+        px: 2.25,
+        py: 1.4,
+        mb: 2,
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.4} sx={{ minWidth: 0 }}>
+        <Chip
+          label={copy.badge}
+          size="small"
+          sx={{
+            height: 24,
+            fontWeight: 800,
+            fontSize: 11,
+            textTransform: "uppercase",
+            letterSpacing: "0.4px",
+            bgcolor: badgePalette.bg,
+            color: badgePalette.fg,
+            flexShrink: 0,
+          }}
+        />
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 14, fontWeight: 800, color: colors.textPrimary }} noWrap>
+            {stageLabel}
+          </Typography>
+          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.2 }} noWrap>
+            {copy.note}
+          </Typography>
+        </Box>
+      </Stack>
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        flexWrap="wrap"
+        justifyContent={{ xs: "flex-start", lg: "flex-end" }}
+        useFlexGap
+        sx={{ columnGap: 1, rowGap: 1 }}
+      >
+        {recordActions.map((action) => (
+          <CustomActionButton
+            key={action.key}
+            label={action.label}
+            disabled={action.disabled}
+            onClick={action.onClick}
+            startIcon={action.icon}
+            colors={colors}
+          />
+        ))}
+
+        {mode === "editable" && (
+          <>
+            <Divider
+              orientation="vertical"
+              flexItem
+              sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              disabled={isBusy}
+              onClick={onStartPause}
+              startIcon={
+                isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
+              }
+              sx={{
+                height: 34,
+                textTransform: "none",
+                fontWeight: 700,
+                fontSize: 13,
+                borderRadius: "8px",
+                px: 2.2,
+                boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
+                border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
+                background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
+                color: isRunning ? colors.danger : "#fff",
+                "&:hover": {
+                  boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
+                  background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
+                  transform: "translateY(-1px)",
+                },
+              }}
+            >
+              {isRunning ? "Pause" : "Start Stage"}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={onReview}
+              startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+              sx={{
+                height: 34,
+                textTransform: "none",
+                fontWeight: 700,
+                fontSize: 13,
+                borderRadius: "8px",
+                px: 2,
+                borderWidth: "1.5px",
+                borderColor: colors.accentBorder,
+                color: colors.accent,
+                bgcolor: colors.surface,
+                "&:hover": { bgcolor: colors.accentDim, borderColor: colors.accent },
+              }}
+            >
+              Review {stageLabel}
+            </Button>
+          </>
+        )}
+
+        {mode !== "editable" && (
+          <Chip
+            label={mode === "view" ? "✓ Completed" : "Not reached"}
+            size="small"
+            sx={{
+              height: 28,
+              fontWeight: 800,
+              fontSize: 12,
+              px: 0.5,
+              bgcolor: mode === "view" ? colors.successDim : colors.trackOff,
+              color: mode === "view" ? colors.success : colors.textDim,
+            }}
+          />
+        )}
+      </Stack>
+    </Stack>
+  );
+};
+
+export default CrqActionPanel;

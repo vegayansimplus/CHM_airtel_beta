@@ -27,8 +27,7 @@ import {
 import { CrqWorkflowSidebar } from "../crq-workflow/CrqWorkflowSidebar";
 import { CrqWorkflowHeader } from "../crq-workflow/CrqWorkflowHeader";
 import { StageRail } from "../crq-workflow/StageRail";
-import { StageActionBar, type StageMode } from "../crq-workflow/StageActionBar";
-import { CRQActionToolbar, type CRQAction } from "../crq-workflow/CRQActionToolbar";
+import { CrqActionPanel, type StageMode, type CRQAction } from "../crq-workflow/CrqActionPanel";
 import { StageSummaryGrid } from "../crq-workflow/StageSummaryGrid";
 import { StageHistoryPanel } from "../generic/StageHistoryPanel";
 
@@ -390,15 +389,14 @@ export const CrqDetailedView: React.FC = () => {
               />
 
               <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-                <CRQActionToolbar actions={crqActions} colors={colors} />
-
-                <StageActionBar
+                <CrqActionPanel
                   stageLabel={WORKFLOW_STAGES[selectedStageIndex].label}
                   mode={stageMode}
                   isRunning={isRunning}
                   onStartPause={handleStartPause}
                   onReview={() => setReviewDialogOpen(true)}
                   isBusy={activeStageWorkflow?.isTogglingStatus}
+                  recordActions={crqActions}
                   colors={colors}
                 />
 
