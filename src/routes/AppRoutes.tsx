@@ -144,10 +144,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="dashboard" element={<CabDashboardPage />} />
           <Route path="allcrqs" element={<AllCrqsPage />} />
           <Route path="mycrqs" element={<MyCrqsPage />} />
-          <Route
-            path="journey"
-            element={<Navigate to="../allcrqs" replace />}
-          />
+          <Route path="journey" element={<CrqJourneyPage />} />
           <Route path="journey/:id" element={<CrqJourneyPage />} />
           <Route path="planning" element={<CabPlanningPage />} />
           <Route path="sessions" element={<CabSessionsPage />} />

@@ -9,10 +9,17 @@ import {
   Stack,
   Typography,
 } from "@mui/material";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+import ReplayIcon from "@mui/icons-material/Replay";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
+import { ApproveCrqModal } from "../modals/ApproveCrqModal";
+import { RejectCrqModal } from "../modals/RejectCrqModal";
+import { RescheduleCrqModal } from "../modals/RescheduleCrqModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -20,6 +27,9 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
   const open = !!crqId;
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetCrqByIdQuery(crqId ?? "", { skip: !crqId });
+  const [approveOpen, setApproveOpen] = useState(false);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -86,10 +96,34 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
             </Box>
 
             <Divider sx={{ mb: 2 }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
-              Impacted Parties
-            </Typography>
-            <Typography variant="body2" sx={{ mb: 2 }}>{(data.impactedParties ?? []).join(", ")}</Typography>
+            <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
+              <Button
+                fullWidth
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircleOutlineIcon />}
+                onClick={() => setApproveOpen(true)}
+              >
+                Approve
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                color="error"
+                startIcon={<CancelOutlinedIcon />}
+                onClick={() => setRejectOpen(true)}
+              >
+                Reject
+              </Button>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<ReplayIcon />}
+                onClick={() => setScheduleOpen(true)}
+              >
+                Schedule
+              </Button>
+            </Stack>
 
             {data.rejectReason && (
               <>
@@ -105,6 +139,10 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
           </>
         )}
       </Box>
+
+      <ApproveCrqModal open={approveOpen} crqId={crqId} onClose={() => setApproveOpen(false)} />
+      <RejectCrqModal open={rejectOpen} crqId={crqId} onClose={() => setRejectOpen(false)} />
+      <RescheduleCrqModal open={scheduleOpen} crqId={crqId} onClose={() => setScheduleOpen(false)} />
     </Drawer>
   );
 }

@@ -3,20 +3,16 @@ import {
   Box,
   Button,
   Chip,
-  IconButton,
   Paper,
   Skeleton,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
-import SendIcon from "@mui/icons-material/Send";
 import VideoCameraFrontOutlinedIcon from "@mui/icons-material/VideoCameraFrontOutlined";
 import { useEffect, useState } from "react";
 import {
   useGetCabSessionDetailQuery,
   useGetCabSessionsQuery,
-  useSendCabChatMutation,
 } from "../api/cabManagerApiSlice";
 import { StageChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
@@ -31,8 +27,6 @@ export function CabSessionsPage() {
   const sessions = useGetCabSessionsQuery();
   const [activeId, setActiveId] = useState<string | null>(null);
   const detail = useGetCabSessionDetailQuery(activeId ?? "", { skip: !activeId });
-  const [sendChat, { isLoading: sending }] = useSendCabChatMutation();
-  const [draft, setDraft] = useState("");
 
   // Auto-select first session
   useEffect(() => {
@@ -40,14 +34,6 @@ export function CabSessionsPage() {
       setActiveId(sessions.data[0].id);
     }
   }, [activeId, sessions.data]);
-
-  const onSend = async () => {
-    if (!draft.trim() || !activeId) return;
-    try {
-      await sendChat({ sessionId: activeId, text: draft }).unwrap();
-      setDraft("");
-    } catch {/* state surfaces error */}
-  };
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", height: "calc(100vh - 140px)" }}>
@@ -132,65 +118,26 @@ export function CabSessionsPage() {
                 )}
               </Box>
 
-              <Box sx={{ flex: 1, display: "grid", gridTemplateColumns: "1.1fr 1fr", minHeight: 0 }}>
-                {/* Agenda */}
-                <Box sx={{ overflowY: "auto", p: 2.5, borderRight: "1px solid", borderColor: "divider" }}>
-                  <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", mb: 1.5, display: "block" }}>
-                    CRQs under discussion
-                  </Typography>
-                  <Stack spacing={1.5}>
-                    {detail.data.agenda.map((a) => (
-                      <Paper key={a.id} sx={{ p: 1.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
-                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                          <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500, fontSize: 12.5 }}>{a.id}</Typography>
-                          <StageChip stage={a.stage} />
-                        </Stack>
-                        <Typography variant="body2">{a.activity}</Typography>
-                        <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }}>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.domain}</Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.impact}</Typography>
-                          <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{a.hostname}</Typography>
-                        </Stack>
-                      </Paper>
-                    ))}
-                  </Stack>
-                </Box>
-
-                {/* Chat */}
-                <Box sx={{ display: "flex", flexDirection: "column", minHeight: 0 }}>
-                  <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", p: 2, pb: 1 }}>
-                    CAB Chat
-                  </Typography>
-                  <Stack spacing={1.5} sx={{ flex: 1, overflowY: "auto", px: 2 }}>
-                    {detail.data.chat.map((m, i) => (
-                      <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: m.mine ? "flex-end" : "flex-start" }}>
-                        <Box sx={{
-                          maxWidth: "85%", p: 1.25, borderRadius: 1.5,
-                          bgcolor: m.mine ? "primary.main" : "rgba(0,0,0,0.05)",
-                          color:    m.mine ? "primary.contrastText" : "text.primary",
-                        }}>
-                          <Typography variant="body2">{m.text}</Typography>
-                        </Box>
-                        <Typography variant="caption" sx={{ color: "text.secondary", mt: 0.5 }}>
-                          {m.who} · {m.time}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                  <Box sx={{ p: 1.5, borderTop: "1px solid", borderColor: "divider", display: "flex", gap: 1 }}>
-                    <TextField
-                      size="small"
-                      placeholder="Message the CAB…"
-                      value={draft}
-                      onChange={(e) => setDraft(e.target.value)}
-                      onKeyDown={(e) => { if (e.key === "Enter") void onSend(); }}
-                      sx={{ flex: 1 }}
-                    />
-                    <IconButton color="primary" onClick={() => void onSend()} disabled={sending || !draft.trim()}>
-                      <SendIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
+              <Box sx={{ flex: 1, overflowY: "auto", p: 2.5, minHeight: 0 }}>
+                <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", mb: 1.5, display: "block" }}>
+                  CRQs under discussion
+                </Typography>
+                <Stack spacing={1.5}>
+                  {detail.data.agenda.map((a) => (
+                    <Paper key={a.id} sx={{ p: 1.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
+                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                        <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500, fontSize: 12.5 }}>{a.id}</Typography>
+                        <StageChip stage={a.stage} />
+                      </Stack>
+                      <Typography variant="body2">{a.activity}</Typography>
+                      <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }}>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.domain}</Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.impact}</Typography>
+                        <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{a.hostname}</Typography>
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
               </Box>
             </>
           )}

@@ -91,8 +91,6 @@ export interface DashboardData {
   kpis: DashboardKpi[];
   stageBars: StageBar[];
   escalations: Pick<Crq, "id" | "activity" | "sla">[];
-  actionQueueTitle: string;
-  actionQueue: Crq[];
 }
 
 // ── My CRQs ─────────────────────────────────────────────────────────────────
@@ -184,18 +182,9 @@ export interface CabAgendaItem {
   hostname: string;
 }
 
-export interface CabChatMessage {
-  who: string;
-  role: string;
-  text: string;
-  mine: boolean;
-  time: string;
-}
-
 export interface CabSessionDetail {
   session: CabSession;
   agenda: CabAgendaItem[];
-  chat: CabChatMessage[];
 }
 
 // ── Implementation (Field SE) ───────────────────────────────────────────────
@@ -300,10 +289,11 @@ export interface NewCrqPayload {
   impactedParties: string[];
 }
 
-export interface SendChatPayload { sessionId: string; text: string; }
-
 export interface AssignSpocPayload { crqId: string; spoc: string; }
 export interface AssignFePayload   { crqId: string; fieldEngineer: string; }
+export interface ApproveCrqPayload { crqId: string; comment?: string; }
+export interface RejectCrqPayload  { crqId: string; reason: string; comment: string; }
+export interface ReschedulePayload { crqId: string; newDate: string; newWindow: string; reason: string; }
 
 // ── Persona (role switcher) ─────────────────────────────────────────────────
 export interface Persona {

@@ -5,7 +5,6 @@ import type {
   AssignRule,
   AuditEntry,
   CabAgendaItem,
-  CabChatMessage,
   CabPlanDate,
   CabQueueRow,
   CabSession,
@@ -109,12 +108,6 @@ export const MOCK_CAB_SESSIONS: CabSession[] = [
   { id: "CAB-2026-061", stage: "CAB Review", host: "Ravi Nair (NOC)", date: "Jun 14, 2026", time: "16:00 IST", status: "live",      type: "Critical", crqIds: ["CRQ-2026-0418", "CRQ-2026-0424", "CRQ-2026-0412"] },
   { id: "CAB-2026-062", stage: "CAB Review", host: "Ravi Nair (NOC)", date: "Jun 15, 2026", time: "11:00 IST", status: "scheduled", type: "Normal",   crqIds: ["CRQ-2026-0420", "CRQ-2026-0413"] },
   { id: "CAB-2026-060", stage: "CAB Review", host: "Ravi Nair (NOC)", date: "Jun 12, 2026", time: "16:00 IST", status: "completed", type: "Normal",   crqIds: ["CRQ-2026-0415"] },
-];
-
-export const MOCK_CAB_CHAT: CabChatMessage[] = [
-  { who: "Ravi Nair",  role: "CAB Engineer",  text: "Starting with CRQ-2026-0418 — DWDM card swap. Mobility SPOC, please confirm redundancy.", mine: false, time: "16:02" },
-  { who: "Sneha Iyer", role: "SPOC IP Core",  text: "Redundancy is in place on the protect path. No objection from IP Core.",                  mine: true,  time: "16:04" },
-  { who: "Ravi Nair",  role: "CAB Engineer",  text: "Noted. B2B impact acknowledged, proceeding to 0424.",                                       mine: false, time: "16:05" },
 ];
 
 // ── SE rings (Implementation) ───────────────────────────────────────────────
@@ -242,8 +235,6 @@ export const buildDashboard = (crqs: Crq[] = MOCK_CRQS): DashboardData => {
       .filter((c) => c.sla >= 80 && c.status === "pending")
       .slice(0, 4)
       .map((c) => ({ id: c.id, activity: c.activity, sla: c.sla })),
-    actionQueueTitle: "Action queue — CRQs awaiting your move",
-    actionQueue: crqs.filter((c) => c.status === "pending").slice(0, 5),
   };
 };
 

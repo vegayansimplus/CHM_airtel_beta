@@ -19,7 +19,6 @@ import {
   MOCK_ASSIGN_MATRIX,
   MOCK_ASSIGN_RULES,
   MOCK_AUDIT_LOG,
-  MOCK_CAB_CHAT,
   MOCK_CAB_SESSIONS,
   MOCK_CRQS,
   MOCK_ESCALATION_MATRIX,
@@ -30,6 +29,7 @@ import {
 import type {
   AdminAnalytics,
   AdminUser,
+  ApproveCrqPayload,
   AssignFePayload,
   AssignMatrixCell,
   AssignRule,
@@ -50,8 +50,9 @@ import type {
   NewCrqPayload,
   PlanCabPayload,
   ProceedRingPayload,
+  RejectCrqPayload,
   RejectionReason,
-  SendChatPayload,
+  ReschedulePayload,
   ServiceApprovalRule,
 } from "../types/types";
 import { api } from "../../../service/api";
@@ -248,7 +249,6 @@ export const cabPortalApi = api.injectEndpoints({
               return await mockDelay({
                 session,
                 agenda: buildAgenda(session),
-                chat: MOCK_CAB_CHAT,
               });
             throw { status: 404, data: { message: "Session not found" } };
           }
@@ -444,18 +444,59 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [{ type: "CabImpl", id: b.crqId }],
     }),
 
-    sendCabChat: builder.mutation<{ ok: boolean }, SendChatPayload>({
+    approveCrq: builder.mutation<{ ok: boolean }, ApproveCrqPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
-            url: `/cab/sessions/${encodeURIComponent(body.sessionId)}/chat`,
+            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/approve`,
             method: "POST",
             body,
           },
           baseQuery,
           async () => await mockDelay({ ok: true })
         ),
-      invalidatesTags: (_r, _e, b) => [{ type: "CabSession", id: b.sessionId }],
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq", id: b.crqId },
+        { type: "CabCrq", id: "LIST" },
+        { type: "CabCrq", id: "MINE" },
+        "CabDashboard",
+      ],
+    }),
+
+    rejectCrq: builder.mutation<{ ok: boolean }, RejectCrqPayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/reject`,
+            method: "POST",
+            body,
+          },
+          baseQuery,
+          async () => await mockDelay({ ok: true })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq", id: b.crqId },
+        { type: "CabCrq", id: "LIST" },
+        { type: "CabCrq", id: "MINE" },
+        "CabDashboard",
+      ],
+    }),
+
+    rescheduleCrq: builder.mutation<{ ok: boolean }, ReschedulePayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/crqs/${encodeURIComponent(body.crqId)}/reschedule`,
+            method: "POST",
+            body,
+          },
+          baseQuery,
+          async () => await mockDelay({ ok: true })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq", id: b.crqId },
+        { type: "CabCrq", id: "LIST" },
+      ],
     }),
 
     assignSpoc: builder.mutation<{ ok: boolean }, AssignSpocPayload>({
@@ -521,7 +562,9 @@ export const {
   useCreateCrqMutation,
   useProceedRingMutation,
   useBlockRingMutation,
-  useSendCabChatMutation,
+  useApproveCrqMutation,
+  useRejectCrqMutation,
+  useRescheduleCrqMutation,
   useAssignSpocMutation,
   useAssignFeMutation,
 } = cabPortalApi;
