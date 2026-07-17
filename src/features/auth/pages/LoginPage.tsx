@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { toast } from "react-toastify";
-import { Box, Typography } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
+import { ArrowForward, DarkModeOutlined, LightModeOutlined } from "@mui/icons-material";
 
 import {
   useForceLogoutMutation,
@@ -15,52 +16,149 @@ import { normalizeRBAC, normalizeModuleHierarchy } from "../utils/rbacNormalizer
 import type { AuthUser } from "../types/auth.types";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
-import BrandMark from "../components/BrandMark";
-import FeatureHighlights from "../components/FeatureHighlights";
 import ConnectionSecurityBadge from "../components/ConnectionSecurityBadge";
 import LoginForm from "../components/LoginForm";
 import AirtelLogo from "../../../assets/svg/AiretLogoSvg.svg";
 import VegayanLogo from "../../../assets/images/logo_vega.png";
+
 const CAPTCHA_DISABLED = true;
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30_000;
 
 const GLOBAL_CSS = `
-  @keyframes lp-fadeUp  { from{opacity:0;transform:translateY(18px);} to{opacity:1;transform:translateY(0);} }
-  @keyframes lp-slideL  { from{opacity:0;transform:translateX(-28px);} to{opacity:1;transform:translateX(0);} }
-  @keyframes lp-slideR  { from{opacity:0;transform:translateX(28px);}  to{opacity:1;transform:translateX(0);} }
-  @keyframes lp-pulse   { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:.25;transform:scale(.6);} }
-  @keyframes lp-orb1    { from{transform:translate(0,0) scale(1);} to{transform:translate(24px,18px) scale(1.06);} }
-  @keyframes lp-orb2    { from{transform:translate(0,0) scale(1);} to{transform:translate(-18px,22px) scale(0.95);} }
-  @keyframes lp-float   { 0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(-8px) rotate(2deg);} }
-  @keyframes lp-floatB  { 0%,100%{transform:translateY(0) rotate(0deg);} 50%{transform:translateY(6px) rotate(-1.5deg);} }
+  #lp-root {
+    --lp-body-bg: linear-gradient(135deg,#e6edf5 0%,#c4d3e3 100%);
+    --lp-shell-glass: rgba(255,255,255,0.42);
+    --lp-shell-border-glass: rgba(255,255,255,0.55);
+    --lp-shell-border: rgba(20,55,110,0.10);
+    --lp-hero-bg: linear-gradient(135deg,#f8fbff 0%,#eaf1fb 45%,#dce8f7 100%);
+    --lp-grid: rgba(15,90,180,0.10);
+    --lp-hero-heading: #0a1b3d;
+    --lp-hero-heading-sub: #4a6187;
+    --lp-hero-mono: #0e7ec0;
+    --lp-text-strong: #0a1b3d;
+    --lp-text-sub: #4a6187;
+    --lp-text-mut: #7387ab;
+    --lp-input-bg: #ffffff;
+    --lp-input-bg-focus: #ffffff;
+    --lp-input-text: #0f1836;
+    --lp-input-shadow: 0 1px 2px rgba(20,40,90,0.06), inset 0 0 0 1px rgba(20,40,90,0.05);
+    --lp-input-shadow-focus: 0 0 0 4px rgba(37,99,235,0.14), 0 4px 12px rgba(37,99,235,0.15), inset 0 0 0 1px rgba(37,99,235,0.55);
+    --lp-icon-idle: #8494bd;
+    --lp-icon-active: #2563eb;
+    --lp-label: #5a6a92;
+    --lp-placeholder: rgba(30,50,100,0.32);
+    --lp-link: #2563eb;
+    --lp-link-hover: #ED1C24;
+    --lp-footer: #8390b5;
+    --lp-toggle-bg: rgba(255,255,255,0.75);
+    --lp-toggle-border: rgba(20,40,90,0.1);
+    --lp-toggle-icon: #33436e;
+    --lp-dev-bg: rgba(37,99,235,0.07);
+    --lp-dev-border: rgba(37,99,235,0.28);
+    --lp-dev-text: #2563eb;
+    --lp-error-bg: rgba(226,75,74,0.06);
+    --lp-error-border: rgba(226,75,74,0.2);
+    --lp-error-fg: #C0392B;
+    --lp-warning-bg: rgba(234,179,8,0.06);
+    --lp-warning-border: rgba(234,179,8,0.22);
+    --lp-warning-fg: #92400E;
+    --lp-badge-ok-bg: rgba(37,99,235,0.06);
+    --lp-badge-ok-border: rgba(37,99,235,0.14);
+    --lp-badge-ok-fg: #185FA5;
+    --lp-badge-warn-bg: rgba(234,179,8,0.08);
+    --lp-badge-warn-border: rgba(234,179,8,0.25);
+    --lp-badge-warn-fg: #B45309;
+  }
+  #lp-root[data-theme="dark"] {
+    --lp-body-bg: linear-gradient(135deg,#04050e 0%,#0a0f24 100%);
+    --lp-shell-glass: rgba(12,18,44,0.42);
+    --lp-shell-border-glass: rgba(120,150,255,0.18);
+    --lp-hero-bg: radial-gradient(130% 130% at 20% 10%, #101a44 0%, #080d24 45%, #04050e 100%);
+    --lp-grid: rgba(120,150,255,0.09);
+    --lp-hero-heading: #ffffff;
+    --lp-hero-heading-sub: rgba(255,255,255,0.55);
+    --lp-hero-mono: #a9d1ff;
+    --lp-shell-border: rgba(255,255,255,0.06);
+    --lp-text-strong: #f4f6ff;
+    --lp-text-sub: #9fb0e0;
+    --lp-text-mut: #6b7aa0;
+    --lp-input-bg: rgba(255,255,255,0.04);
+    --lp-input-bg-focus: rgba(255,255,255,0.06);
+    --lp-input-text: #eef2ff;
+    --lp-input-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+    --lp-input-shadow-focus: 0 0 0 4px rgba(37,99,235,0.22), inset 0 0 0 1px rgba(96,150,255,0.7);
+    --lp-icon-idle: #66739e;
+    --lp-icon-active: #4f8dff;
+    --lp-label: #8f9cc6;
+    --lp-placeholder: rgba(200,210,240,0.3);
+    --lp-link: #7db8ff;
+    --lp-link-hover: #ffb0b4;
+    --lp-footer: #5a6690;
+    --lp-toggle-bg: rgba(255,255,255,0.06);
+    --lp-toggle-border: rgba(255,255,255,0.12);
+    --lp-toggle-icon: #cdd6f4;
+    --lp-dev-bg: rgba(37,99,235,0.1);
+    --lp-dev-border: rgba(120,160,255,0.35);
+    --lp-dev-text: #9dc0ff;
+    --lp-error-bg: rgba(248,113,113,0.1);
+    --lp-error-border: rgba(248,113,113,0.28);
+    --lp-error-fg: #FCA5A5;
+    --lp-warning-bg: rgba(234,179,8,0.1);
+    --lp-warning-border: rgba(234,179,8,0.28);
+    --lp-warning-fg: #FBBF24;
+    --lp-badge-ok-bg: rgba(96,165,250,0.1);
+    --lp-badge-ok-border: rgba(96,165,250,0.25);
+    --lp-badge-ok-fg: #93C5FD;
+    --lp-badge-warn-bg: rgba(234,179,8,0.1);
+    --lp-badge-warn-border: rgba(234,179,8,0.3);
+    --lp-badge-warn-fg: #FBBF24;
+  }
+
+  @keyframes lp-blobDrift  { 0%,100% { transform: translate(0,0) scale(1); }   50% { transform: translate(60px,-40px) scale(1.15); } }
+  @keyframes lp-blobDrift2 { 0%,100% { transform: translate(0,0) scale(1.1); } 50% { transform: translate(-50px,50px) scale(0.9); } }
+  @keyframes lp-gridPan { to { background-position: 44px 44px; } }
+  @keyframes lp-ringSpin { to { transform: rotate(360deg); } }
+  @keyframes lp-coreFloat { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-6px) scale(1.03); } }
+  @keyframes lp-riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
   @keyframes lp-shake {
     10%, 90% { transform: translateX(-1px); }
     20%, 80% { transform: translateX(2px); }
     30%, 50%, 70% { transform: translateX(-4px); }
     40%, 60% { transform: translateX(4px); }
   }
-
-  .lp-field .MuiOutlinedInput-root {
-    background: #F8FAFD; border-radius: 9px !important;
-    color: #0C1B2E; font-size: 13.5px;
-    font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
-    transition: box-shadow 0.2s, background 0.2s;
+  @keyframes lp-splashRush {
+    0%   { opacity:1; transform:scale(1); filter:blur(0px); }
+    100% { opacity:0; transform:scale(1.15); filter:blur(6px); }
   }
-  .lp-field .MuiOutlinedInput-root:hover { background: #EEF4FC; }
-  .lp-field .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline { border-color: rgba(24,95,165,0.4) !important; }
-  .lp-field .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #185FA5 !important; border-width: 1.5px !important; }
-  .lp-field .MuiOutlinedInput-root.Mui-focused { background: #EEF4FC; box-shadow: 0 0 0 3px rgba(24,95,165,0.1); }
-  .lp-field .MuiOutlinedInput-notchedOutline { border-color: rgba(12,27,46,0.12) !important; }
-  .lp-field .MuiInputLabel-root            { color: rgba(12,27,46,0.45); font-size: 13px; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; }
-  .lp-field .MuiInputLabel-root.Mui-focused { color: #185FA5; }
-  .lp-field .MuiInputBase-input            { color: #0C1B2E; font-family: 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif; }
-  .lp-field .MuiInputBase-input::placeholder { color: rgba(12,27,46,0.3); }
-  .lp-field .MuiSvgIcon-root              { color: rgba(12,27,46,0.3) !important; }
-  .lp-field .MuiInputAdornment-root .MuiIconButton-root { color: rgba(12,27,46,0.4); }
-  .lp-submit:hover { transform: translateY(-1px) !important; box-shadow: 0 8px 24px rgba(24,95,165,0.3) !important; }
-  .lp-submit:active { transform: translateY(0px) !important; }
-  .lp-force:hover  { transform: translateY(-1px) !important; box-shadow: 0 8px 24px rgba(192,57,43,0.3) !important; }
+  @keyframes lp-coreBurst {
+    0%   { transform: scale(1); }
+    45%  { transform: scale(0.86); }
+    100% { transform: scale(1.6); }
+  }
+  @keyframes lp-dotPulse {
+    0%,100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(52,211,153,0.5); }
+    50%     { transform: scale(1.25); opacity: 0.85; box-shadow: 0 0 0 6px rgba(52,211,153,0); }
+  }
+  @keyframes lp-hintDown { 0%,100% { transform: translateY(0); opacity:.55; } 50% { transform: translateY(3px); opacity:1; } }
+
+  #lp-root .lp-field .MuiOutlinedInput-root {
+    background: var(--lp-input-bg); border-radius: 999px !important;
+    color: var(--lp-input-text); font-size: 14.5px;
+    font-family: 'IBM Plex Sans', sans-serif;
+    box-shadow: var(--lp-input-shadow);
+    transition: box-shadow .22s ease, background .22s ease;
+  }
+  #lp-root .lp-field .MuiOutlinedInput-root .MuiOutlinedInput-notchedOutline { border: none; }
+  #lp-root .lp-field .MuiOutlinedInput-root.Mui-focused { background: var(--lp-input-bg-focus); box-shadow: var(--lp-input-shadow-focus); }
+  #lp-root .lp-field .MuiOutlinedInput-input { padding-top: 14px; padding-bottom: 14px; }
+  #lp-root .lp-field .MuiInputBase-input::placeholder { color: var(--lp-placeholder); opacity: 1; }
+  #lp-root .lp-field .MuiSvgIcon-root { color: var(--lp-icon-idle) !important; transition: color .2s; }
+  #lp-root .lp-field .MuiOutlinedInput-root.Mui-focused .MuiSvgIcon-root { color: var(--lp-icon-active) !important; }
+  #lp-root .lp-field .MuiInputAdornment-root .MuiIconButton-root { color: var(--lp-icon-idle); }
+  #lp-root input:-webkit-autofill { -webkit-text-fill-color: var(--lp-input-text); -webkit-box-shadow: 0 0 0 40px var(--lp-input-bg) inset; caret-color: var(--lp-input-text); }
+
+  .lp-submit:hover, .lp-force:hover { filter: brightness(1.02); }
 
   html, body, #root { height: 100%; overflow: hidden; }
 `;
@@ -73,6 +171,47 @@ function injectGlobalCss() {
   document.head.appendChild(s);
 }
 
+function injectGlobalFonts() {
+  if (document.querySelector("[data-lp-fonts]")) return;
+  const preconnect1 = document.createElement("link");
+  preconnect1.rel = "preconnect";
+  preconnect1.href = "https://fonts.googleapis.com";
+  preconnect1.dataset.lpFonts = "1";
+
+  const preconnect2 = document.createElement("link");
+  preconnect2.rel = "preconnect";
+  preconnect2.href = "https://fonts.gstatic.com";
+  preconnect2.crossOrigin = "anonymous";
+
+  const stylesheet = document.createElement("link");
+  stylesheet.rel = "stylesheet";
+  stylesheet.href =
+    "https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap";
+
+  document.head.appendChild(preconnect1);
+  document.head.appendChild(preconnect2);
+  document.head.appendChild(stylesheet);
+}
+
+const VegaOrb: React.FC<{ size: number }> = ({ size }) => (
+  <Box
+    sx={{
+      width: size,
+      height: size,
+      borderRadius: "50%",
+      bgcolor: "#fff",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      overflow: "hidden",
+      boxShadow: "0 2px 6px rgba(20,30,80,0.12), 0 0 0 1px rgba(20,30,80,0.06)",
+      flexShrink: 0,
+    }}
+  >
+    <img src={VegayanLogo} alt="Vegayan logo" style={{ width: "62%", height: "62%", objectFit: "contain" }} />
+  </Box>
+);
+
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 const LoginPage: React.FC = () => {
   const [olmId, setOlmId] = useState("");
@@ -81,6 +220,8 @@ const LoginPage: React.FC = () => {
   const [isAlreadyLogged, setIsAlreadyLogged] = useState(false);
   const [btnLoading, setBtnLoading] = useState(false);
   const [shakeKey, setShakeKey] = useState(0);
+  const [theme, setTheme] = useState<"light" | "dark">("light");
+  const [splashStage, setSplashStage] = useState<"shown" | "opening" | "hidden">("shown");
 
   const [failedAttempts, setFailedAttempts] = useState(0);
   const [lockedUntil, setLockedUntil] = useState<number | null>(null);
@@ -97,6 +238,7 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     injectGlobalCss();
+    injectGlobalFonts();
   }, []);
 
   useEffect(() => {
@@ -119,6 +261,12 @@ const LoginPage: React.FC = () => {
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [lockedUntil]);
+
+  const openLogin = () => {
+    if (splashStage !== "shown") return;
+    setSplashStage("opening");
+    setTimeout(() => setSplashStage("hidden"), 1400);
+  };
 
   const registerFailedAttempt = () => {
     setShakeKey((k) => k + 1);
@@ -236,573 +384,377 @@ const LoginPage: React.FC = () => {
   };
 
   const loading = isLoading || btnLoading;
+  const dark = theme === "dark";
 
   return (
     <Box
+      id="lp-root"
+      data-theme={theme}
       sx={{
-        position: "relative",
+        position: "fixed",
+        inset: 0,
         width: "100vw",
         height: "100vh",
         overflow: "hidden",
-        background: "#F0F4FA",
+        fontFamily: "'IBM Plex Sans', sans-serif",
+        background: "var(--lp-body-bg)",
         display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "clamp(16px, 2.5vw, 40px)",
+        transition: "background .4s ease",
       }}
     >
-      {/* ── STATIC BACKGROUND LAYERS ─────────────────────────────────── */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 0,
-          background: `
-          radial-gradient(ellipse 60% 60% at 8% 50%, rgba(24,95,165,0.07) 0%, transparent 70%),
-          radial-gradient(ellipse 45% 50% at 92% 15%, rgba(55,138,221,0.06) 0%, transparent 65%),
-          radial-gradient(ellipse 35% 40% at 55% 95%, rgba(24,95,165,0.05) 0%, transparent 60%),
-          linear-gradient(150deg, #EEF3FA 0%, #F4F7FC 50%, #EBF1F8 100%)
-        `,
-        }}
-      />
+      {/* ── PERSISTENT HERO BACKGROUND ─────────────────────────────────── */}
+      <Box sx={{ position: "absolute", inset: 0, zIndex: 0, overflow: "hidden", background: "var(--lp-hero-bg)" }}>
+        <Box
+          sx={{
+            position: "absolute",
+            inset: 0,
+            pointerEvents: "none",
+            opacity: 0.55,
+            backgroundImage:
+              "linear-gradient(var(--lp-grid) 1px,transparent 1px),linear-gradient(90deg, var(--lp-grid) 1px,transparent 1px)",
+            backgroundSize: "44px 44px",
+            animation: "lp-gridPan 12s linear infinite",
+            maskImage: "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
+            WebkitMaskImage: "radial-gradient(120% 120% at 55% 55%, #000 15%, transparent 78%)",
+          }}
+        />
 
-      {/* Dot grid */}
-      <Box
-        sx={{
-          position: "absolute",
-          inset: 0,
-          zIndex: 0,
-          backgroundImage: `radial-gradient(rgba(24,95,165,0.08) 1px, transparent 1px)`,
-          backgroundSize: "28px 28px",
-          maskImage:
-            "radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 100%)",
-          WebkitMaskImage:
-            "radial-gradient(ellipse 85% 85% at 50% 50%, black 30%, transparent 100%)",
-        }}
-      />
+        <Box
+          sx={{
+            position: "absolute",
+            top: -140,
+            left: -80,
+            width: 520,
+            height: 520,
+            borderRadius: "50%",
+            pointerEvents: "none",
+            background: "radial-gradient(circle at center, rgba(37,99,235,0.5), transparent 66%)",
+            filter: "blur(34px)",
+            animation: "lp-blobDrift 16s ease-in-out infinite",
+          }}
+        />
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: -180,
+            right: -60,
+            width: 480,
+            height: 480,
+            borderRadius: "50%",
+            pointerEvents: "none",
+            background: "radial-gradient(circle at center, rgba(237,28,36,0.35), transparent 66%)",
+            filter: "blur(36px)",
+            animation: "lp-blobDrift2 19s ease-in-out infinite",
+          }}
+        />
 
-      {/* Ambient orbs */}
-      <Box
-        sx={{
-          position: "absolute",
-          width: 500,
-          height: 500,
-          borderRadius: "50%",
-          top: -100,
-          left: -150,
-          zIndex: 0,
-          pointerEvents: "none",
-          filter: "blur(90px)",
-          opacity: 0.45,
-          background:
-            "radial-gradient(circle, rgba(24,95,165,0.14), transparent 70%)",
-          animation: "lp-orb1 18s ease-in-out infinite alternate",
-        }}
-      />
-      <Box
-        sx={{
-          position: "absolute",
-          width: 300,
-          height: 300,
-          borderRadius: "50%",
-          bottom: -30,
-          right: "28%",
-          zIndex: 0,
-          pointerEvents: "none",
-          filter: "blur(70px)",
-          opacity: 0.35,
-          background:
-            "radial-gradient(circle, rgba(55,138,221,0.16), transparent 70%)",
-          animation: "lp-orb2 22s ease-in-out infinite alternate",
-        }}
-      />
+        <AnimatedBackground dark={dark} />
 
-      {/* ── INTERACTIVE CANVAS ANIMATION ─────────────────────────────── */}
-      <AnimatedBackground />
-
-      {/* ── FLOATING DECORATIVE SHAPES ──────────────────────────────── */}
-      <Box
-        sx={{
-          position: "absolute",
-          top: "8%",
-          left: "4%",
-          zIndex: 0,
-          pointerEvents: "none",
-          animation: "lp-float 8s ease-in-out infinite",
-        }}
-      >
-        <svg width="80" height="80" viewBox="0 0 80 80" fill="none">
-          <circle
-            cx="40"
-            cy="40"
-            r="36"
-            stroke="rgba(24,95,165,0.12)"
-            strokeWidth="2"
-            strokeDasharray="8 6"
-          />
-          <circle
-            cx="40"
-            cy="40"
-            r="26"
-            stroke="rgba(55,138,221,0.08)"
-            strokeWidth="1.5"
-          />
-        </svg>
+        {/* Central orbit visual */}
+        <Box
+          sx={{
+            position: "absolute",
+            top: "50%",
+            left: splashStage === "hidden" ? "22%" : "50%",
+            transform: "translate(-50%,-50%)",
+            width: "min(30%, 340px)",
+            aspectRatio: "1/1",
+            pointerEvents: "none",
+            display: { xs: "none", sm: "block" },
+            transition: "left .9s cubic-bezier(.4,.2,.2,1)",
+          }}
+        >
+          <Box sx={{ position: "absolute", inset: 0, borderRadius: "50%", border: "1px dashed rgba(120,160,255,0.28)", animation: "lp-ringSpin 80s linear infinite" }}>
+            <Box sx={{ position: "absolute", top: -5, left: "50%", width: 10, height: 10, borderRadius: "50%", bgcolor: "#4f8dff", boxShadow: "0 0 14px #4f8dff", transform: "translateX(-50%)" }} />
+          </Box>
+          <Box sx={{ position: "absolute", inset: "10%", borderRadius: "50%", border: "1px dashed rgba(237,90,90,0.24)", animation: "lp-ringSpin 55s linear infinite reverse" }}>
+            <Box sx={{ position: "absolute", top: -4, left: "50%", width: 8, height: 8, borderRadius: "50%", bgcolor: "#ED1C24", boxShadow: "0 0 12px #ED1C24", transform: "translateX(-50%)" }} />
+          </Box>
+          <Box sx={{ position: "absolute", inset: "22%", borderRadius: "50%", border: "1px solid rgba(120,160,255,0.2)", animation: "lp-ringSpin 40s linear infinite" }}>
+            <Box sx={{ position: "absolute", top: -3, left: "50%", width: 6, height: 6, borderRadius: "50%", bgcolor: "#7db8ff", transform: "translateX(-50%)" }} />
+          </Box>
+          <Box sx={{ position: "absolute", inset: "30%", borderRadius: "50%", background: "radial-gradient(circle, rgba(237,28,36,0.32) 0%, transparent 70%)", filter: "blur(14px)" }} />
+          <Box
+            sx={{
+              position: "absolute",
+              inset: "32%",
+              borderRadius: "50%",
+              bgcolor: "rgba(255,255,255,0.92)",
+              boxShadow: "0 6px 24px rgba(20,30,80,0.28), 0 0 0 3px rgba(255,255,255,0.5), 0 0 40px rgba(237,28,36,0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              animation:
+                splashStage === "opening"
+                  ? "lp-coreBurst .7s cubic-bezier(.4,0,.4,1.4) forwards"
+                  : "lp-coreFloat 6s ease-in-out infinite",
+            }}
+          >
+            <img src={AirtelLogo} alt="Airtel logo" style={{ width: "78%", height: "78%", objectFit: "contain" }} />
+          </Box>
+        </Box>
       </Box>
 
-      <Box
-        sx={{
-          position: "absolute",
-          bottom: "12%",
-          left: "7%",
-          zIndex: 0,
-          pointerEvents: "none",
-          animation: "lp-floatB 10s ease-in-out infinite",
-        }}
-      >
-        <svg width="60" height="60" viewBox="0 0 60 60" fill="none">
-          <polygon
-            points="30,4 56,18 56,42 30,56 4,42 4,18"
-            stroke="rgba(24,95,165,0.1)"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <polygon
-            points="30,14 46,23 46,37 30,46 14,37 14,23"
-            stroke="rgba(24,95,165,0.06)"
-            strokeWidth="1"
-            fill="none"
-          />
-        </svg>
-      </Box>
+      {/* ── HERO SPLASH OVERLAY ──────────────────────────────────────────── */}
+      {splashStage !== "hidden" && (
+        <Box
+          component="button"
+          type="button"
+          onClick={openLogin}
+          aria-label="Enter sign-in"
+          sx={{
+            position: "absolute",
+            inset: 0,
+            zIndex: 40,
+            border: "none",
+            padding: 0,
+            margin: 0,
+            cursor: "pointer",
+            overflow: "hidden",
+            background: "transparent",
+            textAlign: "left",
+            animation:
+              splashStage === "opening"
+                ? "lp-splashRush .8s cubic-bezier(.4,0,.6,1) .5s forwards"
+                : "none",
+          }}
+        >
+          <Box
+            sx={{
+              position: "relative",
+              height: "100%",
+              padding: "clamp(36px,4.5vw,64px) clamp(32px,5vw,80px)",
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "space-between",
+              color: "var(--lp-text-strong)",
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2.5 }}>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 1.75,
+                  py: 0.75,
+                  borderRadius: "999px",
+                  background: "rgba(52,211,153,0.12)",
+                  border: "1px solid rgba(52,211,153,0.3)",
+                  backdropFilter: "blur(10px)",
+                }}
+              >
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#34d399", animation: "lp-dotPulse 2s ease-in-out infinite" }} />
+                <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", letterSpacing: ".14em", color: "#059669", fontWeight: 600, whiteSpace: "nowrap" }}>
+                  ALL SYSTEMS OPERATIONAL
+                </Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  pl: 1.5,
+                  pr: 1.75,
+                  py: 1,
+                  borderRadius: "999px",
+                  border: "1px solid var(--lp-shell-border)",
+                  background: "var(--lp-toggle-bg)",
+                  backdropFilter: "blur(10px)",
+                  color: "var(--lp-text-sub)",
+                  fontFamily: "'IBM Plex Mono', monospace",
+                  fontSize: "10.5px",
+                  letterSpacing: ".2em",
+                  textTransform: "uppercase",
+                  animation: "lp-hintDown 1.8s ease-in-out infinite",
+                }}
+              >
+                <span>Tap to sign in</span>
+                <ArrowForward sx={{ fontSize: 12 }} />
+              </Box>
+            </Box>
 
-      <Box
-        sx={{
-          position: "absolute",
-          top: "15%",
-          right: "3%",
-          zIndex: 0,
-          pointerEvents: "none",
-          animation: "lp-float 12s ease-in-out infinite 2s",
-        }}
-      >
-        <svg width="50" height="50" viewBox="0 0 50 50" fill="none">
-          <rect
-            x="15"
-            y="15"
-            width="20"
-            height="20"
-            transform="rotate(45 25 25)"
-            stroke="rgba(55,138,221,0.14)"
-            strokeWidth="1.5"
-            fill="rgba(55,138,221,0.03)"
-          />
-        </svg>
-      </Box>
+            <Box sx={{ textAlign: "left", position: "relative", zIndex: 2 }}>
+              <Typography
+                component="h2"
+                sx={{
+                  m: 0,
+                  fontFamily: "'Space Grotesk', sans-serif",
+                  fontWeight: 700,
+                  fontSize: "clamp(40px, 5.2vw, 78px)",
+                  lineHeight: 1.0,
+                  letterSpacing: "-0.035em",
+                  color: "var(--lp-hero-heading)",
+                  textShadow: "0 4px 24px rgba(37,99,235,0.15)",
+                }}
+              >
+                <span style={{ display: "block" }}>Change Management</span>
+                <span
+                  style={{
+                    display: "block",
+                    color: "var(--lp-hero-heading-sub)",
+                    fontWeight: 500,
+                    fontSize: "clamp(26px, 3.2vw, 44px)",
+                    letterSpacing: "-0.02em",
+                    marginTop: 6,
+                  }}
+                >
+                  System
+                </span>
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.75, mt: 2.75 }}>
+                <Box sx={{ width: 48, height: 3, borderRadius: "2px", background: "linear-gradient(90deg,#2563eb,#ED1C24)", boxShadow: "0 0 14px rgba(37,99,235,0.6)" }} />
+                <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "11px", letterSpacing: ".24em", color: "var(--lp-hero-mono)", textTransform: "uppercase" }}>
+                  by Vegayan
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+      )}
 
-      {/* ── TWO-COLUMN LAYOUT ───────────────────────────────────────── */}
+      {/* ── GLASS CARD ───────────────────────────────────────────────────── */}
+      {splashStage === "hidden" && (
       <Box
         sx={{
           position: "relative",
-          zIndex: 1,
+          zIndex: 10,
           width: "100%",
-          height: "100%",
-          display: "grid",
-          gridTemplateColumns: { xs: "1fr", md: "1fr 420px" },
-          alignItems: "center",
+          maxWidth: 520,
+          height: "auto",
+          maxHeight: 860,
+          background: "var(--lp-shell-glass)",
+          border: "1px solid var(--lp-shell-border-glass)",
+          borderRadius: "32px",
+          boxShadow: "0 40px 120px -30px rgba(20,30,80,0.4), 0 12px 32px -12px rgba(20,30,80,0.2), inset 0 1px 0 rgba(255,255,255,0.35)",
+          overflow: "hidden",
+          backdropFilter: "blur(22px) saturate(140%)",
+          WebkitBackdropFilter: "blur(22px) saturate(140%)",
+          animation: "lp-riseIn 0.7s cubic-bezier(0.22,1,0.36,1) both",
         }}
       >
-        {/* ══ LEFT PANEL ══════════════════════════════════════════════ */}
-        <Box
+        <IconButton
+          onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
+          aria-label="Toggle theme"
+          disableRipple
           sx={{
-            display: { xs: "none", md: "flex" },
-            flexDirection: "column",
-            justifyContent: "center",
-            height: "100%",
-            px: { md: 8, lg: 11 },
-            animation: "lp-slideL 0.85s cubic-bezier(0.22,1,0.36,1) both",
-          }}
-        >
-          {/* ── DUAL BRAND LOGOS ─────────────────────────────────── */}
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 2.5,
-              mb: 6,
-              animation: "lp-fadeUp 0.6s 0.05s both",
-            }}
-          >
-            <BrandMark variant="airtel" />
-
-            <Box
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                gap: 0.5,
-              }}
-            >
-              <Box
-                sx={{ width: "1px", height: 16, bgcolor: "rgba(12,27,46,0.1)" }}
-              />
-              <Typography
-                sx={{
-                  fontSize: "8px",
-                  color: "rgba(12,27,46,0.25)",
-                  fontFamily: "monospace",
-                }}
-              >
-                ×
-              </Typography>
-              <Box
-                sx={{ width: "1px", height: 16, bgcolor: "rgba(12,27,46,0.1)" }}
-              />
-            </Box>
-
-            <BrandMark variant="vegayan" />
-          </Box>
-
-          {/* Status pill */}
-          <Box
-            sx={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 0.8,
-              bgcolor: "#fff",
-              border: "1px solid rgba(24,95,165,0.18)",
-              borderRadius: "100px",
-              px: 1.5,
-              py: 0.5,
-              width: "fit-content",
-              mb: 2.5,
-              animation: "lp-fadeUp 0.6s 0.12s both",
-              boxShadow: "0 1px 4px rgba(12,27,46,0.07)",
-            }}
-          >
-            <Box
-              sx={{
-                width: 6,
-                height: 6,
-                borderRadius: "50%",
-                bgcolor: "#22C55E",
-                boxShadow: "0 0 6px rgba(34,197,94,0.7)",
-                animation: "lp-pulse 2.4s ease-in-out infinite",
-              }}
-            />
-            <Typography
-              sx={{
-                fontSize: "10px",
-                fontWeight: 600,
-                letterSpacing: "0.07em",
-                textTransform: "uppercase",
-                color: "#16A34A",
-                fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-              }}
-            >
-              All Systems Operational
-            </Typography>
-          </Box>
-
-          {/* Hero headline */}
-          <Typography
-            sx={{
-              fontSize: { md: "38px", lg: "50px" },
-              fontWeight: 700,
-              lineHeight: 1.07,
-              letterSpacing: "-1.5px",
-              color: "#0C1B2E",
-              mb: 2,
-              animation: "lp-fadeUp 0.6s 0.18s both",
-              fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-            }}
-          >
-            Change
-            <Box
-              component="span"
-              sx={{
-                display: "block",
-                background:
-                  "linear-gradient(135deg, #185FA5 0%, #378ADD 55%, #5BA3E0 100%)",
-                WebkitBackgroundClip: "text",
-                WebkitTextFillColor: "transparent",
-              }}
-            >
-              Management
-            </Box>
-            <Box component="span" sx={{ color: "rgba(12,27,46,0.55)" }}>
-              System
-            </Box>
-          </Typography>
-
-          <Typography
-            sx={{
-              fontSize: "13px",
-              color: "rgba(12,27,46,0.45)",
-              lineHeight: 1.85,
-              maxWidth: 370,
-              mb: 4.5,
-              animation: "lp-fadeUp 0.6s 0.24s both",
-              fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-            }}
-          >
-            Streamline operational workflows, approvals, and change requests
-            across enterprise infrastructure — governed, auditable, and secure.
-          </Typography>
-
-          <FeatureHighlights />
-
-          {/* Bottom powered-by */}
-          <Box
-            sx={{
-              mt: 6,
-              display: "flex",
-              alignItems: "center",
-              gap: 1.5,
-              animation: "lp-fadeUp 0.6s 0.58s both",
-            }}
-          >
-            <img
-              src={AirtelLogo}
-              alt="Airtel Logo"
-              style={{ width: 24, height: 24 }}
-            />
-            <Typography
-              sx={{
-                fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                fontSize: "10.5px",
-                color: "rgba(12,27,46,0.28)",
-                letterSpacing: "0.03em",
-              }}
-            >
-              Airtel CHM · Powered by Vegayan System Pvt. Ltd.
-            </Typography>
-          </Box>
-        </Box>
-
-        {/* ══ RIGHT — LOGIN CARD ═══════════════════════════════════════ */}
-        <Box
-          sx={{
+            position: "absolute",
+            top: 18,
+            right: 18,
+            zIndex: 20,
             display: "flex",
             alignItems: "center",
-            justifyContent: "center",
-            height: "100%",
-            px: { xs: 1.5, md: 2.5 },
+            gap: 0.8,
+            px: 1.4,
+            py: 0.7,
+            borderRadius: "999px",
+            border: "1px solid var(--lp-toggle-border)",
+            background: "var(--lp-toggle-bg)",
+            backdropFilter: "blur(10px)",
+            color: "var(--lp-toggle-icon)",
+            fontFamily: "'IBM Plex Mono', monospace",
+            fontSize: "11px",
+            letterSpacing: "0.08em",
+            textTransform: "uppercase",
+            transition: "all .25s ease",
+            "&:hover": { borderColor: "var(--lp-link)", color: "var(--lp-text-strong)", background: "var(--lp-toggle-bg)" },
           }}
         >
-          <Box
-            sx={{
-              width: "100%",
-              maxWidth: 390,
-              position: "relative",
-              animation:
-                "lp-slideR 0.85s cubic-bezier(0.22,1,0.36,1) 0.08s both",
-            }}
-          >
+          {dark ? <LightModeOutlined sx={{ fontSize: 15 }} /> : <DarkModeOutlined sx={{ fontSize: 15 }} />}
+          <Typography component="span" sx={{ fontFamily: "inherit", fontSize: "inherit", letterSpacing: "inherit" }}>
+            {dark ? "Light" : "Dark"}
+          </Typography>
+        </IconButton>
+
+        <Box sx={{ position: "relative", padding: "36px clamp(28px, 5vw, 56px)", display: "flex", flexDirection: "column", minWidth: 0 }}>
+          {/* Brand header */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
             <Box
               sx={{
-                bgcolor: "#FFFFFF",
-                border: "1px solid rgba(24,95,165,0.1)",
-                borderRadius: "18px",
-                p: { xs: "24px 20px", md: "36px 32px" },
-                boxShadow:
-                  "0 4px 6px rgba(12,27,46,0.04), 0 20px 60px rgba(24,95,165,0.1), 0 1px 2px rgba(12,27,46,0.04)",
-                overflow: "hidden",
-                position: "relative",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 1.2,
+                pl: 0.7,
+                pr: 1.6,
+                py: 0.6,
+                borderRadius: "999px",
+                border: "1px solid var(--lp-shell-border-glass)",
+                background: "var(--lp-toggle-bg)",
+                backdropFilter: "blur(8px)",
               }}
             >
-              {/* Top accent bar */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: "3px",
-                  background:
-                    "linear-gradient(90deg, #E40000 0%, #185FA5 50%, #378ADD 100%)",
-                  borderRadius: "18px 18px 0 0",
-                }}
-              />
-
-              {/* Corner watermark */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: -30,
-                  right: -30,
-                  width: 110,
-                  height: 110,
-                  borderRadius: "50%",
-                  pointerEvents: "none",
-                  background:
-                    "radial-gradient(circle, rgba(24,95,165,0.04), transparent 70%)",
-                }}
-              />
-
-              {/* ── CARD HEADER ── */}
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  mb: 3.5,
-                }}
-              >
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                  <img
-                    src={AirtelLogo}
-                    alt="Airtel Logo"
-                    style={{ width: 24, height: 24 }}
-                  />
-                  <Box
-                    sx={{
-                      width: "1px",
-                      height: 22,
-                      bgcolor: "rgba(12,27,46,0.1)",
-                    }}
-                  />
-                  <img
-                    src={VegayanLogo}
-                    alt="Vegayan Logo"
-                    style={{ width: 24, height: 24 }}
-                  />
-
-                  <Box>
-                    <Typography
-                      sx={{
-                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                        fontSize: "11px",
-                        fontWeight: 700,
-                        color: "#185FA5",
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        lineHeight: 1,
-                      }}
-                    >
-                      Airtel CHM
-                    </Typography>
-                    <Typography
-                      sx={{
-                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                        fontSize: "9.5px",
-                        color: "rgba(12,27,46,0.35)",
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      by Vegayan System
-                    </Typography>
-                  </Box>
-                </Box>
-
-                <ConnectionSecurityBadge />
-              </Box>
-
-              <Typography
-                sx={{
-                  fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                  fontSize: "22px",
-                  fontWeight: 700,
-                  letterSpacing: "-0.6px",
-                  color: "#0C1B2E",
-                  mb: 0.5,
-                  lineHeight: 1.2,
-                }}
-              >
-                Welcome back
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                  fontSize: "12.5px",
-                  color: "rgba(12,27,46,0.42)",
-                  mb: 3.5,
-                }}
-              >
-                Sign in to the Change Management Portal
-              </Typography>
-
-              <LoginForm
-                olmId={olmId}
-                password={password}
-                onOlmIdChange={handleOlmIdChange}
-                onPasswordChange={handlePasswordChange}
-                onSubmit={handleLogin}
-                loading={loading}
-                error={error}
-                captcha={captcha}
-                isAlreadyLogged={isAlreadyLogged}
-                onForceLogout={handleForceLogout}
-                lockoutSecondsRemaining={lockoutRemaining}
-                shakeKey={shakeKey}
-              />
-
-              {/* ── FOOTER ── */}
-              <Box
-                sx={{
-                  mt: 3,
-                  pt: 2,
-                  borderTop: "1px solid rgba(12,27,46,0.07)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                }}
-              >
-                <Box sx={{ display: "flex", gap: 1.8 }}>
-                  {["Forgot Password?", "Need Help?"].map((label) => (
-                    <Typography
-                      key={label}
-                      component="a"
-                      href="#"
-                      sx={{
-                        fontFamily: "'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif",
-                        fontSize: "11px",
-                        color: "#185FA5",
-                        textDecoration: "none",
-                        fontWeight: 500,
-                        opacity: 0.75,
-                        transition: "opacity 0.15s",
-                        "&:hover": { opacity: 1 },
-                      }}
-                    >
-                      {label}
-                    </Typography>
-                  ))}
-                </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.6 }}>
-                  <img
-                    src={AirtelLogo}
-                    alt="Airtel Logo"
-                    style={{ width: 24, height: 24 }}
-                  />
-                  <Typography
-                    sx={{
-                      fontFamily: "Consolas, 'Courier New', monospace",
-                      fontSize: "9px",
-                      color: "rgba(12,27,46,0.28)",
-                    }}
-                  >
-                    ×
-                  </Typography>
-                  <img
-                    src={VegayanLogo}
-                    alt="Vegayan Logo"
-                    style={{ width: 24, height: 24 }}
-                  />
-                  <Typography
-                    sx={{
-                      fontFamily: "Consolas, 'Courier New', monospace",
-                      fontSize: "9px",
-                      color: "rgba(12,27,46,0.28)",
-                      ml: 0.4,
-                    }}
-                  >
-                    © {new Date().getFullYear()}
-                  </Typography>
-                </Box>
+              <VegaOrb size={28} />
+              <Box>
+                <Typography sx={{ fontFamily: "'Space Grotesk', sans-serif", fontWeight: 600, fontSize: "13px", color: "var(--lp-text-strong)", letterSpacing: "-0.01em", lineHeight: 1.15 }}>
+                  Airtel CHM
+                </Typography>
+                <Typography sx={{ fontFamily: "'IBM Plex Sans', sans-serif", fontSize: "9px", color: "var(--lp-text-mut)", letterSpacing: "0.03em" }}>
+                  by Vegayan System
+                </Typography>
               </Box>
             </Box>
+
+            <ConnectionSecurityBadge />
+          </Box>
+
+          {/* Header */}
+          <Box sx={{ mt: 3.5, textAlign: "center" }}>
+            <Typography
+              component="h1"
+              sx={{
+                m: 0,
+                fontFamily: "'Space Grotesk', sans-serif",
+                fontWeight: 700,
+                fontSize: "clamp(26px, 3.2vw, 34px)",
+                lineHeight: 1.1,
+                letterSpacing: "-0.02em",
+                color: "var(--lp-text-strong)",
+              }}
+            >
+              Welcome back
+            </Typography>
+            <Typography sx={{ mt: 1, fontSize: "13px", color: "var(--lp-text-sub)", lineHeight: 1.5 }}>
+              Sign in to the Change Management Portal
+            </Typography>
+          </Box>
+
+          {/* Form */}
+          <Box sx={{ mt: 3 }}>
+            <LoginForm
+              olmId={olmId}
+              password={password}
+              onOlmIdChange={handleOlmIdChange}
+              onPasswordChange={handlePasswordChange}
+              onSubmit={handleLogin}
+              loading={loading}
+              error={error}
+              captcha={captcha}
+              isAlreadyLogged={isAlreadyLogged}
+              onForceLogout={handleForceLogout}
+              lockoutSecondsRemaining={lockoutRemaining}
+              shakeKey={shakeKey}
+            />
+          </Box>
+
+          {/* Footer */}
+          <Box sx={{ mt: 2.5, pt: 2, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1.5 }}>
+            <Typography
+              component="a"
+              href="#"
+              sx={{ fontSize: "12px", color: "var(--lp-link)", textDecoration: "none", fontWeight: 500, "&:hover": { color: "var(--lp-link-hover)" } }}
+            >
+              Need help?
+            </Typography>
+            <Typography sx={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: "10.5px", letterSpacing: "0.06em", color: "var(--lp-footer)" }}>
+              © {new Date().getFullYear()} · Vegayan
+            </Typography>
           </Box>
         </Box>
       </Box>
+      )}
     </Box>
   );
 };

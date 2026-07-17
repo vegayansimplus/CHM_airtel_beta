@@ -24,8 +24,8 @@ const ConnectionSecurityBadge: React.FC = () => {
           display: "flex",
           alignItems: "center",
           gap: 0.5,
-          bgcolor: isSecure ? "rgba(24,95,165,0.06)" : "rgba(234,179,8,0.08)",
-          border: `1px solid ${isSecure ? "rgba(24,95,165,0.14)" : "rgba(234,179,8,0.25)"}`,
+          bgcolor: isSecure ? "var(--lp-badge-ok-bg)" : "var(--lp-badge-warn-bg)",
+          border: `1px solid ${isSecure ? "var(--lp-badge-ok-border)" : "var(--lp-badge-warn-border)"}`,
           borderRadius: "6px",
           px: 0.9,
           py: 0.4,
@@ -33,15 +33,15 @@ const ConnectionSecurityBadge: React.FC = () => {
         }}
       >
         {isSecure ? (
-          <LockOutlined sx={{ fontSize: 10, color: "#185FA5" }} />
+          <LockOutlined sx={{ fontSize: 10, color: "var(--lp-badge-ok-fg)" }} />
         ) : (
-          <WifiOutlined sx={{ fontSize: 10, color: "#B45309" }} />
+          <WifiOutlined sx={{ fontSize: 10, color: "var(--lp-badge-warn-fg)" }} />
         )}
         <Typography
           sx={{
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "'IBM Plex Mono', monospace",
             fontSize: "9px",
-            color: isSecure ? "#185FA5" : "#B45309",
+            color: isSecure ? "var(--lp-badge-ok-fg)" : "var(--lp-badge-warn-fg)",
             fontWeight: 500,
             letterSpacing: "0.03em",
           }}

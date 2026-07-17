@@ -1,220 +1,234 @@
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useEffect, useRef } from "react";
 
-// Interactive canvas backdrop for the login screen: floating network nodes,
-// mouse-follow particles and ripples. Purely decorative — no state or
-// business logic lives here, so it is isolated from the auth flow.
-const AnimatedBackground: React.FC = () => {
+interface Node {
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+  phase: number;
+  hub: boolean;
+  alert: boolean;
+}
+
+interface Edge {
+  a: Node;
+  b: Node;
+}
+
+interface Packet {
+  edge: Edge;
+  t: number;
+  speed: number;
+  color: "ok" | "alert";
+}
+
+interface Props {
+  dark: boolean;
+}
+
+// NOC-style network topology backdrop for the login screen: a fixed grid of
+// nodes with jitter, nearest-neighbour edges, travelling "packets", hub/alert
+// node variants and a radar sweep. Purely decorative — no state or business
+// logic lives here, so it is isolated from the auth flow.
+const AnimatedBackground: React.FC<Props> = ({ dark }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const mouseRef = useRef({ x: -999, y: -999 });
+  const darkRef = useRef(dark);
   const rafRef = useRef<number>(0);
+
+  useEffect(() => {
+    darkRef.current = dark;
+  }, [dark]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-    let W = window.innerWidth,
-      H = window.innerHeight;
-    canvas.width = W;
-    canvas.height = H;
+    let W = 0,
+      H = 0;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let nodes: Node[] = [];
+    let edges: Edge[] = [];
+    let packets: Packet[] = [];
+    let sweepAngle = 0;
 
-    type Particle = {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      r: number;
-      alpha: number;
-      color: string;
-      life: number;
-      maxLife: number;
-    };
-    const particles: Particle[] = [];
-
-    type Node = {
-      x: number;
-      y: number;
-      vx: number;
-      vy: number;
-      r: number;
-      alpha: number;
-    };
-    const COLS = ["rgba(24,95,165,", "rgba(55,138,221,", "rgba(12,68,124,"];
-    const nodes: Node[] = Array.from({ length: 22 }, () => ({
-      x: Math.random() * W,
-      y: Math.random() * H,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      r: 2 + Math.random() * 3,
-      alpha: 0.15 + Math.random() * 0.25,
-    }));
-
-    type Ripple = {
-      x: number;
-      y: number;
-      r: number;
-      maxR: number;
-      alpha: number;
-    };
-    const ripples: Ripple[] = [];
-    let lastMouse = { x: -999, y: -999 };
-    let frameCount = 0;
-
-    const spawnParticle = (x: number, y: number) => {
-      if (particles.length > 80) return;
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 0.4 + Math.random() * 1.2;
-      const maxLife = 60 + Math.random() * 60;
-      particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        r: 1 + Math.random() * 2.5,
-        alpha: 0.5 + Math.random() * 0.4,
-        color: COLS[Math.floor(Math.random() * COLS.length)],
-        life: 0,
-        maxLife,
+    const spawnPacket = () => {
+      if (!edges.length) return;
+      const e = edges[Math.floor(Math.random() * edges.length)];
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      packets.push({
+        edge: e,
+        t: dir === 1 ? 0 : 1,
+        speed: (0.004 + Math.random() * 0.006) * dir,
+        color: Math.random() < 0.15 ? "alert" : "ok",
       });
     };
 
-    const draw = () => {
-      frameCount++;
-      W = canvas.width;
-      H = canvas.height;
-      ctx.clearRect(0, 0, W, H);
-
-      const mx = mouseRef.current.x;
-      const my = mouseRef.current.y;
-
-      if (mx > 0 && my > 0 && frameCount % 3 === 0) {
-        spawnParticle(
-          mx + (Math.random() - 0.5) * 30,
-          my + (Math.random() - 0.5) * 30,
-        );
-      }
-
-      const dx = mx - lastMouse.x,
-        dy = my - lastMouse.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 18 && frameCount % 12 === 0 && mx > 0) {
-        ripples.push({
-          x: mx,
-          y: my,
-          r: 4,
-          maxR: 80 + Math.random() * 40,
-          alpha: 0.35,
-        });
-        lastMouse = { x: mx, y: my };
-      }
-
-      for (let i = ripples.length - 1; i >= 0; i--) {
-        const rp = ripples[i];
-        rp.r += (rp.maxR - rp.r) * 0.06;
-        rp.alpha -= 0.008;
-        if (rp.alpha <= 0) {
-          ripples.splice(i, 1);
-          continue;
+    const build = () => {
+      const cols = W > 720 ? 6 : 5;
+      const rows = H > 720 ? 5 : 4;
+      const cellW = W / cols,
+        cellH = H / rows;
+      nodes = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const jitterX = (Math.random() - 0.5) * cellW * 0.45;
+          const jitterY = (Math.random() - 0.5) * cellH * 0.45;
+          nodes.push({
+            id: nodes.length,
+            x: (c + 0.5) * cellW + jitterX,
+            y: (r + 0.5) * cellH + jitterY,
+            r: Math.random() < 0.15 ? 3.2 : 2.0,
+            phase: Math.random() * Math.PI * 2,
+            hub: Math.random() < 0.15,
+            alert: Math.random() < 0.06,
+          });
         }
-        ctx.beginPath();
-        ctx.arc(rp.x, rp.y, rp.r, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(24,95,165,${rp.alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
       }
 
+      edges = [];
+      const seen = new Set<string>();
       for (const n of nodes) {
-        n.x += n.vx;
-        n.y += n.vy;
-        if (n.x < 0 || n.x > W) n.vx *= -1;
-        if (n.y < 0 || n.y > H) n.vy *= -1;
-
-        const ndx = n.x - mx,
-          ndy = n.y - my;
-        const nd = Math.sqrt(ndx * ndx + ndy * ndy);
-        if (nd < 120) {
-          const force = ((120 - nd) / 120) * 0.4;
-          n.vx += (ndx / nd) * force;
-          n.vy += (ndy / nd) * force;
-        }
-        n.vx *= 0.99;
-        n.vy *= 0.99;
-
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(24,95,165,${n.alpha})`;
-        ctx.fill();
-      }
-
-      for (let i = 0; i < nodes.length; i++) {
-        for (let j = i + 1; j < nodes.length; j++) {
-          const a = nodes[i],
-            b = nodes[j];
-          const dx2 = a.x - b.x,
-            dy2 = a.y - b.y;
-          const d2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-          if (d2 < 160) {
-            const alpha = (1 - d2 / 160) * 0.12;
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(24,95,165,${alpha})`;
-            ctx.lineWidth = 1;
-            ctx.stroke();
+        const dists = nodes
+          .filter((m) => m.id !== n.id)
+          .map((m) => ({ m, d: Math.hypot(m.x - n.x, m.y - n.y) }))
+          .sort((a, b) => a.d - b.d)
+          .slice(0, 2);
+        for (const { m } of dists) {
+          const key = n.id < m.id ? `${n.id}-${m.id}` : `${m.id}-${n.id}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            edges.push({ a: n, b: m });
           }
         }
       }
 
-      for (let i = particles.length - 1; i >= 0; i--) {
-        const p = particles[i];
-        p.life++;
-        p.x += p.vx;
-        p.y += p.vy;
-        p.vx *= 0.97;
-        p.vy *= 0.97;
-        const progress = p.life / p.maxLife;
-        const alpha = p.alpha * (1 - progress);
-        const radius = p.r * (1 - progress * 0.5);
+      packets = [];
+      for (let i = 0; i < 6; i++) spawnPacket();
+    };
+
+    const resize = () => {
+      W = canvas.clientWidth;
+      H = canvas.clientHeight;
+      canvas.width = W * dpr;
+      canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      build();
+    };
+    resize();
+    window.addEventListener("resize", resize);
+
+    let last = performance.now();
+    const draw = (now: number) => {
+      const dt = Math.min(50, now - last);
+      last = now;
+      ctx.clearRect(0, 0, W, H);
+
+      const dark = darkRef.current;
+      const edgeCol = dark ? "rgba(120,170,255," : "rgba(30,90,180,";
+      const nodeCol = dark ? "rgba(160,200,255," : "rgba(20,70,160,";
+      const hubCol = dark ? "rgba(120,180,255,0.9)" : "rgba(37,99,235,0.85)";
+      const alertCol = "rgba(237,90,90,";
+      const okPacket = dark ? "#7db8ff" : "#0e7ec0";
+      const alertPacket = "#ED1C24";
+      const sweepCol = dark ? "rgba(79,141,255," : "rgba(37,99,235,";
+
+      const cx = W * 0.5,
+        cy = H * 0.5;
+      sweepAngle += dt * 0.0007;
+      if (sweepAngle > Math.PI * 2) sweepAngle -= Math.PI * 2;
+      const sweepR = Math.hypot(W, H) * 0.7;
+      const grad = ctx.createConicGradient
+        ? ctx.createConicGradient(sweepAngle - Math.PI / 2, cx, cy)
+        : null;
+      if (grad) {
+        grad.addColorStop(0.0, `${sweepCol}0)`);
+        grad.addColorStop(0.02, `${sweepCol}0.10)`);
+        grad.addColorStop(0.08, `${sweepCol}0)`);
+        grad.addColorStop(1.0, `${sweepCol}0)`);
+        ctx.fillStyle = grad;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = `${p.color}${alpha})`;
+        ctx.arc(cx, cy, sweepR, 0, Math.PI * 2);
         ctx.fill();
-        if (p.life >= p.maxLife) particles.splice(i, 1);
       }
 
-      if (mx > 0 && my > 0) {
-        const grd = ctx.createRadialGradient(mx, my, 0, mx, my, 200);
-        grd.addColorStop(0, "rgba(24,95,165,0.06)");
-        grd.addColorStop(1, "rgba(24,95,165,0)");
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, W, H);
+      ctx.lineWidth = 0.7;
+      for (const e of edges) {
+        ctx.strokeStyle = `${edgeCol}0.16)`;
+        ctx.beginPath();
+        ctx.moveTo(e.a.x, e.a.y);
+        ctx.lineTo(e.b.x, e.b.y);
+        ctx.stroke();
+      }
+
+      for (let i = packets.length - 1; i >= 0; i--) {
+        const p = packets[i];
+        p.t += p.speed;
+        if (p.t < 0 || p.t > 1) {
+          packets.splice(i, 1);
+          continue;
+        }
+        const x = p.edge.a.x + (p.edge.b.x - p.edge.a.x) * p.t;
+        const y = p.edge.a.y + (p.edge.b.y - p.edge.a.y) * p.t;
+        const color = p.color === "alert" ? alertPacket : okPacket;
+        const dx = p.edge.b.x - p.edge.a.x,
+          dy = p.edge.b.y - p.edge.a.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const tx = x - (dx / len) * 14 * Math.sign(p.speed);
+        const ty = y - (dy / len) * 14 * Math.sign(p.speed);
+        const g = ctx.createLinearGradient(tx, ty, x, y);
+        g.addColorStop(0, `${color}00`);
+        g.addColorStop(1, color);
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1.6;
+        ctx.beginPath();
+        ctx.moveTo(tx, ty);
+        ctx.lineTo(x, y);
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.arc(x, y, 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (Math.random() < 0.045) spawnPacket();
+      while (packets.length > 14) packets.shift();
+
+      for (const n of nodes) {
+        n.phase += dt * 0.002;
+        const pulse = 0.55 + 0.45 * (0.5 + 0.5 * Math.sin(n.phase));
+        if (n.alert) {
+          ctx.fillStyle = `${alertCol}${0.15 + 0.25 * pulse})`;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = alertPacket;
+        } else if (n.hub) {
+          ctx.fillStyle = hubCol;
+        } else {
+          ctx.fillStyle = `${nodeCol}${0.35 + 0.35 * pulse})`;
+        }
+        ctx.beginPath();
+        ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+        ctx.fill();
+        if (n.hub) {
+          ctx.strokeStyle = `${nodeCol}0.25)`;
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r + 3 + pulse * 2, 0, Math.PI * 2);
+          ctx.stroke();
+        }
       }
 
       rafRef.current = requestAnimationFrame(draw);
     };
-
-    const onResize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-    };
-
-    window.addEventListener("resize", onResize);
     rafRef.current = requestAnimationFrame(draw);
 
     return () => {
       cancelAnimationFrame(rafRef.current);
-      window.removeEventListener("resize", onResize);
+      window.removeEventListener("resize", resize);
     };
   }, []);
-
-  const handleMouseMove = useCallback((e: MouseEvent) => {
-    mouseRef.current = { x: e.clientX, y: e.clientY };
-  }, []);
-
-  useEffect(() => {
-    window.addEventListener("mousemove", handleMouseMove);
-    return () => window.removeEventListener("mousemove", handleMouseMove);
-  }, [handleMouseMove]);
 
   return (
     <canvas
@@ -224,7 +238,6 @@ const AnimatedBackground: React.FC = () => {
         inset: 0,
         width: "100%",
         height: "100%",
-        zIndex: 0,
         pointerEvents: "none",
       }}
     />

@@ -6,14 +6,14 @@ type Tone = "error" | "warning";
 
 const TONE_STYLES: Record<Tone, { bg: string; border: string; fg: string }> = {
   error: {
-    bg: "rgba(226,75,74,0.06)",
-    border: "rgba(226,75,74,0.2)",
-    fg: "#C0392B",
+    bg: "var(--lp-error-bg)",
+    border: "var(--lp-error-border)",
+    fg: "var(--lp-error-fg)",
   },
   warning: {
-    bg: "rgba(234,179,8,0.06)",
-    border: "rgba(234,179,8,0.22)",
-    fg: "#92400E",
+    bg: "var(--lp-warning-bg)",
+    border: "var(--lp-warning-border)",
+    fg: "var(--lp-warning-fg)",
   },
 };
 
@@ -41,7 +41,7 @@ const InlineAlert: React.FC<Props> = ({ tone, children }) => {
       <ErrorOutline sx={{ fontSize: 14, color: s.fg, mt: "1px" }} />
       <Typography
         sx={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'IBM Plex Sans', sans-serif",
           color: s.fg,
           fontSize: "11.5px",
           lineHeight: 1.5,

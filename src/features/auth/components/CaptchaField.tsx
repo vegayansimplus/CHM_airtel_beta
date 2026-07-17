@@ -55,24 +55,24 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
           display: "flex",
           alignItems: "center",
           gap: 1,
-          bgcolor: "rgba(24,95,165,0.05)",
-          border: "1px dashed rgba(24,95,165,0.22)",
-          borderRadius: "8px",
+          bgcolor: "var(--lp-dev-bg)",
+          border: "1px dashed var(--lp-dev-border)",
+          borderRadius: "12px",
           px: 1.4,
           py: 0.85,
           mb: 2.2,
         }}
       >
-        <ShieldOutlined sx={{ fontSize: 12, color: "#185FA5" }} />
+        <ShieldOutlined sx={{ fontSize: 12, color: "var(--lp-dev-text)" }} />
         <Typography
           sx={{
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "'IBM Plex Mono', monospace",
             fontSize: "10px",
-            color: "#185FA5",
+            color: "var(--lp-dev-text)",
             letterSpacing: "0.04em",
           }}
         >
-          Verification skipped — development build
+          CAPTCHA bypassed — development mode
         </Typography>
       </Box>
     );
@@ -82,12 +82,12 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
     <Box sx={{ mb: 2.2 }}>
       <Typography
         sx={{
-          fontFamily: "'Plus Jakarta Sans', sans-serif",
+          fontFamily: "'IBM Plex Mono', monospace",
           fontSize: "10px",
           fontWeight: 600,
           letterSpacing: "0.07em",
           textTransform: "uppercase",
-          color: "rgba(12,27,46,0.38)",
+          color: "var(--lp-label)",
           mb: 1,
         }}
       >
@@ -100,7 +100,7 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
           height={36}
           style={{
             borderRadius: 8,
-            border: "1px solid rgba(24,95,165,0.18)",
+            border: "1px solid var(--lp-shell-border-glass)",
             display: "block",
             background: "#F0F5FC",
           }}
@@ -110,13 +110,13 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
           onClick={captcha.refresh}
           aria-label="Refresh CAPTCHA"
           sx={{
-            bgcolor: "#F0F5FC",
-            border: "1px solid rgba(24,95,165,0.18)",
+            bgcolor: "var(--lp-input-bg)",
+            border: "1px solid var(--lp-shell-border-glass)",
             borderRadius: "8px",
             width: 34,
             height: 34,
-            color: "rgba(12,27,46,0.45)",
-            "&:hover": { bgcolor: "#E2EEFA" },
+            color: "var(--lp-icon-idle)",
+            "&:hover": { color: "var(--lp-icon-active)" },
           }}
         >
           <Refresh sx={{ fontSize: 15 }} />
@@ -135,7 +135,7 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
           style: {
             letterSpacing: "0.16em",
             fontWeight: 600,
-            fontFamily: "'DM Mono', monospace",
+            fontFamily: "'IBM Plex Mono', monospace",
           },
         }}
         InputProps={{
