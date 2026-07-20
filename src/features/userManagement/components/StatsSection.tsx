@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { Stack } from "@mui/material";
 import {
   Group,
@@ -9,7 +8,7 @@ import {
   Verified,
 } from "@mui/icons-material";
 import StatCard from "./StatCard";
-import type { User } from "../types/user";
+import type { UserStats } from "../api/userManagementApi";
 
 // Deterministic pseudo-trend so sparklines don't jump around on re-render.
 function seededSeries(seed: number, base: number) {
@@ -23,30 +22,17 @@ function seededSeries(seed: number, base: number) {
   return out;
 }
 
-export default function StatsSection({ users }: { users: User[] }) {
-  const stats = useMemo(() => {
-    const total = users.length;
-    const active = users.filter((u) => u.active).length;
-    const leads = users.filter((u) => u.role === "Team Lead").length;
-    const admins = users.filter((u) => u.role === "Super Admin").length;
-    const inactive = users.filter((u) => !u.active).length;
-    const now = new Date();
-    const newThisMonth = users.filter((u) => {
-      const d = new Date(`1 ${u.joinedDate}`);
-      return (
-        !Number.isNaN(d.getTime()) &&
-        d.getMonth() === now.getMonth() &&
-        d.getFullYear() === now.getFullYear()
-      );
-    }).length;
-
-    return { total, active, leads, admins, inactive, newThisMonth };
-  }, [users]);
+// Stats are unfiltered aggregates across all users, returned alongside the
+// filtered/paginated grid by the same sp_get_users_paginated call - not
+// derived from the (search/filter/page-limited) rows currently on screen.
+export default function StatsSection({ stats }: { stats?: UserStats }) {
+  const s = stats ?? { activeCount: 0, inactiveCount: 0, adminCount: 0, headCount: 0, newThisMonth: 0 };
+  const total = s.activeCount + s.inactiveCount;
 
   const cards = [
     {
       label: "Total Users",
-      value: stats.total,
+      value: total,
       icon: Group,
       color: "#2563EB",
       gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
@@ -54,15 +40,15 @@ export default function StatsSection({ users }: { users: User[] }) {
     },
     {
       label: "Active Users",
-      value: stats.active,
+      value: s.activeCount,
       icon: Verified,
       color: "#10B981",
       gradient: "linear-gradient(135deg, #34D399 0%, #059669 100%)",
       trend: 5,
     },
     {
-      label: "Team Leads",
-      value: stats.leads,
+      label: "Team Heads",
+      value: s.headCount,
       icon: SupervisorAccount,
       color: "#7C3AED",
       gradient: "linear-gradient(135deg, #A78BFA 0%, #6D28D9 100%)",
@@ -70,7 +56,7 @@ export default function StatsSection({ users }: { users: User[] }) {
     },
     {
       label: "Super Admins",
-      value: stats.admins,
+      value: s.adminCount,
       icon: Shield,
       color: "#DC2626",
       gradient: "linear-gradient(135deg, #F87171 0%, #B91C1C 100%)",
@@ -78,7 +64,7 @@ export default function StatsSection({ users }: { users: User[] }) {
     },
     {
       label: "Inactive Users",
-      value: stats.inactive,
+      value: s.inactiveCount,
       icon: PersonOff,
       color: "#F59E0B",
       gradient: "linear-gradient(135deg, #FBBF24 0%, #D97706 100%)",
@@ -86,7 +72,7 @@ export default function StatsSection({ users }: { users: User[] }) {
     },
     {
       label: "New This Month",
-      value: stats.newThisMonth,
+      value: s.newThisMonth,
       icon: PersonAdd,
       color: "#0891B2",
       gradient: "linear-gradient(135deg, #22D3EE 0%, #0E7490 100%)",

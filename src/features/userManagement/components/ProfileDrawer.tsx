@@ -15,22 +15,25 @@ import {
 } from "@mui/material";
 import {
   Close,
+  Edit,
   Email,
   Phone,
   CalendarMonth,
   Person,
-  Devices,
-  Laptop,
-  PhoneIphone,
-  TabletMac,
+  Work,
+  Business,
   Shield,
   History,
+  Login,
+  Logout,
 } from "@mui/icons-material";
 import { AnimatePresence, motion } from "framer-motion";
+import dayjs from "dayjs";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
-import { getAvatarColor, getInitials, formatRelativeTime } from "../utils/userHelpers";
-import { getUserStatus, type User } from "../types/user";
+import { getAvatarColor, getInitials } from "../utils/userHelpers";
+import { useGetUserProfileQuery } from "../api/userManagementApi";
+import { CreateEditMemberDialog } from "../../teamManagement/components/dialog/CreateEditMemberDialog";
 
 interface InfoRowProps {
   icon: React.ElementType;
@@ -67,31 +70,37 @@ function InfoRow({ icon: Icon, label, value }: InfoRowProps) {
   );
 }
 
-const deviceIcon = { Desktop: Laptop, Mobile: PhoneIphone, Tablet: TabletMac } as const;
-
 export default function ProfileDrawer({
-  user,
+  userId,
+  actorUserId,
   onClose,
+  onUserChanged,
 }: {
-  user: User | null;
+  userId: number | null;
+  actorUserId: number;
   onClose: () => void;
+  onUserChanged: () => void;
 }) {
   const [tab, setTab] = useState(0);
+  const [editOpen, setEditOpen] = useState(false);
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
+
+  const { data, isFetching, refetch } = useGetUserProfileQuery(userId as number, { skip: userId === null });
+  const profile = data?.profile;
 
   return (
     <Drawer
       anchor="right"
-      open={Boolean(user)}
+      open={userId !== null}
       onClose={onClose}
       PaperProps={{ sx: { width: { xs: "100%", sm: 420 }, borderRadius: "20px 0 0 20px" } }}
     >
       <AnimatePresence mode="wait">
-        {user && (
+        {userId !== null && (
           <Box
             component={motion.div}
-            key={user.id}
+            key={userId}
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 30 }}
@@ -108,46 +117,54 @@ export default function ProfileDrawer({
                 position: "relative",
               }}
             >
-              <IconButton
-                onClick={onClose}
-                size="small"
-                sx={{
-                  position: "absolute",
-                  top: 12,
-                  right: 12,
-                  bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)",
-                }}
-              >
-                <Close fontSize="small" />
-              </IconButton>
-              <Stack alignItems="center" gap={1.5}>
-                <Avatar
-                  sx={{
-                    width: 84,
-                    height: 84,
-                    fontSize: 28,
-                    fontWeight: 700,
-                    bgcolor: getAvatarColor(user.id),
-                    border: "4px solid",
-                    borderColor: "background.paper",
-                    boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(15,23,42,0.15)",
-                  }}
+              <Stack direction="row" gap={0.75} sx={{ position: "absolute", top: 12, right: 12 }}>
+                {profile && (
+                  <IconButton
+                    onClick={() => setEditOpen(true)}
+                    size="small"
+                    sx={{ bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)" }}
+                  >
+                    <Edit fontSize="small" />
+                  </IconButton>
+                )}
+                <IconButton
+                  onClick={onClose}
+                  size="small"
+                  sx={{ bgcolor: isDark ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.6)" }}
                 >
-                  {getInitials(user.name)}
-                </Avatar>
-                <Box textAlign="center">
-                  <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
-                    {user.name}
-                  </Typography>
-                  <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
-                    {user.designation ?? user.function}
-                  </Typography>
-                </Box>
-                <Stack direction="row" gap={1}>
-                  <RoleBadge role={user.role} />
-                  <StatusBadge status={getUserStatus(user)} />
-                </Stack>
+                  <Close fontSize="small" />
+                </IconButton>
               </Stack>
+              {profile && (
+                <Stack alignItems="center" gap={1.5}>
+                  <Avatar
+                    sx={{
+                      width: 84,
+                      height: 84,
+                      fontSize: 28,
+                      fontWeight: 700,
+                      bgcolor: getAvatarColor(String(profile.userId)),
+                      border: "4px solid",
+                      borderColor: "background.paper",
+                      boxShadow: isDark ? "0 8px 24px rgba(0,0,0,0.4)" : "0 8px 24px rgba(15,23,42,0.15)",
+                    }}
+                  >
+                    {getInitials(profile.employeeName)}
+                  </Avatar>
+                  <Box textAlign="center">
+                    <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary" }}>
+                      {profile.employeeName}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
+                      {profile.designation ?? profile.functionName ?? "—"}
+                    </Typography>
+                  </Box>
+                  <Stack direction="row" gap={1}>
+                    <RoleBadge role={profile.roleCode} />
+                    <StatusBadge status={profile.employeeStatus === "ACTIVE" ? "Active" : "Inactive"} />
+                  </Stack>
+                </Stack>
+              )}
             </Box>
 
             <Tabs
@@ -158,44 +175,56 @@ export default function ProfileDrawer({
             >
               <Tab label="Overview" />
               <Tab label="Permissions" />
-              <Tab label="Activity" />
-              <Tab label="Security" />
+              <Tab label="Sessions" />
             </Tabs>
 
             <Box sx={{ flex: 1, overflowY: "auto", p: 3 }}>
-              {tab === 0 && (
+              {isFetching && !profile && (
+                <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Loading profile…</Typography>
+              )}
+
+              {profile && tab === 0 && (
                 <Box>
-                  <InfoRow icon={Person} label="Employee ID" value={user.employeeId} />
-                  <InfoRow icon={Email} label="Email" value={user.email} />
-                  <InfoRow icon={Phone} label="Phone" value={user.phone ?? "—"} />
-                  <InfoRow icon={Person} label="Department" value={user.function} />
-                  <InfoRow icon={Person} label="Manager" value={user.manager ?? "—"} />
-                  <InfoRow icon={CalendarMonth} label="Joining Date" value={user.joinedDate} />
+                  <InfoRow icon={Person} label="OLM ID" value={profile.olmid} />
+                  <InfoRow icon={Email} label="Email" value={profile.emailId} />
+                  <InfoRow icon={Phone} label="Phone" value={profile.mobileNo ?? "—"} />
+                  <InfoRow
+                    icon={Business}
+                    label="Department"
+                    value={[profile.verticalName, profile.functionName].filter(Boolean).join(" · ") || "—"}
+                  />
+                  <InfoRow icon={Work} label="Employment Type" value={profile.employmentType} />
+                  <InfoRow
+                    icon={CalendarMonth}
+                    label="Joining Date"
+                    value={profile.dateOfJoining ? dayjs(profile.dateOfJoining).format("DD MMM YYYY") : "—"}
+                  />
                   <InfoRow
                     icon={History}
                     label="Last Login"
-                    value={formatRelativeTime(user.lastLogin)}
+                    value={profile.lastLogin ? dayjs(profile.lastLogin).format("DD MMM YYYY, hh:mm A") : "—"}
                   />
                 </Box>
               )}
 
-              {tab === 1 && (
+              {profile && tab === 1 && (
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1.5 }}>
-                    GRANTED PERMISSIONS
+                    GRANTED PERMISSIONS ({profile.roleCode ? profile.roleCode.replaceAll("_", " ") : "no role"})
                   </Typography>
                   <Stack direction="row" flexWrap="wrap" gap={1}>
-                    {(user.permissions ?? []).length === 0 ? (
+                    {(data?.permissions ?? []).length === 0 ? (
                       <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
                         No permissions assigned.
                       </Typography>
                     ) : (
-                      user.permissions!.map((p) => (
+                      data!.permissions.map((p, i) => (
                         <Chip
-                          key={p}
+                          key={`${p.moduleName}-${p.subModuleName}-${p.permissionName}-${i}`}
                           icon={<Shield sx={{ fontSize: 14 }} />}
-                          label={p}
+                          label={`${p.subModuleName} · ${p.permissionName}`}
                           size="small"
+                          title={p.moduleName}
                           sx={{
                             bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
                             color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
@@ -209,110 +238,50 @@ export default function ProfileDrawer({
                 </Box>
               )}
 
-              {tab === 2 && (
+              {profile && tab === 2 && (
                 <Box>
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1.5 }}>
-                    RECENT ACTIVITY
+                    RECENT LOGIN ACTIVITY
                   </Typography>
                   <Stack gap={0}>
-                    {(user.activity ?? []).length === 0 ? (
+                    {(data?.loginHistory ?? []).length === 0 ? (
                       <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                        No recent activity.
+                        No recorded sessions.
                       </Typography>
                     ) : (
-                      user.activity!.map((a, i) => (
-                        <Box key={a.id}>
+                      data!.loginHistory.map((s, i) => (
+                        <Box key={s.id}>
                           <Stack direction="row" gap={1.5} py={1.25} alignItems="flex-start">
                             <Box
                               sx={{
-                                width: 8,
-                                height: 8,
-                                mt: 0.6,
-                                borderRadius: "50%",
-                                bgcolor: "primary.main",
+                                width: 28,
+                                height: 28,
+                                borderRadius: "8px",
+                                bgcolor: "action.hover",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
                                 flexShrink: 0,
                               }}
-                            />
+                            >
+                              {s.status === "LOGIN" ? (
+                                <Login sx={{ fontSize: 14, color: "success.main" }} />
+                              ) : (
+                                <Logout sx={{ fontSize: 14, color: "text.secondary" }} />
+                              )}
+                            </Box>
                             <Box>
                               <Typography sx={{ fontSize: 13, fontWeight: 600, color: "text.primary" }}>
-                                {a.action}
+                                {s.status === "LOGIN" ? "Logged in" : "Logged out"}
                               </Typography>
                               <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
-                                {a.time}
+                                {dayjs(s.loginTime).format("DD MMM YYYY, hh:mm A")}
+                                {s.logoutTime && ` → ${dayjs(s.logoutTime).format("hh:mm A")}`}
                               </Typography>
                             </Box>
                           </Stack>
-                          {i < user.activity!.length - 1 && <Divider />}
+                          {i < data!.loginHistory.length - 1 && <Divider />}
                         </Box>
-                      ))
-                    )}
-                  </Stack>
-                </Box>
-              )}
-
-              {tab === 3 && (
-                <Box>
-                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1.5 }}>
-                    DEVICES
-                  </Typography>
-                  <Stack gap={1} mb={2.5}>
-                    {(user.devices ?? []).length === 0 ? (
-                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                        No devices on record.
-                      </Typography>
-                    ) : (
-                      user.devices!.map((d, i) => {
-                        const Icon = deviceIcon[d.type];
-                        return (
-                          <Stack
-                            key={i}
-                            direction="row"
-                            alignItems="center"
-                            gap={1.5}
-                            sx={{ p: 1.25, borderRadius: "10px", bgcolor: "action.hover" }}
-                          >
-                            <Icon sx={{ fontSize: 18, color: "text.secondary" }} />
-                            <Box sx={{ flex: 1 }}>
-                              <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-                                {d.name}
-                              </Typography>
-                              <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                                Active {d.lastActive}
-                              </Typography>
-                            </Box>
-                          </Stack>
-                        );
-                      })
-                    )}
-                  </Stack>
-
-                  <Typography sx={{ fontSize: 12, fontWeight: 700, color: "text.secondary", mb: 1.5 }}>
-                    RECENT SESSIONS
-                  </Typography>
-                  <Stack gap={1}>
-                    {(user.sessions ?? []).length === 0 ? (
-                      <Typography sx={{ fontSize: 13, color: "text.secondary" }}>
-                        No recent sessions.
-                      </Typography>
-                    ) : (
-                      user.sessions!.map((s) => (
-                        <Stack
-                          key={s.id}
-                          direction="row"
-                          alignItems="center"
-                          gap={1.5}
-                          sx={{ p: 1.25, borderRadius: "10px", bgcolor: "action.hover" }}
-                        >
-                          <Devices sx={{ fontSize: 18, color: "text.secondary" }} />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography sx={{ fontSize: 12.5, fontWeight: 600 }}>
-                              {s.device} · {s.location}
-                            </Typography>
-                            <Typography sx={{ fontSize: 11, color: "text.secondary" }}>
-                              {s.ip} · {s.time}
-                            </Typography>
-                          </Box>
-                        </Stack>
                       ))
                     )}
                   </Stack>
@@ -322,6 +291,20 @@ export default function ProfileDrawer({
           </Box>
         )}
       </AnimatePresence>
+
+      {profile && (
+        <CreateEditMemberDialog
+          open={editOpen}
+          onClose={() => {
+            setEditOpen(false);
+            refetch();
+            onUserChanged();
+          }}
+          actorUserId={actorUserId}
+          mode="edit"
+          editData={profile}
+        />
+      )}
     </Drawer>
   );
 }

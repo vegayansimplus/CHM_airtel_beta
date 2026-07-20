@@ -105,5 +105,7 @@ export const api = createApi({
     "CabAudit",
     "CabCrq",
     "CabImpl",
+    "UserManagementList",
+    "UserManagementProfile",
   ],
 });

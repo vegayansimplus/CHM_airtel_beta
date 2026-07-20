@@ -5,7 +5,6 @@ import {
   Box,
   Chip,
   Stack,
-  Tooltip,
   Typography,
   Button,
   alpha,
@@ -21,6 +20,7 @@ import {
   type MRT_RowSelectionState,
   type MRT_VisibilityState,
 } from "material-react-table";
+import dayjs from "dayjs";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
 import ActionMenu from "./ActionMenu";
@@ -75,7 +75,6 @@ export default function UserTable({
       employeeId: !isDownLg,
       joinedDate: !isDownLg,
       lastLogin: !isDownXl,
-      permissions: !isDownXl,
     }),
     [isDownMd, isDownLg, isDownXl],
   );
@@ -144,7 +143,7 @@ export default function UserTable({
       },
       {
         accessorKey: "employeeId",
-        header: "Employee ID",
+        header: "OLM ID",
         size: 130,
         Cell: ({ cell }) => (
           <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.secondary" }}>
@@ -191,36 +190,12 @@ export default function UserTable({
         accessorKey: "joinedDate",
         header: "Joined Date",
         size: 120,
-        Cell: ({ cell }) => (
-          <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
-            {cell.getValue<string>()}
-          </Typography>
-        ),
-      },
-      {
-        id: "permissions",
-        header: "Permissions",
-        size: 130,
-        enableSorting: false,
-        Cell: ({ row }) => {
-          const perms = row.original.permissions ?? [];
-          if (perms.length === 0)
-            return (
-              <Typography sx={{ fontSize: 12, color: "text.secondary" }}>—</Typography>
-            );
+        Cell: ({ cell }) => {
+          const value = cell.getValue<string | null>();
           return (
-            <Tooltip title={perms.join(", ")}>
-              <Chip
-                label={`${perms.length} granted`}
-                size="small"
-                sx={{
-                  bgcolor: alpha(theme.palette.primary.main, isDark ? 0.18 : 0.1),
-                  color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
-                  fontWeight: 600,
-                  fontSize: "0.68rem",
-                }}
-              />
-            </Tooltip>
+            <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
+              {value ? dayjs(value).format("MMM YYYY") : "—"}
+            </Typography>
           );
         },
       },

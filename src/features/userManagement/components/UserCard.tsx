@@ -1,5 +1,6 @@
 import { Avatar, Badge, Box, Chip, Divider, Stack, Typography, useTheme } from "@mui/material";
 import { motion } from "framer-motion";
+import dayjs from "dayjs";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
 import ActionMenu from "./ActionMenu";
@@ -110,10 +111,10 @@ export default function UserCard({
 
         <Stack direction="row" justifyContent="space-between">
           <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
-            Joined {user.joinedDate}
+            Joined {user.joinedDate ? dayjs(user.joinedDate).format("MMM YYYY") : "—"}
           </Typography>
           <Typography sx={{ fontSize: 10.5, color: "text.secondary" }}>
-            Active {formatRelativeTime(user.lastLogin)}
+            Active {formatRelativeTime(user.lastLogin ?? undefined)}
           </Typography>
         </Stack>
       </Box>

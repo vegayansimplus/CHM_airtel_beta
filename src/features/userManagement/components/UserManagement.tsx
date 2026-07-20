@@ -16,35 +16,33 @@ import { saveAs } from "file-saver";
 import { toast } from "react-toastify";
 import dayjs from "dayjs";
 
+import { useAppSelector } from "../../../app/hooks";
 import DashboardHeader from "./DashboardHeader";
 import StatsSection from "./StatsSection";
 import SearchToolbar, { DEFAULT_FILTERS, type UserFilters } from "./SearchToolbar";
 import UserTable from "./UserTable";
 import UserCard from "./UserCard";
 import ProfileDrawer from "./ProfileDrawer";
-import AddUserWizard, { type NewUserInput } from "./AddUserWizard";
+import AddUserWizard from "./AddUserWizard";
 import DeleteDialog from "./DeleteDialog";
 import EmptyState from "./EmptyState";
 import LoadingState from "./LoadingState";
-import { MOCK_USERS } from "../api/mockUsers";
-import { getUserStatus, type User } from "../types/user";
+import { UploadEmployeeDialog } from "../../teamManagement/components/dialog/UploadEmployeeDialog";
+import { useGetCreateUserDropdownsQuery } from "../../teamManagement/api/teamManagement.api";
+import { useGetOrgHierarchyByUserQuery } from "../../orgHierarchy/api/orgHierarchy.api";
+import { useGetUsersQuery, useLazyGetUsersQuery } from "../api/userManagementApi";
+import { getUserStatus, mapUserListItem, type User } from "../types/user";
 
 const ROWS_PER_PAGE_OPTIONS = [6, 12, 24, 50];
-
-function parseJoinedDate(joinedDate: string): number {
-  const d = new Date(`1 ${joinedDate}`);
-  return Number.isNaN(d.getTime()) ? 0 : d.getTime();
-}
-
-const ROLE_RANK: Record<User["role"], number> = {
-  "Super Admin": 0,
-  "Team Lead": 1,
-  "Team Member": 2,
-};
+// Large enough to cover any realistic filtered result set in one request for
+// CSV export, without paging through the UI's normal page size.
+const EXPORT_FETCH_SIZE = 5000;
 
 export default function UserManagement() {
-  // ── Core state (search/filter/pagination/CRUD — same shape as before, additive fields only) ──
-  const [users, setUsers] = useState<User[]>(MOCK_USERS);
+  const authUser = useAppSelector((s) => s.auth.user);
+  const actorUserId = Number(authUser?.userId ?? 0);
+
+  // ── Core state (search/filter/pagination/CRUD) ──────────────────────────
   const [filters, setFilters] = useState<UserFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(6);
@@ -53,15 +51,76 @@ export default function UserManagement() {
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<User[] | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [activeUser, setActiveUser] = useState<User | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [activeUserId, setActiveUserId] = useState<number | null>(null);
 
-  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const theme = useTheme();
   // Below `sm` (phones), the table has no room even with column-hiding, so fall
   // back to the card grid. From `sm` up, UserTable folds columns by priority.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  // ── Live data ────────────────────────────────────────────────────────────
+  const queryArgs = useMemo(
+    () => ({
+      search: filters.search || undefined,
+      roleCode: filters.roleCode === "All" ? undefined : filters.roleCode,
+      functionId: filters.functionId === "All" ? undefined : filters.functionId,
+      status: filters.statusFilter === "All" ? undefined : filters.statusFilter.toUpperCase(),
+      page: page - 1,
+      size: rowsPerPage,
+    }),
+    [filters, page, rowsPerPage],
+  );
+
+  const { data, isLoading, isFetching, refetch } = useGetUsersQuery(queryArgs);
+  const [triggerExportFetch] = useLazyGetUsersQuery();
+
+  const { data: hierarchyData } = useGetOrgHierarchyByUserQuery();
+  const { data: dropdowns } = useGetCreateUserDropdownsQuery();
+
+  const departmentOptions = useMemo(
+    () => (hierarchyData?.data?.teamFunction ?? []).map((f) => ({ value: f.id, label: f.name })),
+    [hierarchyData],
+  );
+  const roleOptions = dropdowns?.roleCode ?? [];
+
+  const users = useMemo(() => (data?.page.content ?? []).map(mapUserListItem), [data]);
+
+  // Client-side re-sort of the current server-fetched page only (search,
+  // role/department/status, and pagination are all server-side - the SP has
+  // no sort parameter, so this just reorders what's already on screen).
+  const sorted = useMemo(() => {
+    const list = [...users];
+    list.sort((a, b) => {
+      switch (filters.sortBy) {
+        case "name-asc":
+          return a.name.localeCompare(b.name);
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "joined-new":
+          return (b.joinedDate ?? "").localeCompare(a.joinedDate ?? "");
+        case "joined-old":
+          return (a.joinedDate ?? "").localeCompare(b.joinedDate ?? "");
+        case "role":
+          return (a.role ?? "").localeCompare(b.role ?? "");
+        default:
+          return 0;
+      }
+    });
+    return list;
+  }, [users, filters.sortBy]);
+
+  const totalElements = data?.page.totalElements ?? 0;
+  const totalPages = Math.max(1, data?.page.totalPages ?? 1);
+  const clampedPage = Math.min(page, totalPages);
+
+  const hasActiveFilters =
+    filters.search !== "" ||
+    filters.roleCode !== "All" ||
+    filters.functionId !== "All" ||
+    filters.statusFilter !== "All";
 
   const handleFilterChange = useCallback((patch: Partial<UserFilters>) => {
     setFilters((prev) => ({ ...prev, ...patch }));
@@ -73,206 +132,68 @@ export default function UserManagement() {
     setPage(1);
   }, []);
 
-  const departments = useMemo(
-    () => Array.from(new Set(users.map((u) => u.function))).sort(),
-    [users],
-  );
-  const managers = useMemo(
-    () =>
-      Array.from(
-        new Set(users.filter((u) => u.role !== "Team Member").map((u) => u.name)),
-      ).sort(),
-    [users],
-  );
-
-  const filtered = useMemo(() => {
-    const list = users.filter((u) => {
-      const q = filters.search.toLowerCase();
-      const matchSearch =
-        !q ||
-        u.name.toLowerCase().includes(q) ||
-        u.employeeId.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q);
-      const matchRole = filters.roleFilter === "All" || u.role === filters.roleFilter;
-      const matchDept = filters.deptFilter === "All" || u.function === filters.deptFilter;
-      const matchStatus =
-        filters.statusFilter === "All" || getUserStatus(u) === filters.statusFilter;
-
-      let matchDate = true;
-      if (filters.dateFrom || filters.dateTo) {
-        const joined = parseJoinedDate(u.joinedDate);
-        if (filters.dateFrom) matchDate = matchDate && joined >= filters.dateFrom.startOf("day").valueOf();
-        if (filters.dateTo) matchDate = matchDate && joined <= filters.dateTo.endOf("day").valueOf();
-      }
-
-      return matchSearch && matchRole && matchDept && matchStatus && matchDate;
-    });
-
-    const sorted = [...list].sort((a, b) => {
-      switch (filters.sortBy) {
-        case "name-asc":
-          return a.name.localeCompare(b.name);
-        case "name-desc":
-          return b.name.localeCompare(a.name);
-        case "joined-new":
-          return parseJoinedDate(b.joinedDate) - parseJoinedDate(a.joinedDate);
-        case "joined-old":
-          return parseJoinedDate(a.joinedDate) - parseJoinedDate(b.joinedDate);
-        case "role":
-          return ROLE_RANK[a.role] - ROLE_RANK[b.role];
-        default:
-          return 0;
-      }
-    });
-
-    return sorted;
-  }, [users, filters]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / rowsPerPage));
-  const clampedPage = Math.min(page, totalPages);
-  const paginated = useMemo(
-    () => filtered.slice((clampedPage - 1) * rowsPerPage, clampedPage * rowsPerPage),
-    [filtered, clampedPage, rowsPerPage],
-  );
-
-  const hasActiveFilters =
-    filters.search !== "" ||
-    filters.roleFilter !== "All" ||
-    filters.deptFilter !== "All" ||
-    filters.statusFilter !== "All" ||
-    !!filters.dateFrom ||
-    !!filters.dateTo;
-
   // ── CRUD handlers ────────────────────────────────────────────────────────
-  const handleDeleteConfirm = () => {
-    if (deleteTarget) setUsers((prev) => prev.filter((u) => u.id !== deleteTarget.id));
-    setDeleteTarget(null);
-  };
-
-  const handleBulkDeleteConfirm = () => {
-    if (bulkDeleteTargets) {
-      const ids = new Set(bulkDeleteTargets.map((u) => u.id));
-      setUsers((prev) => prev.filter((u) => !ids.has(u.id)));
-      toast.success(`Removed ${bulkDeleteTargets.length} users`);
-    }
-    setBulkDeleteTargets(null);
-  };
-
-  const handleAddUser = (input: NewUserInput) => {
-    const nextId = String(Math.max(0, ...users.map((u) => parseInt(u.id, 10) || 0)) + 1);
-    const newUser: User = {
-      id: nextId,
-      name: input.name,
-      employeeId: input.employeeId,
-      email: input.email,
-      phone: input.phone || undefined,
-      function: input.function || "Unassigned",
-      manager: input.manager || undefined,
-      role: input.role,
-      joinedDate: dayjs().format("MMM YYYY"),
-      active: true,
-      permissions: input.permissions,
-    };
-    setUsers((prev) => [newUser, ...prev]);
-    toast.success(`${newUser.name} added successfully`);
-  };
-
   const handleResetPassword = (u: User) => {
-    toast.info(`Password reset link sent to ${u.email}`);
+    toast.info(`Password reset is managed by IT support for ${u.email}`);
   };
 
   const handleRefresh = () => {
     setRefreshing(true);
-    setTimeout(() => setRefreshing(false), 700);
+    refetch().finally(() => setRefreshing(false));
   };
 
-  const handleExport = () => {
-    const header = "Name,Employee ID,Email,Department,Role,Status,Joined Date\n";
-    const rows = filtered
-      .map((u) =>
-        [u.name, u.employeeId, u.email, u.function, u.role, getUserStatus(u), u.joinedDate]
-          .map((v) => `"${String(v).replace(/"/g, '""')}"`)
-          .join(","),
-      )
-      .join("\n");
-    const blob = new Blob([header + rows], { type: "text/csv;charset=utf-8;" });
-    saveAs(blob, `users-export-${dayjs().format("YYYY-MM-DD")}.csv`);
-    toast.success("Export ready — download started");
-  };
-
-  const handleImport = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".csv";
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.onload = () => {
-        const text = String(reader.result ?? "");
-        const lines = text.split(/\r?\n/).filter(Boolean).slice(1);
-        const imported: User[] = [];
-        let nextId = Math.max(0, ...users.map((u) => parseInt(u.id, 10) || 0));
-        for (const line of lines) {
-          const cols = line.split(",").map((c) => c.replace(/^"|"$/g, "").trim());
-          if (cols.length < 3 || !cols[0]) continue;
-          nextId += 1;
-          imported.push({
-            id: String(nextId),
-            name: cols[0],
-            employeeId: cols[1] || `IMP${nextId}`,
-            email: cols[2] || "",
-            function: cols[3] || "Unassigned",
-            role: (["Super Admin", "Team Lead", "Team Member"].includes(cols[4])
-              ? cols[4]
-              : "Team Member") as User["role"],
-            joinedDate: dayjs().format("MMM YYYY"),
-            active: true,
-          });
-        }
-        if (imported.length) {
-          setUsers((prev) => [...imported, ...prev]);
-          toast.success(`Imported ${imported.length} users`);
-        } else {
-          toast.warning("No valid rows found in file");
-        }
-      };
-      reader.readAsText(file);
-    };
-    input.click();
+  const handleExport = async () => {
+    try {
+      const result = await triggerExportFetch({ ...queryArgs, page: 0, size: EXPORT_FETCH_SIZE }).unwrap();
+      const rows = result.page.content.map(mapUserListItem);
+      const header = "Name,OLM ID,Email,Department,Role,Status,Joined Date\n";
+      const body = rows
+        .map((u) =>
+          [u.name, u.employeeId, u.email, u.function, u.role, getUserStatus(u), u.joinedDate ?? ""]
+            .map((v) => `"${String(v).replace(/"/g, '""')}"`)
+            .join(","),
+        )
+        .join("\n");
+      const blob = new Blob([header + body], { type: "text/csv;charset=utf-8;" });
+      saveAs(blob, `users-export-${dayjs().format("YYYY-MM-DD")}.csv`);
+      toast.success("Export ready — download started");
+    } catch {
+      toast.error("Failed to export users");
+    }
   };
 
   return (
     <Box sx={{ pb: { xs: 9, md: 1 } }}>
       <DashboardHeader
         onAddUser={() => setAddOpen(true)}
-        onImport={handleImport}
+        onImport={() => setImportOpen(true)}
         onExport={handleExport}
         onRefresh={handleRefresh}
         refreshing={refreshing}
       />
 
-      {loading ? (
+      {isLoading ? (
         <LoadingState />
       ) : (
         <>
-          <StatsSection users={users} />
+          <StatsSection stats={data?.stats} />
 
           <SearchToolbar
             filters={filters}
             onChange={handleFilterChange}
             onReset={handleResetFilters}
-            departments={departments}
+            departments={departmentOptions}
+            roles={roleOptions}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
           />
 
           {viewMode === "list" && !isMobile ? (
             <UserTable
-              users={paginated}
-              onView={setActiveUser}
-              onEdit={setActiveUser}
-              onPermissions={setActiveUser}
+              users={sorted}
+              onView={(u) => setActiveUserId(u.userId)}
+              onEdit={(u) => setActiveUserId(u.userId)}
+              onPermissions={(u) => setActiveUserId(u.userId)}
               onResetPassword={handleResetPassword}
               onDelete={setDeleteTarget}
               onBulkDelete={setBulkDeleteTargets}
@@ -280,7 +201,7 @@ export default function UserManagement() {
               onResetFilters={handleResetFilters}
               hasActiveFilters={hasActiveFilters}
             />
-          ) : paginated.length === 0 ? (
+          ) : sorted.length === 0 && !isFetching ? (
             <EmptyState
               onAddUser={() => setAddOpen(true)}
               onResetFilters={handleResetFilters}
@@ -299,14 +220,14 @@ export default function UserManagement() {
                 gap: 1.5,
               }}
             >
-              {paginated.map((u, i) => (
+              {sorted.map((u, i) => (
                 <UserCard
                   key={u.id}
                   user={u}
                   index={i}
-                  onView={setActiveUser}
-                  onEdit={setActiveUser}
-                  onPermissions={setActiveUser}
+                  onView={(usr) => setActiveUserId(usr.userId)}
+                  onEdit={(usr) => setActiveUserId(usr.userId)}
+                  onPermissions={(usr) => setActiveUserId(usr.userId)}
                   onResetPassword={handleResetPassword}
                   onDelete={setDeleteTarget}
                 />
@@ -340,8 +261,8 @@ export default function UserManagement() {
                 ))}
               </Select>
               <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
-                Showing {filtered.length === 0 ? 0 : (clampedPage - 1) * rowsPerPage + 1}–
-                {Math.min(clampedPage * rowsPerPage, filtered.length)} of {filtered.length} users
+                Showing {totalElements === 0 ? 0 : (clampedPage - 1) * rowsPerPage + 1}–
+                {Math.min(clampedPage * rowsPerPage, totalElements)} of {totalElements} users
               </Typography>
             </Stack>
 
@@ -389,26 +310,40 @@ export default function UserManagement() {
       )}
 
       {/* ── Drawer & Dialogs ── */}
-      <ProfileDrawer user={activeUser} onClose={() => setActiveUser(null)} />
+      <ProfileDrawer
+        userId={activeUserId}
+        actorUserId={actorUserId}
+        onClose={() => setActiveUserId(null)}
+        onUserChanged={refetch}
+      />
 
       <AddUserWizard
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        onSubmit={handleAddUser}
-        departments={departments.length ? departments : ["General"]}
-        managers={managers}
+        actorUserId={actorUserId}
+        onCreated={refetch}
+      />
+
+      <UploadEmployeeDialog
+        open={importOpen}
+        onClose={() => {
+          setImportOpen(false);
+          refetch();
+        }}
       />
 
       <DeleteDialog
         user={deleteTarget}
+        actorUserId={actorUserId}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={handleDeleteConfirm}
+        onDone={refetch}
       />
       <DeleteDialog
         user={null}
-        count={bulkDeleteTargets?.length ?? 0}
+        bulkUsers={bulkDeleteTargets}
+        actorUserId={actorUserId}
         onClose={() => setBulkDeleteTargets(null)}
-        onConfirm={handleBulkDeleteConfirm}
+        onDone={refetch}
       />
     </Box>
   );

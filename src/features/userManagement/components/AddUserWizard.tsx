@@ -1,13 +1,11 @@
-import { useEffect, useState } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
+  Autocomplete,
   FormControl,
-  FormControlLabel,
   IconButton,
   InputLabel,
   MenuItem,
@@ -15,114 +13,210 @@ import {
   Stack,
   TextField,
   Typography,
+  Fade,
 } from "@mui/material";
 import {
   Close,
   Person,
   Work,
-  Security,
+  AccountTree,
   FactCheck,
   CheckCircle,
 } from "@mui/icons-material";
 import { AnimatePresence, motion } from "framer-motion";
+import { toast } from "react-toastify";
 import { AppStepper } from "../../../components/ui/AppStepper/AppStepper";
 import RoleBadge from "./RoleBadge";
-import type { Role } from "../types/user";
-
-export interface NewUserInput {
-  name: string;
-  employeeId: string;
-  email: string;
-  phone: string;
-  function: string;
-  manager: string;
-  role: Role;
-  permissions: string[];
-}
-
-const DEFAULT_VALUES: NewUserInput = {
-  name: "",
-  employeeId: "",
-  email: "",
-  phone: "",
-  function: "",
-  manager: "",
-  role: "Team Member",
-  permissions: [],
-};
-
-const ALL_PERMISSIONS = [
-  "View Reports",
-  "Manage Tasks",
-  "Approve Changes",
-  "User Management",
-  "System Settings",
-];
+import {
+  useAddNewEmployeeMutation,
+  useGetCreateUserDropdownsQuery,
+} from "../../teamManagement/api/teamManagement.api";
+import { useGetOrgHierarchyByUserQuery } from "../../orgHierarchy/api/orgHierarchy.api";
+import type { CreateEmployeeRequest } from "../../teamManagement/types/createUser.types";
+import type { OrgFilterValues } from "../../orgHierarchy/types/orgHierarchy.types";
 
 const STEPS = [
   { id: 1, label: "Basic Info", icon: <Person /> },
-  { id: 2, label: "Department", icon: <Work /> },
-  { id: 3, label: "Permissions", icon: <Security /> },
+  { id: 2, label: "Employment", icon: <Work /> },
+  { id: 3, label: "Hierarchy", icon: <AccountTree /> },
   { id: 4, label: "Review", icon: <FactCheck /> },
 ];
+
+interface BasicForm {
+  olmid: string;
+  employeeName: string;
+  emailId: string;
+  mobileNo: string;
+  employmentType: string;
+  vendorCompany: string;
+  designation: string;
+  jobLevel: string;
+  officeLocation: string;
+  gender: string;
+  deviceVendorCapability: string;
+  dateOfJoining: string;
+  roleCode: string;
+}
+
+const DEFAULT_FORM: BasicForm = {
+  olmid: "",
+  employeeName: "",
+  emailId: "",
+  mobileNo: "",
+  employmentType: "",
+  vendorCompany: "",
+  designation: "",
+  jobLevel: "",
+  officeLocation: "",
+  gender: "MALE",
+  deviceVendorCapability: "",
+  dateOfJoining: "",
+  roleCode: "",
+};
 
 export interface AddUserWizardProps {
   open: boolean;
   onClose: () => void;
-  onSubmit: (user: NewUserInput) => void;
-  departments: string[];
-  managers: string[];
+  actorUserId: number;
+  onCreated: () => void;
 }
 
-export default function AddUserWizard({
-  open,
-  onClose,
-  onSubmit,
-  departments,
-  managers,
-}: AddUserWizardProps) {
+export default function AddUserWizard({ open, onClose, actorUserId, onCreated }: AddUserWizardProps) {
   const [activeStep, setActiveStep] = useState(0);
   const [success, setSuccess] = useState(false);
-  const {
-    control,
-    handleSubmit,
-    trigger,
-    reset,
-    watch,
-    formState: { errors },
-  } = useForm<NewUserInput>({ defaultValues: DEFAULT_VALUES, mode: "onBlur" });
+  const [form, setForm] = useState<BasicForm>(DEFAULT_FORM);
+  const [hierarchy, setHierarchy] = useState<OrgFilterValues>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { data: dropdowns, isLoading: dropdownsLoading } = useGetCreateUserDropdownsQuery();
+  const { data: hierarchyData, isLoading: hierarchyLoading } = useGetOrgHierarchyByUserQuery();
+  const [addEmployee, { isLoading: creating }] = useAddNewEmployeeMutation();
 
   useEffect(() => {
     if (!open) {
       setActiveStep(0);
       setSuccess(false);
-      reset(DEFAULT_VALUES);
+      setForm(DEFAULT_FORM);
+      setHierarchy({});
+      setErrors({});
     }
-  }, [open, reset]);
+  }, [open]);
 
-  const values = watch();
+  const set = (key: keyof BasicForm) => (value: string) =>
+    setForm((p) => ({ ...p, [key]: value }));
 
-  const handleNext = async () => {
-    if (activeStep === 0) {
-      const ok = await trigger(["name", "employeeId", "email"]);
-      if (!ok) return;
+  const verticals = hierarchyData?.data?.verticals ?? [];
+  const functions = hierarchyData?.data?.teamFunction ?? [];
+  const domains = hierarchyData?.data?.domains ?? [];
+  const subDomains = hierarchyData?.data?.subDomains ?? [];
+
+  const verticalOpts = useMemo(() => verticals.map((v) => ({ label: v.name, value: v.id })), [verticals]);
+  const functionOpts = useMemo(
+    () => functions.filter((f) => f.verticalId === hierarchy.vertical).map((f) => ({ label: f.name, value: f.id })),
+    [functions, hierarchy.vertical],
+  );
+  const domainOpts = useMemo(
+    () => domains.filter((d) => d.functionId === hierarchy.teamFunction).map((d) => ({ label: d.name, value: d.id })),
+    [domains, hierarchy.teamFunction],
+  );
+  const subDomainOpts = useMemo(
+    () => subDomains.filter((s) => s.domainId === hierarchy.domain).map((s) => ({ label: s.name, value: s.id })),
+    [subDomains, hierarchy.domain],
+  );
+
+  const handleHierarchyChange = (key: keyof OrgFilterValues, value?: number | null) => {
+    const next: OrgFilterValues = { ...hierarchy };
+    if (!value) delete next[key];
+    else next[key] = value;
+    if (key === "vertical") {
+      delete next.teamFunction;
+      delete next.domain;
+      delete next.subDomain;
     }
-    if (activeStep === 1) {
-      const ok = await trigger(["function", "role"]);
-      if (!ok) return;
+    if (key === "teamFunction") {
+      delete next.domain;
+      delete next.subDomain;
     }
+    if (key === "domain") delete next.subDomain;
+    setHierarchy(next);
+  };
+
+  const validateStep = (step: number): boolean => {
+    const newErrors: Record<string, string> = {};
+    if (step === 0) {
+      if (!/^[A-Za-z0-9]{8}$/.test(form.olmid)) newErrors.olmid = "8 alphanumeric characters";
+      if (!form.employeeName.trim()) newErrors.employeeName = "Required";
+      if (!/^[A-Za-z0-9._%+-]+@airtel\.com$/i.test(form.emailId)) newErrors.emailId = "Must end with @airtel.com";
+      if (!/^[6-9]\d{9}$/.test(form.mobileNo)) newErrors.mobileNo = "10 digits, starting 6–9";
+    }
+    if (step === 1) {
+      (["employmentType", "designation", "jobLevel", "officeLocation", "deviceVendorCapability"] as const).forEach(
+        (f) => {
+          if (!form[f]) newErrors[f] = "Required";
+        },
+      );
+      if (!form.dateOfJoining) newErrors.dateOfJoining = "Required";
+      if (!form.roleCode) newErrors.roleCode = "Required";
+    }
+    if (step === 2) {
+      if (!hierarchy.vertical) newErrors.vertical = "Required";
+      if (!hierarchy.teamFunction) newErrors.teamFunction = "Required";
+      if (!hierarchy.domain) newErrors.domain = "Required";
+      if (!hierarchy.subDomain) newErrors.subDomain = "Required";
+    }
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
+      toast.error("Please fix the highlighted fields before continuing.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleNext = () => {
+    if (!validateStep(activeStep)) return;
     setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
   const handleBack = () => setActiveStep((s) => Math.max(s - 1, 0));
 
-  const submit = handleSubmit((data) => {
-    setSuccess(true);
-    setTimeout(() => {
-      onSubmit(data);
-      onClose();
-    }, 1100);
-  });
+  const submit = async () => {
+    const payload: CreateEmployeeRequest = {
+      actorUserId,
+      olmid: form.olmid,
+      employeeName: form.employeeName,
+      emailId: form.emailId,
+      mobileNo: form.mobileNo,
+      employmentType: form.employmentType,
+      vendorCompany: form.vendorCompany,
+      designation: form.designation,
+      jobLevel: form.jobLevel,
+      officeLocation: form.officeLocation,
+      gender: form.gender as CreateEmployeeRequest["gender"],
+      deviceVendorCapability: form.deviceVendorCapability,
+      dateOfJoining: form.dateOfJoining,
+      verticalId: hierarchy.vertical!,
+      functionId: hierarchy.teamFunction!,
+      domainId: hierarchy.domain!,
+      subDomainId: hierarchy.subDomain!,
+      roleId: 0,
+      roleCode: form.roleCode,
+    };
+    try {
+      const res = await addEmployee(payload).unwrap();
+      if (res.message?.toLowerCase().includes("success")) {
+        setSuccess(true);
+        onCreated();
+        setTimeout(() => onClose(), 1100);
+      } else {
+        toast.error(res.message || "Creation failed");
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to create user.");
+    }
+  };
+
+  const busy = creating || dropdownsLoading || hierarchyLoading;
+  const d = dropdowns;
 
   return (
     <Dialog
@@ -171,7 +265,7 @@ export default function AddUserWizard({
                 User added successfully
               </Typography>
               <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5 }}>
-                {values.name} has been added to your organization.
+                {form.employeeName} has been added to your organization.
               </Typography>
             </Box>
           ) : (
@@ -186,149 +280,201 @@ export default function AddUserWizard({
 
               {activeStep === 0 && (
                 <Stack gap={2}>
-                  <Controller
-                    name="name"
-                    control={control}
-                    rules={{ required: "Full name is required" }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Full Name"
-                        size="small"
-                        fullWidth
-                        error={!!errors.name}
-                        helperText={errors.name?.message}
-                      />
-                    )}
+                  <TextField
+                    label="OLM ID"
+                    size="small"
+                    fullWidth
+                    value={form.olmid}
+                    onChange={(e) => set("olmid")(e.target.value.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8))}
+                    error={!!errors.olmid}
+                    helperText={errors.olmid || "8 alphanumeric characters"}
                   />
-                  <Controller
-                    name="employeeId"
-                    control={control}
-                    rules={{ required: "Employee ID is required" }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Employee ID"
-                        size="small"
-                        fullWidth
-                        error={!!errors.employeeId}
-                        helperText={errors.employeeId?.message}
-                      />
-                    )}
+                  <TextField
+                    label="Full Name"
+                    size="small"
+                    fullWidth
+                    value={form.employeeName}
+                    onChange={(e) => set("employeeName")(e.target.value)}
+                    error={!!errors.employeeName}
+                    helperText={errors.employeeName}
                   />
-                  <Controller
-                    name="email"
-                    control={control}
-                    rules={{
-                      required: "Email is required",
-                      pattern: { value: /^\S+@\S+\.\S+$/, message: "Enter a valid email" },
-                    }}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        label="Email Address"
-                        size="small"
-                        fullWidth
-                        error={!!errors.email}
-                        helperText={errors.email?.message}
-                      />
-                    )}
+                  <TextField
+                    label="Email Address"
+                    size="small"
+                    fullWidth
+                    value={form.emailId}
+                    onChange={(e) => set("emailId")(e.target.value)}
+                    error={!!errors.emailId}
+                    helperText={errors.emailId || "Must be @airtel.com"}
                   />
-                  <Controller
-                    name="phone"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField {...field} label="Phone Number" size="small" fullWidth />
-                    )}
+                  <TextField
+                    label="Mobile Number"
+                    size="small"
+                    fullWidth
+                    value={form.mobileNo}
+                    onChange={(e) => set("mobileNo")(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    error={!!errors.mobileNo}
+                    helperText={errors.mobileNo}
                   />
                 </Stack>
               )}
 
               {activeStep === 1 && (
                 <Stack gap={2}>
-                  <Controller
-                    name="function"
-                    control={control}
-                    rules={{ required: true }}
-                    render={({ field }) => (
-                      <FormControl size="small" fullWidth error={!!errors.function}>
-                        <InputLabel>Department</InputLabel>
-                        <Select {...field} label="Department">
-                          {departments.map((d) => (
-                            <MenuItem key={d} value={d}>
-                              {d}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                  <Autocomplete
+                    size="small"
+                    options={d?.employmentTypes ?? []}
+                    value={form.employmentType || null}
+                    onChange={(_, v) => set("employmentType")(v ?? "")}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Employment Type" error={!!errors.employmentType} helperText={errors.employmentType} />
                     )}
                   />
-                  <Controller
-                    name="manager"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl size="small" fullWidth>
-                        <InputLabel>Manager</InputLabel>
-                        <Select {...field} label="Manager">
-                          <MenuItem value="">— None —</MenuItem>
-                          {managers.map((m) => (
-                            <MenuItem key={m} value={m}>
-                              {m}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
+                  <Autocomplete
+                    size="small"
+                    options={d?.vendorCompanies ?? []}
+                    value={form.vendorCompany || null}
+                    freeSolo
+                    onChange={(_, v) => set("vendorCompany")(v ?? "")}
+                    onInputChange={(_, v) => set("vendorCompany")(v)}
+                    renderInput={(params) => <TextField {...params} label="Vendor Company" />}
+                  />
+                  <Autocomplete
+                    size="small"
+                    options={d?.designations ?? []}
+                    value={form.designation || null}
+                    freeSolo
+                    onChange={(_, v) => set("designation")(v ?? "")}
+                    onInputChange={(_, v) => set("designation")(v)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Designation" error={!!errors.designation} helperText={errors.designation} />
                     )}
                   />
-                  <Controller
-                    name="role"
-                    control={control}
-                    render={({ field }) => (
-                      <FormControl size="small" fullWidth>
-                        <InputLabel>Role</InputLabel>
-                        <Select {...field} label="Role">
-                          <MenuItem value="Team Member">Team Member</MenuItem>
-                          <MenuItem value="Team Lead">Team Lead</MenuItem>
-                          <MenuItem value="Super Admin">Super Admin</MenuItem>
-                        </Select>
-                      </FormControl>
+                  <Autocomplete
+                    size="small"
+                    options={d?.jobLevels ?? []}
+                    value={form.jobLevel || null}
+                    onChange={(_, v) => set("jobLevel")(v ?? "")}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Job Level" error={!!errors.jobLevel} helperText={errors.jobLevel} />
+                    )}
+                  />
+                  <Autocomplete
+                    size="small"
+                    options={d?.officeLocations ?? []}
+                    value={form.officeLocation || null}
+                    freeSolo
+                    onChange={(_, v) => set("officeLocation")(v ?? "")}
+                    onInputChange={(_, v) => set("officeLocation")(v)}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Office Location" error={!!errors.officeLocation} helperText={errors.officeLocation} />
+                    )}
+                  />
+                  <Autocomplete
+                    size="small"
+                    options={d?.deviceVendorCapabilities ?? []}
+                    value={form.deviceVendorCapability || null}
+                    freeSolo
+                    onChange={(_, v) => set("deviceVendorCapability")(v ?? "")}
+                    onInputChange={(_, v) => set("deviceVendorCapability")(v)}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Device Vendor Capability"
+                        error={!!errors.deviceVendorCapability}
+                        helperText={errors.deviceVendorCapability}
+                      />
+                    )}
+                  />
+                  <FormControl size="small" fullWidth>
+                    <InputLabel>Gender</InputLabel>
+                    <Select value={form.gender} label="Gender" onChange={(e) => set("gender")(e.target.value)}>
+                      <MenuItem value="MALE">Male</MenuItem>
+                      <MenuItem value="FEMALE">Female</MenuItem>
+                      <MenuItem value="OTHER">Other</MenuItem>
+                    </Select>
+                  </FormControl>
+                  <TextField
+                    type="date"
+                    label="Date of Joining"
+                    size="small"
+                    fullWidth
+                    InputLabelProps={{ shrink: true }}
+                    value={form.dateOfJoining}
+                    onChange={(e) => set("dateOfJoining")(e.target.value)}
+                    error={!!errors.dateOfJoining}
+                    helperText={errors.dateOfJoining}
+                  />
+                  <Autocomplete
+                    size="small"
+                    options={d?.roleCode ?? []}
+                    value={form.roleCode || null}
+                    onChange={(_, v) => set("roleCode")(v ?? "")}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Role" error={!!errors.roleCode} helperText={errors.roleCode} />
                     )}
                   />
                 </Stack>
               )}
 
               {activeStep === 2 && (
-                <Stack gap={0.5}>
-                  <Typography sx={{ fontSize: 12.5, color: "text.secondary", mb: 1 }}>
-                    Select the permissions and groups this user should have access to.
-                  </Typography>
-                  <Controller
-                    name="permissions"
-                    control={control}
-                    render={({ field }) => (
-                      <>
-                        {ALL_PERMISSIONS.map((p) => (
-                          <FormControlLabel
-                            key={p}
-                            control={
-                              <Checkbox
-                                size="small"
-                                checked={field.value.includes(p)}
-                                onChange={(e) => {
-                                  field.onChange(
-                                    e.target.checked
-                                      ? [...field.value, p]
-                                      : field.value.filter((v) => v !== p),
-                                  );
-                                }}
-                              />
-                            }
-                            label={<Typography sx={{ fontSize: 13.5 }}>{p}</Typography>}
-                          />
-                        ))}
-                      </>
+                <Stack gap={2}>
+                  <Autocomplete
+                    size="small"
+                    options={verticalOpts}
+                    loading={hierarchyLoading}
+                    value={verticalOpts.find((v) => v.value === hierarchy.vertical) || null}
+                    onChange={(_, v) => handleHierarchyChange("vertical", v?.value)}
+                    isOptionEqualToValue={(a, b) => a.value === b.value}
+                    renderInput={(params) => (
+                      <TextField {...params} label="Vertical" error={!!errors.vertical} helperText={errors.vertical} />
                     )}
                   />
+                  <Fade in={!!hierarchy.vertical}>
+                    <Box>
+                      <Autocomplete
+                        size="small"
+                        options={functionOpts}
+                        disabled={!hierarchy.vertical}
+                        value={functionOpts.find((f) => f.value === hierarchy.teamFunction) || null}
+                        onChange={(_, v) => handleHierarchyChange("teamFunction", v?.value)}
+                        isOptionEqualToValue={(a, b) => a.value === b.value}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Team Function" error={!!errors.teamFunction} helperText={errors.teamFunction} />
+                        )}
+                      />
+                    </Box>
+                  </Fade>
+                  <Fade in={!!hierarchy.teamFunction}>
+                    <Box>
+                      <Autocomplete
+                        size="small"
+                        options={domainOpts}
+                        disabled={!hierarchy.teamFunction}
+                        value={domainOpts.find((dm) => dm.value === hierarchy.domain) || null}
+                        onChange={(_, v) => handleHierarchyChange("domain", v?.value)}
+                        isOptionEqualToValue={(a, b) => a.value === b.value}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Domain" error={!!errors.domain} helperText={errors.domain} />
+                        )}
+                      />
+                    </Box>
+                  </Fade>
+                  <Fade in={!!hierarchy.domain}>
+                    <Box>
+                      <Autocomplete
+                        size="small"
+                        options={subDomainOpts}
+                        disabled={!hierarchy.domain}
+                        value={subDomainOpts.find((sd) => sd.value === hierarchy.subDomain) || null}
+                        onChange={(_, v) => handleHierarchyChange("subDomain", v?.value)}
+                        isOptionEqualToValue={(a, b) => a.value === b.value}
+                        renderInput={(params) => (
+                          <TextField {...params} label="Sub Domain" error={!!errors.subDomain} helperText={errors.subDomain} />
+                        )}
+                      />
+                    </Box>
+                  </Fade>
                 </Stack>
               )}
 
@@ -338,12 +484,15 @@ export default function AddUserWizard({
                     REVIEW DETAILS
                   </Typography>
                   {[
-                    ["Full Name", values.name || "—"],
-                    ["Employee ID", values.employeeId || "—"],
-                    ["Email", values.email || "—"],
-                    ["Phone", values.phone || "—"],
-                    ["Department", values.function || "—"],
-                    ["Manager", values.manager || "—"],
+                    ["Full Name", form.employeeName || "—"],
+                    ["OLM ID", form.olmid || "—"],
+                    ["Email", form.emailId || "—"],
+                    ["Mobile", form.mobileNo || "—"],
+                    ["Designation", form.designation || "—"],
+                    ["Vertical", verticalOpts.find((v) => v.value === hierarchy.vertical)?.label ?? "—"],
+                    ["Team Function", functionOpts.find((f) => f.value === hierarchy.teamFunction)?.label ?? "—"],
+                    ["Domain", domainOpts.find((dm) => dm.value === hierarchy.domain)?.label ?? "—"],
+                    ["Sub Domain", subDomainOpts.find((sd) => sd.value === hierarchy.subDomain)?.label ?? "—"],
                   ].map(([label, val]) => (
                     <Stack key={label} direction="row" justifyContent="space-between">
                       <Typography sx={{ fontSize: 13, color: "text.secondary" }}>{label}</Typography>
@@ -352,13 +501,7 @@ export default function AddUserWizard({
                   ))}
                   <Stack direction="row" justifyContent="space-between" alignItems="center">
                     <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Role</Typography>
-                    <RoleBadge role={values.role} size="small" />
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
-                    <Typography sx={{ fontSize: 13, color: "text.secondary" }}>Permissions</Typography>
-                    <Typography sx={{ fontSize: 13, fontWeight: 600, textAlign: "right", maxWidth: 220 }}>
-                      {values.permissions.length ? values.permissions.join(", ") : "None"}
-                    </Typography>
+                    <RoleBadge role={form.roleCode} size="small" />
                   </Stack>
                 </Stack>
               )}
@@ -378,11 +521,7 @@ export default function AddUserWizard({
             {activeStep === 0 ? "Cancel" : "Back"}
           </Button>
           {activeStep < STEPS.length - 1 ? (
-            <Button
-              onClick={handleNext}
-              variant="contained"
-              sx={{ borderRadius: "10px", fontWeight: 700 }}
-            >
+            <Button onClick={handleNext} variant="contained" sx={{ borderRadius: "10px", fontWeight: 700 }}>
               Next
             </Button>
           ) : (
@@ -390,6 +529,7 @@ export default function AddUserWizard({
               onClick={submit}
               variant="contained"
               color="success"
+              disabled={busy}
               startIcon={<CheckCircle sx={{ fontSize: 18 }} />}
               sx={{ borderRadius: "10px", fontWeight: 700 }}
             >

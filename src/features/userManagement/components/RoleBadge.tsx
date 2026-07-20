@@ -1,14 +1,14 @@
 import { Box, Typography } from "@mui/material";
-import { ROLE_CONFIG, type Role } from "../types/user";
+import { getRoleConfig } from "../types/user";
 
 export default function RoleBadge({
   role,
   size = "medium",
 }: {
-  role: Role;
+  role: string | null | undefined;
   size?: "small" | "medium";
 }) {
-  const { label, gradient, icon: Icon } = ROLE_CONFIG[role];
+  const { label, gradient, color, icon: Icon } = getRoleConfig(role);
   const compact = size === "small";
 
   return (
@@ -21,7 +21,7 @@ export default function RoleBadge({
         py: compact ? 0.3 : 0.45,
         borderRadius: 999,
         background: gradient,
-        boxShadow: `0 2px 8px ${ROLE_CONFIG[role].color}40`,
+        boxShadow: `0 2px 8px ${color}40`,
       }}
     >
       <Icon sx={{ fontSize: compact ? 12 : 14, color: "#fff" }} />
