@@ -36,27 +36,24 @@ export type CabSessionStatus = "live" | "scheduled" | "completed";
 export interface Crq {
   crqNo: string;
   planId: string;
-  domain: Domain;
+  domainName: Domain;
   circleCode: Circle;
   currentStage: CrqStage;
-  slaPercentage: number;
-  impact: ImpactCode;
-  currentStatus: CrqStatus;
   approverName: string;
-  assignStartTime: string;    
-  window: string;    
-  raisedBy: string;
-  raisedOn: string;
+  assignStartTime: string;
+  currentStatus: CrqStatus;
+  slaPercentage: number;
   assignedToMe: boolean;
+  raisedBy: string;
 }
 
 // ── Filters used by All CRQs ─────────────────────────────────────────────────
 export interface CrqFilters {
-  stage?: CrqStage | "all";
-  domain?: Domain | "all";
-  circle?: Circle | "all";
-  impact?: ImpactCode | "all";
-  status?: "all" | "active" | "escalated" | "delegated" | "rejected";
+  stage?: CrqStage | "All Stages";
+  domain?: Domain | "All Domains";
+  circle?: Circle | "All Circles";
+  impact?: ImpactCode | "All Impact";
+  status?: "All Status" | "active" | "escalated" | "delegated" | "rejected";
   search?: string;
 }
 
@@ -76,13 +73,19 @@ export interface StageBar {
   pct: number;
 }
 
+export interface EscalationItem {
+  id: string;
+  activity: string;
+  sla: number;
+}
+
 export interface DashboardData {
   title: string;
   subtitle: string;
   totalCount: number;
   kpis: DashboardKpi[];
   stageBars: StageBar[];
-  escalations: Pick<Crq, "id" | "activity" | "sla">[];
+  escalations: EscalationItem[];
 }
 
 // ── My CRQs ─────────────────────────────────────────────────────────────────
@@ -137,6 +140,7 @@ export interface CabQueueRow {
   id: string;
   activity: string;
   impact: ImpactCode;
+  b2b: boolean;
   critical: "Critical" | "Moderate" | "Routine";
   domain: Domain;
   window: string;
@@ -170,6 +174,7 @@ export interface CabAgendaItem {
   stage: CrqStage;
   domain: Domain;
   impact: ImpactCode;
+  hostname: string;
 }
 
 export interface CabSessionDetail {
@@ -268,12 +273,15 @@ export interface AuditEntry {
 // ── Mutation payloads ───────────────────────────────────────────────────────
 export interface PlanCabPayload      { crqIds: string[]; date: string; type: CabSession["type"]; host: string; }
 export interface NewCrqPayload {
+  activity: string;
   domain: Domain;
-  circleCode: Circle;
+  circle: Circle;
   impact: ImpactCode;
-  assignStartTime: string;
+  technology: string;
+  scheduled: string;
   window: string;
-
+  hostname: string;
+  impactedParties: string[];
 }
 
 export interface AssignSpocPayload { crqId: string; spoc: string; }

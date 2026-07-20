@@ -3,7 +3,6 @@ import {
   Box,
   Button,
   Chip,
-  IconButton,
   MenuItem,
   Paper,
   Stack,
@@ -17,13 +16,12 @@ import {
   useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
-import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetAllCrqsQuery } from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
-import { ImpactChip, SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
+import { SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
 import type {
@@ -32,16 +30,25 @@ import type {
 
 const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"];
 
-const STAGE_FILTERS: { label: string; value: CrqStage | "all" }[] = [
-  { label: "All Stages", value: "all" },
+const STAGE_FILTERS: { label: string; value: CrqStage | "All Stages" }[] = [
+  { label: "All Stages", value: "All Stages" },
   ...STAGES.map((s) => ({ label: s, value: s as CrqStage })),
 ];
+
+const DEFAULT_FILTERS: CrqFilters = {
+  stage: "All Stages",
+  domain: "All Domains",
+  circle: "All Circles",
+  impact: "All Impact",
+  status: "All Status",
+  search: "All Search",
+};
 
 export function AllCrqsPage() {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const [filters, setFilters] = useState<CrqFilters>({});
+  const [filters, setFilters] = useState<CrqFilters>(DEFAULT_FILTERS);
   const [selected, setSelected] = useState<string | null>(null);
   // const [openNew, setOpenNew] = useState(false);
 
@@ -51,14 +58,17 @@ export function AllCrqsPage() {
     setFilters((f) => ({ ...f, [k]: v }));
 
   const hasActiveFilters = useMemo(
-    () => Object.values(filters).some((v) => v !== undefined && v !== "" && v !== "all"),
+    () =>
+      (Object.keys(DEFAULT_FILTERS) as (keyof CrqFilters)[]).some(
+        (k) => filters[k] !== DEFAULT_FILTERS[k]
+      ),
     [filters]
   );
 
   const columns = useMemo<MRT_ColumnDef<Crq>[]>(
     () => [
       {
-        accessorKey: "id",
+        accessorKey: "crqNo",
         header: "CRQ ID",
         size: 130,
         Cell: ({ row }) => (
@@ -70,23 +80,20 @@ export function AllCrqsPage() {
         ),
       },
       {
-        accessorKey: "domain",
+        accessorKey: "domainName",
         header: "Domain",
         size: 150,
         Cell: ({ row }) => (
           <Box>
-            <Typography variant="body2">{row.original.domain}</Typography>
-            <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Circle {row.original.circleCode} ·
-              </Typography>
-              <ImpactChip impact={row.original.impact} />
-            </Stack>
+            <Typography variant="body2">{row.original.domainName}</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              Circle {row.original.circleCode}
+            </Typography>
           </Box>
         ),
       },
       {
-        accessorKey: "stage",
+        accessorKey: "currentStage",
         header: "Stage",
         size: 130,
         filterVariant: "select",
@@ -94,34 +101,29 @@ export function AllCrqsPage() {
         Cell: ({ cell }) => <StageChip stage={cell.getValue<CrqStage>()} />,
       },
       {
-        accessorKey: "sla",
+        accessorKey: "slaPercentage",
         header: "SLA",
         size: 130,
         Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
       },
       {
-        accessorKey: "approver",
+        accessorKey: "approverName",
         header: "Approver",
         size: 130,
       },
       {
-        accessorKey: "scheduled",
+        accessorKey: "assignStartTime",
         header: "Scheduled",
         size: 120,
         Cell: ({ row }) => (
-          <Box>
-            <Typography variant="body2">{row.original.assignStartTime}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
-              {row.original.window}
-            </Typography>
-          </Box>
+          <Typography variant="body2">{row.original.assignStartTime}</Typography>
         ),
       },
       {
-        accessorKey: "status",
+        accessorKey: "currentStatus",
         header: "Status",
         size: 130,
-        Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["status"]>()} />,
+        Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["currentStatus"]>()} />,
       },
     ],
     [navigate],
@@ -190,7 +192,7 @@ export function AllCrqsPage() {
         <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", flexWrap: "wrap", gap: 1.5, alignItems: "center" }}>
           <Stack direction="row" spacing={0.5}>
             {STAGE_FILTERS.map((s) => {
-              const active = (filters.stage ?? "all") === s.value;
+              const active = (filters.stage ?? "All Stages") === s.value;
               return (
                 <Chip
                   key={s.value}
@@ -204,29 +206,29 @@ export function AllCrqsPage() {
             })}
           </Stack>
           <Box sx={{ width: 1, height: 20, bgcolor: "divider", mx: 0.5 }} />
-          <TextField select size="small" label="Domain" value={filters.domain ?? "all"} onChange={(e) => setF("domain", e.target.value as Domain)} sx={{ minWidth: 140 }}>
-            <MenuItem value="all">All Domains</MenuItem>
+          <TextField select size="small" label="Domain" value={filters.domain ?? "All Domains"} onChange={(e) => setF("domain", e.target.value as Domain)} sx={{ minWidth: 140 }}>
+            <MenuItem value="All Domains">All Domains</MenuItem>
             {DOMAINS.map((d) => <MenuItem key={d} value={d}>{d}</MenuItem>)}
           </TextField>
-          <TextField select size="small" label="Circle" value={filters.circle ?? "all"} onChange={(e) => setF("circle", e.target.value as Circle)} sx={{ minWidth: 130 }}>
-            <MenuItem value="all">All Circles</MenuItem>
+          <TextField select size="small" label="Circle" value={filters.circle ?? "All Circles"} onChange={(e) => setF("circle", e.target.value as Circle)} sx={{ minWidth: 130 }}>
+            <MenuItem value="All Circles">All Circles</MenuItem>
             {ASSIGN_CIRCLES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
           </TextField>
-          <TextField select size="small" label="Impact" value={filters.impact ?? "all"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
-            <MenuItem value="all">All Impact</MenuItem>
+          <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
+            <MenuItem value="All Impact">All Impact</MenuItem>
             <MenuItem value="SA">SA — Service Affecting</MenuItem>
             <MenuItem value="NSA">NSA — Non Service Affecting</MenuItem>
           </TextField>
-          <TextField select size="small" label="Status" value={filters.status ?? "all"} onChange={(e) => setF("status", e.target.value as CrqFilters["status"])} sx={{ minWidth: 140 }}>
-            <MenuItem value="all">All Status</MenuItem>
+          <TextField select size="small" label="Status" value={filters.status ?? "All Status"} onChange={(e) => setF("status", e.target.value as CrqFilters["status"])} sx={{ minWidth: 140 }}>
+            <MenuItem value="All Status">All Status</MenuItem>
             <MenuItem value="active">Active CRQs</MenuItem>
             <MenuItem value="escalated">Escalated CRQs</MenuItem>
             <MenuItem value="delegated">Delegated CRQs</MenuItem>
             <MenuItem value="rejected">Rejected CRQs</MenuItem>
           </TextField>
-          <TextField size="small" placeholder="Search CRQ, hostname, approver…" value={filters.search ?? ""} onChange={(e) => setF("search", e.target.value)} sx={{ minWidth: 240, flex: 1 }} />
+          <TextField size="small" placeholder="Search CRQ, hostname, approver…" value={filters.search ?? "All Search"} onChange={(e) => setF("search", e.target.value)} sx={{ minWidth: 240, flex: 1 }} />
           {hasActiveFilters && (
-            <Button size="small" onClick={() => setFilters({})}>Clear</Button>
+            <Button size="small" onClick={() => setFilters(DEFAULT_FILTERS)}>Clear</Button>
           )}
           <Typography variant="caption" sx={{ color: "text.secondary", ml: "auto" }}>
             <Box component="span" sx={{ fontWeight: 500, color: "text.primary" }}>{data?.length ?? 0}</Box> of {data?.length ?? 0} CRQs

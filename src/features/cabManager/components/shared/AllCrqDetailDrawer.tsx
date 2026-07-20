@@ -49,7 +49,7 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
         {data && (
           <>
             <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
-              Raised by <Box component="span" sx={{ color: "text.primary" }}>{data.raisedBy}</Box> · {data.raisedOn}
+              Raised by <Box component="span" sx={{ color: "text.primary" }}>{data.raisedBy}</Box>
             </Typography>
           </>
         )}
@@ -77,16 +77,18 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
             </Typography>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 3 }}>
               {[
-                ["Domain",     data.domain],
+                ["Domain",     data.domainName],
                 ["Circle",     data.circleCode],
-                ["Impact",     data.impact],
+                ["Plan ID",    data.planId],
                 ["Stage",      <StageChip key="s" stage={data.currentStage} />],
+                ["Approver",   data.approverName],
                 ["Scheduled",  data.assignStartTime],
-                ["Window",     data.window],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>
-                  {typeof v === "string" ? <Typography variant="body2">{v}</Typography> : v}
+                  {typeof v === "string" || v === null || v === undefined
+                    ? <Typography variant="body2">{v || "—"}</Typography>
+                    : v}
                 </Box>
               ))}
             </Box>

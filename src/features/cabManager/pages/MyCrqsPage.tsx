@@ -14,7 +14,7 @@ import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
 import { useState } from "react";
 import { useGetMyCrqsQuery } from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
-import { StageChip } from "../components/shared/Chips";
+import { StageChip, StatusChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 
 export function MyCrqsPage() {
@@ -60,34 +60,28 @@ export function MyCrqsPage() {
           <TableHead>
             <TableRow sx={{ bgcolor: "#FAFAFA" }}>
               <TableCell>CRQ ID</TableCell>
-              <TableCell>Activity</TableCell>
               <TableCell>Stage</TableCell>
+              <TableCell>Approver</TableCell>
               <TableCell>Scheduled</TableCell>
-              <TableCell>SPOC</TableCell>
-              <TableCell>Field Engineer</TableCell>
+              <TableCell>Status</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {data.rows.length === 0 ? (
-              <TableRow><TableCell colSpan={6} align="center" sx={{ py: 6, color: "text.secondary" }}>No CRQs assigned to you right now.</TableCell></TableRow>
+              <TableRow><TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.secondary" }}>No CRQs assigned to you right now.</TableCell></TableRow>
             ) : (
               data.rows.map((r) => (
-                <TableRow key={r.id} hover sx={{ cursor: "pointer" }} onClick={() => setSelected(r.id)}>
+                <TableRow key={r.crqNo} hover sx={{ cursor: "pointer" }} onClick={() => setSelected(r.crqNo)}>
                   <TableCell sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>
-                    {r.id}
-                    <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>{r.domain} · {r.circle}</Typography>
+                    {r.crqNo}
+                    <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>{r.domainName} · {r.circleCode}</Typography>
                   </TableCell>
+                  <TableCell><StageChip stage={r.currentStage} /></TableCell>
+                  <TableCell>{r.approverName}</TableCell>
                   <TableCell>
-                    <Typography variant="body2">{r.activity}</Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{r.hostname}</Typography>
+                    <Typography variant="body2">{r.assignStartTime}</Typography>
                   </TableCell>
-                  <TableCell><StageChip stage={r.stage} /></TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{r.scheduled}</Typography>
-                    <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{r.window}</Typography>
-                  </TableCell>
-                  <TableCell>{r.spoc ?? <Typography variant="caption" sx={{ color: "text.secondary" }}>Unassigned</Typography>}</TableCell>
-                  <TableCell>{r.fieldEngineer ?? <Typography variant="caption" sx={{ color: "text.secondary" }}>Unassigned</Typography>}</TableCell>
+                  <TableCell><StatusChip status={r.currentStatus} /></TableCell>
                 </TableRow>
               ))
             )}

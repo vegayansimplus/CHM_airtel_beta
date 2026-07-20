@@ -2,11 +2,13 @@ import { Box, Chip } from "@mui/material";
 import type { CrqStage, CrqStatus, ImpactCode } from "../../types/types";
 
 const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
-  Authorization:  { bg: "#E3F2FD", fg: "#1565C0" },
-  Scheduling:     { bg: "#F3E5F5", fg: "#6A1B9A" },
-  Validation:     { bg: "#FFF8E1", fg: "#A06800" },
-  "CAB Review":   { bg: "#FFF4E5", fg: "#C44600" },
-  Implementation: { bg: "#E8F5E9", fg: "#2E7D32" },
+  VALIDATE:             { bg: "#FFF8E1", fg: "#A06800" },
+  IMPACT_ANALYSIS:      { bg: "#E3F2FD", fg: "#1565C0" },
+  MOP_CREATION:         { bg: "#F3E5F5", fg: "#6A1B9A" },
+  MOP_VALIDATION:       { bg: "#F3E5F5", fg: "#6A1B9A" },
+  SCHEDULING_APPROVAL:  { bg: "#FFF4E5", fg: "#C44600" },
+  EXECUTION:            { bg: "#E8F5E9", fg: "#2E7D32" },
+  CLOSURE:              { bg: "#ECEFF1", fg: "#37474F" },
 };
 
 const STATUS_COLOR: Record<CrqStatus, { bg: string; fg: string; label: string }> = {
@@ -16,19 +18,21 @@ const STATUS_COLOR: Record<CrqStatus, { bg: string; fg: string; label: string }>
   delegated: { bg: "#E3F2FD", fg: "#1565C0", label: "Delegated" },
 };
 
+const UNKNOWN_COLOR = { bg: "#F4F5F7", fg: "rgba(0,0,0,0.55)" };
+
 export function StageChip({ stage }: { stage: CrqStage }) {
-  const c = STAGE_COLOR[stage];
+  const c = STAGE_COLOR[stage] ?? UNKNOWN_COLOR;
   return (
     <Chip
       size="small"
-      label={stage}
+      label={stage ?? "Unknown"}
       sx={{ bgcolor: c.bg, color: c.fg, fontWeight: 500, height: 22, fontSize: 12 }}
     />
   );
 }
 
 export function StatusChip({ status }: { status: CrqStatus }) {
-  const c = STATUS_COLOR[status];
+  const c = STATUS_COLOR[status] ?? { ...UNKNOWN_COLOR, label: status ?? "Unknown" };
   return (
     <Box
       component="span"

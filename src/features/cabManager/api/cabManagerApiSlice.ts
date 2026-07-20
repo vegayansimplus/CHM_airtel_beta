@@ -1,10 +1,8 @@
 import {
-  fetchBaseQuery,
   type FetchArgs,
   type QueryReturnValue,
   type FetchBaseQueryError,
   type FetchBaseQueryMeta,
-  type RootState,
 } from "@reduxjs/toolkit/query/react";
 import {
   buildAgenda,
@@ -12,7 +10,7 @@ import {
   buildCabPlanDates,
   buildCabQueue,
   buildDashboard,
-  // buildImplementation,
+  buildImplementation,
   buildJourney,
   buildMyCrqs,
   MOCK_ADMIN_USERS,
@@ -89,38 +87,25 @@ const networkOrMock = async <T>(
 // ── helpers ─────────────────────────────────────────────────────────────────
 const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
   return rows.filter((r) => {
-    if (f.domain && f.domain !== "all" && r.domain !== f.domain) return false;
-    if (f.circle && f.circle !== "all" && r.circleCode !== f.circle) return false;
-    if (f.impact && f.impact !== "all" && r.impact !== f.impact) return false;
-    if (f.stage && f.stage !== "all" && r.currentStage !== f.stage) return false;
-    if (f.status && f.status !== "all") {
+    if (f.domain && f.domain !== "All Domains" && r.domainName !== f.domain) return false;
+    if (f.circle && f.circle !== "All Circles" && r.circleCode !== f.circle) return false;
+    if (f.stage && f.stage !== "All Stages" && r.currentStage !== f.stage) return false;
+    if (f.status && f.status !== "All Status") {
       if (f.status === "active" && r.currentStatus !== "pending") return false;
       if (f.status === "rejected" && r.currentStatus !== "rejected") return false;
       if (f.status === "delegated" && r.currentStatus !== "delegated") return false;
       if (f.status === "escalated" && r.slaPercentage < 80) return false;
     }
-    if (f.search) {
+    if (f.search && f.search !== "All Search") {
       const q = f.search.toLowerCase();
       if (
         !r.crqNo.toLowerCase().includes(q) &&
-        !r.approver.toLowerCase().includes(q)
+        !r.approverName.toLowerCase().includes(q)
       )
         return false;
     }
     return true;
   });
-};
-
-const cleanParams = <T extends Record<string, any>>(
-  o: T
-): Record<string, string> => {
-  const out: Record<string, string> = {};
-  Object.keys(o).forEach((k) => {
-    const v = o[k as keyof T];
-    if (v !== undefined && v !== null && v !== "" && v !== "all")
-      out[k] = String(v);
-  });
-  return out;
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,7 +132,7 @@ export const cabPortalApi = api.injectEndpoints({
           {
             url: "/cab/crqs",
             method: "GET",
-            params: filters ? cleanParams(filters) : {},
+            params: (filters ?? {}) as Record<string, string>,
           },
           baseQuery,
           async () =>
@@ -163,8 +148,8 @@ export const cabPortalApi = api.injectEndpoints({
     }),
 
     getCrqById: builder.query<Crq, string>({
-      queryFn: async (id, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
+      queryFn: async (id, _apiArg, _extraOptions, baseQuery) => {
+        const result = await networkOrMock(
           { url: `/cab/crqs/${encodeURIComponent(id)}`, method: "GET" },
           baseQuery,
           async () => {
@@ -172,7 +157,14 @@ export const cabPortalApi = api.injectEndpoints({
             if (c) return await mockDelay(c);
             throw { status: 404, data: { message: "CRQ not found" } };
           }
-        ),
+        );
+        // Defensive: some deployments return the row wrapped in a single-item
+        // array (e.g. list-endpoint shape) instead of a bare object.
+        if ("data" in result && Array.isArray(result.data)) {
+          return { ...result, data: result.data[0] };
+        }
+        return result;
+      },
       providesTags: (_r, _e, id) => [{ type: "CabCrq" as const, id }],
     }),
 
@@ -395,14 +387,16 @@ getImplementation: builder.query<ImplementationDetail, void>({
           async () => {
             const fake: Crq = {
               crqNo: `CRQ-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
+              planId: `PLAN-2026-${Math.floor(Math.random() * 900 + 100)}`,
+              domainName: body.domain,
+              circleCode: body.circle,
               currentStage: "VALIDATE",
-              slaPercentage: 100,
-              currentStatus: "pending",
               approverName: "Auto-assigned",
+              assignStartTime: body.scheduled,
+              currentStatus: "pending",
+              slaPercentage: 100,
+              assignedToMe: false,
               raisedBy: "You",
-              raisedOn: new Date().toISOString(),
-              ...body,
-              assignedToMe: false
             };
             return await mockDelay(fake);
           }

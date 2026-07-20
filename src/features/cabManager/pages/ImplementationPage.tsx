@@ -36,9 +36,9 @@ export function ImplementationPage() {
   return (
     <Box>
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>Field Execution — {crq.id}</Typography>
+        <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>Field Execution — {crq.crqNo}</Typography>
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-          {crq.activity}. Validate readiness with NOC-NS before starting execution.
+          {crq.domainName} · Circle {crq.circleCode}. Validate readiness with NOC-NS before starting execution.
         </Typography>
       </Box>
 
@@ -50,10 +50,10 @@ export function ImplementationPage() {
             {[
               ["Support Group",   "NOC-NS Optics West"],
               ["Type of CR",      "Normal · Planned"],
-              ["Change Impact",   `${crq.impact} — Service Affecting`],
-              ["Scheduled Start", `${crq.scheduled} · ${crq.window.split("–")[0].trim()}`],
-              ["Scheduled End",   `${crq.scheduled} · ${crq.window.split("–")[1]?.trim() ?? "—"}`],
-              ["Hostname",        crq.hostname],
+              ["Approver",        crq.approverName],
+              ["Scheduled Start", crq.assignStartTime],
+              ["Status",          crq.currentStatus],
+              ["Raised By",       crq.raisedBy],
             ].map(([k, v]) => (
               <Box key={k}>
                 <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>
@@ -120,7 +120,7 @@ export function ImplementationPage() {
                     size="small"
                     variant={r.decision === "proceed" ? "contained" : "outlined"}
                     color="success"
-                    onClick={() => void proceed({ crqId: crq.id, ringId: r.id })}
+                    onClick={() => void proceed({ crqId: crq.crqNo, ringId: r.id })}
                   >
                     Proceed
                   </Button>
@@ -128,7 +128,7 @@ export function ImplementationPage() {
                     size="small"
                     variant={r.decision === "block" ? "contained" : "outlined"}
                     color="error"
-                    onClick={() => void block({ crqId: crq.id, ringId: r.id, comment: blockComment[r.id] })}
+                    onClick={() => void block({ crqId: crq.crqNo, ringId: r.id, comment: blockComment[r.id] })}
                   >
                     Do Not Proceed
                   </Button>

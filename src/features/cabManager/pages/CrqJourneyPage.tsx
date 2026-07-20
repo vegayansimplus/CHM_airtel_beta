@@ -4,7 +4,6 @@ import {
   Box,
   Button,
   Chip,
-  Divider,
   LinearProgress,
   Paper,
   Skeleton,
@@ -48,7 +47,7 @@ export function CrqJourneyPage() {
   }
 
   const { crq, approvalChain, parallelTracks, remarks } = data;
-  const slaColor = crq.sla >= 80 ? "#D32F2F" : crq.sla >= 50 ? "#ED6C02" : "#2E7D32";
+  const slaColor = crq.slaPercentage >= 80 ? "#D32F2F" : crq.slaPercentage >= 50 ? "#ED6C02" : "#2E7D32";
 
   return (
     <Box>
@@ -60,13 +59,13 @@ export function CrqJourneyPage() {
       <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={3} sx={{ mb: 3 }}>
         <Box sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
-            <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crq.id}</Typography>
-            <StatusChip status={crq.status} />
-            <StageChip stage={crq.stage} />
+            <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crq.crqNo}</Typography>
+            <StatusChip status={crq.currentStatus} />
+            <StageChip stage={crq.currentStage} />
           </Stack>
-          <Typography variant="h5" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>{crq.activity}</Typography>
+          <Typography variant="h5" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>{crq.domainName} · Circle {crq.circleCode}</Typography>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 1 }}>
-            Raised by <Box component="span" sx={{ color: "text.primary" }}>{crq.raisedBy}</Box> · {crq.raisedOn}
+            Raised by <Box component="span" sx={{ color: "text.primary" }}>{crq.raisedBy}</Box>
           </Typography>
         </Box>
       </Stack>
@@ -105,7 +104,7 @@ export function CrqJourneyPage() {
 
       {/* Parallel tracks */}
       <Paper sx={{ p: 3, mb: 2, border: "1px solid", borderColor: "divider" }} elevation={0}>
-        <Typography sx={{ fontWeight: 500, mb: 2 }}>Parallel approval tracks · {crq.stage}</Typography>
+        <Typography sx={{ fontWeight: 500, mb: 2 }}>Parallel approval tracks · {crq.currentStage}</Typography>
         <Stack spacing={1.5}>
           {parallelTracks.map((t) => {
             const tc = TRACK_STATUS_COLORS[t.status];
@@ -134,14 +133,12 @@ export function CrqJourneyPage() {
             </Box>
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
               {[
-                ["Domain", crq.domain],
-                ["Circle", crq.circle],
-                ["Technology", crq.technology],
-                ["Impact", crq.impact],
-                ["Scheduled", crq.scheduled],
-                ["Maintenance Window", crq.window],
-                ["MOP", crq.mop],
-                ["Hostname", crq.hostname],
+                ["Domain", crq.domainName],
+                ["Circle", crq.circleCode],
+                ["Plan ID", crq.planId],
+                ["Approver", crq.approverName],
+                ["Scheduled", crq.assignStartTime],
+                ["Raised By", crq.raisedBy],
               ].map(([k, v]) => (
                 <Box key={k}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>
@@ -149,9 +146,6 @@ export function CrqJourneyPage() {
                 </Box>
               ))}
             </Box>
-            <Divider sx={{ my: 2 }} />
-            <Typography variant="caption" sx={{ color: "text.secondary", display: "block", mb: 0.5 }}>Impacted Parties</Typography>
-            <Typography variant="body2">{(crq.impactedParties ?? []).join(", ")}</Typography>
           </Paper>
 
           <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider" }} elevation={0}>
@@ -176,11 +170,11 @@ export function CrqJourneyPage() {
 
         <Stack spacing={2}>
           <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
-            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase" }}>Current SLA · {crq.stage}</Typography>
-            <Typography sx={{ fontSize: 30, fontWeight: 400, color: slaColor, fontFamily: "'Roboto Mono', monospace", letterSpacing: -1 }}>{crq.sla}%</Typography>
-            <LinearProgress variant="determinate" value={crq.sla} sx={{ height: 8, borderRadius: 1, my: 1, bgcolor: "rgba(0,0,0,0.06)", "& .MuiLinearProgress-bar": { bgcolor: slaColor } }} />
+            <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase" }}>Current SLA · {crq.currentStage}</Typography>
+            <Typography sx={{ fontSize: 30, fontWeight: 400, color: slaColor, fontFamily: "'Roboto Mono', monospace", letterSpacing: -1 }}>{crq.slaPercentage}%</Typography>
+            <LinearProgress variant="determinate" value={crq.slaPercentage} sx={{ height: 8, borderRadius: 1, my: 1, bgcolor: "rgba(0,0,0,0.06)", "& .MuiLinearProgress-bar": { bgcolor: slaColor } }} />
             <Typography variant="caption" sx={{ color: slaColor }}>
-              {crq.sla >= 80 ? "Critical — escalation may be triggered" : crq.sla >= 50 ? "On watch" : "Healthy"}
+              {crq.slaPercentage >= 80 ? "Critical — escalation may be triggered" : crq.slaPercentage >= 50 ? "On watch" : "Healthy"}
             </Typography>
           </Paper>
 
@@ -197,7 +191,7 @@ export function CrqJourneyPage() {
                 </Box>
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 500, color: slaColor }}>{crq.stage}</Typography>
+                <Typography sx={{ fontWeight: 500, color: slaColor }}>{crq.currentStage}</Typography>
                 <Typography variant="caption" sx={{ color: "text.secondary" }}>
                   Stage clears only when every parallel track approves.
                 </Typography>
