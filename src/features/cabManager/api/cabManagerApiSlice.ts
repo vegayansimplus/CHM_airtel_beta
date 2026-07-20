@@ -12,7 +12,7 @@ import {
   buildCabPlanDates,
   buildCabQueue,
   buildDashboard,
-  buildImplementation,
+  // buildImplementation,
   buildJourney,
   buildMyCrqs,
   MOCK_ADMIN_USERS,
@@ -90,21 +90,19 @@ const networkOrMock = async <T>(
 const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
   return rows.filter((r) => {
     if (f.domain && f.domain !== "all" && r.domain !== f.domain) return false;
-    if (f.circle && f.circle !== "all" && r.circle !== f.circle) return false;
+    if (f.circle && f.circle !== "all" && r.circleCode !== f.circle) return false;
     if (f.impact && f.impact !== "all" && r.impact !== f.impact) return false;
-    if (f.stage && f.stage !== "all" && r.stage !== f.stage) return false;
+    if (f.stage && f.stage !== "all" && r.currentStage !== f.stage) return false;
     if (f.status && f.status !== "all") {
-      if (f.status === "active" && r.status !== "pending") return false;
-      if (f.status === "rejected" && r.status !== "rejected") return false;
-      if (f.status === "delegated" && r.status !== "delegated") return false;
-      if (f.status === "escalated" && r.sla < 80) return false;
+      if (f.status === "active" && r.currentStatus !== "pending") return false;
+      if (f.status === "rejected" && r.currentStatus !== "rejected") return false;
+      if (f.status === "delegated" && r.currentStatus !== "delegated") return false;
+      if (f.status === "escalated" && r.slaPercentage < 80) return false;
     }
     if (f.search) {
       const q = f.search.toLowerCase();
       if (
-        !r.id.toLowerCase().includes(q) &&
-        !r.activity.toLowerCase().includes(q) &&
-        !r.hostname.toLowerCase().includes(q) &&
+        !r.crqNo.toLowerCase().includes(q) &&
         !r.approver.toLowerCase().includes(q)
       )
         return false;
@@ -158,7 +156,7 @@ export const cabPortalApi = api.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              ...result.map((r) => ({ type: "CabCrq" as const, id: r.id })),
+              ...result.map((r) => ({ type: "CabCrq" as const, id: r.crqNo })),
               { type: "CabCrq" as const, id: "LIST" },
             ]
           : [{ type: "CabCrq" as const, id: "LIST" }],
@@ -170,7 +168,7 @@ export const cabPortalApi = api.injectEndpoints({
           { url: `/cab/crqs/${encodeURIComponent(id)}`, method: "GET" },
           baseQuery,
           async () => {
-            const c = MOCK_CRQS.find((r) => r.id === id);
+            const c = MOCK_CRQS.find((r) => r.crqNo === id);
             if (c) return await mockDelay(c);
             throw { status: 404, data: { message: "CRQ not found" } };
           }
@@ -371,7 +369,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
           async () => {
             const fake: CabSession = {
               id: `CAB-2026-${Math.floor(Math.random() * 900 + 100)}`,
-              stage: "CAB Review",
+              stage: "MOP_CREATION",
               host: body.host,
               date: body.date,
               time: "16:00 IST",
@@ -396,16 +394,15 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => {
             const fake: Crq = {
-              id: `CRQ-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
-              stage: "Authorization",
-              sla: 100,
-              status: "pending",
-              approver: "Auto-assigned",
-              mop: "MOP-pending",
+              crqNo: `CRQ-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
+              currentStage: "VALIDATE",
+              slaPercentage: 100,
+              currentStatus: "pending",
+              approverName: "Auto-assigned",
               raisedBy: "You",
               raisedOn: new Date().toISOString(),
-              assignedToMe: false,
               ...body,
+              assignedToMe: false
             };
             return await mockDelay(fake);
           }

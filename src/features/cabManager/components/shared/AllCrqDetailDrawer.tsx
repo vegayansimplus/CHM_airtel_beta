@@ -39,8 +39,8 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
             {data && (
               <>
-                <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{data.id}</Typography>
-                <StatusChip status={data.status} />
+                <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{data.crqNo}</Typography>
+                <StatusChip status={data.currentStatus} />
               </>
             )}
           </Stack>
@@ -48,7 +48,6 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
         </Stack>
         {data && (
           <>
-            <Typography variant="h6" sx={{ mt: 1.5, fontWeight: 500, lineHeight: 1.3 }}>{data.activity}</Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
               Raised by <Box component="span" sx={{ color: "text.primary" }}>{data.raisedBy}</Box> · {data.raisedOn}
             </Typography>
@@ -67,7 +66,7 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
               fullWidth
               variant="outlined"
               startIcon={<OpenInNewIcon />}
-              onClick={() => { onClose(); navigate(`/cabmanager/journey/${data.id}`); }}
+              onClick={() => { onClose(); navigate(`/cabmanager/journey/${data.crqNo}`); }}
               sx={{ mb: 2.5 }}
             >
               View full CRQ journey
@@ -79,14 +78,11 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
             <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 3 }}>
               {[
                 ["Domain",     data.domain],
-                ["Circle",     data.circle],
-                ["Technology", data.technology],
+                ["Circle",     data.circleCode],
                 ["Impact",     data.impact],
-                ["Stage",      <StageChip key="s" stage={data.stage} />],
-                ["Scheduled",  data.scheduled],
+                ["Stage",      <StageChip key="s" stage={data.currentStage} />],
+                ["Scheduled",  data.assignStartTime],
                 ["Window",     data.window],
-                ["MOP",        data.mop],
-                ["Hostname",   data.hostname],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>
@@ -124,18 +120,6 @@ export function AllCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; o
                 Schedule
               </Button>
             </Stack>
-
-            {data.rejectReason && (
-              <>
-                <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", display: "block", mb: 1 }}>
-                  Rejection Reason
-                </Typography>
-                <Box sx={{ p: 1.5, bgcolor: "#FDECEA", border: "1px solid #F5C6C0", borderRadius: 1 }}>
-                  <Typography variant="body2" sx={{ color: "#B71C1C", fontWeight: 500 }}>{data.rejectReason}</Typography>
-                  <Typography variant="caption" sx={{ color: "text.secondary" }}>{data.rejectComment}</Typography>
-                </Box>
-              </>
-            )}
           </>
         )}
       </Box>

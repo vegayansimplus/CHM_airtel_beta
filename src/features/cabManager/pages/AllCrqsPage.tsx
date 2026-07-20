@@ -64,22 +64,7 @@ export function AllCrqsPage() {
         Cell: ({ row }) => (
           <Box>
             <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>
-              {row.original.id}
-            </Typography>
-            {row.original.assignedToMe && (
-              <Typography sx={{ fontSize: 10, color: "#ED6C02", fontWeight: 600, letterSpacing: 0.3 }}>YOUR APPROVAL</Typography>
-            )}
-          </Box>
-        ),
-      },
-      {
-        accessorKey: "activity",
-        header: "Activity",
-        Cell: ({ row }) => (
-          <Box>
-            <Typography variant="body2">{row.original.activity}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
-              {row.original.hostname} · {row.original.technology}
+              {row.original.crqNo}
             </Typography>
           </Box>
         ),
@@ -93,7 +78,7 @@ export function AllCrqsPage() {
             <Typography variant="body2">{row.original.domain}</Typography>
             <Stack direction="row" spacing={0.75} alignItems="center" sx={{ mt: 0.25 }}>
               <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                Circle {row.original.circle} ·
+                Circle {row.original.circleCode} ·
               </Typography>
               <ImpactChip impact={row.original.impact} />
             </Stack>
@@ -125,7 +110,7 @@ export function AllCrqsPage() {
         size: 120,
         Cell: ({ row }) => (
           <Box>
-            <Typography variant="body2">{row.original.scheduled}</Typography>
+            <Typography variant="body2">{row.original.assignStartTime}</Typography>
             <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>
               {row.original.window}
             </Typography>
@@ -137,19 +122,6 @@ export function AllCrqsPage() {
         header: "Status",
         size: 130,
         Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["status"]>()} />,
-      },
-      {
-        id: "action",
-        header: "Action",
-        size: 70,
-        enableSorting: false,
-        muiTableHeadCellProps: { align: "right" },
-        muiTableBodyCellProps: { align: "right" },
-        Cell: ({ row }) => (
-          <IconButton size="small" onClick={(e) => { e.stopPropagation(); navigate(`/cabmanager/journey/${row.original.id}`); }}>
-            <MoreVertIcon fontSize="small" />
-          </IconButton>
-        ),
       },
     ],
     [navigate],
@@ -180,10 +152,9 @@ export function AllCrqsPage() {
     muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: ({ row }) => ({
       hover: true,
-      onClick: () => setSelected(row.original.id),
+      onClick: () => setSelected(row.original.crqNo),
       sx: {
         cursor: "pointer",
-        bgcolor: row.original.assignedToMe ? "rgba(237, 108, 2, 0.04)" : undefined,
         "&:hover td": { backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.04) },
         transition: "background-color 100ms ease",
       },
