@@ -5,11 +5,13 @@
 
 // ── Enums / unions ──────────────────────────────────────────────────────────
 export type CrqStage =
-  | "Authorization"
-  | "Scheduling"
-  | "Validation"
-  | "CAB Review"
-  | "Implementation";
+  | "VALIDATE"
+  | "IMPACT_ANALYSIS"
+  | "MOP_CREATION"
+  | "MOP_VALIDATION"
+  | "SCHEDULING_APPROVAL"
+  | "EXECUTION"
+  | "CLOSURE";
 
 export type CrqStatus = "pending" | "approved" | "rejected" | "delegated";
 
@@ -32,30 +34,20 @@ export type CabSessionStatus = "live" | "scheduled" | "completed";
 
 // ── CRQ ─────────────────────────────────────────────────────────────────────
 export interface Crq {
-  id: string;
-  activity: string;
+  crqNo: string;
+  planId: string;
   domain: Domain;
-  circle: Circle;
-  stage: CrqStage;
-  /** 0-100. <50 = critical, 50-80 warning, >=80 on-track. */
-  sla: number;
+  circleCode: Circle;
+  currentStage: CrqStage;
+  slaPercentage: number;
   impact: ImpactCode;
-  status: CrqStatus;
-  approver: string;
-  scheduled: string;       // e.g. "Jun 14"
-  window: string;          // e.g. "02:00 – 05:00 IST"
-  technology: string;
-  mop: string;
+  currentStatus: CrqStatus;
+  approverName: string;
+  assignStartTime: string;    
+  window: string;    
   raisedBy: string;
   raisedOn: string;
-  hostname: string;
   assignedToMe: boolean;
-  impactedParties: string[];
-  rejectReason?: string;
-  rejectComment?: string;
-  /** Assignment fields (CAB Engineer "assign" mode). */
-  spoc?: string | null;
-  fieldEngineer?: string | null;
 }
 
 // ── Filters used by All CRQs ─────────────────────────────────────────────────
@@ -145,7 +137,6 @@ export interface CabQueueRow {
   id: string;
   activity: string;
   impact: ImpactCode;
-  b2b: boolean;
   critical: "Critical" | "Moderate" | "Routine";
   domain: Domain;
   window: string;
@@ -179,7 +170,6 @@ export interface CabAgendaItem {
   stage: CrqStage;
   domain: Domain;
   impact: ImpactCode;
-  hostname: string;
 }
 
 export interface CabSessionDetail {
@@ -278,15 +268,12 @@ export interface AuditEntry {
 // ── Mutation payloads ───────────────────────────────────────────────────────
 export interface PlanCabPayload      { crqIds: string[]; date: string; type: CabSession["type"]; host: string; }
 export interface NewCrqPayload {
-  activity: string;
   domain: Domain;
-  circle: Circle;
+  circleCode: Circle;
   impact: ImpactCode;
-  technology: string;
-  scheduled: string;
+  assignStartTime: string;
   window: string;
-  hostname: string;
-  impactedParties: string[];
+
 }
 
 export interface AssignSpocPayload { crqId: string; spoc: string; }
