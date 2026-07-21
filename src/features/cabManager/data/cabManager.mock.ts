@@ -185,9 +185,6 @@ export const mockDelay = <T>(value: T, ms = 350): Promise<T> =>
   new Promise((resolve) => setTimeout(() => resolve(value), ms));
 
 export const buildDashboard = (): DashboardData => ({
-  title: "CAB Dashboard",
-  subtitle: "Change Advisory Board overview",
-  totalCount: 42,
   kpis: [
     { label: "Pending Approvals", value: "12", foot: "Awaiting your action", accent: "blue"   },
     { label: "Approved Today",    value: "8",  foot: "Completed today",      accent: "green"  },
@@ -202,8 +199,8 @@ export const buildDashboard = (): DashboardData => ({
     { stage: "EXECUTION",           count: 6,  pct: 14 },
   ],
   escalations: [
-    { id: "CRQ-2026-0401", activity: "Core router firmware upgrade", sla: 42 },
-    { id: "CRQ-2026-0407", activity: "Optical ring re-route",        sla: 35 },
+    { crqNo: "CRQ-2026-0401", slaPercentage: 42 },
+    { crqNo: "CRQ-2026-0407", slaPercentage: 35 },
   ],
 });
 
@@ -221,8 +218,8 @@ export const buildMyCrqs = (): MyCrqsResponse => ({
 });
 
 export const buildCabQueue = (): CabQueueRow[] => [
-  { id: "CRQ-2026-0410", activity: "Packet core capacity expansion",   impact: "SA",  b2b: true,  critical: "Critical", domain: "Packet",   window: "02:00 - 05:00 IST" },
-  { id: "CRQ-2026-0411", activity: "Embedded firmware patch rollout",  impact: "NSA", b2b: false, critical: "Moderate", domain: "Embedded", window: "01:00 - 03:00 IST" },
+  { crqNo: "CRQ-2026-0410", impact: "SA",  circle: "Mumbai",    domain: "Packet",   executionWindow: "02:00 - 05:00 IST" },
+  { crqNo: "CRQ-2026-0411", impact: "NSA", circle: "Bangalore", domain: "Embedded", executionWindow: "01:00 - 03:00 IST" },
 ];
 
 export const buildCabPlanDates = (): CabPlanDate[] => [

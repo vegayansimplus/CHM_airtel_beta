@@ -1,5 +1,4 @@
 import {
-  Alert,
   Box,
   Button,
   Chip,
@@ -10,8 +9,8 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { usePlanCabMutation } from "../../api/cabManagerApiSlice";
-import { errMsg } from "../shared/errMsg";
 
 export function PlanCabModal({
   open,
@@ -25,18 +24,26 @@ export function PlanCabModal({
   onPlanned?: () => void;
 }) {
   const [date, setDate] = useState("");
+  const [time, setTime] = useState("16:00");
   const [type, setType] = useState<"Critical" | "Normal" | "Emergency">("Normal");
-  const [host, setHost] = useState("Ravi Nair (NOC)");
 
-  const [planCab, { isLoading, isError, error }] = usePlanCabMutation();
+  const [planCab, { isLoading }] = usePlanCabMutation();
 
   const submit = async () => {
-    if (!date || crqIds.length === 0) return;
+    if (!date || !time || crqIds.length === 0) return;
     try {
-      await planCab({ crqIds, date, type, host }).unwrap();
-      onPlanned?.();
-      onClose();
-    } catch { /* error surfaced */ }
+      const sessionDateTime = `${date} ${time}:00`;
+      const result = await planCab({ crqIds, sessionDateTime, type }).unwrap();
+      if (result.status === "Success") {
+        toast.success(result.message);
+        onPlanned?.();
+        onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to plan CAB session.");
+    }
   };
 
   return (
@@ -56,37 +63,38 @@ export function PlanCabModal({
           </Stack>
         </Box>
 
-        <TextField
-          fullWidth required
-          type="date"
-          label="Session date"
-          InputLabelProps={{ shrink: true }}
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          sx={{ mb: 2 }}
-        />
+        <Stack direction="row" spacing={2} sx={{ mb: 2 }}>
+          <TextField
+            fullWidth required
+            type="date"
+            label="Session date"
+            InputLabelProps={{ shrink: true }}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+          />
+          <TextField
+            fullWidth required
+            type="time"
+            label="Session time"
+            InputLabelProps={{ shrink: true }}
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+        </Stack>
         <TextField
           select fullWidth
           label="Session type"
           value={type}
           onChange={(e) => setType(e.target.value as typeof type)}
-          sx={{ mb: 2 }}
         >
           <MenuItem value="Normal">Normal</MenuItem>
           <MenuItem value="Critical">Critical</MenuItem>
           <MenuItem value="Emergency">Emergency</MenuItem>
         </TextField>
-        <TextField
-          fullWidth
-          label="Host"
-          value={host}
-          onChange={(e) => setHost(e.target.value)}
-        />
-        {isError && <Alert severity="error" sx={{ mt: 2 }}>{errMsg(error)}</Alert>}
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={submit} disabled={isLoading || !date || crqIds.length === 0}>
+        <Button variant="contained" onClick={submit} disabled={isLoading || !date || !time || crqIds.length === 0}>
           {isLoading ? "Creating…" : "Schedule CAB"}
         </Button>
       </DialogActions>

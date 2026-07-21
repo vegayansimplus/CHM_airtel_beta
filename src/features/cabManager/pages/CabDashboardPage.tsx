@@ -43,11 +43,6 @@ export function CabDashboardPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>{data.title}</Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>{data.subtitle}</Typography>
-      </Box>
-
       {/* KPI tiles */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, mb: 3 }}>
         {data.kpis.map((k) => (
@@ -64,7 +59,9 @@ export function CabDashboardPage() {
         <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
             <Typography sx={{ fontWeight: 500 }}>Change pipeline — by stage</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>{data.totalCount} total</Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {data.stageBars.reduce((sum, b) => sum + b.count, 0)} total
+            </Typography>
           </Box>
           <Stack spacing={1.5}>
             {data.stageBars.map((b) => (
@@ -96,8 +93,8 @@ export function CabDashboardPage() {
             <Stack>
               {data.escalations.map((e) => (
                 <Box
-                  key={e.id}
-                  onClick={() => navigate(`/cabmanager/journey/${e.id}`)}
+                  key={e.crqNo}
+                  onClick={() => navigate(`/cabmanager/journey/${e.crqNo}`)}
                   sx={{
                     display: "flex", alignItems: "center", gap: 1.5,
                     py: 1.25, cursor: "pointer", borderBottom: "1px solid", borderColor: "divider",
@@ -109,12 +106,11 @@ export function CabDashboardPage() {
                     bgcolor: "#FDECEA", color: "#D32F2F",
                     display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 500, fontFamily: "'Roboto Mono', monospace" }}>{e.sla}</Typography>
+                    <Typography sx={{ fontSize: 13, fontWeight: 500, fontFamily: "'Roboto Mono', monospace" }}>{e.slaPercentage}</Typography>
                     <Typography sx={{ fontSize: 8, letterSpacing: 0.5 }}>SLA</Typography>
                   </Box>
                   <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>{e.id}</Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{e.activity}</Typography>
+                    <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>{e.crqNo}</Typography>
                   </Box>
                 </Box>
               ))}

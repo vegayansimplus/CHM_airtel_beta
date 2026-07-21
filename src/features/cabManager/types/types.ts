@@ -74,15 +74,11 @@ export interface StageBar {
 }
 
 export interface EscalationItem {
-  id: string;
-  activity: string;
-  sla: number;
+  crqNo: string;
+  slaPercentage: number;
 }
 
 export interface DashboardData {
-  title: string;
-  subtitle: string;
-  totalCount: number;
   kpis: DashboardKpi[];
   stageBars: StageBar[];
   escalations: EscalationItem[];
@@ -137,13 +133,16 @@ export interface CrqJourney {
 
 // ── CAB Planning ────────────────────────────────────────────────────────────
 export interface CabQueueRow {
-  id: string;
-  activity: string;
+  crqNo: string;
   impact: ImpactCode;
-  b2b: boolean;
-  critical: "Critical" | "Moderate" | "Routine";
+  circle: string;
   domain: Domain;
-  window: string;
+  executionWindow: string;
+}
+
+export interface CabQueueParams {
+  domainId: number;
+  subDomainId: number;
 }
 
 export interface CabPlanDate {
@@ -271,7 +270,8 @@ export interface AuditEntry {
 }
 
 // ── Mutation payloads ───────────────────────────────────────────────────────
-export interface PlanCabPayload      { crqIds: string[]; date: string; type: CabSession["type"]; host: string; }
+export interface PlanCabPayload      { crqIds: string[]; sessionDateTime: string; type: CabSession["type"]; }
+export interface PlanCabResult       { status: string; message: string; }
 export interface NewCrqPayload {
   activity: string;
   domain: Domain;

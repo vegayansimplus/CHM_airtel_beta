@@ -35,6 +35,7 @@ import type {
   AuditEntry,
   BlockRingPayload,
   CabPlanDate,
+  CabQueueParams,
   CabQueueRow,
   CabSession,
   CabSessionDetail,
@@ -47,6 +48,7 @@ import type {
   MyCrqsResponse,
   NewCrqPayload,
   PlanCabPayload,
+  PlanCabResult,
   ProceedRingPayload,
   RejectCrqPayload,
   RejectionReason,
@@ -197,10 +199,12 @@ export const cabPortalApi = api.injectEndpoints({
     }),
 
     // ── CAB PLANNING ──────────────────────────────────────────────────────
-    getCabQueue: builder.query<CabQueueRow[], void>({
-      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock({ url: "/cab/planning/queue", method: "GET" }, baseQuery, async () =>
-          await mockDelay(buildCabQueue())
+    getCabQueue: builder.query<CabQueueRow[], CabQueueParams>({
+      queryFn: async ({ domainId, subDomainId }, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/planning/queue", method: "GET", params: { domainId, subDomainId } },
+          baseQuery,
+          async () => await mockDelay(buildCabQueue())
         ),
       providesTags: ["CabQueue"],
     }),
@@ -353,21 +357,15 @@ getImplementation: builder.query<ImplementationDetail, void>({
     }),
 
     // ── Mutations ─────────────────────────────────────────────────────────
-    planCab: builder.mutation<CabSession, PlanCabPayload>({
+    planCab: builder.mutation<PlanCabResult, PlanCabPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           { url: "/cab/sessions", method: "POST", body },
           baseQuery,
           async () => {
-            const fake: CabSession = {
-              id: `CAB-2026-${Math.floor(Math.random() * 900 + 100)}`,
-              stage: "MOP_CREATION",
-              host: body.host,
-              date: body.date,
-              time: "16:00 IST",
-              status: "scheduled",
-              type: body.type,
-              crqIds: body.crqIds,
+            const fake: PlanCabResult = {
+              status: "Success",
+              message: `${body.crqIds.length} CRQ(s) planned under CAB-2026-${Math.floor(Math.random() * 900 + 100)}`,
             };
             return await mockDelay(fake);
           }
