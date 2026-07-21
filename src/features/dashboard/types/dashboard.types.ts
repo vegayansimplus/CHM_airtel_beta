@@ -1,3 +1,5 @@
+import type { ShiftColorTriple } from "../../userMe/userRoster/constants/shiftColors";
+
 export type TaskStatus = "Done" | "Urgent" | "Pending" | "Rostering";
 
 export interface Task {
@@ -37,6 +39,8 @@ export interface ShiftInfo {
   start: string;
   end: string;
   dur: string;
+  code?: string;
+  colors?: ShiftColorTriple;
 }
 
 export interface WeekDay {
@@ -45,6 +49,8 @@ export interface WeekDay {
   shift: ShiftInfo | null;
   isOff?: boolean;
   isToday?: boolean;
+  /** Label shown on off tiles, e.g. "Week off" / "Holiday" / "On leave". */
+  offLabel?: string;
 }
 
 export type WorkMode = "WFH" | "WFO";

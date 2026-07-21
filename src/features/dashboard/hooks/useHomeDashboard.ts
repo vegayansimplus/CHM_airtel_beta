@@ -4,8 +4,9 @@ import type { TaskFilter, WorkMode } from "../types/dashboard.types";
 
 /**
  * Local UI state for the Modern Home Dashboard.
- * Backed by static mock data today; swapping the source for RTK Query
- * endpoints later only touches this hook — the page/components stay unchanged.
+ * Backed by static mock data, except the roster/schedule card which now
+ * sources live data from `useDashboardRoster` (RTK Query) instead — see
+ * ModernHomeDashboard.tsx. Remaining mock-driven state stays here.
  */
 export function useHomeDashboard() {
   const [taskFilter, setTaskFilter] = useState<TaskFilter>("All");
@@ -15,7 +16,6 @@ export function useHomeDashboard() {
   const [hoveredTask, setHoveredTask] = useState<number | null>(null);
   const [taskMenuAnchor, setTaskMenuAnchor] = useState<null | HTMLElement>(null);
   const [selectedTaskId, setSelectedTaskId] = useState<number | null>(null);
-  const [scheduleHover, setScheduleHover] = useState<number | null>(null);
   const [wfhBounce, setWfhBounce] = useState(false);
 
   useEffect(() => {
@@ -73,9 +73,6 @@ export function useHomeDashboard() {
     wfMode,
     changeWorkMode,
     wfhBounce,
-
-    scheduleHover,
-    setScheduleHover,
   };
 }
 

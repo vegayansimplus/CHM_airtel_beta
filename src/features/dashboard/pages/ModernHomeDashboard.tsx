@@ -3,14 +3,13 @@ import { useTheme } from "@mui/material/styles";
 import { useTabColorTokens } from "../../../style/theme";
 import { RescheduleNotificationPage } from "../../rescheduleNotification";
 import { useHomeDashboard } from "../hooks/useHomeDashboard";
+import { useDashboardRoster } from "../hooks/useDashboardRoster";
+import { useDashboardProfile } from "../hooks/useDashboardProfile";
 import {
   HOLIDAYS,
   LEAVE_TEAM,
-  PROFILE,
   STAT_CARDS,
   TASKS,
-  WEEK,
-  WEEKLY_SCHEDULE_RANGE_LABEL,
   WFH_WEEK,
   WORK_LOCATION_DATE_LABEL,
 } from "../mocks/dashboard.mock";
@@ -45,9 +44,10 @@ export default function ModernHomeDashboard() {
     wfMode,
     changeWorkMode,
     wfhBounce,
-    scheduleHover,
-    setScheduleHover,
   } = useHomeDashboard();
+
+  const roster = useDashboardRoster();
+  const { profile, status: profileStatus, errorMessage: profileErrorMessage } = useDashboardProfile();
 
   return (
     <Box
@@ -68,13 +68,10 @@ export default function ModernHomeDashboard() {
         {/* ── LEFT — Profile, Work location, Holidays, On leave ── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
           <ProfileCard
-            name={PROFILE.name}
-            role={PROFILE.role}
-            employeeId={PROFILE.id}
-            doneCount={doneCount}
-            totalTasks={totalTasks}
-            progressPct={progressPct}
-            wfMode={wfMode}
+            status={profileStatus}
+            profile={profile}
+            errorMessage={profileErrorMessage}
+            stats={{ doneCount, totalTasks, progressPct, wfMode }}
             colors={colors}
             mounted={mounted}
             delay={0.05}
@@ -127,18 +124,21 @@ export default function ModernHomeDashboard() {
 
             <StatCardsGrid cards={STAT_CARDS} colors={colors} mounted={mounted} delay={0.12} />
           </Box>
+          <RescheduleNotificationPage />
 
           <WeeklyScheduleCard
-            week={WEEK}
-            rangeLabel={WEEKLY_SCHEDULE_RANGE_LABEL}
-            scheduleHover={scheduleHover}
+            week={roster.days}
+            rangeLabel={roster.rangeLabel}
+            status={roster.status}
+            errorMessage={roster.errorMessage}
+            anchorDate={roster.anchorDate}
             colors={colors}
             mounted={mounted}
             delay={0.16}
-            onHoverChange={setScheduleHover}
+            onPrev={roster.goPrev}
+            onNext={roster.goNext}
+            onToday={roster.goToday}
           />
-
-          <RescheduleNotificationPage />
         </Box>
       </Box>
     </Box>

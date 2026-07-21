@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useTheme } from "@mui/material/styles";
-import TopActionsSection from "../notification-manager/components/TopActionsSection";
+// import TopActionsSection from "../notification-manager/components/TopActionsSection";
 import NotificationDialog from "../notification-manager/components/NotificationDialog";
 import NotificationManagementTable from "../notification-manager/components/NotificationManagementTable";
 import CommonContainer from "../../../components/common/CommonContainer";

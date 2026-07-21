@@ -3,29 +3,11 @@ import type {
   LeaveTeamMember,
   StatCardConfig,
   Task,
-  WeekDay,
   WorkModeDay,
 } from "../types/dashboard.types";
 
-export const PROFILE = {
-  name: "Karthika P",
-  role: "IP Access · CCB Division",
-  id: "B0324261",
-};
-
 export const TODAY_DATE_LABEL = "Fri, Mar 20, 2025";
 export const WORK_LOCATION_DATE_LABEL = "Fri, Mar 21";
-export const WEEKLY_SCHEDULE_RANGE_LABEL = "Mar 15 – 21, 2025";
-
-export const WEEK: WeekDay[] = [
-  { day: "SU", date: 15, shift: null, isOff: true },
-  { day: "MO", date: 16, shift: { name: "Gen", start: "09:30", end: "18:30", dur: "540m" } },
-  { day: "TU", date: 17, shift: { name: "Gen", start: "09:30", end: "18:30", dur: "540m" } },
-  { day: "WE", date: 18, shift: { name: "Gen", start: "09:30", end: "18:00", dur: "510m" } },
-  { day: "TH", date: 19, shift: { name: "Gen", start: "09:30", end: "18:30", dur: "540m" } },
-  { day: "FR", date: 20, shift: { name: "Gen", start: "09:30", end: "18:30", dur: "540m" }, isToday: true },
-  { day: "SA", date: 21, shift: null, isOff: true },
-];
 
 export const TASKS: Task[] = [
   { id: 1, title: "Review Q1 Performance Report", dept: "Management", time: "10:00 AM", status: "Done" },
