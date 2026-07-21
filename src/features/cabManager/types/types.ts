@@ -92,8 +92,6 @@ export interface MyCrqsStats {
 }
 
 export interface MyCrqsResponse {
-  title: string;
-  subtitle: string;
   stats: MyCrqsStats;
   rows: Crq[];
 }

@@ -5,88 +5,168 @@ import {
   Paper,
   Skeleton,
   Stack,
-  Table, TableBody, TableCell, TableHead, TableRow,
   Typography,
+  useTheme,
 } from "@mui/material";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
-import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
-import HourglassEmptyIcon from "@mui/icons-material/HourglassEmpty";
-import { useState } from "react";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
+import { useEffect, useMemo, useState } from "react";
+import { useTabColorTokens } from "../../../style/theme";
 import { useGetMyCrqsQuery } from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
 import { StageChip, StatusChip } from "../components/shared/Chips";
+import { CabKpiCard } from "../components/dashboard/CabKpiCard";
 import { errMsg } from "../components/shared/errMsg";
+import type { Crq, DashboardKpi } from "../types/types";
 
 export function MyCrqsPage() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const colors = useTabColorTokens(theme);
+  const [mounted, setMounted] = useState(false);
   const { data, isLoading, isError, error, refetch } = useGetMyCrqsQuery();
   const [selected, setSelected] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const kpis = useMemo<DashboardKpi[]>(() => {
+    if (!data) return [];
+    return [
+      { label: "Awaiting Your Action", value: data.stats.awaitingMe, foot: "Needs review now", accent: "blue" },
+      { label: "Approved This Week", value: data.stats.approvedThisWeek, foot: "Completed successfully", accent: "green" },
+      { label: "Rejected This Week", value: data.stats.rejectedThisWeek, foot: "Sent back for changes", accent: "orange" },
+    ];
+  }, [data]);
+
+  const columns = useMemo<MRT_ColumnDef<Crq>[]>(
+    () => [
+      {
+        accessorKey: "crqNo",
+        header: "CRQ ID",
+        size: 160,
+        Cell: ({ row }) => (
+          <Box>
+            <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>
+              {row.original.crqNo}
+            </Typography>
+            <Typography variant="caption" sx={{ color: "text.secondary" }}>
+              {row.original.domainName} · {row.original.circleCode}
+            </Typography>
+          </Box>
+        ),
+      },
+      {
+        accessorKey: "currentStage",
+        header: "Stage",
+        size: 140,
+        Cell: ({ cell }) => <StageChip stage={cell.getValue<Crq["currentStage"]>()} />,
+      },
+      {
+        accessorKey: "approverName",
+        header: "Approver",
+        size: 140,
+      },
+      {
+        accessorKey: "assignStartTime",
+        header: "Scheduled",
+        size: 140,
+        Cell: ({ row }) => <Typography variant="body2">{row.original.assignStartTime}</Typography>,
+      },
+      {
+        accessorKey: "currentStatus",
+        header: "Status",
+        size: 130,
+        Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["currentStatus"]>()} />,
+      },
+    ],
+    []
+  );
+
+  const table = useMaterialReactTable({
+    columns,
+    data: data?.rows ?? [],
+    getRowId: (row) => row.crqNo,
+    state: { isLoading },
+    initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },
+    enableTopToolbar: false,
+    enableStickyHeader: true,
+    paginationDisplayMode: "pages",
+    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 } },
+    muiTableHeadCellProps: {
+      sx: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: "text.secondary",
+        py: 0.75,
+        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      },
+    },
+    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
+    muiTableBodyRowProps: ({ row }) => ({
+      hover: true,
+      onClick: () => setSelected(row.original.crqNo),
+      sx: {
+        cursor: "pointer",
+        "&:hover td": { backgroundColor: alpha(theme.palette.primary.main, isDark ? 0.08 : 0.04) },
+        transition: "background-color 100ms ease",
+      },
+    }),
+    muiBottomToolbarProps: {
+      sx: {
+        borderTop: `1px solid ${theme.palette.divider}`,
+        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
+        px: 1,
+      },
+    },
+    muiPaginationProps: {
+      shape: "rounded",
+      size: "small",
+      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
+    },
+    renderEmptyRowsFallback: () => (
+      <Box sx={{ py: 6, textAlign: "center", color: "text.secondary", width: "100%" }}>
+        No CRQs assigned to you right now.
+      </Box>
+    ),
+  });
 
   if (isError) {
     return <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void refetch()}>Retry</Button>}>{errMsg(error)}</Alert>;
   }
   if (isLoading || !data) {
-    return <Stack spacing={2}><Skeleton variant="rounded" height={88} /><Skeleton variant="rounded" height={400} /></Stack>;
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="rounded" height={52} width={280} />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2 }}>
+          {[0, 1, 2].map((i) => <Skeleton key={i} variant="rounded" height={112} sx={{ borderRadius: "14px" }} />)}
+        </Box>
+        <Skeleton variant="rounded" height={400} />
+      </Stack>
+    );
   }
 
   return (
     <Box>
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>{data.title}</Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>{data.subtitle}</Typography>
-      </Box>
-
       {/* Stats */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3, maxWidth: 720 }}>
-        {[
-          { icon: <HourglassEmptyIcon />, label: "Awaiting your action", value: data.stats.awaitingMe, color: "#ED6C02", bg: "#FFF4E5" },
-          { icon: <CheckCircleOutlineIcon />, label: "Approved this week",  value: data.stats.approvedThisWeek, color: "#2E7D32", bg: "#E8F5E9" },
-          { icon: <CancelOutlinedIcon />, label: "Rejected this week",  value: data.stats.rejectedThisWeek, color: "#D32F2F", bg: "#FDECEA" },
-        ].map((s) => (
-          <Paper key={s.label} sx={{ p: 2, display: "flex", alignItems: "center", gap: 2, border: "1px solid", borderColor: "divider" }} elevation={0}>
-            <Box sx={{ width: 42, height: 42, borderRadius: 1.5, bgcolor: s.bg, color: s.color, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              {s.icon}
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 24, fontWeight: 400 }}>{s.value}</Typography>
-              <Typography variant="caption" sx={{ color: "text.secondary" }}>{s.label}</Typography>
-            </Box>
-          </Paper>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(3, 1fr)" }, gap: 2, mb: 3 }}>
+        {kpis.map((k, i) => (
+          <CabKpiCard key={k.label} kpi={k} colors={colors} mounted={mounted} delay={0.04 * i} />
         ))}
       </Box>
 
       {/* Table */}
       <Paper sx={{ border: "1px solid", borderColor: "divider", overflow: "hidden" }} elevation={0}>
-        <Table size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: "#FAFAFA" }}>
-              <TableCell>CRQ ID</TableCell>
-              <TableCell>Stage</TableCell>
-              <TableCell>Approver</TableCell>
-              <TableCell>Scheduled</TableCell>
-              <TableCell>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {data.rows.length === 0 ? (
-              <TableRow><TableCell colSpan={5} align="center" sx={{ py: 6, color: "text.secondary" }}>No CRQs assigned to you right now.</TableCell></TableRow>
-            ) : (
-              data.rows.map((r) => (
-                <TableRow key={r.crqNo} hover sx={{ cursor: "pointer" }} onClick={() => setSelected(r.crqNo)}>
-                  <TableCell sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>
-                    {r.crqNo}
-                    <Typography variant="caption" sx={{ display: "block", color: "text.secondary" }}>{r.domainName} · {r.circleCode}</Typography>
-                  </TableCell>
-                  <TableCell><StageChip stage={r.currentStage} /></TableCell>
-                  <TableCell>{r.approverName}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{r.assignStartTime}</Typography>
-                  </TableCell>
-                  <TableCell><StatusChip status={r.currentStatus} /></TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
+        <MaterialReactTable table={table} />
       </Paper>
 
       <MyCrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />

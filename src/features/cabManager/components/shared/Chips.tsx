@@ -1,7 +1,7 @@
 import { Box, Chip } from "@mui/material";
 import type { CrqStage, CrqStatus, ImpactCode } from "../../types/types";
 
-const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
+export const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
   VALIDATE:             { bg: "#FFF8E1", fg: "#A06800" },
   IMPACT_ANALYSIS:      { bg: "#E3F2FD", fg: "#1565C0" },
   MOP_CREATION:         { bg: "#F3E5F5", fg: "#6A1B9A" },

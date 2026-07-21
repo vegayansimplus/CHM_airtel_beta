@@ -205,8 +205,6 @@ export const buildDashboard = (): DashboardData => ({
 });
 
 export const buildMyCrqs = (): MyCrqsResponse => ({
-  title: "My CRQs",
-  subtitle: "CRQs waiting on your action",
   stats: { awaitingMe: 5, approvedThisWeek: 11, rejectedThisWeek: 2 },
   rows: [
     {

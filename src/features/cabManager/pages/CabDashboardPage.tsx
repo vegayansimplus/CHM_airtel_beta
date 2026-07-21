@@ -1,22 +1,22 @@
-import {
-  Alert,
-  Box,
-  Button,
-  LinearProgress,
-  Paper,
-  Skeleton,
-  Stack,
-  Typography,
-} from "@mui/material";
-import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
-import { useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Alert, Box, Button, Skeleton, Stack, Typography } from "@mui/material";
+import { useTheme } from "@mui/material/styles";
+import { useTabColorTokens } from "../../../style/theme";
 import { useGetDashboardQuery } from "../api/cabManagerApiSlice";
-import { StageChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
+import { CabKpiCard } from "../components/dashboard/CabKpiCard";
+import { PipelineStagesCard } from "../components/dashboard/PipelineStagesCard";
+import { SlaWatchCard } from "../components/dashboard/SlaWatchCard";
 
 export function CabDashboardPage() {
-  const navigate = useNavigate();
+  const theme = useTheme();
+  const colors = useTabColorTokens(theme);
+  const [mounted, setMounted] = useState(false);
   const { data, isLoading, isError, error, refetch } = useGetDashboardQuery();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   if (isError) {
     return (
@@ -32,11 +32,14 @@ export function CabDashboardPage() {
   if (isLoading || !data) {
     return (
       <Stack spacing={2}>
-        <Skeleton variant="rounded" height={88} />
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2 }}>
-          {[0, 1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={96} />)}
+        <Skeleton variant="rounded" height={52} width={280} />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2 }}>
+          {[0, 1, 2, 3].map((i) => <Skeleton key={i} variant="rounded" height={112} sx={{ borderRadius: "14px" }} />)}
         </Box>
-        <Skeleton variant="rounded" height={280} />
+        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.4fr 1fr" }, gap: 2 }}>
+          <Skeleton variant="rounded" height={320} sx={{ borderRadius: "16px" }} />
+          <Skeleton variant="rounded" height={320} sx={{ borderRadius: "16px" }} />
+        </Box>
       </Stack>
     );
   }
@@ -44,79 +47,16 @@ export function CabDashboardPage() {
   return (
     <Box>
       {/* KPI tiles */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 2, mb: 3 }}>
-        {data.kpis.map((k) => (
-          <Paper key={k.label} sx={{ p: 2.25, border: "1px solid", borderColor: "divider" }} elevation={0}>
-            <Typography variant="body2" sx={{ color: "text.secondary" }}>{k.label}</Typography>
-            <Typography sx={{ fontSize: 28, fontWeight: 400, letterSpacing: "-0.5px", lineHeight: 1.1, mt: 0.5 }}>{k.value}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>{k.foot}</Typography>
-          </Paper>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
+        {data.kpis.map((k, i) => (
+          <CabKpiCard key={k.label} kpi={k} colors={colors} mounted={mounted} delay={0.04 * i} />
         ))}
       </Box>
 
       {/* Pipeline + SLA watch */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 2, mb: 3 }}>
-        <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-            <Typography sx={{ fontWeight: 500 }}>Change pipeline — by stage</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary" }}>
-              {data.stageBars.reduce((sum, b) => sum + b.count, 0)} total
-            </Typography>
-          </Box>
-          <Stack spacing={1.5}>
-            {data.stageBars.map((b) => (
-              <Box key={b.stage}>
-                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
-                  <StageChip stage={b.stage} />
-                  <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{b.count}</Typography>
-                </Box>
-                <LinearProgress
-                  variant="determinate"
-                  value={b.pct}
-                  sx={{ height: 8, borderRadius: 1, bgcolor: "rgba(0,0,0,0.05)" }}
-                />
-              </Box>
-            ))}
-          </Stack>
-        </Paper>
-
-        <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-            <WarningAmberRoundedIcon sx={{ color: "error.main", fontSize: 20 }} />
-            <Typography sx={{ fontWeight: 500 }}>CAB SLA watch</Typography>
-          </Stack>
-          {data.escalations.length === 0 ? (
-            <Typography variant="body2" sx={{ color: "text.secondary", py: 4, textAlign: "center" }}>
-              No SLA breaches right now.
-            </Typography>
-          ) : (
-            <Stack>
-              {data.escalations.map((e) => (
-                <Box
-                  key={e.crqNo}
-                  onClick={() => navigate(`/cabmanager/journey/${e.crqNo}`)}
-                  sx={{
-                    display: "flex", alignItems: "center", gap: 1.5,
-                    py: 1.25, cursor: "pointer", borderBottom: "1px solid", borderColor: "divider",
-                    "&:hover": { bgcolor: "action.hover" },
-                  }}
-                >
-                  <Box sx={{
-                    width: 38, height: 38, borderRadius: 1.5,
-                    bgcolor: "#FDECEA", color: "#D32F2F",
-                    display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
-                  }}>
-                    <Typography sx={{ fontSize: 13, fontWeight: 500, fontFamily: "'Roboto Mono', monospace" }}>{e.slaPercentage}</Typography>
-                    <Typography sx={{ fontSize: 8, letterSpacing: 0.5 }}>SLA</Typography>
-                  </Box>
-                  <Box sx={{ minWidth: 0, flex: 1 }}>
-                    <Typography sx={{ fontFamily: "'Roboto Mono', monospace", fontSize: 12.5, color: "primary.main", fontWeight: 500 }}>{e.crqNo}</Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Stack>
-          )}
-        </Paper>
+      <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1.4fr 1fr" }, gap: 2, alignItems: "stretch" }}>
+        <PipelineStagesCard stageBars={data.stageBars} colors={colors} mounted={mounted} delay={0.16} />
+        <SlaWatchCard escalations={data.escalations} colors={colors} mounted={mounted} delay={0.2} />
       </Box>
     </Box>
   );
