@@ -37,6 +37,7 @@ import { useAppDispatch, useAppSelector } from "../../app/hooks";
 import { useLogoutMutation } from "../../features/auth/api/auth.api";
 import { logout } from "../../features/auth/slices/auth.slice";
 import { authStorage } from "../../app/store/auth.storage";
+import { api } from "../../service/api";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
 
 // ── Import the notification bell ──────────────────────────────────────────────
@@ -106,6 +107,10 @@ const Header: React.FC<HeaderProps> = ({
       // other open tab, which AuthHydrator listens for to log them out too.
       authStorage.clear();
       dispatch(logout());
+      // Clear every cached query too — otherwise a re-login (same user or a
+      // different one on a shared machine) can briefly render this session's
+      // stale attendance/roster/profile data before a refetch catches up.
+      dispatch(api.util.resetApiState());
       navigate("/login", { replace: true });
       setLoading(false);
     }

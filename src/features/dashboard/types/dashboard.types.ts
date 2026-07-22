@@ -29,6 +29,7 @@ export interface ShiftInfo {
   dur: string;
   code?: string;
   colors?: ShiftColorTriple;
+  workMode?: WorkMode | null;
 }
 
 export interface WeekDay {
@@ -89,4 +90,21 @@ export interface EmpWorkLocationRow {
   workDate: string;
   shiftName: string;
   workfromLocation: string;
+}
+
+export type WorkMode = "WFH" | "WFO";
+
+export type AttendanceStatus = "NOT_STARTED" | "CLOCKED_IN" | "CLOCKED_OUT";
+
+export interface AttendanceRow {
+  userId: number;
+  workDate: string;
+  workfromLocation: WorkMode | null;
+  shiftId: number | null;
+  shiftName: string | null;
+  shiftRange: string | null;
+  clockInTime: string | null;
+  clockOutTime: string | null;
+  status: AttendanceStatus;
+  workedMinutes: number | null;
 }

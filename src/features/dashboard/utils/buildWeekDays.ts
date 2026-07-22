@@ -44,6 +44,7 @@ function buildDay(date: Date, rosterDay: RosterDay | undefined, today: Date): We
       dur: `${rosterDay.availableMins}m`,
       code,
       colors: getShiftColors(shiftDisplay),
+      workMode: rosterDay.workMode === "WFH" || rosterDay.workMode === "WFO" ? rosterDay.workMode : null,
     },
   };
 }

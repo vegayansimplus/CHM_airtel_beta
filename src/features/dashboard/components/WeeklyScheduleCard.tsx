@@ -6,6 +6,8 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import EventBusyIcon from "@mui/icons-material/EventBusy";
+import HomeIcon from "@mui/icons-material/Home";
+import BusinessIcon from "@mui/icons-material/Business";
 import type { Colors } from "../types/colorTypes";
 import type { WeekDay } from "../types/dashboard.types";
 import type { DashboardRosterStatus } from "../hooks/useDashboardRoster";
@@ -141,11 +143,16 @@ export function WeeklyScheduleCard({
                   </Box>
 
                   {d.shift ? (
-                    <Tooltip title={`${d.shift.name} · ${d.shift.start}–${d.shift.end} · ${d.shift.dur}`} arrow placement="top">
+                    <Tooltip
+                      title={`${d.shift.name} · ${d.shift.start}–${d.shift.end} · ${d.shift.dur}${d.shift.workMode ? ` · ${d.shift.workMode}` : ""}`}
+                      arrow
+                      placement="top"
+                    >
                       <Box
                         onMouseEnter={() => setScheduleHover(d.date)}
                         onMouseLeave={() => setScheduleHover(null)}
                         sx={{
+                          position: "relative",
                           borderRadius: "10px",
                           py: "7px",
                           px: "3px",
@@ -174,6 +181,15 @@ export function WeeklyScheduleCard({
                           boxShadow: scheduleHover === d.date ? `0 4px 12px ${colors.accentBorder}` : "none",
                         }}
                       >
+                        {d.shift.workMode && (
+                          <Box sx={{ position: "absolute", top: "4px", right: "4px", lineHeight: 0 }}>
+                            {d.shift.workMode === "WFH" ? (
+                              <HomeIcon sx={{ fontSize: 11, color: colors.accent }} />
+                            ) : (
+                              <BusinessIcon sx={{ fontSize: 11, color: colors.textDim }} />
+                            )}
+                          </Box>
+                        )}
                         <Typography sx={{ fontSize: 10, fontWeight: 800, color: d.isToday ? colors.accent : (tileColors?.color ?? colors.textSecondary) }}>
                           {d.shift.name}
                         </Typography>

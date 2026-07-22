@@ -42,19 +42,28 @@ const baseQueryWithReauth: BaseQueryFn<
   string | FetchArgs,
   unknown,
   FetchBaseQueryError
-> = async (args, api, extraOptions) => {
-  const result = await rawBaseQuery(args, api, extraOptions);
+> = async (args, queryApi, extraOptions) => {
+  const result = await rawBaseQuery(args, queryApi, extraOptions);
 
   if (result.error && !isAuthLifecycleRequest(args)) {
     const status = result.error.status;
-    if (status === 401 || status === 403) {
-      const wasAuthenticated = (api.getState() as RootState).auth
+    if (status === 401) {
+      const wasAuthenticated = (queryApi.getState() as RootState).auth
         .isAuthenticated;
       authStorage.clear();
-      api.dispatch(logout());
+      queryApi.dispatch(logout());
+      // Purge every cached query (attendance, roster, profile, ...) so the
+      // next login — same user or different — always refetches fresh data
+      // instead of briefly showing this session's stale cache.
+      queryApi.dispatch(api.util.resetApiState());
       if (wasAuthenticated) {
         toast.error("Your session has expired. Please sign in again.");
       }
+    } else if (status === 403) {
+      // Authenticated but not authorized for this specific action — surface
+      // the server's message without tearing down an otherwise-valid session.
+      const data = result.error.data as { message?: string } | undefined;
+      toast.error(data?.message ?? "You don't have permission to do that.");
     }
   }
 
@@ -107,5 +116,6 @@ export const api = createApi({
     "CabImpl",
     "UserManagementList",
     "UserManagementProfile",
+    "Attendance",
   ],
 });

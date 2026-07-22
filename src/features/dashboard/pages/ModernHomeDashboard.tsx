@@ -8,10 +8,10 @@ import { useDashboardProfile } from "../hooks/useDashboardProfile";
 import { useDashboardHolidays } from "../hooks/useDashboardHolidays";
 import { useDashboardLeaveTeam } from "../hooks/useDashboardLeaveTeam";
 import { useDashboardAssignments } from "../hooks/useDashboardAssignments";
-import { useDashboardWorkLocation } from "../hooks/useDashboardWorkLocation";
+import { useDashboardAttendance } from "../hooks/useDashboardAttendance";
 import { useDashboardStats } from "../hooks/useDashboardStats";
 import { ProfileCard } from "../components/ProfileCard";
-import { WorkLocationCard } from "../components/WorkLocationCard";
+import { AttendanceCard } from "../components/AttendanceCard";
 import { UpcomingHolidaysCard } from "../components/UpcomingHolidaysCard";
 import { TodaysAssignmentsCard } from "../components/TodaysAssignmentsCard";
 import { StatCardsGrid } from "../components/StatCardsGrid";
@@ -33,7 +33,7 @@ export default function ModernHomeDashboard() {
   const holidays = useDashboardHolidays();
   const leaveTeam = useDashboardLeaveTeam();
   const assignments = useDashboardAssignments();
-  const workLocation = useDashboardWorkLocation();
+  const attendance = useDashboardAttendance();
   const statCards = useDashboardStats();
 
   return (
@@ -62,17 +62,21 @@ export default function ModernHomeDashboard() {
               doneCount: assignments.doneCount,
               totalTasks: assignments.totalCount,
               progressPct: assignments.totalCount > 0 ? (assignments.doneCount / assignments.totalCount) * 100 : 0,
-              wfMode: workLocation.location?.workfromLocation ?? "—",
+              wfMode: attendance.attendance?.workfromLocation ?? "—",
             }}
             colors={colors}
             mounted={mounted}
             delay={0.05}
           />
 
-          <WorkLocationCard
-            location={workLocation.location}
-            status={workLocation.status}
-            errorMessage={workLocation.errorMessage}
+          <AttendanceCard
+            attendance={attendance.attendance}
+            status={attendance.status}
+            errorMessage={attendance.errorMessage}
+            isMutating={attendance.isMutating}
+            onSetWorkMode={attendance.setWorkMode}
+            onClockIn={attendance.clockIn}
+            onClockOut={attendance.clockOut}
             colors={colors}
             mounted={mounted}
             delay={0.1}

@@ -1,9 +1,11 @@
 import { api } from "../../../service/api";
 import type {
+  AttendanceRow,
   EmpWorkLocationRow,
   EmployeeOnLeaveRow,
   EngineerDailyAssignmentRow,
   UpcomingHolidayRow,
+  WorkMode,
 } from "../types/dashboard.types";
 
 export const dashboardApi = api.injectEndpoints({
@@ -26,6 +28,30 @@ export const dashboardApi = api.injectEndpoints({
         params: { date },
       }),
     }),
+    getTodayAttendance: builder.query<AttendanceRow | null, void>({
+      query: () => "/attendance/today",
+      providesTags: ["Attendance"],
+    }),
+    setWorkMode: builder.mutation<AttendanceRow, WorkMode>({
+      query: (workMode) => ({
+        url: "/attendance/workmode",
+        method: "POST",
+        body: { workMode },
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
+    clockIn: builder.mutation<AttendanceRow, WorkMode | undefined>({
+      query: (workMode) => ({
+        url: "/attendance/clockin",
+        method: "POST",
+        body: workMode ? { workMode } : {},
+      }),
+      invalidatesTags: ["Attendance"],
+    }),
+    clockOut: builder.mutation<AttendanceRow, void>({
+      query: () => ({ url: "/attendance/clockout", method: "POST" }),
+      invalidatesTags: ["Attendance"],
+    }),
   }),
 });
 
@@ -34,4 +60,8 @@ export const {
   useGetEmployeesOnLeaveQuery,
   useGetDailyAssignmentsQuery,
   useGetWorkLocationQuery,
+  useGetTodayAttendanceQuery,
+  useSetWorkModeMutation,
+  useClockInMutation,
+  useClockOutMutation,
 } = dashboardApi;
