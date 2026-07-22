@@ -25,7 +25,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <BrowserRouter basename="airtelchm">
+    <BrowserRouter basename="airtelchmbeta">
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>
           <CssBaseline />

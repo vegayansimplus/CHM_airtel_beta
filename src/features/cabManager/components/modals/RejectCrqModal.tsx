@@ -1,8 +1,86 @@
+// import {
+//   Alert,
+//   Box,
+//   Button,
+//   Dialog, DialogActions, DialogContent, DialogTitle,
+//   MenuItem,
+//   TextField,
+//   Typography,
+// } from "@mui/material";
+// import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
+// import { useState } from "react";
+// import { useRejectCrqMutation } from "../../api/cabManagerApiSlice";
+// import { DEFAULT_REJECT_REASONS } from "../../data/cabManager.mock";
+// import { errMsg } from "../shared/errMsg";
+
+// export function RejectCrqModal({ open, crqId, onClose }: { open: boolean; crqId: string | null; onClose: () => void }) {
+//   const [reason, setReason] = useState("");
+//   const [comment, setComment] = useState("");
+//   const [reject, { isLoading, isError, error }] = useRejectCrqMutation();
+
+//   const submit = async () => {
+//     if (!crqId || !reason || !comment) return;
+//     try {
+//       await reject({ crqId, reason, comment }).unwrap();
+//       setReason(""); setComment("");
+//       onClose();
+//     } catch { /* error surfaced */ }
+//   };
+
+//   return (
+//     <Dialog open={open && !!crqId} onClose={onClose} maxWidth="xs" fullWidth>
+//       <DialogTitle>
+//         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+//           <Box sx={{ width: 40, height: 40, borderRadius: "50%", bgcolor: "#FDECEA", color: "#D32F2F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+//             <CancelOutlinedIcon />
+//           </Box>
+//           Reject CRQ
+//         </Box>
+//       </DialogTitle>
+//       <DialogContent>
+//         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
+//           Rejecting <Box component="span" sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crqId}</Box> terminates the approval process.
+//           A new CRQ must be raised to proceed.
+//         </Typography>
+//         <TextField
+//           select fullWidth required
+//           label="Reason for rejection"
+//           value={reason}
+//           onChange={(e) => setReason(e.target.value)}
+//           sx={{ mb: 2 }}
+//         >
+//           <MenuItem value="">— Select reason —</MenuItem>
+//           {DEFAULT_REJECT_REASONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+//         </TextField>
+//         <TextField
+//           fullWidth required multiline minRows={3}
+//           label="Additional comments"
+//           placeholder="Explain the rejection so the raiser can address it…"
+//           value={comment}
+//           onChange={(e) => setComment(e.target.value)}
+//         />
+//         {isError && <Alert severity="error" sx={{ mt: 2 }}>{errMsg(error)}</Alert>}
+//       </DialogContent>
+//       <DialogActions>
+//         <Button onClick={onClose}>Cancel</Button>
+//         <Button variant="contained" color="error" onClick={submit} disabled={isLoading || !reason || !comment}>
+//           {isLoading ? "Rejecting…" : "Confirm Rejection"}
+//         </Button>
+//       </DialogActions>
+//     </Dialog>
+//   );
+// }
+
+
+
 import {
   Alert,
   Box,
   Button,
-  Dialog, DialogActions, DialogContent, DialogTitle,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   MenuItem,
   TextField,
   Typography,
@@ -13,58 +91,141 @@ import { useRejectCrqMutation } from "../../api/cabManagerApiSlice";
 import { DEFAULT_REJECT_REASONS } from "../../data/cabManager.mock";
 import { errMsg } from "../shared/errMsg";
 
-export function RejectCrqModal({ open, crqId, onClose }: { open: boolean; crqId: string | null; onClose: () => void }) {
+type RejectCrqModalProps = {
+  open: boolean;
+  serviceApprovalId: number | null;
+  crqNo: string | null;
+  onClose: () => void;
+};
+
+export function RejectCrqModal({
+  open,
+  serviceApprovalId,
+  crqNo,
+  onClose,
+}: RejectCrqModalProps) {
   const [reason, setReason] = useState("");
   const [comment, setComment] = useState("");
-  const [reject, { isLoading, isError, error }] = useRejectCrqMutation();
+
+  const [reject, { isLoading, isError, error }] =
+    useRejectCrqMutation();
 
   const submit = async () => {
-    if (!crqId || !reason || !comment) return;
+    if (serviceApprovalId == null || !reason || !comment) return;
+
     try {
-      await reject({ crqId, reason, comment }).unwrap();
-      setReason(""); setComment("");
+      await reject({
+        serviceApprovalId,
+        reason,
+        comment,
+      }).unwrap();
+
+      setReason("");
+      setComment("");
       onClose();
-    } catch { /* error surfaced */ }
+    } catch {
+      // handled by mutation state
+    }
   };
 
   return (
-    <Dialog open={open && !!crqId} onClose={onClose} maxWidth="xs" fullWidth>
+    <Dialog
+      open={open && serviceApprovalId != null}
+      onClose={onClose}
+      maxWidth="xs"
+      fullWidth
+    >
       <DialogTitle>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: "50%", bgcolor: "#FDECEA", color: "#D32F2F", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <Box
+            sx={{
+              width: 40,
+              height: 40,
+              borderRadius: "50%",
+              bgcolor: "#FDECEA",
+              color: "#D32F2F",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
             <CancelOutlinedIcon />
           </Box>
           Reject CRQ
         </Box>
       </DialogTitle>
+
       <DialogContent>
-        <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-          Rejecting <Box component="span" sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crqId}</Box> terminates the approval process.
-          A new CRQ must be raised to proceed.
+        <Typography
+          variant="body2"
+          sx={{ color: "text.secondary", mb: 2 }}
+        >
+          Rejecting{" "}
+          <Box
+            component="span"
+            sx={{
+              fontFamily: "'Roboto Mono', monospace",
+              color: "primary.main",
+              fontWeight: 500,
+            }}
+          >
+            {crqNo}
+          </Box>{" "}
+          terminates the approval process. A new CRQ must be raised to
+          proceed.
         </Typography>
+
         <TextField
-          select fullWidth required
+          select
+          fullWidth
+          required
           label="Reason for rejection"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           sx={{ mb: 2 }}
         >
           <MenuItem value="">— Select reason —</MenuItem>
-          {DEFAULT_REJECT_REASONS.map((r) => <MenuItem key={r} value={r}>{r}</MenuItem>)}
+
+          {DEFAULT_REJECT_REASONS.map((r) => (
+            <MenuItem key={r} value={r}>
+              {r}
+            </MenuItem>
+          ))}
         </TextField>
+
         <TextField
-          fullWidth required multiline minRows={3}
+          fullWidth
+          required
+          multiline
+          minRows={3}
           label="Additional comments"
           placeholder="Explain the rejection so the raiser can address it…"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
-        {isError && <Alert severity="error" sx={{ mt: 2 }}>{errMsg(error)}</Alert>}
+
+        {isError && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {errMsg(error)}
+          </Alert>
+        )}
       </DialogContent>
+
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" color="error" onClick={submit} disabled={isLoading || !reason || !comment}>
-          {isLoading ? "Rejecting…" : "Confirm Rejection"}
+
+        <Button
+          variant="contained"
+          color="error"
+          onClick={submit}
+          disabled={
+            isLoading ||
+            serviceApprovalId == null ||
+            !reason ||
+            !comment
+          }
+        >
+          {isLoading ? "Rejecting..." : "Confirm Rejection"}
         </Button>
       </DialogActions>
     </Dialog>
