@@ -34,6 +34,7 @@ export type CabSessionStatus = "live" | "scheduled" | "completed";
 
 // ── CRQ ─────────────────────────────────────────────────────────────────────
 export interface Crq {
+  serviceApprovalId:number;
   crqNo: string;
   planId: string;
   domainName: Domain;
@@ -284,9 +285,9 @@ export interface NewCrqPayload {
 
 export interface AssignSpocPayload { crqId: string; spoc: string; }
 export interface AssignFePayload   { crqId: string; fieldEngineer: string; }
-export interface ApproveCrqPayload { crqId: string; comment?: string; }
-export interface RejectCrqPayload  { crqId: string; reason: string; comment: string; }
-export interface ReschedulePayload { crqId: string; newDate: string; newWindow: string; reason: string; }
+export interface ApproveCrqPayload { serviceApprovalId: number; comment?: string; }
+export interface RejectCrqPayload  { serviceApprovalId: number; reason: string; comment: string; }
+export interface ReschedulePayload { serviceApprovalId: number; newDate: string; newWindow: string; reason: string; }
 
 // ── Persona (role switcher) ─────────────────────────────────────────────────
 export interface Persona {

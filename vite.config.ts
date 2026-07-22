@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   assetsInclude: ['**/*.xlsx', '**/*.xlsm'],
-  base: "/airtelchm/",
+  base: "/airtelchmbeta/",
   server: {
     host: '0.0.0.0',  // Your server's IP address
     port: 5174,           // The port Vite will run on
