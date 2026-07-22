@@ -1,17 +1,5 @@
 import type { ShiftColorTriple } from "../../userMe/userRoster/constants/shiftColors";
 
-export type TaskStatus = "Done" | "Urgent" | "Pending" | "Rostering";
-
-export interface Task {
-  id: number;
-  title: string;
-  dept: string;
-  time: string;
-  status: TaskStatus;
-}
-
-export type TaskFilter = "All" | "Pending" | "Done";
-
 /** Semantic colour tone — resolved against theme tokens at render time. */
 export type ToneKey = "accent" | "success" | "warning" | "danger" | "info";
 
@@ -53,14 +41,6 @@ export interface WeekDay {
   offLabel?: string;
 }
 
-export type WorkMode = "WFH" | "WFO";
-
-export interface WorkModeDay {
-  d: string;
-  t: WorkMode;
-  active?: boolean;
-}
-
 export type StatIconKey = "trending" | "clock" | "calendar" | "event";
 
 export interface StatCardConfig {
@@ -74,4 +54,39 @@ export interface StatCardConfig {
   delta?: { text: string; tone: ToneKey };
   /** Last few data points rendered as a mini sparkline at the card foot. */
   trend?: readonly number[];
+}
+
+/** Raw row shapes returned by /dashboard/* endpoints (see EmployeeDashboardController). */
+export interface UpcomingHolidayRow {
+  holidayDate: string;
+  holidayDay: string;
+  holidayOccasion: string;
+}
+
+export interface EmployeeOnLeaveRow {
+  userId: number;
+  olmid: string;
+  employeeName: string;
+  subDomainName: string | null;
+  leaveType: string;
+  leaveDuration: string;
+  leaveStartDate: string;
+  leaveEndDate: string;
+  leaveDate: string;
+}
+
+export interface EngineerDailyAssignmentRow {
+  planNo: string;
+  crqNo: string | null;
+  startTime: string | null;
+  endTime: string | null;
+  stage: string;
+  durationMins: number | null;
+  remark: string;
+}
+
+export interface EmpWorkLocationRow {
+  workDate: string;
+  shiftName: string;
+  workfromLocation: string;
 }

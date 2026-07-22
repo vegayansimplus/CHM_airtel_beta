@@ -1,6 +1,6 @@
 import type { CSSProperties } from "react";
 import type { Colors } from "../types/colorTypes";
-import type { TaskStatus, ToneKey } from "../types/dashboard.types";
+import type { ToneKey } from "../types/dashboard.types";
 
 /** Standard card shell shared by every dashboard widget, theme (light/dark) aware. */
 export const getCardSx = (c: Colors) => ({
@@ -26,13 +26,6 @@ export const getToneStyles = (c: Colors): Record<ToneKey, { color: string; light
   warning: { color: c.warning, light: c.warningDim, border: c.warningBorder },
   danger: { color: c.danger, light: c.dangerDim, border: c.dangerBorder },
   info: { color: c.info, light: c.infoDim, border: c.infoBorder },
-});
-
-export const getTaskStatusStyles = (c: Colors): Record<TaskStatus, { bg: string; color: string; ring: string }> => ({
-  Done: { bg: c.successDim, color: c.success, ring: c.successBorder },
-  Urgent: { bg: c.warningDim, color: c.warning, ring: c.warningBorder },
-  Pending: { bg: c.surface2, color: c.textSecondary, ring: c.border },
-  Rostering: { bg: c.accentDim, color: c.accent, ring: c.accentBorder },
 });
 
 /** Staggered mount-in fade/slide, shared across widgets. */

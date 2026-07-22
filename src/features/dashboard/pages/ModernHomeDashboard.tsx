@@ -1,22 +1,19 @@
+import { useEffect, useState } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useTabColorTokens } from "../../../style/theme";
 import { RescheduleNotificationPage } from "../../rescheduleNotification";
-import { useHomeDashboard } from "../hooks/useHomeDashboard";
 import { useDashboardRoster } from "../hooks/useDashboardRoster";
 import { useDashboardProfile } from "../hooks/useDashboardProfile";
-import {
-  HOLIDAYS,
-  LEAVE_TEAM,
-  STAT_CARDS,
-  TASKS,
-  WFH_WEEK,
-  WORK_LOCATION_DATE_LABEL,
-} from "../mocks/dashboard.mock";
+import { useDashboardHolidays } from "../hooks/useDashboardHolidays";
+import { useDashboardLeaveTeam } from "../hooks/useDashboardLeaveTeam";
+import { useDashboardAssignments } from "../hooks/useDashboardAssignments";
+import { useDashboardWorkLocation } from "../hooks/useDashboardWorkLocation";
+import { useDashboardStats } from "../hooks/useDashboardStats";
 import { ProfileCard } from "../components/ProfileCard";
 import { WorkLocationCard } from "../components/WorkLocationCard";
 import { UpcomingHolidaysCard } from "../components/UpcomingHolidaysCard";
-import { TodaysTasksCard } from "../components/TodaysTasksCard";
+import { TodaysAssignmentsCard } from "../components/TodaysAssignmentsCard";
 import { StatCardsGrid } from "../components/StatCardsGrid";
 import { WeeklyScheduleCard } from "../components/WeeklyScheduleCard";
 import { OnLeaveTodayCard } from "../components/OnLeaveTodayCard";
@@ -25,29 +22,19 @@ export default function ModernHomeDashboard() {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
 
-  const {
-    mounted,
-    taskFilter,
-    setTaskFilter,
-    visibleTasks,
-    doneCount,
-    totalTasks,
-    progressPct,
-    checkedTasks,
-    toggleTask,
-    hoveredTask,
-    setHoveredTask,
-    taskMenuAnchor,
-    openTaskMenu,
-    closeTaskMenu,
-    runTaskMenuAction,
-    wfMode,
-    changeWorkMode,
-    wfhBounce,
-  } = useHomeDashboard();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 80);
+    return () => clearTimeout(t);
+  }, []);
 
   const roster = useDashboardRoster();
   const { profile, status: profileStatus, errorMessage: profileErrorMessage } = useDashboardProfile();
+  const holidays = useDashboardHolidays();
+  const leaveTeam = useDashboardLeaveTeam();
+  const assignments = useDashboardAssignments();
+  const workLocation = useDashboardWorkLocation();
+  const statCards = useDashboardStats();
 
   return (
     <Box
@@ -71,29 +58,46 @@ export default function ModernHomeDashboard() {
             status={profileStatus}
             profile={profile}
             errorMessage={profileErrorMessage}
-            stats={{ doneCount, totalTasks, progressPct, wfMode }}
+            stats={{
+              doneCount: assignments.doneCount,
+              totalTasks: assignments.totalCount,
+              progressPct: assignments.totalCount > 0 ? (assignments.doneCount / assignments.totalCount) * 100 : 0,
+              wfMode: workLocation.location?.workfromLocation ?? "—",
+            }}
             colors={colors}
             mounted={mounted}
             delay={0.05}
           />
 
           <WorkLocationCard
-            wfMode={wfMode}
-            wfhBounce={wfhBounce}
-            weekLabel={WORK_LOCATION_DATE_LABEL}
-            week={WFH_WEEK}
+            location={workLocation.location}
+            status={workLocation.status}
+            errorMessage={workLocation.errorMessage}
             colors={colors}
             mounted={mounted}
             delay={0.1}
-            onChangeMode={changeWorkMode}
           />
 
-          <UpcomingHolidaysCard holidays={HOLIDAYS} colors={colors} mounted={mounted} delay={0.15} />
+          <UpcomingHolidaysCard
+            holidays={holidays.holidays}
+            status={holidays.status}
+            errorMessage={holidays.errorMessage}
+            colors={colors}
+            mounted={mounted}
+            delay={0.15}
+          />
 
-          <OnLeaveTodayCard team={LEAVE_TEAM} colors={colors} mounted={mounted} delay={0.2} />
+          <OnLeaveTodayCard
+            team={leaveTeam.team}
+            status={leaveTeam.status}
+            errorMessage={leaveTeam.errorMessage}
+            colors={colors}
+            mounted={mounted}
+            delay={0.2}
+          />
         </Box>
 
-        {/* ── RIGHT — Tasks + stats (equal height), schedule, notifications ── */}
+        {/* ── RIGHT — Assignments + stats (equal height), schedule, notifications ── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
           <Box
             sx={{
@@ -103,26 +107,18 @@ export default function ModernHomeDashboard() {
               alignItems: "stretch",
             }}
           >
-            <TodaysTasksCard
-              tasks={visibleTasks}
-              doneCount={doneCount}
-              remainingCount={TASKS.length - doneCount}
-              taskFilter={taskFilter}
-              checkedTasks={checkedTasks}
-              hoveredTask={hoveredTask}
-              taskMenuAnchor={taskMenuAnchor}
+            <TodaysAssignmentsCard
+              assignments={assignments.assignments}
+              doneCount={assignments.doneCount}
+              totalCount={assignments.totalCount}
+              status={assignments.status}
+              errorMessage={assignments.errorMessage}
               colors={colors}
               mounted={mounted}
               delay={0.08}
-              onFilterChange={setTaskFilter}
-              onToggleTask={toggleTask}
-              onHoverTask={setHoveredTask}
-              onOpenTaskMenu={openTaskMenu}
-              onCloseTaskMenu={closeTaskMenu}
-              onTaskMenuAction={runTaskMenuAction}
             />
 
-            <StatCardsGrid cards={STAT_CARDS} colors={colors} mounted={mounted} delay={0.12} />
+            <StatCardsGrid cards={statCards} colors={colors} mounted={mounted} delay={0.12} />
           </Box>
           <RescheduleNotificationPage />
 
