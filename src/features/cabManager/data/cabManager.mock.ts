@@ -8,6 +8,7 @@ import type {
   CabPlanDate,
   CabQueueRow,
   CabRejectReason,
+  CabService,
   CabSession,
   Crq,
   CrqJourney,
@@ -60,24 +61,44 @@ export const ROLE_SCREENS: Record<Role, string[]> = {
   se:          ["dashboard", "cabSessions", "implementation", "journey"],
 };
 
-// ── Core CRQ dataset — mirrors backend CrqDto (11 fields) ───────────────────
+// ── Core CRQ dataset — mirrors backend CrqDto (post sp_get_cab_crqs / sp_get_my_crqs_rows update) ──
 export const MOCK_CRQS: Crq[] = [
-  { crqNo: "CRQ-2026-0418", planId: "PLAN-2026-0001", domainName: "Optics",   circleCode: "MH",   currentStage: "VALIDATE",             approverName: "Amit Verma",     assignStartTime: "2026-06-14T02:00:00", currentStatus: "pending",   slaPercentage: 82, assignedToMe: false, raisedBy: "Karan Mehta" },
-  { crqNo: "CRQ-2026-0421", planId: "PLAN-2026-0002", domainName: "IP Core",  circleCode: "KA",   currentStage: "VALIDATE",             approverName: "Sneha Iyer",     assignStartTime: "2026-06-16T01:00:00", currentStatus: "pending",   slaPercentage: 34, assignedToMe: false, raisedBy: "Divya Nair" },
-  { crqNo: "CRQ-2026-0422", planId: "PLAN-2026-0003", domainName: "Optics",   circleCode: "GJ",   currentStage: "SCHEDULING_APPROVAL",  approverName: "Priya Deshmukh", assignStartTime: "2026-06-15T00:30:00", currentStatus: "pending",   slaPercentage: 58, assignedToMe: false, raisedBy: "Karan Mehta" },
-  { crqNo: "CRQ-2026-0423", planId: "PLAN-2026-0004", domainName: "IP Core",  circleCode: "DL",   currentStage: "MOP_VALIDATION",       approverName: "Sneha Iyer",     assignStartTime: "2026-06-17T02:00:00", currentStatus: "pending",   slaPercentage: 71, assignedToMe: false, raisedBy: "Rohit Bansal" },
-  { crqNo: "CRQ-2026-0424", planId: "PLAN-2026-0005", domainName: "Optics",   circleCode: "TN",   currentStage: "VALIDATE",             approverName: "Amit Verma",     assignStartTime: "2026-06-14T01:00:00", currentStatus: "pending",   slaPercentage: 88, assignedToMe: false, raisedBy: "Lakshmi Iyer" },
-  { crqNo: "CRQ-2026-0425", planId: "PLAN-2026-0006", domainName: "Packet",   circleCode: "AP",   currentStage: "VALIDATE",             approverName: "Anil Kumar",     assignStartTime: "2026-06-18T02:00:00", currentStatus: "pending",   slaPercentage: 28, assignedToMe: false, raisedBy: "Divya Nair" },
-  { crqNo: "CRQ-2026-0419", planId: "PLAN-2026-0007", domainName: "Mobility", circleCode: "MH",   currentStage: "EXECUTION",            approverName: "Kavya Reddy",    assignStartTime: "2026-06-12T01:30:00", currentStatus: "approved",  slaPercentage: 12, assignedToMe: false, raisedBy: "Ashwin Pillai" },
-  { crqNo: "CRQ-2026-0420", planId: "PLAN-2026-0008", domainName: "Mobility", circleCode: "WB",   currentStage: "VALIDATE",             approverName: "Amit Verma",     assignStartTime: "2026-06-15T02:00:00", currentStatus: "pending",   slaPercentage: 64, assignedToMe: true,  raisedBy: "Ashwin Pillai" },
-  { crqNo: "CRQ-2026-0415", planId: "PLAN-2026-0009", domainName: "IP Core",  circleCode: "UP-E", currentStage: "VALIDATE",             approverName: "Sneha Iyer",     assignStartTime: "2026-06-12T02:00:00", currentStatus: "rejected",  slaPercentage: 92, assignedToMe: false, raisedBy: "Rohit Bansal" },
-  { crqNo: "CRQ-2026-0417", planId: "PLAN-2026-0010", domainName: "Packet",   circleCode: "KA",   currentStage: "SCHEDULING_APPROVAL",  approverName: "Anil Kumar",     assignStartTime: "2026-06-16T02:00:00", currentStatus: "pending",   slaPercentage: 55, assignedToMe: false, raisedBy: "Divya Nair" },
-  { crqNo: "CRQ-2026-0426", planId: "PLAN-2026-0011", domainName: "Embedded", circleCode: "RJ",   currentStage: "VALIDATE",             approverName: "Rahul Sharma",   assignStartTime: "2026-06-19T02:30:00", currentStatus: "pending",   slaPercentage: 40, assignedToMe: false, raisedBy: "Vikram Joshi" },
-  { crqNo: "CRQ-2026-0414", planId: "PLAN-2026-0012", domainName: "Embedded", circleCode: "MH",   currentStage: "EXECUTION",            approverName: "Rahul Sharma",   assignStartTime: "2026-06-12T02:00:00", currentStatus: "approved",  slaPercentage: 18, assignedToMe: false, raisedBy: "Meera Krishnan" },
-  { crqNo: "CRQ-2026-0413", planId: "PLAN-2026-0013", domainName: "Embedded", circleCode: "DL",   currentStage: "VALIDATE",             approverName: "Amit Verma",     assignStartTime: "2026-06-15T03:00:00", currentStatus: "pending",   slaPercentage: 76, assignedToMe: false, raisedBy: "Vikram Joshi" },
-  { crqNo: "CRQ-2026-0412", planId: "PLAN-2026-0014", domainName: "Packet",   circleCode: "MP",   currentStage: "VALIDATE",             approverName: "Amit Verma",     assignStartTime: "2026-06-14T01:00:00", currentStatus: "pending",   slaPercentage: 81, assignedToMe: false, raisedBy: "Ashwin Pillai" },
-  { crqNo: "CRQ-2026-0411", planId: "PLAN-2026-0015", domainName: "IP Core",  circleCode: "WB",   currentStage: "SCHEDULING_APPROVAL",  approverName: "Sneha Iyer",     assignStartTime: "2026-06-18T02:00:00", currentStatus: "pending",   slaPercentage: 47, assignedToMe: false, raisedBy: "Rohit Bansal" },
+  { serviceApprovalId: 1,  crqNo: "CRQ-2026-0418", planId: "PLAN-2026-0001", domainName: "Optics",   circleCode: "MH",   currentStage: "VALIDATE",             serviceCode: "TX",   stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 82 },
+  { serviceApprovalId: 2,  crqNo: "CRQ-2026-0421", planId: "PLAN-2026-0002", domainName: "IP Core",  circleCode: "KA",   currentStage: "VALIDATE",             serviceCode: "CORE", stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 34 },
+  { serviceApprovalId: 3,  crqNo: "CRQ-2026-0422", planId: "PLAN-2026-0003", domainName: "Optics",   circleCode: "GJ",   currentStage: "SCHEDULING_APPROVAL",  serviceCode: "TX",   stageStatus: "IN_PROGRESS", serviceApprovalStatus: "ON_HOLD", slaPercentage: 58 },
+  { serviceApprovalId: 4,  crqNo: "CRQ-2026-0423", planId: "PLAN-2026-0004", domainName: "IP Core",  circleCode: "DL",   currentStage: "MOP_VALIDATION",       serviceCode: "CORE", stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 71 },
+  { serviceApprovalId: 5,  crqNo: "CRQ-2026-0424", planId: "PLAN-2026-0005", domainName: "Optics",   circleCode: "TN",   currentStage: "VALIDATE",             serviceCode: "TX",   stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 88 },
+  { serviceApprovalId: 6,  crqNo: "CRQ-2026-0425", planId: "PLAN-2026-0006", domainName: "Packet",   circleCode: "AP",   currentStage: "VALIDATE",             serviceCode: "B2B",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 28 },
+  { serviceApprovalId: 7,  crqNo: "CRQ-2026-0419", planId: "PLAN-2026-0007", domainName: "Mobility", circleCode: "MH",   currentStage: "EXECUTION",            serviceCode: "MOB",  stageStatus: "COMPLETED",   serviceApprovalStatus: "APPROVED", slaPercentage: 12 },
+  { serviceApprovalId: 8,  crqNo: "CRQ-2026-0420", planId: "PLAN-2026-0008", domainName: "Mobility", circleCode: "WB",   currentStage: "VALIDATE",             serviceCode: "MOB",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 64 },
+  { serviceApprovalId: 9,  crqNo: "CRQ-2026-0415", planId: "PLAN-2026-0009", domainName: "IP Core",  circleCode: "UP-E", currentStage: "VALIDATE",             serviceCode: "CORE", stageStatus: "IN_PROGRESS", serviceApprovalStatus: "REJECTED", slaPercentage: 92 },
+  { serviceApprovalId: 10, crqNo: "CRQ-2026-0417", planId: "PLAN-2026-0010", domainName: "Packet",   circleCode: "KA",   currentStage: "SCHEDULING_APPROVAL",  serviceCode: "B2B",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 55 },
+  { serviceApprovalId: 11, crqNo: "CRQ-2026-0426", planId: "PLAN-2026-0011", domainName: "Embedded", circleCode: "RJ",   currentStage: "VALIDATE",             serviceCode: "RAN",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 40 },
+  { serviceApprovalId: 12, crqNo: "CRQ-2026-0414", planId: "PLAN-2026-0012", domainName: "Embedded", circleCode: "MH",   currentStage: "EXECUTION",            serviceCode: "RAN",  stageStatus: "COMPLETED",   serviceApprovalStatus: "APPROVED", slaPercentage: 18 },
+  { serviceApprovalId: 13, crqNo: "CRQ-2026-0413", planId: "PLAN-2026-0013", domainName: "Embedded", circleCode: "DL",   currentStage: "VALIDATE",             serviceCode: "RAN",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 76 },
+  { serviceApprovalId: 14, crqNo: "CRQ-2026-0412", planId: "PLAN-2026-0014", domainName: "Packet",   circleCode: "MP",   currentStage: "VALIDATE",             serviceCode: "B2B",  stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 81 },
+  { serviceApprovalId: 15, crqNo: "CRQ-2026-0411", planId: "PLAN-2026-0015", domainName: "IP Core",  circleCode: "WB",   currentStage: "SCHEDULING_APPROVAL",  serviceCode: "CORE", stageStatus: "IN_PROGRESS", serviceApprovalStatus: "PENDING",  slaPercentage: 47 },
 ];
+
+// ── CAB services (AllCRQs "Service" filter) — mirrors CRQ_CAB_SERVICE_MASTER ──
+// export const MOCK_CAB_SERVICES: CabService[] = [
+//   { serviceCode: "RAN",  serviceName: "Radio Access Network" },
+//   { serviceCode: "MOB",  serviceName: "Mobility (RAN/Core)" },
+//   { serviceCode: "B2B",  serviceName: "Enterprise / B2B" },
+//   { serviceCode: "TEL",  serviceName: "Telemedia" },
+//   { serviceCode: "CORE", serviceName: "Core Services" },
+//   { serviceCode: "TX",   serviceName: "Transmission" },
+// ];
+
+export const MOCK_CAB_SERVICES: CabService[] = [
+  { serviceCode: "Radio Access Network" },
+  { serviceCode: "Mobility (RAN/Core)" },
+  { serviceCode: "Enterprise / B2B" },
+  { serviceCode: "Telemedia" },
+  { serviceCode: "Core Services" },
+  { serviceCode: "Transmission" },
+];
+
 
 // ── Rejection reasons / stage vocab used by admin config screens ────────────
 export const REJECTION_STAGES = ["Initial Technical Review", "Domain Approval", "Validation", "Execution Gate", "Post Execution Review"];
@@ -121,7 +142,7 @@ export const MOCK_ADMIN_USERS: AdminUser[] = [
   { name: "Vikram Joshi",   olm: "vikjo05", role: "Manager (L3)",   domain: "Embedded",    access: "Approve", status: "inactive" },
 ];
 
-export const ASSIGN_DOMAINS = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"] as const;
+export const ASSIGN_DOMAINS = ["IP Core","Optics", "Packet", "Embedded", "Mobility"] as const;
 export const ASSIGN_CIRCLES = ["MH", "KA", "GJ", "DL", "TN", "AP", "WB", "UP-E", "RJ", "MP"] as const;
 
 export const APPROVERS = [
@@ -161,10 +182,10 @@ export const SERVICE_CIRCLES = ["All", "MH", "KA", "GJ", "DL", "TN", "AP", "WB",
 export const APPROVAL_AUTHORITIES = ["GSMC", "RAN Head", "COH", "Core Head", "NOC Head", "Domain Head", "Duty Manager", "CTO"];
 
 export const MOCK_SERVICE_RULES: ServiceApprovalRule[] = [
-  { id: "SR-01", service: "Enterprise Services (B2B)", circle: "All", impact: "SA",  l1: "GSMC",      l2: "NOC Head", l3: "CTO", active: true  },
-  { id: "SR-02", service: "Mobility",                  circle: "All", impact: "SA",  l1: "RAN Head",  l2: "NOC Head", l3: "CTO", active: true  },
-  { id: "SR-03", service: "Telemedia",                 circle: "All", impact: "NSA", l1: "COH",       l2: "NOC Head", l3: "CTO", active: false },
-  { id: "SR-04", service: "Core Services",              circle: "All", impact: "SA",  l1: "Core Head", l2: "NOC Head", l3: "CTO", active: false },
+  { id: "SR-01", service: "Enterprise Services (B2B)", circle: "All", l1: "GSMC",      l2: "NOC Head", l3: "CTO", active: true  },
+  { id: "SR-02", service: "Mobility",                  circle: "All", l1: "RAN Head",  l2: "NOC Head", l3: "CTO", active: true  },
+  { id: "SR-03", service: "Telemedia",                 circle: "All", l1: "COH",       l2: "NOC Head", l3: "CTO", active: false },
+  { id: "SR-04", service: "Core Services",              circle: "All", l1: "Core Head", l2: "NOC Head", l3: "CTO", active: false },
 ];
 
 export const MOCK_ESCALATION_MATRIX: EscalationRow[] = [
@@ -216,9 +237,10 @@ export const buildMyCrqs = (): MyCrqsResponse => ({
   stats: { awaitingMe: 5, approvedThisWeek: 11, rejectedThisWeek: 2 },
   rows: [
     {
-      crqNo: "CRQ-2026-0401", planId: "PLAN-2026-101", domainName: "IP Core", circleCode: "MH",
-      currentStage: "SCHEDULING_APPROVAL", approverName: "Rahul Sharma", assignStartTime: "2026-06-14T02:00:00",
-      currentStatus: "pending", slaPercentage: 42, assignedToMe: true, raisedBy: "Priya Nair",
+      serviceApprovalId: 401, crqNo: "CRQ-2026-0401", planId: "PLAN-2026-101", domainName: "IP Core", circleCode: "MH",
+      currentStage: "SCHEDULING_APPROVAL", serviceCode: "CORE", stageStatus: "IN_PROGRESS",
+      serviceApprovalStatus: "PENDING", slaPercentage: 42,
+      approverName: "Rahul Sharma", assignStartTime: "2026-06-14T02:00:00", assignedToMe: true, raisedBy: "Priya Nair",
     },
   ],
 });
@@ -243,15 +265,18 @@ export const buildImplementation = (
   crqs: Crq[] = MOCK_CRQS
 ): ImplementationDetail => {
   const crq: Crq = crqs.find((c) => c.crqNo === crqId) ?? {
+    serviceApprovalId: 418,
     crqNo: "CRQ-2026-0418",
     planId: "PLAN-2026-104",
     domainName: "Optics",
     circleCode: "TN",
     currentStage: "EXECUTION",
+    serviceCode: "TX",
+    stageStatus: "COMPLETED",
+    serviceApprovalStatus: "APPROVED",
+    slaPercentage: 76,
     approverName: "Meera Iyer",
     assignStartTime: "2026-06-13T01:00:00",
-    currentStatus: "approved",
-    slaPercentage: 76,
     assignedToMe: false,
     raisedBy: "Vikram Rao",
   };

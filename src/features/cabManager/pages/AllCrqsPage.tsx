@@ -18,7 +18,7 @@ import {
 } from "material-react-table";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useGetAllCrqsQuery } from "../api/cabManagerApiSlice";
+import { useGetAllCrqsQuery ,useGetCabServicesQuery} from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
 import { SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
@@ -27,6 +27,9 @@ import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
 import type {
   Circle, Crq, CrqFilters, CrqStage, Domain, ImpactCode,
 } from "../types/types";
+
+
+
 
 const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"];
 
@@ -40,11 +43,13 @@ const DEFAULT_FILTERS: CrqFilters = {
   domain: "All Domains",
   circle: "All Circles",
   impact: "All Impact",
-  status: "All Status",
+  serviceCode: "All Services",
   search: "All Search",
 };
 
 export function AllCrqsPage() {
+
+  const { data: services } = useGetCabServicesQuery();
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -59,6 +64,11 @@ export function AllCrqsPage() {
   // const [openNew, setOpenNew] = useState(false);
 
   const { data, isLoading, isError, error, refetch } = useGetAllCrqsQuery(filters);
+  // const { data: services } = useGetCabServicesQuery();
+  // const serviceNameByCode = useMemo(
+  //   () => new Map((services ?? []).map((s) => [s.serviceCode, s.serviceName])),
+  //   [services],
+  // );
 
   const setF = <K extends keyof CrqFilters>(k: K, v: CrqFilters[K]) =>
     setFilters((f) => ({ ...f, [k]: v }));
@@ -101,10 +111,25 @@ export function AllCrqsPage() {
       {
         accessorKey: "currentStage",
         header: "Stage",
-        size: 130,
-        filterVariant: "select",
-        filterSelectOptions: [...STAGES],
-        Cell: ({ cell }) => <StageChip stage={cell.getValue<CrqStage>()} />,
+        size: 150,
+        Cell: ({ row }) => (
+          <Typography variant="body2">
+             {row.original.currentStage}
+          </Typography>
+        ),
+      },
+      {
+        accessorKey: "stageStatus",
+        header: "Stage Status",
+        size: 160,
+        Cell: ({ cell }) => (
+          <Chip
+            label={cell.getValue<string>()}
+            color="warning"
+            size="small"
+            variant="outlined"
+          />
+        ),
       },
       {
         accessorKey: "slaPercentage",
@@ -113,24 +138,25 @@ export function AllCrqsPage() {
         Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
       },
       {
-        accessorKey: "approverName",
-        header: "Approver",
-        size: 130,
-      },
-      {
-        accessorKey: "assignStartTime",
-        header: "Scheduled",
-        size: 120,
+        accessorKey: "serviceCode",
+        header: "Service",
+        size: 150,
         Cell: ({ row }) => (
-          <Typography variant="body2">{row.original.assignStartTime}</Typography>
+          <Typography variant="body2">
+            {/* {serviceNameByCode.get(row.original.serviceCode) ?? row.original.serviceCode} */}
+             {row.original.serviceCode}
+          </Typography>
         ),
       },
       {
-        accessorKey: "currentStatus",
-        header: "Status",
-        size: 130,
-        Cell: ({ cell }) => <StatusChip status={cell.getValue<Crq["currentStatus"]>()} />,
-      },
+        accessorKey: "serviceApprovalStatus",
+        header: "Service Status",
+        size: 170,
+        Cell: ({ cell }) => (
+          <StatusChip status={cell.getValue<string>()} />
+        ),
+      }
+
     ],
     [navigate],
   );
@@ -234,12 +260,11 @@ export function AllCrqsPage() {
             <MenuItem value="SA">SA — Service Affecting</MenuItem>
             <MenuItem value="NSA">NSA — Non Service Affecting</MenuItem>
           </TextField>
-          <TextField select size="small" label="Status" value={filters.status ?? "All Status"} onChange={(e) => setF("status", e.target.value as CrqFilters["status"])} sx={{ minWidth: 140 }}>
-            <MenuItem value="All Status">All Status</MenuItem>
-            <MenuItem value="active">Active CRQs</MenuItem>
-            <MenuItem value="escalated">Escalated CRQs</MenuItem>
-            <MenuItem value="delegated">Delegated CRQs</MenuItem>
-            <MenuItem value="rejected">Rejected CRQs</MenuItem>
+          <TextField select size="small" label="Service" value={filters.serviceCode ?? "All Services"} onChange={(e) => setF("serviceCode", e.target.value)} sx={{ minWidth: 160 }}>
+            <MenuItem value="All Services">All Services</MenuItem>
+            {(services ?? []).map((s) => (
+              <MenuItem key={s.serviceCode} value={s.serviceCode}>{s.serviceCode}</MenuItem>
+            ))}
           </TextField>
           <TextField size="small" placeholder="Search CRQ, hostname, approver…" value={filters.search ?? "All Search"} onChange={(e) => setF("search", e.target.value)} sx={{ minWidth: 240, flex: 1 }} />
           {hasActiveFilters && (

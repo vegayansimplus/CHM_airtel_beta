@@ -25,6 +25,7 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
   const open = !!crqId;
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetMyCrqByIdQuery(crqId ?? "", { skip: !crqId });
+
   const [assignSpocOpen, setAssignSpocOpen] = useState(false);
   const [assignFeOpen, setAssignFeOpen] = useState(false);
 
@@ -37,19 +38,14 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
             {data && (
               <>
                 <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{data.crqNo}</Typography>
-                <StatusChip status={data.currentStatus} />
+                <StatusChip status={data.serviceApprovalStatus} />
               </>
             )}
           </Stack>
           <IconButton onClick={onClose} size="small"><CloseIcon /></IconButton>
         </Stack>
         {data && (
-          <>
-            <Typography variant="h6" sx={{ mt: 1.5, fontWeight: 500, lineHeight: 1.3 }}>{data.domainName} · Circle {data.circleCode}</Typography>
-            <Typography variant="caption" sx={{ color: "text.secondary", mt: 1, display: "block" }}>
-              Raised by <Box component="span" sx={{ color: "text.primary" }}>{data.raisedBy}</Box>
-            </Typography>
-          </>
+          <Typography variant="h6" sx={{ mt: 1.5, fontWeight: 500, lineHeight: 1.3 }}>{data.domainName} · Circle {data.circleCode}</Typography>
         )}
       </Box>
 
@@ -79,8 +75,8 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
                 ["Circle",     data.circleCode],
                 ["Plan ID",    data.planId],
                 ["Stage",      <StageChip key="s" stage={data.currentStage} />],
-                ["Approver",   data.approverName],
-                ["Scheduled",  data.assignStartTime],
+                ["Service",    data.serviceCode],
+                ["Stage Status", data.stageStatus],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>

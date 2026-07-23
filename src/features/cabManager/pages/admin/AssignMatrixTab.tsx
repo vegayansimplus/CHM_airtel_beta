@@ -8,7 +8,14 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow,
   TextField,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+} from "material-react-table";
 import AddIcon from "@mui/icons-material/Add";
 import { useMemo } from "react";
 import {
@@ -24,8 +31,11 @@ import {
   SERVICE_CIRCLES,
   SERVICE_TYPES,
 } from "../../data/cabManager.mock";
+import type { ServiceApprovalRule } from "../../types/types";
 
 export function AdminAssignMatrixTab() {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const matrix      = useGetAssignMatrixQuery();
   const rules       = useGetAssignRulesQuery();
   const serviceRules = useGetServiceRulesQuery();
@@ -35,6 +45,67 @@ export function AdminAssignMatrixTab() {
     matrix.data?.forEach((c) => { (map[c.stage] ??= {})[c.domain] = c.approver; });
     return map;
   }, [matrix.data]);
+
+  const serviceRuleColumns = useMemo<MRT_ColumnDef<ServiceApprovalRule>[]>(
+    () => [
+      {
+        accessorKey: "id",
+        header: "Rule",
+        size: 90,
+        Cell: ({ row }) => (
+          <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontSize: 12.5 }}>
+            {row.original.id}
+          </Typography>
+        ),
+      },
+      { accessorKey: "service", header: "Service Type", size: 160 },
+      { accessorKey: "circle", header: "Circle", size: 100 },
+      { accessorKey: "l1", header: "L1", size: 130, muiTableHeadCellProps: { sx: { color: "#2E7D32" } } },
+      { accessorKey: "l2", header: "L2", size: 130, muiTableHeadCellProps: { sx: { color: "#ED6C02" } } },
+      { accessorKey: "l3", header: "L3", size: 130, muiTableHeadCellProps: { sx: { color: "#C62828" } } },
+      {
+        accessorKey: "active",
+        header: "Active",
+        size: 90,
+        muiTableHeadCellProps: { align: "center" },
+        muiTableBodyCellProps: { align: "center" },
+        Cell: ({ row }) => (row.original.active ? "Yes" : "No"),
+      },
+    ],
+    []
+  );
+
+  const serviceRuleTable = useMaterialReactTable({
+    columns: serviceRuleColumns,
+    data: serviceRules.data ?? [],
+    getRowId: (row) => row.id,
+    state: { isLoading: serviceRules.isLoading },
+    initialState: { density: "compact" },
+    enableTopToolbar: false,
+    enableBottomToolbar: false,
+    enableColumnActions: false,
+    enableSorting: false,
+    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableHeadCellProps: {
+      sx: {
+        fontSize: 10,
+        fontWeight: 700,
+        letterSpacing: "0.07em",
+        textTransform: "uppercase",
+        color: "text.secondary",
+        py: 0.75,
+        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
+        borderBottom: `1px solid ${theme.palette.divider}`,
+      },
+    },
+    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
+    muiTableBodyRowProps: ({ row }) => ({ sx: { opacity: row.original.active ? 1 : 0.6 } }),
+    renderEmptyRowsFallback: () => (
+      <Box sx={{ py: 6, textAlign: "center", color: "text.secondary", width: "100%" }}>
+        No service approval rules configured.
+      </Box>
+    ),
+  });
 
   return (
     <Box>
@@ -50,7 +121,7 @@ export function AdminAssignMatrixTab() {
       </Stack>
 
       {/* Stage × Domain matrix */}
-      <Paper sx={{ mb: 4, border: "1px solid", borderColor: "divider", overflow: "auto" }} elevation={0}>
+      {/* <Paper sx={{ mb: 4, border: "1px solid", borderColor: "divider", overflow: "auto" }} elevation={0}>
         {matrix.isLoading ? (
           <Box sx={{ p: 2 }}><Skeleton variant="rounded" height={240} /></Box>
         ) : (
@@ -79,10 +150,10 @@ export function AdminAssignMatrixTab() {
             </TableBody>
           </Table>
         )}
-      </Paper>
+      </Paper> */}
 
       {/* Exception rules */}
-      <Paper sx={{ mb: 4, border: "1px solid", borderColor: "divider" }} elevation={0}>
+      {/* <Paper sx={{ mb: 4, border: "1px solid", borderColor: "divider" }} elevation={0}>
         <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box>
             <Typography sx={{ fontWeight: 500 }}>Exception Rules <Typography component="span" variant="caption" sx={{ color: "text.secondary", ml: 1 }}>— {rules.data?.filter((r) => r.active).length ?? 0} active</Typography></Typography>
@@ -120,7 +191,7 @@ export function AdminAssignMatrixTab() {
             </TableBody>
           </Table>
         )}
-      </Paper>
+      </Paper> */}
 
       {/* Impacted-party (L1/L2/L3) rules */}
       <Paper sx={{ border: "1px solid", borderColor: "divider" }} elevation={0}>
@@ -131,64 +202,9 @@ export function AdminAssignMatrixTab() {
           </Box>
           <Button size="small" variant="contained" startIcon={<AddIcon />}>Add service</Button>
         </Box>
-        {serviceRules.isLoading ? (
-          <Box sx={{ p: 2 }}><Skeleton variant="rounded" height={180} /></Box>
-        ) : (
-          <Table size="small">
-            <TableHead>
-              <TableRow sx={{ bgcolor: "#FAFAFA" }}>
-                <TableCell>Rule</TableCell>
-                <TableCell>Service Type</TableCell>
-                <TableCell>Circle</TableCell>
-                <TableCell>Impact</TableCell>
-                <TableCell sx={{ color: "#2E7D32" }}>L1</TableCell>
-                <TableCell sx={{ color: "#ED6C02" }}>L2</TableCell>
-                <TableCell sx={{ color: "#C62828" }}>L3</TableCell>
-                <TableCell align="center">Active</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {serviceRules.data?.map((r) => (
-                <TableRow key={r.id} sx={{ opacity: r.active ? 1 : 0.6 }}>
-                  <TableCell sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main" }}>{r.id}</TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.service} fullWidth>
-                      {SERVICE_TYPES.map((s) => <MenuItem key={s} value={s}>{s}</MenuItem>)}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.circle} fullWidth>
-                      {SERVICE_CIRCLES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.impact} fullWidth>
-                      <MenuItem value="SA">SA</MenuItem>
-                      <MenuItem value="NSA">NSA</MenuItem>
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.l1} fullWidth>
-                      {APPROVAL_AUTHORITIES.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.l2} fullWidth>
-                      {APPROVAL_AUTHORITIES.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-                    </TextField>
-                  </TableCell>
-                  <TableCell>
-                    <TextField select size="small" value={r.l3} fullWidth>
-                      {APPROVAL_AUTHORITIES.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-                    </TextField>
-                  </TableCell>
-                  <TableCell align="center">{r.active ? "Yes" : "No"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+        <MaterialReactTable table={serviceRuleTable} />
       </Paper>
+
     </Box>
   );
 }

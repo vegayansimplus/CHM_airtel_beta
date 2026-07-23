@@ -8,18 +8,18 @@ import { AdminUsersTab } from "./admin/UsersTab";
 import { AdminAuditTab } from "./admin/AuditTab";
 
 const TABS = [
-  { id: "analytics",   label: "Analytics" },
+  // { id: "analytics",   label: "Analytics" },
   { id: "assign",      label: "Assignment Matrix" },
   { id: "reasons",     label: "Rejection Reasons" },
-  { id: "escalation",  label: "Escalation Matrix" },
-  { id: "users",       label: "Users & Roles" },
-  { id: "audit",       label: "Audit Log" },
+  // { id: "escalation",  label: "Escalation Matrix" },
+  // { id: "users",       label: "Users & Roles" },
+  // { id: "audit",       label: "Audit Log" },
 ] as const;
 
 type TabId = (typeof TABS)[number]["id"];
 
 export function AdminPage() {
-  const [tab, setTab] = useState<TabId>("analytics");
+  const [tab, setTab] = useState<TabId>("assign");
 
   return (
     <Box>
@@ -38,12 +38,12 @@ export function AdminPage() {
         {TABS.map((t) => <Tab key={t.id} label={t.label} value={t.id} />)}
       </Tabs>
 
-      {tab === "analytics"  && <AdminAnalyticsTab />}
+      {/* {tab === "analytics"  && <AdminAnalyticsTab />} */}
       {tab === "assign"     && <AdminAssignMatrixTab />}
       {tab === "reasons"    && <AdminReasonsTab />}
-      {tab === "escalation" && <AdminEscalationMatrixTab />}
-      {tab === "users"      && <AdminUsersTab />}
-      {tab === "audit"      && <AdminAuditTab />}
+      {/* {tab === "escalation" && <AdminEscalationMatrixTab />} */}
+      {/* {tab === "users"      && <AdminUsersTab />} */}
+      {/* {tab === "audit"      && <AdminAuditTab />} */}
     </Box>
   );
 }

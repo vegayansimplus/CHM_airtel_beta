@@ -604,7 +604,7 @@ export function AllCrqDetailDrawer({
                 >
                   {data.crqNo}
                 </Typography>
-                <StatusChip status={data.currentStatus} />
+                <StatusChip status={data.serviceApprovalStatus} />
               </>
             )}
           </Stack>
@@ -613,22 +613,6 @@ export function AllCrqDetailDrawer({
             <CloseIcon />
           </IconButton>
         </Stack>
-
-        {data && (
-          <Typography
-            variant="caption"
-            sx={{
-              color: "text.secondary",
-              mt: 1,
-              display: "block",
-            }}
-          >
-            Raised by{" "}
-            <Box component="span" sx={{ color: "text.primary" }}>
-              {data.raisedBy}
-            </Box>
-          </Typography>
-        )}
       </Box>
 
       {/* Body */}
@@ -684,8 +668,8 @@ export function AllCrqDetailDrawer({
                 ["Circle", data.circleCode],
                 ["Plan ID", data.planId],
                 ["Stage", <StageChip key="stage" stage={data.currentStage} />],
-                ["Approver", data.approverName],
-                ["Scheduled", data.assignStartTime],
+                ["Service", data.serviceCode],
+                ["Stage Status", data.stageStatus],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography

@@ -593,6 +593,7 @@ import {
   MOCK_ASSIGN_RULES,
   MOCK_AUDIT_LOG,
   MOCK_CAB_REJECT_REASONS,
+  MOCK_CAB_SERVICES,
   MOCK_CAB_SESSIONS,
   MOCK_CRQS,
   MOCK_ESCALATION_MATRIX,
@@ -614,6 +615,7 @@ import type {
   CabQueueParams,
   CabQueueRow,
   CabRejectReason,
+  CabService,
   CabSession,
   CabSessionDetail,
   Crq,
@@ -670,19 +672,10 @@ const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
     if (f.domain && f.domain !== "All Domains" && r.domainName !== f.domain) return false;
     if (f.circle && f.circle !== "All Circles" && r.circleCode !== f.circle) return false;
     if (f.stage && f.stage !== "All Stages" && r.currentStage !== f.stage) return false;
-    if (f.status && f.status !== "All Status") {
-      if (f.status === "active" && r.currentStatus !== "pending") return false;
-      if (f.status === "rejected" && r.currentStatus !== "rejected") return false;
-      if (f.status === "delegated" && r.currentStatus !== "delegated") return false;
-      if (f.status === "escalated" && r.slaPercentage < 80) return false;
-    }
+    if (f.serviceCode && f.serviceCode !== "All Services" && r.serviceCode !== f.serviceCode) return false;
     if (f.search && f.search !== "All Search") {
       const q = f.search.toLowerCase();
-      if (
-        !r.crqNo.toLowerCase().includes(q) &&
-        !r.approverName.toLowerCase().includes(q)
-      )
-        return false;
+      if (!r.crqNo.toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -956,6 +949,47 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAdmin"],
     }),
 
+    addCabRejectReason: builder.mutation<CrqActionResult, { reasonText: string }>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/crqs/cabrejectreasons", method: "POST", body },
+          baseQuery,
+          async () => await mockDelay({ status: "Success", message: "Rejection reason added successfully." })
+        ),
+      invalidatesTags: ["CabAdmin"],
+    }),
+
+    updateCabRejectReason: builder.mutation<CrqActionResult, { reasonId: number; reasonText: string }>({
+      queryFn: async ({ reasonId, reasonText }, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: `/cab/crqs/cabrejectreasons/${reasonId}`, method: "PUT", body: { reasonText } },
+          baseQuery,
+          async () => await mockDelay({ status: "Success", message: "Rejection reason updated successfully." })
+        ),
+      invalidatesTags: ["CabAdmin"],
+    }),
+
+    deleteCabRejectReason: builder.mutation<CrqActionResult, number>({
+      queryFn: async (reasonId, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: `/cab/crqs/cabrejectreasons/${reasonId}`, method: "DELETE" },
+          baseQuery,
+          async () => await mockDelay({ status: "Success", message: "Rejection reason deleted successfully." })
+        ),
+      invalidatesTags: ["CabAdmin"],
+    }),
+
+    // ── AllCRQs "Service" filter (mirrors CRQ_CAB_SERVICE_MASTER) ──────────
+    getCabServices: builder.query<CabService[], void>({
+      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/crqs/services", method: "GET" },
+          baseQuery,
+          async () => await mockDelay(MOCK_CAB_SERVICES)
+        ),
+      providesTags: ["CabAdmin"],
+    }),
+
     getAdminUsers: builder.query<AdminUser[], void>({
       queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock({ url: "/cab/admin/users", method: "GET" }, baseQuery, async () =>
@@ -1000,18 +1034,16 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => {
             const fake: Crq = {
-
+              serviceApprovalId: Math.floor(Math.random() * 9000 + 1000),
               crqNo: `CRQ-2026-${Math.floor(Math.random() * 9000 + 1000)}`,
               planId: `PLAN-2026-${Math.floor(Math.random() * 900 + 100)}`,
               domainName: body.domain,
               circleCode: body.circle,
               currentStage: "VALIDATE",
-              approverName: "Auto-assigned",
-              assignStartTime: body.scheduled,
-              currentStatus: "pending",
+              serviceCode: "",
+              stageStatus: "",
+              serviceApprovalStatus: "PENDING",
               slaPercentage: 100,
-              assignedToMe: false,
-              raisedBy: "You",
             };
             return await mockDelay(fake);
           }
@@ -1162,6 +1194,7 @@ export const {
   useGetServiceRulesQuery,
   useGetRejectionReasonsQuery,
   useGetCabRejectReasonsQuery,
+  useGetCabServicesQuery,
   useGetEscalationMatrixQuery,
   useGetAdminUsersQuery,
   useGetAuditLogQuery,
@@ -1175,4 +1208,7 @@ export const {
   useRescheduleCrqMutation,
   useAssignSpocMutation,
   useAssignFeMutation,
+  useAddCabRejectReasonMutation,
+  useUpdateCabRejectReasonMutation,
+  useDeleteCabRejectReasonMutation,
 } = cabPortalApi;

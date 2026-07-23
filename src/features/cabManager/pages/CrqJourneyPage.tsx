@@ -60,7 +60,7 @@ export function CrqJourneyPage() {
         <Box sx={{ minWidth: 0 }}>
           <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 1 }}>
             <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crq.crqNo}</Typography>
-            <StatusChip status={crq.currentStatus} />
+            <StatusChip status={crq.serviceApprovalStatus} />
             <StageChip stage={crq.currentStage} />
           </Stack>
           <Typography variant="h5" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>{crq.domainName} · Circle {crq.circleCode}</Typography>

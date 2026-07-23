@@ -52,7 +52,7 @@ export function ImplementationPage() {
               ["Type of CR",      "Normal · Planned"],
               ["Approver",        crq.approverName],
               ["Scheduled Start", crq.assignStartTime],
-              ["Status",          crq.currentStatus],
+              ["Status",          crq.serviceApprovalStatus],
               ["Raised By",       crq.raisedBy],
             ].map(([k, v]) => (
               <Box key={k}>

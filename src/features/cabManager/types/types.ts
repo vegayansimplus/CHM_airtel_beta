@@ -40,12 +40,21 @@ export interface Crq {
   domainName: Domain;
   circleCode: Circle;
   currentStage: CrqStage;
-  approverName: string;
-  assignStartTime: string;
-  currentStatus: CrqStatus;
+  serviceCode: string;
+  stageStatus: string;
+  serviceApprovalStatus: string;
   slaPercentage: number;
-  assignedToMe: boolean;
-  raisedBy: string;
+  // Not returned by the current AllCRQs/MyCRQs list & detail endpoints —
+  // kept optional for the mock-only Journey/Implementation pages.
+  approverName?: string;
+  assignStartTime?: string;
+  assignedToMe?: boolean;
+  raisedBy?: string;
+}
+
+// ── CAB services (AllCRQs "Service" filter) ─────────────────────────────────
+export interface CabService {
+  serviceCode: string;
 }
 
 // ── Filters used by All CRQs ─────────────────────────────────────────────────
@@ -54,7 +63,7 @@ export interface CrqFilters {
   domain?: Domain | "All Domains";
   circle?: Circle | "All Circles";
   impact?: ImpactCode | "All Impact";
-  status?: "All Status" | "active" | "escalated" | "delegated" | "rejected";
+  serviceCode?: string;
   search?: string;
 }
 
@@ -230,7 +239,6 @@ export interface ServiceApprovalRule {
   id: string;
   service: string;
   circle: string;
-  impact: ImpactCode;
   l1: string;
   l2: string;
   l3: string;

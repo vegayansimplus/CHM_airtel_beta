@@ -1,5 +1,5 @@
 import { Box, Chip } from "@mui/material";
-import type { CrqStage, CrqStatus, ImpactCode } from "../../types/types";
+import type { CrqStage, ImpactCode } from "../../types/types";
 
 export const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
   VALIDATE:             { bg: "#FFF8E1", fg: "#A06800" },
@@ -11,11 +11,15 @@ export const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
   CLOSURE:              { bg: "#ECEFF1", fg: "#37474F" },
 };
 
-const STATUS_COLOR: Record<CrqStatus, { bg: string; fg: string; label: string }> = {
-  pending:   { bg: "#FFF4E5", fg: "#ED6C02", label: "Pending"   },
-  approved:  { bg: "#E8F5E9", fg: "#2E7D32", label: "Approved"  },
-  rejected:  { bg: "#FDECEA", fg: "#D32F2F", label: "Rejected"  },
-  delegated: { bg: "#E3F2FD", fg: "#1565C0", label: "Delegated" },
+// Keyed uppercase — covers the live Service_Approval_Status values
+// (PENDING/ON_HOLD/APPROVED/REJECTED/DELEGATED) as well as the lowercase
+// values still used by the mock-only Journey/Implementation pages.
+const STATUS_COLOR: Record<string, { bg: string; fg: string; label: string }> = {
+  PENDING:   { bg: "#FFF4E5", fg: "#ED6C02", label: "Pending"   },
+  ON_HOLD:   { bg: "#FFF4E5", fg: "#ED6C02", label: "On Hold"   },
+  APPROVED:  { bg: "#E8F5E9", fg: "#2E7D32", label: "Approved"  },
+  REJECTED:  { bg: "#FDECEA", fg: "#D32F2F", label: "Rejected"  },
+  DELEGATED: { bg: "#E3F2FD", fg: "#1565C0", label: "Delegated" },
 };
 
 const UNKNOWN_COLOR = { bg: "#F4F5F7", fg: "rgba(0,0,0,0.55)" };
@@ -31,8 +35,8 @@ export function StageChip({ stage }: { stage: CrqStage }) {
   );
 }
 
-export function StatusChip({ status }: { status: CrqStatus }) {
-  const c = STATUS_COLOR[status] ?? { ...UNKNOWN_COLOR, label: status ?? "Unknown" };
+export function StatusChip({ status }: { status: string }) {
+  const c = STATUS_COLOR[status?.toUpperCase()] ?? { ...UNKNOWN_COLOR, label: status ?? "Unknown" };
   return (
     <Box
       component="span"
