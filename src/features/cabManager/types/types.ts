@@ -283,8 +283,8 @@ export interface NewCrqPayload {
   impactedParties: string[];
 }
 
-export interface AssignSpocPayload { crqId: string; spoc: string; }
-export interface AssignFePayload   { crqId: string; fieldEngineer: string; }
+export interface AssignSpocPayload { crqId: string; spocOlmId: string; }
+export interface AssignFePayload   { crqId: string; fieldEngineerOlmId: string; }
 export interface ApproveCrqPayload { serviceApprovalId: number; comment?: string; }
 export interface RejectCrqPayload  { serviceApprovalId: number; reasonId: number; comment: string; }
 export interface ReschedulePayload { serviceApprovalId: number; newDate: string; newWindow: string; reason: string; }

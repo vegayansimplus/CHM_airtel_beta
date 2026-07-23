@@ -763,6 +763,29 @@ export const cabPortalApi = api.injectEndpoints({
       providesTags: [{ type: "CabCrq", id: "MINE" }],
     }),
 
+    getMyCrqById: builder.query<Crq, string>({
+      queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) => {
+        const result = await networkOrMock(
+          { url: `/cab/crqs/crq/${encodeURIComponent(crqNo)}`, method: "GET" },
+          baseQuery,
+          async () => {
+            const c = MOCK_CRQS.find((r) => r.crqNo === crqNo);
+            if (c) return await mockDelay(c);
+            throw { status: 404, data: { message: "CRQ not found" } };
+          }
+        );
+        // Defensive: some deployments return the row wrapped in a single-item
+        // array (e.g. list-endpoint shape) instead of a bare object.
+        if ("data" in result && Array.isArray(result.data)) {
+          return { ...result, data: result.data[0] };
+        }
+        return result;
+      },
+      providesTags: (_r, _e, crqNo) => [
+        { type: "CabCrq" as const, id: `MINE-${crqNo}` },
+      ],
+    }),
+
     // ── CRQ JOURNEY ───────────────────────────────────────────────────────
     getCrqJourney: builder.query<CrqJourney, string>({
       queryFn: async (id, _apiArg, _extraOptions, baseQuery) =>
@@ -1082,16 +1105,16 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
-    assignSpoc: builder.mutation<{ ok: boolean }, AssignSpocPayload>({
+    assignSpoc: builder.mutation<CrqActionResult, AssignSpocPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
             url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-spoc`,
             method: "POST",
-            body,
+            params: { spocOlmId: body.spocOlmId },
           },
           baseQuery,
-          async () => await mockDelay({ ok: true })
+          async () => await mockDelay({ status: "Success", message: "SPOC assigned successfully." })
         ),
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.crqId },
@@ -1099,16 +1122,16 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
-    assignFe: builder.mutation<{ ok: boolean }, AssignFePayload>({
+    assignFe: builder.mutation<CrqActionResult, AssignFePayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
             url: `/cab/crqs/${encodeURIComponent(body.crqId)}/assign-fe`,
             method: "POST",
-            body,
+            params: { fieldEngineerOlmId: body.fieldEngineerOlmId },
           },
           baseQuery,
-          async () => await mockDelay({ ok: true })
+          async () => await mockDelay({ status: "Success", message: "Field Engineer assigned successfully." })
         ),
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.crqId },
@@ -1126,6 +1149,7 @@ export const {
   useGetAllCrqsQuery,
   useGetCrqByIdQuery,
   useGetMyCrqsQuery,
+  useGetMyCrqByIdQuery,
   useGetCrqJourneyQuery,
   useGetCabQueueQuery,
   useGetCabPlanDatesQuery,

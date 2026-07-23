@@ -15,7 +15,7 @@ import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
+import { useGetMyCrqByIdQuery } from "../../api/cabManagerApiSlice";
 import { AssignSpocModal } from "../modals/AssignSpocModal";
 import { AssignFeModal } from "../modals/AssignFeModal";
 import { StageChip, StatusChip } from "./Chips";
@@ -24,7 +24,7 @@ import { errMsg } from "./errMsg";
 export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onClose: () => void }) {
   const open = !!crqId;
   const navigate = useNavigate();
-  const { data, isLoading, isError, error } = useGetCrqByIdQuery(crqId ?? "", { skip: !crqId });
+  const { data, isLoading, isError, error } = useGetMyCrqByIdQuery(crqId ?? "", { skip: !crqId });
   const [assignSpocOpen, setAssignSpocOpen] = useState(false);
   const [assignFeOpen, setAssignFeOpen] = useState(false);
 
@@ -113,8 +113,24 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
         )}
       </Box>
 
-      <AssignSpocModal open={assignSpocOpen} crqId={crqId} onClose={() => setAssignSpocOpen(false)} />
-      <AssignFeModal open={assignFeOpen} crqId={crqId} onClose={() => setAssignFeOpen(false)} />
+      <AssignSpocModal
+        open={assignSpocOpen}
+        crqId={crqId}
+        onClose={() => setAssignSpocOpen(false)}
+        onSuccess={() => {
+          setAssignSpocOpen(false);
+          onClose();
+        }}
+      />
+      <AssignFeModal
+        open={assignFeOpen}
+        crqId={crqId}
+        onClose={() => setAssignFeOpen(false)}
+        onSuccess={() => {
+          setAssignFeOpen(false);
+          onClose();
+        }}
+      />
     </Drawer>
   );
 }

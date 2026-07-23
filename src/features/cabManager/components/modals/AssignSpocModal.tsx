@@ -1,27 +1,38 @@
 import {
-  Alert,
   Button,
   Dialog, DialogActions, DialogContent, DialogTitle,
-  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { useAssignSpocMutation } from "../../api/cabManagerApiSlice";
-import { APPROVERS } from "../../data/cabManager.mock";
-import { errMsg } from "../shared/errMsg";
 
-export function AssignSpocModal({ open, crqId, onClose }: { open: boolean; crqId: string | null; onClose: () => void }) {
-  const [spoc, setSpoc] = useState("");
-  const [assign, { isLoading, isError, error }] = useAssignSpocMutation();
+type AssignSpocModalProps = {
+  open: boolean;
+  crqId: string | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+};
+
+export function AssignSpocModal({ open, crqId, onClose, onSuccess }: AssignSpocModalProps) {
+  const [spocOlmId, setSpocOlmId] = useState("");
+  const [assign, { isLoading }] = useAssignSpocMutation();
 
   const submit = async () => {
-    if (!crqId || !spoc) return;
+    if (!crqId || !spocOlmId) return;
     try {
-      await assign({ crqId, spoc }).unwrap();
-      setSpoc("");
-      onClose();
-    } catch { /* error surfaced */ }
+      const result = await assign({ crqId, spocOlmId }).unwrap();
+      if (result.status === "Success") {
+        toast.success(result.message);
+        setSpocOlmId("");
+        onSuccess ? onSuccess() : onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to assign SPOC.");
+    }
   };
 
   return (
@@ -29,23 +40,21 @@ export function AssignSpocModal({ open, crqId, onClose }: { open: boolean; crqId
       <DialogTitle>Assign SPOC</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-          Choose the SPOC who owns approval coordination for this CRQ.
+          Enter the OLM ID of the SPOC who owns approval coordination for this CRQ.
         </Typography>
         <TextField
-          select fullWidth required
-          label="SPOC"
-          value={spoc}
-          onChange={(e) => setSpoc(e.target.value)}
-        >
-          <MenuItem value="">— Select SPOC —</MenuItem>
-          {APPROVERS.map((a) => <MenuItem key={a.name} value={a.name}>{a.name} · {a.domain}</MenuItem>)}
-        </TextField>
-        {isError && <Alert severity="error" sx={{ mt: 2 }}>{errMsg(error)}</Alert>}
+          fullWidth required
+          label="SPOC OLM ID"
+          placeholder="e.g. B0093363"
+          InputLabelProps={{ shrink: true }}
+          value={spocOlmId}
+          onChange={(e) => setSpocOlmId(e.target.value)}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={submit} disabled={isLoading || !spoc}>
-          {isLoading ? "Assigning…" : "Assign"}
+        <Button variant="contained" onClick={submit} disabled={isLoading || !spocOlmId}>
+          {isLoading ? "Assigning..." : "Assign"}
         </Button>
       </DialogActions>
     </Dialog>

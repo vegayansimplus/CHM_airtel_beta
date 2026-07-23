@@ -1,28 +1,38 @@
 import {
-  Alert,
   Button,
   Dialog, DialogActions, DialogContent, DialogTitle,
-  MenuItem,
   TextField,
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { useAssignFeMutation } from "../../api/cabManagerApiSlice";
-import { errMsg } from "../shared/errMsg";
 
-const FIELD_ENGINEERS = ["Arjun Rao", "Sunil Kale", "Meera Krishnan", "Pankaj Joshi"];
+type AssignFeModalProps = {
+  open: boolean;
+  crqId: string | null;
+  onClose: () => void;
+  onSuccess?: () => void;
+};
 
-export function AssignFeModal({ open, crqId, onClose }: { open: boolean; crqId: string | null; onClose: () => void }) {
-  const [fe, setFe] = useState("");
-  const [assign, { isLoading, isError, error }] = useAssignFeMutation();
+export function AssignFeModal({ open, crqId, onClose, onSuccess }: AssignFeModalProps) {
+  const [fieldEngineerOlmId, setFieldEngineerOlmId] = useState("");
+  const [assign, { isLoading }] = useAssignFeMutation();
 
   const submit = async () => {
-    if (!crqId || !fe) return;
+    if (!crqId || !fieldEngineerOlmId) return;
     try {
-      await assign({ crqId, fieldEngineer: fe }).unwrap();
-      setFe("");
-      onClose();
-    } catch { /* error surfaced */ }
+      const result = await assign({ crqId, fieldEngineerOlmId }).unwrap();
+      if (result.status === "Success") {
+        toast.success(result.message);
+        setFieldEngineerOlmId("");
+        onSuccess ? onSuccess() : onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to assign Field Engineer.");
+    }
   };
 
   return (
@@ -30,23 +40,21 @@ export function AssignFeModal({ open, crqId, onClose }: { open: boolean; crqId: 
       <DialogTitle>Assign Field Engineer</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
-          Pick the field engineer who'll execute this CRQ on-site.
+          Enter the OLM ID of the field engineer who'll execute this CRQ on-site.
         </Typography>
         <TextField
-          select fullWidth required
-          label="Field Engineer"
-          value={fe}
-          onChange={(e) => setFe(e.target.value)}
-        >
-          <MenuItem value="">— Select FE —</MenuItem>
-          {FIELD_ENGINEERS.map((f) => <MenuItem key={f} value={f}>{f}</MenuItem>)}
-        </TextField>
-        {isError && <Alert severity="error" sx={{ mt: 2 }}>{errMsg(error)}</Alert>}
+          fullWidth required
+          label="Field Engineer OLM ID"
+          placeholder="e.g. B0093363"
+          InputLabelProps={{ shrink: true }}
+          value={fieldEngineerOlmId}
+          onChange={(e) => setFieldEngineerOlmId(e.target.value)}
+        />
       </DialogContent>
       <DialogActions>
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={submit} disabled={isLoading || !fe}>
-          {isLoading ? "Assigning…" : "Assign"}
+        <Button variant="contained" onClick={submit} disabled={isLoading || !fieldEngineerOlmId}>
+          {isLoading ? "Assigning..." : "Assign"}
         </Button>
       </DialogActions>
     </Dialog>

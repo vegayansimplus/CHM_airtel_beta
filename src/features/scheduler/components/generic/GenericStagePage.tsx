@@ -186,7 +186,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         disabled={!selectedCrq}
         url={
           selectedCrq
-            ? `/airtelchm/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
+            ? `/airtelchmbeta/scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
             : undefined
         }
         colors={colors}
