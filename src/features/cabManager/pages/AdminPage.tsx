@@ -23,13 +23,7 @@ export function AdminPage() {
 
   return (
     <Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>Admin Configuration</Typography>
-        <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-          Cross-domain analytics and governance controls — visible only to NOC Admin.
-        </Typography>
-      </Box>
-
+    
       <Tabs
         value={tab}
         onChange={(_, v) => setTab(v as TabId)}
