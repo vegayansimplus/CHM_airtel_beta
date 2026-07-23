@@ -738,7 +738,7 @@ export function AllCrqDetailDrawer({
                 startIcon={<ReplayIcon />}
                 onClick={() => setScheduleOpen(true)}
               >
-                Schedule
+                Reschedule
               </Button>
             </Stack>
           </>
@@ -750,6 +750,10 @@ export function AllCrqDetailDrawer({
         serviceApprovalId={serviceApprovalId}
         crqNo={crqNo}
         onClose={() => setApproveOpen(false)}
+        onSuccess={() => {
+          setApproveOpen(false);
+          onClose();
+        }}
       />
 
       <RejectCrqModal
@@ -757,6 +761,10 @@ export function AllCrqDetailDrawer({
         serviceApprovalId={serviceApprovalId}
         crqNo={crqNo}
         onClose={() => setRejectOpen(false)}
+        onSuccess={() => {
+          setRejectOpen(false);
+          onClose();
+        }}
       />
 
       <RescheduleCrqModal
@@ -764,6 +772,10 @@ export function AllCrqDetailDrawer({
         serviceApprovalId={serviceApprovalId}
         crqNo={crqNo}
         onClose={() => setScheduleOpen(false)}
+        onSuccess={() => {
+          setScheduleOpen(false);
+          onClose();
+        }}
       />
     </Drawer>
   );

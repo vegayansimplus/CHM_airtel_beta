@@ -286,8 +286,14 @@ export interface NewCrqPayload {
 export interface AssignSpocPayload { crqId: string; spoc: string; }
 export interface AssignFePayload   { crqId: string; fieldEngineer: string; }
 export interface ApproveCrqPayload { serviceApprovalId: number; comment?: string; }
-export interface RejectCrqPayload  { serviceApprovalId: number; reason: string; comment: string; }
+export interface RejectCrqPayload  { serviceApprovalId: number; reasonId: number; comment: string; }
 export interface ReschedulePayload { serviceApprovalId: number; newDate: string; newWindow: string; reason: string; }
+
+// ── Workflow action result (approve / reject / reschedule) ─────────────────
+export interface CrqActionResult { status: string; message: string; }
+
+// ── Reject reasons (AllCRQs reject dropdown) ────────────────────────────────
+export interface CabRejectReason { reasonId: number; reasonText: string; }
 
 // ── Persona (role switcher) ─────────────────────────────────────────────────
 export interface Persona {

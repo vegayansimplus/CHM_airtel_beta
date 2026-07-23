@@ -7,6 +7,7 @@ import type {
   CabAgendaItem,
   CabPlanDate,
   CabQueueRow,
+  CabRejectReason,
   CabSession,
   Crq,
   CrqJourney,
@@ -80,7 +81,6 @@ export const MOCK_CRQS: Crq[] = [
 
 // ── Rejection reasons / stage vocab used by admin config screens ────────────
 export const REJECTION_STAGES = ["Initial Technical Review", "Domain Approval", "Validation", "Execution Gate", "Post Execution Review"];
-export const DEFAULT_REJECT_REASONS = ["Conflicting Change", "Incorrect Approval Mapping", "Insufficient Impact Analysis", "MOP Incomplete", "Stakeholder Sign-off Missing", "Time Constraint"];
 
 export const MOCK_REJECTION_REASONS: RejectionReason[] = [
   { reason: "Wrong CRQ Flow – Type of CR",  active: true  },
@@ -88,6 +88,14 @@ export const MOCK_REJECTION_REASONS: RejectionReason[] = [
   { reason: "Wrong Impact - SA, NSA, CNSA", active: true  },
   { reason: "Duplicate CRQ",                active: true  },
   { reason: "Plan Issue",                   active: false },
+];
+
+// ── CAB reject reasons (AllCRQs reject dropdown) — mirrors sp_get_cab_reject_reasons() ──
+export const MOCK_CAB_REJECT_REASONS: CabRejectReason[] = [
+  { reasonId: 1, reasonText: "Insufficient impact details" },
+  { reasonId: 2, reasonText: "Window clashes with freeze/blackout" },
+  { reasonId: 3, reasonText: "Rollback plan inadequate" },
+  { reasonId: 4, reasonText: "Wrong impact classification" },
 ];
 
 // ── CAB sessions ────────────────────────────────────────────────────────────

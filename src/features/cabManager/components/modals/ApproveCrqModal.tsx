@@ -85,14 +85,15 @@ import {
 } from "@mui/material";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { useApproveCrqMutation } from "../../api/cabManagerApiSlice";
-import { errMsg } from "../shared/errMsg";
 
 type ApproveCrqModalProps = {
   open: boolean;
   serviceApprovalId: number | null;
   crqNo: string | null;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 export function ApproveCrqModal({
@@ -100,25 +101,30 @@ export function ApproveCrqModal({
   serviceApprovalId,
   crqNo,
   onClose,
+  onSuccess,
 }: ApproveCrqModalProps) {
   const [comment, setComment] = useState("");
 
-  const [approve, { isLoading, isError, error }] =
-    useApproveCrqMutation();
+  const [approve, { isLoading }] = useApproveCrqMutation();
 
   const submit = async () => {
     if (serviceApprovalId == null) return;
 
     try {
-      await approve({
+      const result = await approve({
         serviceApprovalId,
         comment,
       }).unwrap();
 
-      setComment("");
-      onClose();
-    } catch {
-      // handled by mutation state
+      if (result.status === "Success") {
+        toast.success(result.message);
+        setComment("");
+        onSuccess ? onSuccess() : onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to approve CRQ.");
     }
   };
 
@@ -179,15 +185,10 @@ export function ApproveCrqModal({
           minRows={3}
           label="Comments (optional)"
           placeholder="Add a note for the audit trail…"
+          InputLabelProps={{ shrink: true }}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
-
-        {isError && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {errMsg(error)}
-          </Alert>
-        )}
       </DialogContent>
 
       <DialogActions>

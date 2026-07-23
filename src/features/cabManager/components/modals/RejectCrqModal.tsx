@@ -74,7 +74,6 @@
 
 
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -87,15 +86,18 @@ import {
 } from "@mui/material";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import { useState } from "react";
-import { useRejectCrqMutation } from "../../api/cabManagerApiSlice";
-import { DEFAULT_REJECT_REASONS } from "../../data/cabManager.mock";
-import { errMsg } from "../shared/errMsg";
+import { toast } from "react-toastify";
+import {
+  useGetCabRejectReasonsQuery,
+  useRejectCrqMutation,
+} from "../../api/cabManagerApiSlice";
 
 type RejectCrqModalProps = {
   open: boolean;
   serviceApprovalId: number | null;
   crqNo: string | null;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 export function RejectCrqModal({
@@ -103,28 +105,35 @@ export function RejectCrqModal({
   serviceApprovalId,
   crqNo,
   onClose,
+  onSuccess,
 }: RejectCrqModalProps) {
-  const [reason, setReason] = useState("");
+  const [reasonId, setReasonId] = useState<number | "">("");
   const [comment, setComment] = useState("");
 
-  const [reject, { isLoading, isError, error }] =
-    useRejectCrqMutation();
+  const { data: reasons, isLoading: reasonsLoading } =
+    useGetCabRejectReasonsQuery(undefined, { skip: !open });
+  const [reject, { isLoading }] = useRejectCrqMutation();
 
   const submit = async () => {
-    if (serviceApprovalId == null || !reason || !comment) return;
+    if (serviceApprovalId == null || !reasonId || !comment) return;
 
     try {
-      await reject({
+      const result = await reject({
         serviceApprovalId,
-        reason,
+        reasonId,
         comment,
       }).unwrap();
 
-      setReason("");
-      setComment("");
-      onClose();
-    } catch {
-      // handled by mutation state
+      if (result.status === "Success") {
+        toast.success(result.message);
+        setReasonId("");
+        setComment("");
+        onSuccess ? onSuccess() : onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to reject CRQ.");
     }
   };
 
@@ -180,15 +189,17 @@ export function RejectCrqModal({
           fullWidth
           required
           label="Reason for rejection"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          InputLabelProps={{ shrink: true }}
+          value={reasonId}
+          onChange={(e) => setReasonId(Number(e.target.value))}
+          disabled={reasonsLoading}
           sx={{ mb: 2 }}
         >
           <MenuItem value="">— Select reason —</MenuItem>
 
-          {DEFAULT_REJECT_REASONS.map((r) => (
-            <MenuItem key={r} value={r}>
-              {r}
+          {reasons?.map((r) => (
+            <MenuItem key={r.reasonId} value={r.reasonId}>
+              {r.reasonText}
             </MenuItem>
           ))}
         </TextField>
@@ -200,15 +211,10 @@ export function RejectCrqModal({
           minRows={3}
           label="Additional comments"
           placeholder="Explain the rejection so the raiser can address it…"
+          InputLabelProps={{ shrink: true }}
           value={comment}
           onChange={(e) => setComment(e.target.value)}
         />
-
-        {isError && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {errMsg(error)}
-          </Alert>
-        )}
       </DialogContent>
 
       <DialogActions>
@@ -221,7 +227,7 @@ export function RejectCrqModal({
           disabled={
             isLoading ||
             serviceApprovalId == null ||
-            !reason ||
+            !reasonId ||
             !comment
           }
         >

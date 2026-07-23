@@ -124,7 +124,7 @@ export const inboxApiSlice = api.injectEndpoints({
       invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
     }),
     getCabRejectReasons: builder.query<CabRejectReason[], void>({
-      query: () => `/notification/cabrejectreasons`,
+      query: () => `/cab/crqs/cabrejectreasons`,
     }),
   }),
 });

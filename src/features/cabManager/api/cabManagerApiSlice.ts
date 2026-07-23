@@ -592,6 +592,7 @@ import {
   MOCK_ASSIGN_MATRIX,
   MOCK_ASSIGN_RULES,
   MOCK_AUDIT_LOG,
+  MOCK_CAB_REJECT_REASONS,
   MOCK_CAB_SESSIONS,
   MOCK_CRQS,
   MOCK_ESCALATION_MATRIX,
@@ -612,9 +613,11 @@ import type {
   CabPlanDate,
   CabQueueParams,
   CabQueueRow,
+  CabRejectReason,
   CabSession,
   CabSessionDetail,
   Crq,
+  CrqActionResult,
   CrqFilters,
   CrqJourney,
   DashboardData,
@@ -919,6 +922,17 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAdmin"],
     }),
 
+    // ── AllCRQs reject dropdown (mirrors sp_get_cab_reject_reasons) ────────
+    getCabRejectReasons: builder.query<CabRejectReason[], void>({
+      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/crqs/cabrejectreasons", method: "GET" },
+          baseQuery,
+          async () => await mockDelay(MOCK_CAB_REJECT_REASONS)
+        ),
+      providesTags: ["CabAdmin"],
+    }),
+
     getAdminUsers: builder.query<AdminUser[], void>({
       queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock({ url: "/cab/admin/users", method: "GET" }, baseQuery, async () =>
@@ -1013,7 +1027,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [{ type: "CabImpl", id: b.crqId }],
     }),
 
-    approveCrq: builder.mutation<{ ok: boolean }, ApproveCrqPayload>({
+    approveCrq: builder.mutation<CrqActionResult, ApproveCrqPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
@@ -1022,7 +1036,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
             body,
           },
           baseQuery,
-          async () => await mockDelay({ ok: true })
+          async () => await mockDelay({ status: "Success", message: "CRQ approved successfully." })
         ),
         invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.serviceApprovalId },
@@ -1032,7 +1046,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
-    rejectCrq: builder.mutation<{ ok: boolean }, RejectCrqPayload>({
+    rejectCrq: builder.mutation<CrqActionResult, RejectCrqPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
@@ -1041,7 +1055,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
             body,
           },
           baseQuery,
-          async () => await mockDelay({ ok: true })
+          async () => await mockDelay({ status: "Success", message: "CRQ rejected successfully." })
         ),
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.serviceApprovalId },
@@ -1051,7 +1065,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
-    rescheduleCrq: builder.mutation<{ ok: boolean }, ReschedulePayload>({
+    rescheduleCrq: builder.mutation<CrqActionResult, ReschedulePayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock(
           {
@@ -1060,7 +1074,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
             body,
           },
           baseQuery,
-          async () => await mockDelay({ ok: true })
+          async () => await mockDelay({ status: "Success", message: "CRQ rescheduled successfully." })
         ),
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.serviceApprovalId },
@@ -1123,6 +1137,7 @@ export const {
   useGetAssignRulesQuery,
   useGetServiceRulesQuery,
   useGetRejectionReasonsQuery,
+  useGetCabRejectReasonsQuery,
   useGetEscalationMatrixQuery,
   useGetAdminUsersQuery,
   useGetAuditLogQuery,

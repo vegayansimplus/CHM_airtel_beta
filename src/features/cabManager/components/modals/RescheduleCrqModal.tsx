@@ -89,7 +89,6 @@
 
 
 import {
-  Alert,
   Box,
   Button,
   Dialog,
@@ -101,14 +100,15 @@ import {
 } from "@mui/material";
 import ReplayIcon from "@mui/icons-material/Replay";
 import { useState } from "react";
+import { toast } from "react-toastify";
 import { useRescheduleCrqMutation } from "../../api/cabManagerApiSlice";
-import { errMsg } from "../shared/errMsg";
 
 type RescheduleCrqModalProps = {
   open: boolean;
   serviceApprovalId: number | null;
   crqNo: string | null;
   onClose: () => void;
+  onSuccess?: () => void;
 };
 
 export function RescheduleCrqModal({
@@ -116,13 +116,13 @@ export function RescheduleCrqModal({
   serviceApprovalId,
   crqNo,
   onClose,
+  onSuccess,
 }: RescheduleCrqModalProps) {
   const [newDate, setNewDate] = useState("");
   const [newWindow, setNewWindow] = useState("");
   const [reason, setReason] = useState("");
 
-  const [reschedule, { isLoading, isError, error }] =
-    useRescheduleCrqMutation();
+  const [reschedule, { isLoading }] = useRescheduleCrqMutation();
 
   const submit = async () => {
     if (
@@ -135,20 +135,24 @@ export function RescheduleCrqModal({
     }
 
     try {
-      await reschedule({
+      const result = await reschedule({
         serviceApprovalId,
         newDate,
         newWindow,
         reason,
       }).unwrap();
 
-      setNewDate("");
-      setNewWindow("");
-      setReason("");
-
-      onClose();
-    } catch {
-      // handled by mutation state
+      if (result.status === "Success") {
+        toast.success(result.message);
+        setNewDate("");
+        setNewWindow("");
+        setReason("");
+        onSuccess ? onSuccess() : onClose();
+      } else {
+        toast.error(result.message);
+      }
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to reschedule CRQ.");
     }
   };
 
@@ -215,6 +219,7 @@ export function RescheduleCrqModal({
           required
           label="Maintenance window"
           placeholder="e.g. 02:00 – 04:30 IST"
+          InputLabelProps={{ shrink: true }}
           value={newWindow}
           onChange={(e) => setNewWindow(e.target.value)}
           sx={{ mb: 2 }}
@@ -226,15 +231,10 @@ export function RescheduleCrqModal({
           multiline
           minRows={2}
           label="Reason"
+          InputLabelProps={{ shrink: true }}
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
-
-        {isError && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {errMsg(error)}
-          </Alert>
-        )}
       </DialogContent>
 
       <DialogActions>
