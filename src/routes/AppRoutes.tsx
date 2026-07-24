@@ -45,6 +45,7 @@ import { CabDashboardPage, AllCrqsPage, MyCrqsPage, CabPlanningPage, CabSessions
 import CabManagerMainPageTab from "../features/cabManager/pages/CabManagerMainPageTab";
 import { CrqJourneyPage } from "../features/crqJourney";
 import UserManagement from "../features/userManagement/components/UserManagement";
+import PageLoader from "../components/loading/PageLoader";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -57,7 +58,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   setDynamicHeaderIcon,
 }) => {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<PageLoader height="70vh" />}>
       <Routes>
         <Route
           path="/"

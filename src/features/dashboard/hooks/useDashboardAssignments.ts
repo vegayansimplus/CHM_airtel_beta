@@ -16,11 +16,13 @@ export interface DashboardAssignmentsState {
 /** Owns the dashboard's live "Today's assignments" data, backed by /dashboard/dailyassignments. */
 export function useDashboardAssignments(): DashboardAssignmentsState {
   const date = useMemo(() => format(new Date(), "yyyy-MM-dd"), []);
-  const { data, isLoading, isFetching, isError } = useGetDailyAssignmentsQuery({ date });
+  const { data, isLoading, isError } = useGetDailyAssignmentsQuery({ date });
 
+  // isLoading (no cached data yet) drives the skeleton; background isFetching
+  // refetches keep the current list visible instead of re-flashing it.
   const status: DashboardAssignmentsStatus = isError
     ? "error"
-    : isLoading || isFetching
+    : isLoading
       ? "loading"
       : !data || data.length === 0
         ? "empty"

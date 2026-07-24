@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Box } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useTabColorTokens } from "../../../style/theme";
@@ -17,6 +17,8 @@ import { TodaysAssignmentsCard } from "../components/TodaysAssignmentsCard";
 import { StatCardsGrid } from "../components/StatCardsGrid";
 import { WeeklyScheduleCard } from "../components/WeeklyScheduleCard";
 import { OnLeaveTodayCard } from "../components/OnLeaveTodayCard";
+import { usePageLoading } from "../../../components/loading/LoadingProvider";
+import PageLoader from "../../../components/loading/PageLoader";
 
 export default function ModernHomeDashboard() {
   const theme = useTheme();
@@ -35,6 +37,29 @@ export default function ModernHomeDashboard() {
   const assignments = useDashboardAssignments();
   const attendance = useDashboardAttendance();
   const statCards = useDashboardStats();
+
+  // Page Loader covers only the *first* load of this page's 7 parallel
+  // queries; once every widget has settled once (ready/empty/error), this
+  // flips permanently false so later background refetches never re-trigger
+  // it — each card then relies on its own (now refetch-safe) status.
+  const hasLoadedOnceRef = useRef(false);
+  const anyStillLoading = [
+    roster.status,
+    profileStatus,
+    holidays.status,
+    leaveTeam.status,
+    assignments.status,
+    attendance.status,
+  ].some((s) => s === "loading");
+  useEffect(() => {
+    if (!anyStillLoading) hasLoadedOnceRef.current = true;
+  }, [anyStillLoading]);
+  const isInitialLoading = anyStillLoading && !hasLoadedOnceRef.current;
+  usePageLoading(isInitialLoading, "home-dashboard");
+
+  if (isInitialLoading) {
+    return <PageLoader height="70vh" />;
+  }
 
   return (
     <Box

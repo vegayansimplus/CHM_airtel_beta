@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAppDispatch } from "../../../app/hooks";
 import { authStorage, TOKEN_KEY } from "../../../app/store/auth.storage";
 import { useLazyGetLoggedUserQuery } from "../api/auth.api";
@@ -8,10 +8,17 @@ import {
 } from "../utils/rbacNormalizer";
 import { finishHydration, logout, setToken, setUser } from "../slices/auth.slice";
 import type { AuthUser } from "../types/auth.types";
+import { useGlobalLoading } from "../../../components/loading/LoadingProvider";
 
 const AuthHydrator = () => {
   const dispatch = useAppDispatch();
   const [fetchUser] = useLazyGetLoggedUserQuery();
+  // Drives the app's Global Loader for the real bootstrap window (token
+  // validation on first paint / refresh) instead of the old blanket
+  // "any RTK Query request in flight" counter — this is the only place a
+  // full-screen loader should ever appear outside of an explicit page load.
+  const [hydrating, setHydrating] = useState(true);
+  useGlobalLoading(hydrating, "auth-hydration");
 
   useEffect(() => {
     const validateAndHydrate = async (token: string) => {
@@ -55,6 +62,7 @@ const AuthHydrator = () => {
         dispatch(logout());
       } finally {
         dispatch(finishHydration());
+        setHydrating(false);
       }
     };
 
@@ -64,6 +72,7 @@ const AuthHydrator = () => {
     } else {
       dispatch(logout());
       dispatch(finishHydration());
+      setHydrating(false);
     }
 
     // Cross-tab sync: this fires in every OTHER tab whenever localStorage
@@ -84,7 +93,27 @@ const AuthHydrator = () => {
     };
 
     window.addEventListener("storage", handleStorage);
-    return () => window.removeEventListener("storage", handleStorage);
+
+    // Defense against bfcache: if the browser restores this page from an
+    // in-memory snapshot (event.persisted) instead of re-running main.tsx —
+    // e.g. pressing Back right after logout — re-validate against the
+    // backend instead of trusting whatever was painted before the snapshot,
+    // so a revoked/expired token can't leave a stale authenticated UI up.
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      const currentToken = authStorage.getToken();
+      if (currentToken) {
+        void validateAndHydrate(currentToken);
+      } else {
+        dispatch(logout());
+      }
+    };
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("storage", handleStorage);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
   }, [dispatch, fetchUser]);
 
   return null;

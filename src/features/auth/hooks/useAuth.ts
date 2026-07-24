@@ -4,7 +4,7 @@ export const useAuth = () => {
   const auth = useAppSelector((s) => s.auth);
 
   return {
-    isAuthenticated: Boolean(auth.token),
+    isAuthenticated: auth.isAuthenticated,
     user: auth.user,
     role: auth.user?.roleCode,
     userId: auth.user?.userId,

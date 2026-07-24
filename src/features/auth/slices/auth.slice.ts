@@ -20,8 +20,13 @@ const authSlice = createSlice({
   initialState,
   reducers: {
     setToken(state, action: PayloadAction<string>) {
+      // Intentionally does NOT flip isAuthenticated. This is dispatched before
+      // the user profile is fetched (both in LoginPage and AuthHydrator) purely
+      // so RTK Query's prepareHeaders has a token to attach to that fetch. If
+      // this flipped isAuthenticated, PublicRoute would redirect to a hardcoded
+      // route the instant the token lands — racing ahead of the caller's own
+      // navigate() and producing a visible flash to the wrong page.
       state.token = action.payload;
-      state.isAuthenticated = true;
     },
     setUser(state, action: PayloadAction<AuthUser>) {
       state.user = action.payload;

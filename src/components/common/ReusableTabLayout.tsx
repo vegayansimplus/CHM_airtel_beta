@@ -2,10 +2,10 @@ import {
   Box,
   Tabs,
   Tab,
-  CircularProgress,
 } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
 import { useLocation, useNavigate, Outlet } from "react-router";
+import PageLoader from "../loading/PageLoader";
 
 export interface TabConfig {
   label: string;
@@ -104,20 +104,7 @@ const ReusableTabLayout: React.FC<ReusableTabLayoutProps> = ({
 
       {/* ---------- Content ---------- */}
       <Box sx={{ p: 3, minHeight: "60vh" }}>
-        <Suspense
-          fallback={
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "50vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          }
-        >
+        <Suspense fallback={<PageLoader height="50vh" />}>
           <Outlet />
         </Suspense>
       </Box>

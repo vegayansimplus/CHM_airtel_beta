@@ -1,8 +1,9 @@
-import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
+import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
+import PageLoader from "../../../components/loading/PageLoader";
 
 const NetworkManagementTabView: React.FC = () => {
   const location = useLocation();
@@ -141,20 +142,7 @@ const NetworkManagementTabView: React.FC = () => {
       {/* ================= CONTENT ================= */}
 
       <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
-        <Suspense
-          fallback={
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "50vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          }
-        >
+        <Suspense fallback={<PageLoader height="50vh" />}>
           <Outlet />
         </Suspense>
       </Box>

@@ -26,14 +26,18 @@ export interface DashboardAttendanceState {
 
 /** Owns the dashboard's live WFH/WFO + clock-in/out attendance widget, backed by /attendance/*. */
 export function useDashboardAttendance(): DashboardAttendanceState {
-  const { data, isLoading, isFetching, isError } = useGetTodayAttendanceQuery();
+  const { data, isLoading, isError } = useGetTodayAttendanceQuery();
   const [triggerSetWorkMode, setWorkModeState] = useSetWorkModeMutation();
   const [triggerClockIn, clockInState] = useClockInMutation();
   const [triggerClockOut, clockOutState] = useClockOutMutation();
 
+  // isLoading (no cached data yet) drives the skeleton; a background
+  // isFetching refetch (e.g. after clock-in/out invalidates the query) keeps
+  // the current attendance state visible instead of re-flashing it — the
+  // clock-in/out buttons already have their own `isMutating` pending state.
   const status: DashboardAttendanceStatus = isError
     ? "error"
-    : isLoading || isFetching
+    : isLoading
       ? "loading"
       : !data
         ? "empty"

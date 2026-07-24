@@ -26,6 +26,7 @@ import {
   Language,
 } from "@mui/icons-material";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { usePageLoading, useLoadingVisibility } from "../../../../../components/loading/LoadingProvider";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────
 const T = {
@@ -184,6 +185,11 @@ export const Slotassignmentviewnew = () => {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 8, 1));
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [loading, setLoading] = useState(false);
+  // Register with the shared priority system so this in-page "fetching
+  // slots" overlay never stacks on top of (or under) the app's real Global
+  // Loader — see useLoadingVisibility gate on the Backdrop below.
+  usePageLoading(loading, "slot-assignment-availability-check");
+  const { globalActive } = useLoadingVisibility();
   const [showCalendar, setShowCalendar] = useState(false);
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -835,8 +841,8 @@ export const Slotassignmentviewnew = () => {
         </Box>
       </Modal>
 
-      {/* Loading backdrop */}
-      <Backdrop open={loading} sx={{ zIndex: 9999 }}>
+      {/* Loading backdrop — suppressed if the app's Global Loader is active */}
+      <Backdrop open={loading && !globalActive} sx={{ zIndex: 9999 }}>
         <Box
           sx={{
             display: "flex",

@@ -2,6 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import {
   Box,
   Fab,
+  LinearProgress,
   MenuItem,
   Pagination,
   Select,
@@ -27,6 +28,7 @@ import AddUserWizard from "./AddUserWizard";
 import DeleteDialog from "./DeleteDialog";
 import EmptyState from "./EmptyState";
 import LoadingState from "./LoadingState";
+import { usePageLoading } from "../../../components/loading/LoadingProvider";
 import { UploadEmployeeDialog } from "../../teamManagement/components/dialog/UploadEmployeeDialog";
 import { useGetCreateUserDropdownsQuery } from "../../teamManagement/api/teamManagement.api";
 import { useGetOrgHierarchyByUserQuery } from "../../orgHierarchy/api/orgHierarchy.api";
@@ -76,6 +78,13 @@ export default function UserManagement() {
 
   const { data, isLoading, isFetching, refetch } = useGetUsersQuery(queryArgs);
   const [triggerExportFetch] = useLazyGetUsersQuery();
+
+  // Only the very first fetch (no cached data yet) should show the full
+  // skeleton / block the page; subsequent isFetching (filter/page change)
+  // keeps the current rows on screen with a thin progress indicator instead.
+  const isInitialLoading = isLoading && !data;
+  const isBackgroundRefreshing = isFetching && !isInitialLoading;
+  usePageLoading(isInitialLoading, "user-management");
 
   const { data: hierarchyData } = useGetOrgHierarchyByUserQuery();
   const { data: dropdowns } = useGetCreateUserDropdownsQuery();
@@ -172,7 +181,11 @@ export default function UserManagement() {
         refreshing={refreshing}
       />
 
-      {isLoading ? (
+      {isBackgroundRefreshing && (
+        <LinearProgress sx={{ mb: 1, borderRadius: 999, height: 3 }} />
+      )}
+
+      {isInitialLoading ? (
         <LoadingState />
       ) : (
         <>

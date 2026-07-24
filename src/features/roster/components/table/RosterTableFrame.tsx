@@ -1,14 +1,12 @@
 import { type ReactNode } from "react";
 import {
-  Box,
-  CircularProgress,
   Paper,
   Table,
   TableContainer,
   useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import SmartScrollContainer from "../../../../components/common/SmartScrollContainer";
+import SectionOverlayLoader from "../../../../components/loading/SectionOverlayLoader";
 
 interface Props {
   /** Scroll viewport height passed to SmartScrollContainer. */
@@ -43,22 +41,7 @@ export const RosterTableFrame = ({
         position: "relative",
       }}
     >
-      {loading && (
-        <Box
-          sx={{
-            position: "absolute",
-            inset: 0,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            bgcolor: alpha(theme.palette.background.paper, 0.75),
-            zIndex: 50,
-            borderRadius: "10px",
-          }}
-        >
-          <CircularProgress size={30} />
-        </Box>
-      )}
+      <SectionOverlayLoader active={loading} />
 
       <SmartScrollContainer height={height} enableHorizontal>
         <Table

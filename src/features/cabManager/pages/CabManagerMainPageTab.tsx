@@ -1,4 +1,4 @@
-import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
+import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -13,6 +13,7 @@ import { useNotifTokens } from "../../userMe/notification-manager/style/notifica
 import { useCabRole } from "../hooks/useCabRole";
 import { ROLE_SCREENS } from "../data/cabManager.mock";
 import CommonContainer from "../../../components/common/CommonContainer";
+import PageLoader from "../../../components/loading/PageLoader";
 
 interface CabManagerMainPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -208,20 +209,7 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
 
       <Box sx={{ p: 0, minHeight: "65vh" }}>
         <CommonContainer>
-        <Suspense
-          fallback={
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "50vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          }
-        >
+        <Suspense fallback={<PageLoader height="50vh" />}>
           <Outlet />
         </Suspense>
         </CommonContainer>

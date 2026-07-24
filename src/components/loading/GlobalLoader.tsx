@@ -1,20 +1,24 @@
-import { useSelector } from "react-redux";
 import { Backdrop } from "@mui/material";
 import { FadeLoader } from "react-spinners";
-import { selectIsLoading } from "../../app/loadingSlice";
+import { useLoadingVisibility } from "./LoadingProvider";
 
+/**
+ * Highest-priority loader: app bootstrap / auth hydration only (see
+ * useGlobalLoading call sites). Full-screen — while this is up, PageLoader
+ * and component-level skeletons self-suppress via useLoadingVisibility.
+ */
 const GlobalLoader = () => {
-  const isLoading = useSelector(selectIsLoading);
+  const { globalActive } = useLoadingVisibility();
   return (
     <Backdrop
       sx={{
         color: "#fff",
         zIndex: (theme) => theme.zIndex.drawer + 9999,
       }}
-      open={isLoading}
+      open={globalActive}
     >
       <FadeLoader
-        loading={isLoading}
+        loading={globalActive}
         cssOverride={{
           display: "block",
           margin: "0 auto",

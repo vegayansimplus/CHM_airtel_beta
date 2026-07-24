@@ -13,11 +13,13 @@ export interface DashboardLeaveTeamState {
 
 /** Owns the dashboard's live "On leave today" data, backed by /dashboard/employeesonleave. */
 export function useDashboardLeaveTeam(): DashboardLeaveTeamState {
-  const { data, isLoading, isFetching, isError } = useGetEmployeesOnLeaveQuery();
+  const { data, isLoading, isError } = useGetEmployeesOnLeaveQuery();
 
+  // isLoading (no cached data yet) drives the skeleton; background isFetching
+  // refetches keep the last-known team visible instead of re-flashing it.
   const status: DashboardLeaveTeamStatus = isError
     ? "error"
-    : isLoading || isFetching
+    : isLoading
       ? "loading"
       : !data || data.length === 0
         ? "empty"

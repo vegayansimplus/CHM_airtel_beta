@@ -32,14 +32,17 @@ export function useDashboardRoster(): DashboardRosterState {
     };
   }, [anchor]);
 
-  const { data, isLoading, isFetching, isError } = useGetUserMonthlyRosterQuery({ startDate, endDate });
+  const { data, isLoading, isError } = useGetUserMonthlyRosterQuery({ startDate, endDate });
 
   const roster = data?.data?.[0]?.roster;
 
+  // isLoading (no cached data yet) drives the skeleton; background isFetching
+  // refetches (e.g. week navigation) keep the current week visible instead
+  // of re-flashing it.
   const status: DashboardRosterStatus =
     isError || data?.status === "Error"
       ? "error"
-      : isLoading || isFetching
+      : isLoading
         ? "loading"
         : !roster || Object.keys(roster).length === 0
           ? "empty"

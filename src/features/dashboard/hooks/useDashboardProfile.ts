@@ -14,15 +14,18 @@ export function useDashboardProfile(): DashboardProfileState {
   const user = useAppSelector((s) => s.auth.user);
   const userId = user?.userId ? Number(user.userId) : undefined;
 
-  const { data, isLoading, isFetching, isError } = useGetUserProfileQuery(userId as number, {
+  const { data, isLoading, isError } = useGetUserProfileQuery(userId as number, {
     skip: !userId,
   });
 
   const profile = data?.profile;
 
+  // isLoading (no cached data yet) drives the skeleton; a background
+  // isFetching refetch keeps the current profile visible instead of
+  // re-flashing it.
   const status: DashboardProfileStatus = isError
     ? "error"
-    : isLoading || isFetching
+    : isLoading
       ? "loading"
       : !profile
         ? "empty"

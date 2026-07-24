@@ -1,8 +1,9 @@
-import { Box, Tabs, Tab, CircularProgress, useTheme } from "@mui/material";
+import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Outlet, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
+import PageLoader from "../../../components/loading/PageLoader";
 
 interface MonthlyRosterPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -164,20 +165,7 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
       {/* ================= CONTENT ================= */}
 
       <Box sx={{ p: 2, minHeight: "65vh" }}>
-        <Suspense
-          fallback={
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "50vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          }
-        >
+        <Suspense fallback={<PageLoader height="50vh" />}>
           <Outlet />
         </Suspense>
       </Box>
