@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, GlobalStyles, Typography, useTheme } from "@mui/material";
@@ -34,10 +34,21 @@ import { StageHistoryPanel } from "../generic/StageHistoryPanel";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
 import { PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
-import {
-  AttributeUpdateDialog,
-  useOpenAttributeUpdate,
-} from "../../sub-feature/attributeUpdate";
+// Both imported by direct file path, deliberately bypassing the sub-feature's
+// barrel (index.ts): the barrel statically re-exports every component in the
+// sub-feature (including the Dialog itself), so importing anything through
+// it - even just the launcher hook - would give this page a static import
+// edge into the whole Attribute Update module graph and defeat the
+// dynamic-import code-split below. useOpenAttributeUpdate's own file has no
+// dependency on the field catalog or the dialog subtree, so it's safe to
+// import eagerly; the Dialog (react-hook-form, the full 7-stage field
+// catalog, WorkflowStageCard/Body) is only ever needed after the user
+// actually clicks "Attribute Update", hence React.lazy.
+import { useOpenAttributeUpdate } from "../../sub-feature/attributeUpdate/hooks/useOpenAttributeUpdate";
+
+const AttributeUpdateDialog = lazy(
+  () => import("../../sub-feature/attributeUpdate/components/AttributeUpdateDialog"),
+);
 
 const GlobalStyleBlock = (
   <GlobalStyles
@@ -316,7 +327,7 @@ export const CrqDetailedView: React.FC = () => {
         label: "Attribute Update",
         icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
         disabled: !selectedCrq,
-        onClick: () => selectedCrq && openAttributeUpdate(selectedCrq, selectedStageId),
+        onClick: () => selectedCrq && openAttributeUpdate(selectedCrq),
       },
       {
         key: "show-prev-crq-status",
@@ -326,7 +337,7 @@ export const CrqDetailedView: React.FC = () => {
         onClick: handleShowPrevCrqStatus,
       },
     ],
-    [selectedCrq, selectedStageId, openAttributeUpdate, handleShowPrevCrqStatus],
+    [selectedCrq, openAttributeUpdate, handleShowPrevCrqStatus],
   );
 
   if (isError) {
@@ -438,7 +449,9 @@ export const CrqDetailedView: React.FC = () => {
         colors={colors}
       />
 
-      <AttributeUpdateDialog />
+      <Suspense fallback={null}>
+        <AttributeUpdateDialog />
+      </Suspense>
     </Box>
   );
 };

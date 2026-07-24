@@ -13,7 +13,9 @@ interface AttributeApiChipsProps {
 }
 
 /** Slim "synced on save" caption naming the downstream systems this stage writes to. */
-export const AttributeApiChips: React.FC<AttributeApiChipsProps> = ({ colors }) => (
+export const AttributeApiChips: React.FC<AttributeApiChipsProps> = React.memo(
+  function AttributeApiChips({ colors }) {
+    return (
   <Stack
     direction="row"
     alignItems="center"
@@ -48,6 +50,8 @@ export const AttributeApiChips: React.FC<AttributeApiChipsProps> = ({ colors }) 
       </React.Fragment>
     ))}
   </Stack>
+    );
+  },
 );
 
 export default AttributeApiChips;

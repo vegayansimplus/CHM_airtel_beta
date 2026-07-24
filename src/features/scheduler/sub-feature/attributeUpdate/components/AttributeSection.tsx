@@ -29,6 +29,9 @@ interface AttributeSectionProps {
   backendAttributes?: ResolvedAttribute[];
   control: Control<AttributeFormValues>;
   errors: FieldErrors<AttributeFormValues>;
+  /** History/completed stage cards: every row renders read-only regardless
+   * of its own flags, and the live mandatory-count watch is skipped. */
+  viewOnly?: boolean;
   colors: Colors;
 }
 
@@ -53,21 +56,23 @@ const isMandatoryEditable = (a: ResolvedAttribute) =>
  * "mandatory fields filled" pill, and its attribute rows laid out as a
  * responsive compact grid instead of a stacked list.
  */
-export const AttributeSection: React.FC<AttributeSectionProps> = ({
+export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(function AttributeSection({
   system,
   attributes,
   backendAttributes,
   control,
   errors,
+  viewOnly,
   colors,
-}) => {
+}) {
   const meta = SYSTEM_SECTIONS[system];
   const accent = SYSTEM_ACCENT[system];
   const totalCount = attributes.length + (backendAttributes?.length ?? 0);
 
   // Live-watches this system's form section so the "X/Y mandatory" pill
   // updates immediately as the user fills fields in, not just after Save.
-  const liveSection = useWatch({ control, name: system });
+  // Disabled in view-only cards (whose control is a throwaway, unused form).
+  const liveSection = useWatch({ control, name: system, disabled: viewOnly });
 
   const { mandatoryFilled, mandatoryTotal } = useMemo(() => {
     const mandatory = attributes.filter(isMandatoryEditable);
@@ -172,6 +177,7 @@ export const AttributeSection: React.FC<AttributeSectionProps> = ({
                 attribute={attribute}
                 control={control}
                 errors={errors}
+                viewOnly={viewOnly}
                 colors={colors}
               />
             ))}
@@ -206,6 +212,7 @@ export const AttributeSection: React.FC<AttributeSectionProps> = ({
                   attribute={attribute}
                   control={control}
                   errors={errors}
+                  viewOnly={viewOnly}
                   colors={colors}
                 />
               ))}
@@ -215,6 +222,6 @@ export const AttributeSection: React.FC<AttributeSectionProps> = ({
       </AccordionDetails>
     </Accordion>
   );
-};
+});
 
 export default AttributeSection;

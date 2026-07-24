@@ -2,7 +2,12 @@ import React from "react";
 import { Box, Stack, Typography } from "@mui/material";
 import type { Colors } from "../../types/colorTypes";
 import type { Crq } from "../../types/crqWorkflow.types";
-import { WORKFLOW_STAGES, resolveStageState, type WorkflowStageId } from "../../constants/workflowStages";
+import {
+  WORKFLOW_STAGES,
+  resolveStageState,
+  stageStatePalette,
+  type WorkflowStageId,
+} from "../../constants/workflowStages";
 
 interface StageRailProps {
   crq: Crq;
@@ -27,27 +32,8 @@ export const StageRail: React.FC<StageRailProps> = ({
         const isSelected = stage.id === selectedStageId;
         const clickable = idx <= currentStageIndex;
 
-        const palette =
-          state === "completed"
-            ? { bg: colors.successDim, fg: colors.success, dot: colors.success }
-            : state === "in_progress"
-              ? { bg: colors.infoDim, fg: colors.info, dot: colors.accent }
-              : state === "failed"
-                ? { bg: colors.dangerDim, fg: colors.danger, dot: colors.danger }
-                : state === "locked"
-                  ? { bg: colors.trackOff, fg: colors.textDim, dot: colors.border }
-                  : { bg: colors.trackOff, fg: colors.textSecondary, dot: colors.textDim };
-
-        const chipLabel =
-          state === "completed"
-            ? "Done"
-            : state === "in_progress"
-              ? "Active"
-              : state === "failed"
-                ? "Failed"
-                : state === "locked"
-                  ? "Locked"
-                  : "Paused";
+        const palette = stageStatePalette(state, colors);
+        const chipLabel = palette.label;
 
         return (
           <Box

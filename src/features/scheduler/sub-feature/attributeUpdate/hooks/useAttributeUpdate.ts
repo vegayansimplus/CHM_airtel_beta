@@ -1,132 +1,55 @@
-import { useCallback, useMemo } from "react";
-import { skipToken } from "@reduxjs/toolkit/query/react";
+import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../../../../../app/hooks";
-import type { Crq } from "../../../types/crqWorkflow.types";
-import {
-  STAGE_ID_TO_ENUM,
-  WORKFLOW_STAGES,
-  resolveCurrentStageIndex,
-  type WorkflowStageId,
-} from "../../../constants/workflowStages";
-import {
-  closeAttributeUpdateDialog,
-  goToNextAttributeStage,
-  goToPreviousAttributeStage,
-  openAttributeUpdateDialog,
-  selectAttributeStage,
-  selectRemedyStatusIndex,
-} from "../slices/attributeUpdate.slice";
+import { STAGE_ID_TO_ENUM, type WorkflowStageId } from "../../../constants/workflowStages";
+import { closeAttributeUpdateDialog } from "../slices/attributeUpdate.slice";
 import {
   selectAttributeCrq,
+  selectAttributeCrqStatus,
+  selectAttributeCurrentStageId,
   selectAttributeDialogOpen,
-  selectAttributeLockedStageId,
-  selectSelectedAttributeStageId,
-  selectSelectedRemedyStatusIndex,
+  selectAttributeStageMeta,
 } from "../selectors/attributeUpdate.selectors";
-import { buildAttributeCrqContext, resolveStageView } from "../utils/attributeUpdate.utils";
-import { CMS_STAGE_SCHEMAS } from "../constants/attributeUpdateFieldCatalog";
-import { useGetAttributeUpdateDetailsQuery } from "../api/attributeUpdateApiSlice";
+import type { StageDialogMode, StageMeta } from "../types/attributeUpdate.types";
 
-/**
- * Launcher hook for pages hosting the "Attribute Update" action button.
- * Subscribes to no state, so the hosting page never re-renders on dialog
- * interactions — it only dispatches the dialog-open action; live data is
- * fetched reactively by useAttributeUpdate() via RTK Query once open.
- *
- * Pass `stageId` (the hosting tab's stage) to lock the dialog to that single
- * stage; omit it to open in free-browsing mode starting at the CRQ's current
- * workflow stage.
- */
-export function useOpenAttributeUpdate() {
-  const dispatch = useAppDispatch();
-
-  return useCallback(
-    (crq: Crq, stageId?: WorkflowStageId) => {
-      const context = buildAttributeCrqContext(crq);
-      const initialStageId =
-        stageId ?? WORKFLOW_STAGES[resolveCurrentStageIndex(crq)]?.id;
-      dispatch(
-        openAttributeUpdateDialog({
-          crq: context,
-          initialStageId,
-          lockToStage: !!stageId,
-        }),
-      );
-    },
-    [dispatch],
-  );
-}
-
-const STAGE_LIST = CMS_STAGE_SCHEMAS.map(({ id, label, shortLabel }) => ({
-  id,
-  label,
-  shortLabel,
-}));
-
-/** State + handlers consumed by the Attribute Update dialog components. */
+/** Dialog-level state: which CRQ is open, its current stage, and the close handler. */
 export function useAttributeUpdate() {
   const dispatch = useAppDispatch();
 
   const dialogOpen = useAppSelector(selectAttributeDialogOpen);
   const crq = useAppSelector(selectAttributeCrq);
-  const selectedStageId = useAppSelector(selectSelectedAttributeStageId);
-  const lockedStageId = useAppSelector(selectAttributeLockedStageId);
-  const selectedRemedyStatusIndex = useAppSelector(selectSelectedRemedyStatusIndex);
+  const currentStageId = useAppSelector(selectAttributeCurrentStageId);
+  const crqStatus = useAppSelector(selectAttributeCrqStatus);
+  const stageMeta = useAppSelector(selectAttributeStageMeta);
 
-  const selectedStageIndex = CMS_STAGE_SCHEMAS.findIndex((s) => s.id === selectedStageId);
-  const cmsStage = STAGE_ID_TO_ENUM[selectedStageId];
+  const close = useCallback(() => dispatch(closeAttributeUpdateDialog()), [dispatch]);
 
-  const {
-    data: details,
-    isFetching,
-    error: queryError,
-  } = useGetAttributeUpdateDetailsQuery(
-    dialogOpen && crq && cmsStage ? { crqNo: crq.crqNo, cmsStage } : skipToken,
-  );
-
-  const stageView = useMemo(
-    () =>
-      crq
-        ? resolveStageView(selectedStageId, selectedRemedyStatusIndex, details, crq.crqNo)
-        : null,
-    [selectedStageId, selectedRemedyStatusIndex, details, crq],
-  );
-
-  const close = useCallback(
-    () => dispatch(closeAttributeUpdateDialog()),
-    [dispatch],
-  );
-  const selectStage = useCallback(
-    (stageId: WorkflowStageId) => dispatch(selectAttributeStage(stageId)),
-    [dispatch],
-  );
-  const selectRemedyStatus = useCallback(
-    (index: number) => dispatch(selectRemedyStatusIndex(index)),
-    [dispatch],
-  );
-  const goToNextStage = useCallback(
-    () => dispatch(goToNextAttributeStage()),
-    [dispatch],
-  );
-  const goToPreviousStage = useCallback(
-    () => dispatch(goToPreviousAttributeStage()),
-    [dispatch],
-  );
-
-  return {
-    dialogOpen,
-    crq,
-    isLoading: isFetching,
-    error: queryError ? "Failed to load attribute details." : null,
-    stageList: STAGE_LIST,
-    selectedStageIndex,
-    cmsStage,
-    isStageLocked: lockedStageId !== null,
-    stageView,
-    close,
-    selectStage,
-    selectRemedyStatus,
-    goToNextStage,
-    goToPreviousStage,
-  };
+  return { dialogOpen, crq, currentStageId, crqStatus, stageMeta, close };
 }
+
+/**
+ * Pure, hook-free mode resolution (no Redux/RTK Query cost) - called once
+ * per stage from the dialog's single top-level subscription instead of each
+ * card re-subscribing to the same slice fields independently.
+ */
+export function resolveCardMode(
+  stageId: WorkflowStageId,
+  currentStageId: WorkflowStageId | null,
+  meta: StageMeta | undefined,
+  crqStatus: string,
+): StageDialogMode {
+  if (crqStatus === "Done") return "view";
+  if (stageId === currentStageId) return "edit";
+  if (meta?.runState === "completed" || meta?.runState === "failed") return "view";
+  return "pending";
+}
+
+/** cmsStage enum lookup, reused by both the launcher and each card body. */
+export function cmsStageFor(stageId: WorkflowStageId): string {
+  return STAGE_ID_TO_ENUM[stageId];
+}
+
+// Note: useOpenAttributeUpdate now lives in its own file (useOpenAttributeUpdate.ts,
+// re-exported directly by the barrel) so the page that calls it eagerly
+// never gets a static import edge into this file's (or the field catalog's)
+// heavier dependents.
+export { useStageAttributeData } from "./useStageAttributeData";

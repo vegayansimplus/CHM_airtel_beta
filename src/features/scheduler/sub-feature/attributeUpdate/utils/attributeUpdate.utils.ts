@@ -1,6 +1,4 @@
-import type { Crq } from "../../../types/crqWorkflow.types";
 import type {
-  AttributeUpdateCrqContext,
   AttributeUpdateDetailsResponse,
   MandatoryLevel,
   ResolvedAttribute,
@@ -251,24 +249,9 @@ export function computeStageCompletion(
   return { filled, total };
 }
 
-const asText = (value: unknown): string | null =>
-  typeof value === "string" && value.trim().length ? value : null;
-
-/** Captures the header context for the dialog from the selected CRQ row. */
-export function buildAttributeCrqContext(crq: Crq): AttributeUpdateCrqContext {
-  const requester =
-    [crq.firstName, crq.lastName].filter(Boolean).join(" ") ||
-    asText(crq.managerChange) ||
-    "—";
-
-  return {
-    crqNo: crq.crqNo,
-    crqId: typeof crq.crqId === "number" ? crq.crqId : null,
-    requester,
-    circle:
-      asText(crq["workAreaTerritory"]) ?? asText(crq.locationCodeM6) ?? "—",
-    vendor: asText(crq.vendor) ?? "—",
-    domain:
-      asText(crq.categorizationTier_2) ?? asText(crq.categorizationTier_1) ?? "—",
-  };
-}
+// Re-exported (not defined here) so existing barrel/callers keep working:
+// buildAttributeCrqContext lives in its own file, decoupled from this
+// module's catalog import, so the eager "Attribute Update" button doesn't
+// have to pull in the full attribute field catalog just to build the
+// dialog's header context. See buildAttributeCrqContext.ts for why.
+export { buildAttributeCrqContext } from "./buildAttributeCrqContext";

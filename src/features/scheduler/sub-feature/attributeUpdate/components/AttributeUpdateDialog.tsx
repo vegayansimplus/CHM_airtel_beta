@@ -1,11 +1,10 @@
-import React, { useEffect } from "react";
+import React, { useMemo } from "react";
 import {
   Box,
   Chip,
   Dialog,
   DialogTitle,
   IconButton,
-  Skeleton,
   Stack,
   Tooltip,
   Typography,
@@ -15,38 +14,34 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
-import { useForm, useWatch } from "react-hook-form";
-import { toast } from "react-toastify";
 
 import { useTabColorTokens } from "../../../../../style/theme";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
-import { useAttributeUpdate } from "../hooks/useAttributeUpdate";
-import { useSaveAttributeUpdateMutation } from "../api/attributeUpdateApiSlice";
-import {
-  buildAttributeFormDefaults,
-  buildAttributeSaveSections,
-  computeStageCompletion,
-  type AttributeFormValues,
-} from "../utils/attributeUpdate.utils";
+import { resolveCardMode, useAttributeUpdate } from "../hooks/useAttributeUpdate";
+import { CMS_STAGE_SCHEMAS } from "../constants/attributeUpdateFieldCatalog";
+import type { WorkflowStageId } from "../../../constants/workflowStages";
 import { AttributeStageStepper } from "./AttributeStageStepper";
 import { AttributeCrqHeaderCard } from "./AttributeCrqHeaderCard";
-import { AttributeApiChips } from "./AttributeApiChips";
-import { RemedySubStatusBar } from "./RemedySubStatusBar";
-import { AttributeSection } from "./AttributeSection";
-import { AttributeDialogFooter } from "./AttributeDialogFooter";
+import { WorkflowStageCard } from "./WorkflowStageCard";
 
-const SectionSkeleton: React.FC = () => (
-  <Skeleton
-    variant="rounded"
-    height={120}
-    sx={{ mb: 1.75, borderRadius: "12px" }}
-  />
-);
+const STAGE_LIST = CMS_STAGE_SCHEMAS.map(({ id, label, shortLabel }) => ({
+  id,
+  label,
+  shortLabel,
+}));
+
+const jumpToStage = (stageId: WorkflowStageId) => {
+  document
+    .getElementById(`attribute-stage-${stageId}`)
+    ?.scrollIntoView({ behavior: "smooth", block: "start" });
+};
 
 /**
- * "Attribute Update" dialog: for the selected CRQ it shows, per CMS stage,
- * every attribute updated in Remedy / CAB / the Planning Tool (Cygnet),
- * loaded live via GET /attributeupdate/details and saved via
+ * "Attribute Update" dialog: the CRQ's full 7-stage workflow timeline, one
+ * card per stage (WorkflowStageCard). Exactly one card - the CRQ's current
+ * stage - is ever editable; stages before it are read-only history
+ * ("Attribute View"), stages after it are disabled ("Pending"). Every
+ * card's data loads live via GET /attributeupdate/details and saves via
  * POST /attributeupdate/save. Mount it once on the hosting page and open it
  * via `useOpenAttributeUpdate()`.
  */
@@ -55,64 +50,29 @@ export const AttributeUpdateDialog: React.FC = () => {
   const colors = useTabColorTokens(theme);
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
 
-  const {
-    dialogOpen,
-    crq,
-    isLoading,
-    error,
-    stageList,
-    selectedStageIndex,
-    cmsStage,
-    isStageLocked,
-    stageView,
-    close,
-    selectStage,
-    selectRemedyStatus,
-    goToNextStage,
-    goToPreviousStage,
-  } = useAttributeUpdate();
+  const { dialogOpen, crq, currentStageId, crqStatus, stageMeta, close } = useAttributeUpdate();
 
-  const [saveAttributeUpdate, { isLoading: isSaving }] = useSaveAttributeUpdateMutation();
+  // Resolved once per (stageMeta/currentStageId/crqStatus) change, not per
+  // card render: each card gets its mode/meta as plain props instead of
+  // independently re-deriving them (or re-subscribing to Redux) 7x over.
+  const stageEntries = useMemo(
+    () =>
+      STAGE_LIST.map((stage) => ({
+        stage,
+        mode: resolveCardMode(stage.id, currentStageId, stageMeta[stage.id], crqStatus),
+      })),
+    [currentStageId, crqStatus, stageMeta],
+  );
 
-  const {
-    control,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<AttributeFormValues>({
-    defaultValues: buildAttributeFormDefaults(stageView),
-  });
-
-  // Re-seed the form whenever the selected stage or its live values change
-  // (stage navigation, or a fresh fetch after a successful Save).
-  useEffect(() => {
-    reset(buildAttributeFormDefaults(stageView));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stageView]);
-
-  // Whole-form live watch, purely to keep the header card's mandatory-field
-  // progress bar in sync as the user types (before Save).
-  const liveFormValues = useWatch({ control });
-  const completion = stageView
-    ? computeStageCompletion(stageView, liveFormValues as AttributeFormValues)
-    : { filled: 0, total: 0 };
-
-  const onSave = handleSubmit(async (values) => {
-    if (!crq || !stageView || !cmsStage) return;
-    const sections = buildAttributeSaveSections(stageView, values);
-    try {
-      const response = await saveAttributeUpdate({
-        crqNo: crq.crqNo,
-        cmsStage,
-        ...sections,
-      }).unwrap();
-      toast.success(response?.message || "Attributes saved.");
-    } catch (err) {
-      toast.error(
-        (err as any)?.data?.message || "Failed to save attributes. Please try again.",
-      );
-    }
-  });
+  const currentStageLabel =
+    CMS_STAGE_SCHEMAS.find((s) => s.id === currentStageId)?.label ?? "—";
+  const finishedCount = useMemo(
+    () =>
+      Object.values(stageMeta).filter(
+        (m) => m?.runState === "completed" || m?.runState === "failed",
+      ).length,
+    [stageMeta],
+  );
 
   return (
     <Dialog
@@ -234,88 +194,37 @@ export const AttributeUpdateDialog: React.FC = () => {
         </Stack>
       </DialogTitle>
 
-      {!!stageList.length && (
+      {!!STAGE_LIST.length && (
         <AttributeStageStepper
-          stages={stageList}
-          selectedIndex={selectedStageIndex}
-          onSelectStage={selectStage}
-          interactive={!isStageLocked}
+          stages={STAGE_LIST}
+          currentStageId={currentStageId}
+          stageMeta={stageMeta}
+          onJumpToStage={jumpToStage}
           colors={colors}
         />
       )}
 
       <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2 }}>
-        {isLoading && (
-          <Stack spacing={0} sx={{ pt: 1 }}>
-            <Skeleton variant="rounded" height={72} sx={{ mb: 1.75, borderRadius: "12px" }} />
-            <Skeleton variant="rounded" height={44} sx={{ mb: 1.75, borderRadius: "12px" }} />
-            <SectionSkeleton />
-            <SectionSkeleton />
-            <SectionSkeleton />
-          </Stack>
-        )}
-
-        {!isLoading && error && (
-          <Typography color="error" sx={{ fontSize: 13.5, py: 4 }}>
-            {error}
-          </Typography>
-        )}
-
-        {!isLoading && !error && crq && stageView && (
+        {crq && (
           <>
             <AttributeCrqHeaderCard
               crq={crq}
-              stageView={stageView}
-              completion={completion}
+              currentStageLabel={currentStageLabel}
+              completion={{ filled: finishedCount, total: STAGE_LIST.length }}
               colors={colors}
             />
-            <AttributeApiChips colors={colors} />
 
-            {stageView.stage.remedyStatuses.length > 1 && (
-              <RemedySubStatusBar
-                statuses={stageView.stage.remedyStatuses}
-                activeIndex={stageView.stage.remedyStatuses.indexOf(
-                  stageView.activeRemedyStatus,
-                )}
-                onSelect={selectRemedyStatus}
+            {stageEntries.map(({ stage, mode }) => (
+              <WorkflowStageCard
+                key={stage.id}
+                stageId={stage.id}
+                label={stage.label}
+                mode={mode}
+                meta={stageMeta[stage.id]}
+                crqNo={crq.crqNo}
                 colors={colors}
               />
-            )}
-
-            <AttributeSection
-              system="remedy"
-              attributes={stageView.remedyAttributes}
-              control={control}
-              errors={errors}
-              colors={colors}
-            />
-            <AttributeSection
-              system="cab"
-              attributes={stageView.cabAttributes}
-              control={control}
-              errors={errors}
-              colors={colors}
-            />
-            <AttributeSection
-              system="planningTool"
-              attributes={stageView.planningToolVisible}
-              backendAttributes={stageView.planningToolBackend}
-              control={control}
-              errors={errors}
-              colors={colors}
-            />
-
-            <AttributeDialogFooter
-              canGoPrevious={selectedStageIndex > 0}
-              canGoNext={selectedStageIndex < stageList.length - 1}
-              onPrevious={goToPreviousStage}
-              onNext={goToNextStage}
-              onCancel={close}
-              onSave={onSave}
-              isSaving={isSaving}
-              navigationEnabled={!isStageLocked}
-              colors={colors}
-            />
+            ))}
           </>
         )}
       </Box>

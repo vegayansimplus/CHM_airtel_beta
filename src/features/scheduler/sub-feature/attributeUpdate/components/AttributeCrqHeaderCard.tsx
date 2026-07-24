@@ -1,19 +1,16 @@
 import React from "react";
 import { Box, LinearProgress, Stack, Typography } from "@mui/material";
 import FlagOutlinedIcon from "@mui/icons-material/FlagOutlined";
-import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
-import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
+import TaskAltRoundedIcon from "@mui/icons-material/TaskAltRounded";
 import type { Colors } from "../../../types/colorTypes";
-import type {
-  AttributeUpdateCrqContext,
-  StageAttributeView,
-} from "../types/attributeUpdate.types";
+import type { AttributeUpdateCrqContext } from "../types/attributeUpdate.types";
 import { STAGE_BADGES } from "../constants/attributeUpdate.constants";
 
 interface AttributeCrqHeaderCardProps {
   crq: AttributeUpdateCrqContext;
-  stageView: StageAttributeView;
-  /** Mandatory fields filled vs. total for the selected stage, across all 3 systems. */
+  /** Label of the CRQ's current (only editable) workflow stage. */
+  currentStageLabel: string;
+  /** Stages completed vs. total across the 7-stage workflow timeline. */
   completion: { filled: number; total: number };
   colors: Colors;
 }
@@ -46,12 +43,12 @@ const StageBadge: React.FC<{
 
 /**
  * Header card of the dialog body: CRQ identity + requester meta on the left,
- * current CMS stage / Remedy status / Planning Tool phase badges on the
- * right, and a mandatory-field completion bar for the selected stage below.
+ * the CRQ's current (only editable) stage badge on the right, and an
+ * overall "N/7 stages completed" progress bar for the whole timeline below.
  */
 export const AttributeCrqHeaderCard: React.FC<AttributeCrqHeaderCardProps> = ({
   crq,
-  stageView,
+  currentStageLabel,
   completion,
   colors,
 }) => {
@@ -103,17 +100,12 @@ export const AttributeCrqHeaderCard: React.FC<AttributeCrqHeaderCardProps> = ({
           <StageBadge
             palette={STAGE_BADGES.cms}
             icon={<FlagOutlinedIcon sx={{ fontSize: 13 }} />}
-            label={stageView.stage.label}
+            label={`Current stage: ${currentStageLabel}`}
           />
           <StageBadge
-            palette={STAGE_BADGES.remedy}
-            icon={<StorageRoundedIcon sx={{ fontSize: 13 }} />}
-            label={stageView.activeRemedyStatus}
-          />
-          <StageBadge
-            palette={STAGE_BADGES.planningTool}
-            icon={<QueryStatsRoundedIcon sx={{ fontSize: 13 }} />}
-            label={stageView.stage.planningToolPhase}
+            palette={{ bg: colors.successDim, fg: colors.success }}
+            icon={<TaskAltRoundedIcon sx={{ fontSize: 13 }} />}
+            label={`${completion.filled}/${completion.total} stages completed`}
           />
         </Stack>
       </Box>
@@ -142,7 +134,7 @@ export const AttributeCrqHeaderCard: React.FC<AttributeCrqHeaderCardProps> = ({
               whiteSpace: "nowrap",
             }}
           >
-            {completion.filled}/{completion.total} mandatory
+            {completion.filled}/{completion.total} stages
           </Typography>
         </Stack>
       )}

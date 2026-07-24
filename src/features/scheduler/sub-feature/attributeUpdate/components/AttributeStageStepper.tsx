@@ -3,6 +3,7 @@ import { Box, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { Colors } from "../../../types/colorTypes";
 import type { WorkflowStageId } from "../../../constants/workflowStages";
+import type { StageMeta } from "../types/attributeUpdate.types";
 import { STEPPER_DONE } from "../constants/attributeUpdate.constants";
 
 export interface StageStepDescriptor {
@@ -13,25 +14,25 @@ export interface StageStepDescriptor {
 
 interface AttributeStageStepperProps {
   stages: StageStepDescriptor[];
-  selectedIndex: number;
-  onSelectStage: (stageId: WorkflowStageId) => void;
-  /** False renders a read-only progress strip (single-stage locked mode). */
-  interactive?: boolean;
+  currentStageId: WorkflowStageId | null;
+  stageMeta: Partial<Record<WorkflowStageId, StageMeta>>;
+  /** Jump-to-card: scrolls the clicked stage's timeline card into view. */
+  onJumpToStage: (stageId: WorkflowStageId) => void;
   colors: Colors;
 }
 
 /**
- * 7-stage stepper across the top of the Attribute Update dialog. Stages
- * before the selected one render as done (green check), the selected stage
- * is highlighted with an accent underline. When `interactive` is false the
- * strip only shows where the stage sits in the flow — clicks are disabled
- * and the other stages are dimmed.
+ * Sticky mini-nav across the top of the Attribute Update timeline. Every
+ * stage renders at once in the body below, so this strip is a jump-to-card
+ * shortcut, not a stage switcher: each step's done/current/pending look
+ * reflects the CRQ's real per-stage run state (stageMeta), and clicking a
+ * step scrolls its card into view instead of changing what's rendered.
  */
 export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
   stages,
-  selectedIndex,
-  onSelectStage,
-  interactive = true,
+  currentStageId,
+  stageMeta,
+  onJumpToStage,
   colors,
 }) => (
   <Box
@@ -44,27 +45,25 @@ export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
     }}
   >
     {stages.map((stage, index) => {
-      const isActive = index === selectedIndex;
-      const isDone = index < selectedIndex;
+      const runState = stageMeta[stage.id]?.runState ?? "not_started";
+      const isCurrent = stage.id === currentStageId;
+      const isDone = runState === "completed" || runState === "failed";
 
       return (
         <Box
           key={stage.id}
-          onClick={interactive ? () => onSelectStage(stage.id) : undefined}
+          onClick={() => onJumpToStage(stage.id)}
           sx={{
             textAlign: "center",
             px: 0.75,
             pt: 1.2,
             pb: 1,
             minWidth: 0,
-            cursor: interactive ? "pointer" : "default",
-            opacity: interactive || isActive ? 1 : 0.55,
-            borderBottom: `3px solid ${isActive ? colors.accent : "transparent"}`,
-            bgcolor: isActive ? colors.surface : "transparent",
+            cursor: "pointer",
+            borderBottom: `3px solid ${isCurrent ? colors.accent : "transparent"}`,
+            bgcolor: isCurrent ? colors.surface : "transparent",
             transition: "background 0.15s ease",
-            "&:hover": interactive
-              ? { bgcolor: isActive ? colors.surface : colors.trackOff }
-              : undefined,
+            "&:hover": { bgcolor: isCurrent ? colors.surface : colors.trackOff },
           }}
         >
           <Box
@@ -78,23 +77,11 @@ export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
               mb: 0.5,
               fontSize: 12,
               fontWeight: 600,
-              bgcolor: isDone
-                ? STEPPER_DONE.bg
-                : isActive
-                  ? colors.accent
-                  : colors.surface,
+              bgcolor: isDone ? STEPPER_DONE.bg : isCurrent ? colors.accent : colors.surface,
               border: `1.5px solid ${
-                isDone
-                  ? STEPPER_DONE.border
-                  : isActive
-                    ? colors.accent
-                    : colors.border
+                isDone ? STEPPER_DONE.border : isCurrent ? colors.accent : colors.border
               }`,
-              color: isDone
-                ? STEPPER_DONE.fg
-                : isActive
-                  ? "#fff"
-                  : colors.textSecondary,
+              color: isDone ? STEPPER_DONE.fg : isCurrent ? "#fff" : colors.textSecondary,
             }}
           >
             {isDone ? <CheckRoundedIcon sx={{ fontSize: 15 }} /> : index + 1}
@@ -105,9 +92,8 @@ export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
               lineHeight: 1.35,
               px: 0.5,
               wordBreak: "break-word",
-              fontWeight: isActive ? 600 : 400,
-              color:
-                isActive || isDone ? colors.textPrimary : colors.textSecondary,
+              fontWeight: isCurrent ? 600 : 400,
+              color: isCurrent || isDone ? colors.textPrimary : colors.textSecondary,
             }}
           >
             {stage.shortLabel}

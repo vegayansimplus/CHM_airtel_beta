@@ -14,10 +14,10 @@ interface MandatoryBadgeProps {
  * with the full label on hover. Replaces a text pill so field tiles stay
  * dense in the grid layout.
  */
-export const MandatoryBadge: React.FC<MandatoryBadgeProps> = ({
+export const MandatoryBadge: React.FC<MandatoryBadgeProps> = React.memo(function MandatoryBadge({
   level,
   rawLabel,
-}) => {
+}) {
   const palette = MANDATORY_BADGE[level];
   const title = level === "conditional" ? rawLabel : palette.label;
 
@@ -37,6 +37,6 @@ export const MandatoryBadge: React.FC<MandatoryBadgeProps> = ({
       />
     </Tooltip>
   );
-};
+});
 
 export default MandatoryBadge;

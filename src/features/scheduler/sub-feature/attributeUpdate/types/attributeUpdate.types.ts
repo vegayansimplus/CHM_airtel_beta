@@ -1,4 +1,4 @@
-import type { WorkflowStageId } from "../../../constants/workflowStages";
+import type { StageRunState, WorkflowStageId } from "../../../constants/workflowStages";
 
 /** Field input types used across Remedy / CAB / Planning Tool attribute schemas. */
 export type AttributeFieldType =
@@ -91,16 +91,31 @@ export interface AttributeUpdateCrqContext {
   domain: string;
 }
 
+/** Per-card dialog mode, resolved from the stage's run state + the CRQ's current stage. */
+export type StageDialogMode = "edit" | "view" | "pending";
+
+/**
+ * Snapshot captured once at dialog-open time for one workflow stage: its run
+ * state (history/current/future classification input) plus the audit fields
+ * (status/performedBy/completedAt) sourced from crq.history[], the same data
+ * StageHistoryPanel renders elsewhere.
+ */
+export interface StageMeta {
+  runState: StageRunState;
+  status: string | null;
+  performedBy: string | null;
+  completedAt: string | null;
+}
+
 export interface AttributeUpdateState {
   dialogOpen: boolean;
   crq: AttributeUpdateCrqContext | null;
-  selectedStageId: WorkflowStageId;
-  /**
-   * When set, the dialog is locked to this single stage (opened from a
-   * stage tab): other stages are not browsable. Null = free browsing.
-   */
-  lockedStageId: WorkflowStageId | null;
-  selectedRemedyStatusIndex: number;
+  /** The CRQ's live workflow stage - the only stage ever editable. */
+  currentStageId: WorkflowStageId | null;
+  /** Normalized overall CRQ status (e.g. "Done") - forces every stage to view mode when Done. */
+  crqStatus: string;
+  /** Per-stage run state + audit meta, captured once at open time. */
+  stageMeta: Partial<Record<WorkflowStageId, StageMeta>>;
 }
 
 /** A stage attribute enriched with everything the row component needs to render. */

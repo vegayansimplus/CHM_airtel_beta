@@ -137,6 +137,47 @@ export function resolveStageState(
   return "not_started";
 }
 
+export interface StageStatePalette {
+  bg: string;
+  fg: string;
+  dot: string;
+}
+
+export interface StageStateColorSource {
+  successDim: string;
+  success: string;
+  infoDim: string;
+  info: string;
+  accent: string;
+  dangerDim: string;
+  danger: string;
+  trackOff: string;
+  textDim: string;
+  textSecondary: string;
+  border: string;
+}
+
+/** Shared completed/in-progress/failed/locked/not-started palette + chip
+ * label, used anywhere a StageRunState needs to render as a colored chip
+ * (StageRail, the Attribute Update timeline cards, ...). */
+export function stageStatePalette(
+  state: StageRunState,
+  colors: StageStateColorSource,
+): StageStatePalette & { label: string } {
+  switch (state) {
+    case "completed":
+      return { bg: colors.successDim, fg: colors.success, dot: colors.success, label: "Done" };
+    case "in_progress":
+      return { bg: colors.infoDim, fg: colors.info, dot: colors.accent, label: "Active" };
+    case "failed":
+      return { bg: colors.dangerDim, fg: colors.danger, dot: colors.danger, label: "Failed" };
+    case "locked":
+      return { bg: colors.trackOff, fg: colors.textDim, dot: colors.border, label: "Locked" };
+    default:
+      return { bg: colors.trackOff, fg: colors.textSecondary, dot: colors.textDim, label: "Paused" };
+  }
+}
+
 export interface StageSummaryField {
   label: string;
   value: string;

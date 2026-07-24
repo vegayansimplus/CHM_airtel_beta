@@ -93,28 +93,6 @@ const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 
 // ─── Shared attribute blocks ─────────────────────────────────────────────────
 
-/** Cancellation attributes appended to most stages' Remedy section. */
-const CANCELLATION_ATTRIBUTES: StageAttribute[] = [
-  {
-    name: "Reason for Cancellation Rejection",
-    field: "reasonForCancellationRejection",
-    type: "Text",
-    mandatory: "Mandatory - if cancellation",
-  },
-  {
-    name: "Cancellation Rejection Rollback Owner",
-    field: "cancellationRejectionRollbackOwner",
-    type: "Text",
-    mandatory: "Mandatory - if cancellation",
-  },
-  {
-    name: "Reason for Cancellation Rejection Deviation",
-    field: "reasonForCancellationRejectionDeviation",
-    type: "Text",
-    mandatory: "Mandatory - if cancellation",
-  },
-];
-
 /** Coordinator / implementer support-group attributes (Remedy). */
 const COORDINATOR_IMPLEMENTER_ATTRIBUTES: StageAttribute[] = [
   {
@@ -171,7 +149,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolPhase: "Planning",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [...COORDINATOR_IMPLEMENTER_ATTRIBUTES, ...CANCELLATION_ATTRIBUTES],
+    remedy: [...COORDINATOR_IMPLEMENTER_ATTRIBUTES],
     cab: [
       { name: "CRQ Validated By", field: "crqValidatedBy", type: "Text", mandatory: "Mandatory" },
       {
@@ -225,7 +203,6 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
         values: YES_NO_VALUES,
       },
       { name: "OLT Details", field: "oltDetails", type: "Text", mandatory: "Optional" },
-      ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       {
@@ -345,7 +322,6 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
           "RMA",
         ],
       },
-      ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       {
@@ -407,7 +383,6 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: ["Yes"],
       },
-      ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       { name: "MOP Created By", field: "mopCreatedBy", type: "Text", mandatory: "Mandatory" },
@@ -426,7 +401,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolPhase: "MOP Validation",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [...CANCELLATION_ATTRIBUTES],
+    remedy: [],
     cab: [
       { name: "MOP Validated By", field: "mopValidatedBy", type: "Text", mandatory: "Mandatory" },
       {
@@ -469,7 +444,6 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
         type: "Date Time",
         mandatory: "Mandatory",
       },
-      ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       {

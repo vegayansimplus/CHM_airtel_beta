@@ -4,9 +4,9 @@ export const selectAttributeDialogOpen = (state: RootState) =>
   state.attributeUpdate.dialogOpen;
 export const selectAttributeCrq = (state: RootState) =>
   state.attributeUpdate.crq;
-export const selectSelectedAttributeStageId = (state: RootState) =>
-  state.attributeUpdate.selectedStageId;
-export const selectAttributeLockedStageId = (state: RootState) =>
-  state.attributeUpdate.lockedStageId;
-export const selectSelectedRemedyStatusIndex = (state: RootState) =>
-  state.attributeUpdate.selectedRemedyStatusIndex;
+export const selectAttributeCurrentStageId = (state: RootState) =>
+  state.attributeUpdate.currentStageId;
+export const selectAttributeCrqStatus = (state: RootState) =>
+  state.attributeUpdate.crqStatus;
+export const selectAttributeStageMeta = (state: RootState) =>
+  state.attributeUpdate.stageMeta;

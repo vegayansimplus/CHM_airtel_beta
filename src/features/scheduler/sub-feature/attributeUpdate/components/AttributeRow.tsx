@@ -24,9 +24,13 @@ import { MandatoryBadge } from "./MandatoryBadge";
 
 interface AttributeRowProps {
   attribute: ResolvedAttribute;
-  /** react-hook-form control for the dialog's single stage-wide form. */
+  /** react-hook-form control for the dialog's single stage-wide form
+   * (a throwaway, unused form instance for view-only cards). */
   control: Control<AttributeFormValues>;
   errors: FieldErrors<AttributeFormValues>;
+  /** Forces the read-only display branch regardless of the attribute's own
+   * flags - set for history/completed stage cards, which are never editable. */
+  viewOnly?: boolean;
   colors: Colors;
 }
 
@@ -62,13 +66,15 @@ const inputSx = { fontSize: 12.75, borderRadius: "8px" };
  * auto-set attributes render as a disabled display of their live value
  * instead of an input.
  */
-export const AttributeRow: React.FC<AttributeRowProps> = ({
+export const AttributeRow: React.FC<AttributeRowProps> = React.memo(function AttributeRow({
   attribute,
   control,
   errors,
+  viewOnly,
   colors,
-}) => {
-  const isDisabled = attribute.readOnly || attribute.isBackend || !!attribute.autoSetFrom;
+}) {
+  const isDisabled =
+    viewOnly || attribute.readOnly || attribute.isBackend || !!attribute.autoSetFrom;
   const required = attribute.mandatoryLevel === "mandatory";
   const name = `${attribute.system}.${attribute.field}`;
   const errorMessage = (errors as any)?.[attribute.system]?.[attribute.field]?.message as
@@ -273,6 +279,6 @@ export const AttributeRow: React.FC<AttributeRowProps> = ({
       )}
     </Box>
   );
-};
+});
 
 export default AttributeRow;
