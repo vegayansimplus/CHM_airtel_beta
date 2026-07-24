@@ -67,11 +67,18 @@ export const SYSTEM_SECTION_ORDER: TargetSystem[] = [
 
 export const MANDATORY_BADGE: Record<
   MandatoryLevel,
-  { label: string; bg: string; fg: string }
+  { label: string; bg: string; fg: string; dot: string }
 > = {
-  mandatory: { label: "Mandatory", bg: "#FCEBEB", fg: "#791F1F" },
-  optional: { label: "Optional", bg: "#F1EFE8", fg: "#444441" },
-  conditional: { label: "Conditional", bg: "#FAEEDA", fg: "#633806" },
+  mandatory: { label: "Mandatory", bg: "#FCEBEB", fg: "#791F1F", dot: "#E5484D" },
+  optional: { label: "Optional", bg: "#F1EFE8", fg: "#444441", dot: "#9B9B93" },
+  conditional: { label: "Conditional", bg: "#FAEEDA", fg: "#633806", dot: "#E8A23D" },
+};
+
+/** Section accent used for the compact icon avatar + accordion accent bar. */
+export const SYSTEM_ACCENT: Record<TargetSystem, string> = {
+  remedy: "#1E7FD1",
+  cab: "#1B9C77",
+  planningTool: "#6E5CD6",
 };
 
 /** READ-ONLY / BACKEND attribute flag palettes (from the CMS reference design). */
@@ -87,10 +94,11 @@ export const STAGE_BADGES = {
   planningTool: { bg: "#E5DCF3", fg: "#3C3489" },
 };
 
-/** Auto-set banner palettes (cms_status / remedy_status mirrors). */
+/** Auto-set banner palettes (cms_status / remedy_status / change_id mirrors). */
 export const AUTO_SET_BANNER = {
   cmsStage: { bg: "#EEEDFE", border: "#CECBF6", fg: "#26215C" },
   remedyStatus: { bg: "#E6F1FB", border: "#B5D4F4", fg: "#042C53" },
+  crqNo: { bg: "#E1F5EE", border: "#9FE1CB", fg: "#04342C" },
 };
 
 /** Completed-step palette of the stage stepper (from the CMS reference design). */

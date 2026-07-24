@@ -75,6 +75,11 @@ export const STAGE_ENUM_TO_ID: Record<string, WorkflowStageId> = {
   CLOSURE: "closer",
 };
 
+/** WorkflowStageId -> backend CRQ_MASTER_TBL.current_stage enum (reverse of STAGE_ENUM_TO_ID). */
+export const STAGE_ID_TO_ENUM: Record<WorkflowStageId, string> = Object.fromEntries(
+  Object.entries(STAGE_ENUM_TO_ID).map(([enumValue, id]) => [id, enumValue]),
+) as Record<WorkflowStageId, string>;
+
 function readStatus(
   crq: Crq | null | undefined,
   stage: WorkflowStageDescriptor,

@@ -20,8 +20,8 @@ export const StageRail: React.FC<StageRailProps> = ({
   onSelectStage,
   colors,
 }) => (
-  <Box sx={{ bgcolor: colors.trackOff, borderBottom: `1px solid ${colors.border}`, px: 2, py: 1.4 }}>
-    <Stack direction="row" spacing={1} sx={{ overflowX: "auto", pb: 0.4 }}>
+  <Box sx={{ bgcolor: colors.trackOff, borderBottom: `1px solid ${colors.border}`, px: 2, py: 1 }}>
+    <Stack direction="row" spacing={0.85} sx={{ overflowX: "auto", pb: 0.4 }}>
       {WORKFLOW_STAGES.map((stage, idx) => {
         const state = resolveStageState(crq, idx, currentStageIndex);
         const isSelected = stage.id === selectedStageId;
@@ -54,9 +54,9 @@ export const StageRail: React.FC<StageRailProps> = ({
             key={stage.id}
             onClick={() => clickable && onSelectStage(stage.id)}
             sx={{
-              flex: "0 0 172px",
-              p: "11px 14px",
-              borderRadius: colors.radiusL,
+              flex: "0 0 144px",
+              p: "8px 12px",
+              borderRadius: colors.radius,
               border: `1.5px solid ${isSelected ? colors.accent : colors.border}`,
               bgcolor: colors.surface,
               cursor: clickable ? "pointer" : "not-allowed",
@@ -92,10 +92,10 @@ export const StageRail: React.FC<StageRailProps> = ({
             </Stack>
             <Typography
               sx={{
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: 700,
                 color: state === "locked" ? colors.textDim : colors.textPrimary,
-                mt: 1,
+                mt: 0.6,
                 lineHeight: 1.15,
               }}
             >

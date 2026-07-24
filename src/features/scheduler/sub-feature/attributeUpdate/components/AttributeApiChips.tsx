@@ -1,7 +1,9 @@
 import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { Stack, Tooltip, Typography } from "@mui/material";
+import SyncRoundedIcon from "@mui/icons-material/SyncRounded";
 import type { Colors } from "../../../types/colorTypes";
 import {
+  SYSTEM_ACCENT,
   SYSTEM_SECTIONS,
   SYSTEM_SECTION_ORDER,
 } from "../constants/attributeUpdate.constants";
@@ -10,50 +12,41 @@ interface AttributeApiChipsProps {
   colors: Colors;
 }
 
-/** "APIs on save" strip — the downstream update calls fired for this stage. */
-export const AttributeApiChips: React.FC<AttributeApiChipsProps> = ({
-  colors,
-}) => (
+/** Slim "synced on save" caption naming the downstream systems this stage writes to. */
+export const AttributeApiChips: React.FC<AttributeApiChipsProps> = ({ colors }) => (
   <Stack
     direction="row"
     alignItems="center"
     flexWrap="wrap"
-    gap={1.25}
-    sx={{
-      px: 2,
-      py: 1.5,
-      bgcolor: colors.surface,
-      border: `1px solid ${colors.border}`,
-      borderRadius: colors.radiusL,
-      mb: 1.75,
-    }}
+    gap={0.75}
+    sx={{ mb: 1.5, px: 0.25 }}
   >
-    <Typography
-      sx={{ fontSize: 13, fontWeight: 500, color: colors.textSecondary }}
-    >
-      APIs on save:
+    <SyncRoundedIcon sx={{ fontSize: 13, color: colors.textSecondary }} />
+    <Typography sx={{ fontSize: 11.5, color: colors.textSecondary }}>
+      Saves to:
     </Typography>
-    {SYSTEM_SECTION_ORDER.map((system) => {
-      const meta = SYSTEM_SECTIONS[system];
-      return (
-        <Box
-          key={system}
-          component="span"
-          sx={{
-            px: 1.25,
-            py: "4px",
-            borderRadius: "6px",
-            fontFamily: "monospace",
-            fontSize: 12.5,
-            fontWeight: 500,
-            bgcolor: meta.chipBg,
-            color: meta.chipFg,
-          }}
-        >
-          {meta.apiChipLabel}
-        </Box>
-      );
-    })}
+    {SYSTEM_SECTION_ORDER.map((system, index) => (
+      <React.Fragment key={system}>
+        <Tooltip title={SYSTEM_SECTIONS[system].apiChipLabel} arrow>
+          <Typography
+            component="span"
+            sx={{
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: SYSTEM_ACCENT[system],
+              cursor: "default",
+            }}
+          >
+            {SYSTEM_SECTIONS[system].title.split(" ")[0]}
+          </Typography>
+        </Tooltip>
+        {index < SYSTEM_SECTION_ORDER.length - 1 && (
+          <Typography component="span" sx={{ fontSize: 11.5, color: colors.textDim }}>
+            ·
+          </Typography>
+        )}
+      </React.Fragment>
+    ))}
   </Stack>
 );
 

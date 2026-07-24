@@ -9,37 +9,33 @@ interface MandatoryBadgeProps {
   rawLabel: string;
 }
 
-/** "Mandatory" / "Optional" / "Conditional" pill next to an attribute's type. */
+/**
+ * Compact mandatory-level indicator: a small colored dot (red/amber/gray)
+ * with the full label on hover. Replaces a text pill so field tiles stay
+ * dense in the grid layout.
+ */
 export const MandatoryBadge: React.FC<MandatoryBadgeProps> = ({
   level,
   rawLabel,
 }) => {
   const palette = MANDATORY_BADGE[level];
-  const badge = (
-    <Box
-      component="span"
-      sx={{
-        px: 1,
-        py: "3px",
-        borderRadius: "5px",
-        fontSize: 11.5,
-        fontWeight: 600,
-        letterSpacing: 0.2,
-        whiteSpace: "nowrap",
-        bgcolor: palette.bg,
-        color: palette.fg,
-      }}
-    >
-      {palette.label}
-    </Box>
-  );
+  const title = level === "conditional" ? rawLabel : palette.label;
 
-  return level === "conditional" ? (
-    <Tooltip title={rawLabel} arrow>
-      {badge}
+  return (
+    <Tooltip title={title} arrow placement="top">
+      <Box
+        component="span"
+        sx={{
+          width: 7,
+          height: 7,
+          flexShrink: 0,
+          borderRadius: "50%",
+          bgcolor: palette.dot,
+          boxShadow: level === "mandatory" ? `0 0 0 2px ${palette.dot}22` : "none",
+          cursor: "default",
+        }}
+      />
     </Tooltip>
-  ) : (
-    badge
   );
 };
 

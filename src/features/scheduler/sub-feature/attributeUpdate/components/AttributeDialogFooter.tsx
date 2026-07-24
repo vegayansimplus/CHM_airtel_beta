@@ -1,7 +1,8 @@
 import React from "react";
-import { Box, Button, Stack, Tooltip } from "@mui/material";
+import { Box, Button, CircularProgress, Stack } from "@mui/material";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import type { Colors } from "../../../types/colorTypes";
 
 interface AttributeDialogFooterProps {
@@ -10,16 +11,17 @@ interface AttributeDialogFooterProps {
   onPrevious: () => void;
   onNext: () => void;
   onCancel: () => void;
+  onSave: () => void;
+  isSaving: boolean;
   /** False hides stage navigation entirely (single-stage locked mode). */
   navigationEnabled?: boolean;
   colors: Colors;
 }
 
 /**
- * Stage action row (Cancel / Save Draft / Submit) plus previous/next stage
- * navigation. Submit advances to the next stage; Save Draft stays disabled
- * until the real save API is integrated. In single-stage locked mode the
- * navigation row is hidden and Submit is disabled.
+ * Stage action row (Cancel / Save) plus previous/next stage navigation.
+ * Save persists Remedy + CAB + Cygnet attributes for the current stage;
+ * Previous/Next stage stay pure local navigation, independent of Save.
  */
 export const AttributeDialogFooter: React.FC<AttributeDialogFooterProps> = ({
   canGoPrevious,
@@ -27,6 +29,8 @@ export const AttributeDialogFooter: React.FC<AttributeDialogFooterProps> = ({
   onPrevious,
   onNext,
   onCancel,
+  onSave,
+  isSaving,
   navigationEnabled = true,
   colors,
 }) => (
@@ -41,6 +45,7 @@ export const AttributeDialogFooter: React.FC<AttributeDialogFooterProps> = ({
         variant="outlined"
         size="small"
         onClick={onCancel}
+        disabled={isSaving}
         sx={{
           textTransform: "none",
           fontWeight: 500,
@@ -55,85 +60,65 @@ export const AttributeDialogFooter: React.FC<AttributeDialogFooterProps> = ({
       >
         Cancel
       </Button>
-      <Tooltip title="Available after API integration" arrow>
-        <span>
-          <Button
-            variant="outlined"
-            size="small"
-            disabled
-            sx={{
-              textTransform: "none",
-              fontWeight: 500,
-              fontSize: 13.5,
-              px: 2.25,
-              py: 1,
-              borderRadius: colors.radius,
-            }}
-          >
-            Save Draft
-          </Button>
-        </span>
-      </Tooltip>
-      <Tooltip
-        title={navigationEnabled ? "" : "Available after API integration"}
-        arrow
+      <Button
+        variant="contained"
+        size="small"
+        onClick={onSave}
+        disabled={isSaving}
+        startIcon={
+          isSaving ? (
+            <CircularProgress size={14} sx={{ color: "inherit" }} />
+          ) : (
+            <SaveRoundedIcon sx={{ fontSize: 16 }} />
+          )
+        }
+        sx={{
+          textTransform: "none",
+          fontWeight: 500,
+          fontSize: 13.5,
+          px: 2.25,
+          py: 1,
+          borderRadius: colors.radius,
+          boxShadow: "none",
+          bgcolor: colors.accent,
+          "&:hover": { bgcolor: colors.accentLight, boxShadow: "none" },
+        }}
       >
-        <span>
-          <Button
-            variant="contained"
-            size="small"
-            disabled={!navigationEnabled || !canGoNext}
-            onClick={onNext}
-            endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 16 }} />}
-            sx={{
-              textTransform: "none",
-              fontWeight: 500,
-              fontSize: 13.5,
-              px: 2.25,
-              py: 1,
-              borderRadius: colors.radius,
-              boxShadow: "none",
-              bgcolor: colors.accent,
-              "&:hover": { bgcolor: colors.accentLight, boxShadow: "none" },
-            }}
-          >
-            Submit
-          </Button>
-        </span>
-      </Tooltip>
+        {isSaving ? "Saving…" : "Save"}
+      </Button>
     </Stack>
 
     {navigationEnabled && (
-    <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.25 }}>
-      <Button
-        size="small"
-        disabled={!canGoPrevious}
-        onClick={onPrevious}
-        startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 15 }} />}
-        sx={{
-          textTransform: "none",
-          fontSize: 12.5,
-          color: colors.textSecondary,
-          "&:hover": { color: colors.textPrimary, bgcolor: "transparent" },
-        }}
-      >
-        Previous stage
-      </Button>
-      <Button
-        size="small"
-        disabled={!canGoNext}
-        onClick={onNext}
-        endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 15 }} />}
-        sx={{
-          textTransform: "none",
-          fontSize: 12.5,
-          color: colors.textSecondary,
-          "&:hover": { color: colors.textPrimary, bgcolor: "transparent" },
-        }}
-      >
-        Next stage
-      </Button>
-    </Stack>
+      <Stack direction="row" justifyContent="space-between" sx={{ mt: 1.25 }}>
+        <Button
+          size="small"
+          disabled={!canGoPrevious}
+          onClick={onPrevious}
+          startIcon={<ArrowBackRoundedIcon sx={{ fontSize: 15 }} />}
+          sx={{
+            textTransform: "none",
+            fontSize: 12.5,
+            color: colors.textSecondary,
+            "&:hover": { color: colors.textPrimary, bgcolor: "transparent" },
+          }}
+        >
+          Previous stage
+        </Button>
+        <Button
+          size="small"
+          disabled={!canGoNext}
+          onClick={onNext}
+          endIcon={<ArrowForwardRoundedIcon sx={{ fontSize: 15 }} />}
+          sx={{
+            textTransform: "none",
+            fontSize: 12.5,
+            color: colors.textSecondary,
+            "&:hover": { color: colors.textPrimary, bgcolor: "transparent" },
+          }}
+        >
+          Next stage
+        </Button>
+      </Stack>
     )}
   </Box>
 );

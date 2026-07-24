@@ -1,39 +1,24 @@
-import {
-  createAsyncThunk,
-  createSlice,
-  type PayloadAction,
-} from "@reduxjs/toolkit";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type {
   AttributeUpdateCrqContext,
   AttributeUpdateState,
 } from "../types/attributeUpdate.types";
 import type { WorkflowStageId } from "../../../constants/workflowStages";
 import { CMS_STAGE_ORDER } from "../constants/attributeUpdate.constants";
-import { buildCrqAttributeSchemaMock } from "../data/attributeUpdate.mock";
 
 /**
- * Loads the per-CRQ attribute schema. Currently resolves static mock data
- * with simulated latency; swap the body for an RTK Query endpoint (or keep
- * the thunk and call the endpoint here) once the real API exists — the
- * returned `CrqAttributeSchema` shape is the API contract.
+ * UI-only state for the Attribute Update dialog (which CRQ/stage is open,
+ * navigation lock). The field catalog is static config
+ * (constants/attributeUpdateFieldCatalog.ts) and live attribute values are
+ * owned by RTK Query (api/attributeUpdateApiSlice.ts) - neither belongs in
+ * this slice.
  */
-export const fetchCrqAttributeSchema = createAsyncThunk(
-  "attributeUpdate/fetchSchemaByCrqNo",
-  async (crqNo: string) => {
-    await new Promise((resolve) => setTimeout(resolve, 400));
-    return buildCrqAttributeSchemaMock(crqNo);
-  },
-);
-
 const initialState: AttributeUpdateState = {
   dialogOpen: false,
   crq: null,
-  schema: null,
   selectedStageId: CMS_STAGE_ORDER[0],
   lockedStageId: null,
   selectedRemedyStatusIndex: 0,
-  isLoading: false,
-  error: null,
 };
 
 const attributeUpdateSlice = createSlice({
@@ -52,8 +37,6 @@ const attributeUpdateSlice = createSlice({
       const { crq, initialStageId, lockToStage } = action.payload;
       state.dialogOpen = true;
       state.crq = crq;
-      state.schema = null;
-      state.error = null;
       state.selectedStageId =
         initialStageId && CMS_STAGE_ORDER.includes(initialStageId)
           ? initialStageId
@@ -94,22 +77,6 @@ const attributeUpdateSlice = createSlice({
         state.selectedRemedyStatusIndex = 0;
       }
     },
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(fetchCrqAttributeSchema.pending, (state) => {
-        state.isLoading = true;
-        state.error = null;
-      })
-      .addCase(fetchCrqAttributeSchema.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.schema = action.payload;
-      })
-      .addCase(fetchCrqAttributeSchema.rejected, (state, action) => {
-        state.isLoading = false;
-        state.error =
-          action.error.message ?? "Failed to load attribute details.";
-      });
   },
 });
 

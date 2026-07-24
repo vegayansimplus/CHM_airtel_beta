@@ -117,5 +117,6 @@ export const api = createApi({
     "UserManagementList",
     "UserManagementProfile",
     "Attendance",
+    "AttributeUpdate",
   ],
 });

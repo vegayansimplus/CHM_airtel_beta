@@ -29,10 +29,12 @@ export type PlanningToolScope =
   | "closure";
 
 /** Which runtime value an auto-set (read-only) attribute mirrors. */
-export type AutoSetSource = "cmsStage" | "remedyStatus";
+export type AutoSetSource = "cmsStage" | "remedyStatus" | "crqNo";
 
 export interface StageAttribute {
   name: string;
+  /** camelCase DTO property name - the join key into the live API values. */
+  field: string;
   type: AttributeFieldType;
   /** Raw mandatory label from the source system, e.g. "Mandatory - if cancellation". */
   mandatory: string;
@@ -62,12 +64,21 @@ export interface AttributeStageSchema {
   cab: StageAttribute[];
 }
 
-/** Full per-CRQ attribute schema – the shape a future API endpoint should return. */
-export interface CrqAttributeSchema {
-  crqNo: string;
-  stages: AttributeStageSchema[];
-  /** Master Planning Tool field list, filtered per stage via scopes. */
-  planningToolAttributes: PlanningToolAttribute[];
+/**
+ * Raw system row as returned by GET /attributeupdate/details, keyed by
+ * camelCase DTO property name (matches StageAttribute["field"]). Values are
+ * plain strings (ISO datetime strings for Date Time fields), or null.
+ */
+export type AttributeValueRow = Record<string, string | null>;
+
+/** Live per-CRQ, per-stage snapshot - the actual shape GET /attributeupdate/details returns. */
+export interface AttributeUpdateDetailsResponse {
+  /** Latest saved Remedy row for this CRQ + stage, or null if never saved. */
+  remedy: AttributeValueRow | null;
+  /** Latest saved CAB row for this CRQ + stage, or null if never saved. */
+  cab: AttributeValueRow | null;
+  /** Latest saved Cygnet row for this CRQ, or null if never saved. */
+  cygnet: AttributeValueRow | null;
 }
 
 /** Lightweight CRQ header context captured from the selected CRQ row. */
@@ -83,7 +94,6 @@ export interface AttributeUpdateCrqContext {
 export interface AttributeUpdateState {
   dialogOpen: boolean;
   crq: AttributeUpdateCrqContext | null;
-  schema: CrqAttributeSchema | null;
   selectedStageId: WorkflowStageId;
   /**
    * When set, the dialog is locked to this single stage (opened from a
@@ -91,17 +101,19 @@ export interface AttributeUpdateState {
    */
   lockedStageId: WorkflowStageId | null;
   selectedRemedyStatusIndex: number;
-  isLoading: boolean;
-  error: string | null;
 }
 
 /** A stage attribute enriched with everything the row component needs to render. */
 export interface ResolvedAttribute extends StageAttribute {
   mandatoryLevel: MandatoryLevel;
-  /** Resolved value for auto-set fields (current CMS stage / Remedy status). */
+  /** Resolved value for auto-set fields (current CMS stage / Remedy status / CRQ no). */
   autoSetValue?: string;
   /** True for backend-set Planning Tool fields (rendered dimmed with a flag). */
   isBackend: boolean;
+  /** Which downstream system this attribute belongs to - the save-payload section key. */
+  system: TargetSystem;
+  /** Current live value loaded from the API (string, joined-CSV for multi-select, or null if unsaved). */
+  value: string | null;
 }
 
 /** Fully resolved view-model for the currently selected stage. */

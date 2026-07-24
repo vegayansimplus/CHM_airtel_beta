@@ -4,8 +4,11 @@ export * from "./types/attributeUpdate.types";
 // Constants
 export * from "./constants/attributeUpdate.constants";
 
-// Data (mock – replace with RTK Query API)
-export * from "./data/attributeUpdate.mock";
+// Field catalog (frontend-only display metadata; live values come from the API)
+export * from "./constants/attributeUpdateFieldCatalog";
+
+// API (RTK Query)
+export * from "./api/attributeUpdateApiSlice";
 
 // Utils
 export * from "./utils/attributeUpdate.utils";

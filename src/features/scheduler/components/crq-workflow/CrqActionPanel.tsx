@@ -1,8 +1,9 @@
 import React from "react";
-import { Box, Button, Chip, Divider, Stack, Typography } from "@mui/material";
+import { Button, Chip, Divider, Stack, Tooltip, Typography } from "@mui/material";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import type { Colors } from "../../types/colorTypes";
 
@@ -79,20 +80,20 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
         zIndex: 2,
         bgcolor: colors.surface,
         border: `1px solid ${colors.border}`,
-        borderRadius: colors.radiusL,
-        px: 2.25,
-        py: 1.4,
-        mb: 2,
+        borderRadius: colors.radius,
+        px: 1.75,
+        py: 1,
+        mb: 1.5,
       }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.4} sx={{ minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
         <Chip
           label={copy.badge}
           size="small"
           sx={{
-            height: 24,
+            height: 22,
             fontWeight: 800,
-            fontSize: 11,
+            fontSize: 10.5,
             textTransform: "uppercase",
             letterSpacing: "0.4px",
             bgcolor: badgePalette.bg,
@@ -100,14 +101,12 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
             flexShrink: 0,
           }}
         />
-        <Box sx={{ minWidth: 0 }}>
-          <Typography sx={{ fontSize: 14, fontWeight: 800, color: colors.textPrimary }} noWrap>
-            {stageLabel}
-          </Typography>
-          <Typography sx={{ fontSize: 12, color: colors.textSecondary, mt: 0.2 }} noWrap>
-            {copy.note}
-          </Typography>
-        </Box>
+        <Typography sx={{ fontSize: 13.5, fontWeight: 800, color: colors.textPrimary }} noWrap>
+          {stageLabel}
+        </Typography>
+        <Tooltip title={copy.note} arrow placement="bottom-start">
+          <InfoOutlinedIcon sx={{ fontSize: 15, color: colors.textDim, cursor: "help", flexShrink: 0 }} />
+        </Tooltip>
       </Stack>
 
       <Stack

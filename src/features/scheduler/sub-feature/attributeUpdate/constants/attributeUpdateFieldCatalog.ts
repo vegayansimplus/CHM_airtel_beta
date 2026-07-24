@@ -1,16 +1,22 @@
 import type {
   AttributeStageSchema,
-  CrqAttributeSchema,
   PlanningToolAttribute,
   StageAttribute,
 } from "../types/attributeUpdate.types";
 
 /**
- * Static per-stage attribute matrix for the CMS 7-stage change flow,
- * transcribed from the CMS reference specification.
+ * Field catalog for the CMS 7-stage change flow: which Remedy / CAB / Cygnet
+ * ("Planning Tool") attributes exist per stage, their input type, mandatory
+ * level and (for dropdown/radio fields) allowed values.
  *
- * Replace `buildCrqAttributeSchemaMock` with an RTK Query endpoint returning
- * the same `CrqAttributeSchema` shape once the real API is available.
+ * This is deliberately still frontend config, not fetched from the DB: the
+ * backing tables (REMEDY_UPDATE_ATTR_TBL / CAB_UPDATE_ATTR_TBL /
+ * CYGNET_UPDATE_ATTR_TBL) are plain flat tables with no type/label/mandatory
+ * metadata columns, so there is nothing for a stored procedure to return
+ * that would let the UI generate this catalog itself. Every entry's `field`
+ * is the join key into the live attribute values returned by
+ * GET /attributeupdate/details (and sent back on save) - that live data,
+ * not this catalog, is what used to be hardcoded/mocked.
  */
 
 // ─── Shared value lists ───────────────────────────────────────────────────────
@@ -91,16 +97,19 @@ const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 const CANCELLATION_ATTRIBUTES: StageAttribute[] = [
   {
     name: "Reason for Cancellation Rejection",
+    field: "reasonForCancellationRejection",
     type: "Text",
     mandatory: "Mandatory - if cancellation",
   },
   {
     name: "Cancellation Rejection Rollback Owner",
+    field: "cancellationRejectionRollbackOwner",
     type: "Text",
     mandatory: "Mandatory - if cancellation",
   },
   {
     name: "Reason for Cancellation Rejection Deviation",
+    field: "reasonForCancellationRejectionDeviation",
     type: "Text",
     mandatory: "Mandatory - if cancellation",
   },
@@ -110,36 +119,42 @@ const CANCELLATION_ATTRIBUTES: StageAttribute[] = [
 const COORDINATOR_IMPLEMENTER_ATTRIBUTES: StageAttribute[] = [
   {
     name: "Support Company - Change Coordinator",
+    field: "supportCompanyChangeCoordinator",
     type: "Dropdown",
     mandatory: "Mandatory",
     values: COMPANY_VALUES,
   },
   {
     name: "Support Organization - Change Coordinator",
+    field: "supportOrganizationChangeCoordinator",
     type: "Dropdown",
     mandatory: "Mandatory",
     values: ORGANIZATION_VALUES,
   },
   {
     name: "Support Group Name+ - Change Coordinator",
+    field: "supportGroupNameChangeCoordinator",
     type: "Dropdown",
     mandatory: "Mandatory",
     values: GROUP_VALUES,
   },
   {
     name: "Support Company - Change Implementer",
+    field: "supportCompanyChangeImplementer",
     type: "Dropdown",
     mandatory: "Optional",
     values: COMPANY_VALUES,
   },
   {
     name: "Support Organization -Change Implementer",
+    field: "supportOrganizationChangeImplementer",
     type: "Dropdown",
     mandatory: "Optional",
     values: ORGANIZATION_VALUES,
   },
   {
     name: "Support Group Name+ - Change Implementer",
+    field: "supportGroupNameChangeImplementer",
     type: "Dropdown",
     mandatory: "Optional",
     values: GROUP_VALUES,
@@ -158,17 +173,22 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [...COORDINATOR_IMPLEMENTER_ATTRIBUTES, ...CANCELLATION_ATTRIBUTES],
     cab: [
-      { name: "Scheduled Implementar", type: "Text", mandatory: "Mandatory" },
-      { name: "CRQ Validated By", type: "Text", mandatory: "Mandatory" },
-      { name: "CRQ Validated Time", type: "Date Time", mandatory: "Mandatory" },
-      { name: "Host Name**", type: "Text", mandatory: "Mandatory" },
+      { name: "CRQ Validated By", field: "crqValidatedBy", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "CRQ Validated Time",
+        field: "crqValidatedTime",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
+      { name: "Host Name**", field: "hostName", type: "Text", mandatory: "Mandatory" },
       {
         name: "Layer",
+        field: "layer",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: ["ACC", "AGG", "CORE", "ISP", "MPLS/PE"],
       },
-      { name: "Node IP Address*", type: "Text", mandatory: "Mandatory" },
+      { name: "Node IP Address*", field: "nodeIpAddress", type: "Text", mandatory: "Mandatory" },
     ],
   },
   {
@@ -181,6 +201,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedy: [
       {
         name: "Impacted Segment",
+        field: "impactedSegment",
         type: "Radio Button",
         mandatory: "Optional",
         values: [
@@ -195,37 +216,47 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
           "B2B",
         ],
       },
-      { name: "Actual Impact", type: "Text", mandatory: "Mandatory" },
+      { name: "Actual Impact", field: "actualImpact", type: "Text", mandatory: "Mandatory" },
       {
         name: "Activity Impact Analysis Done",
+        field: "activityImpactAnalysisDone",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "OLT Details", type: "Text", mandatory: "Optional" },
+      { name: "OLT Details", field: "oltDetails", type: "Text", mandatory: "Optional" },
       ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       {
         name: "Technology**",
+        field: "technology",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: ["BRAS", "CEN", "EPT", "ISP", "MPLS", "NPT", "OTN"],
       },
-      { name: "Impact Analysis Done By", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "Impact Analysis Done By",
+        field: "impactAnalysisDoneBy",
+        type: "Text",
+        mandatory: "Mandatory",
+      },
       {
         name: "Impact Analysis Done By Time",
+        field: "impactAnalysisDoneByTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
       {
         name: "B2B Impacted*",
+        field: "b2bImpacted",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
       {
         name: "Impacted Circle(s)**",
+        field: "impactedCircles",
         type: "Multi Select Dropdown",
         mandatory: "Mandatory",
         values: [
@@ -253,6 +284,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       },
       {
         name: "Impacted Parties*",
+        field: "impactedParties",
         type: "Multi Select Dropdown",
         mandatory: "Mandatory",
         values: [
@@ -271,7 +303,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
           "IWAN",
         ],
       },
-      { name: "MSAN Count", type: "Text", mandatory: "Optional" },
+      { name: "MSAN Count", field: "msanCount", type: "Text", mandatory: "Optional" },
     ],
   },
   {
@@ -285,12 +317,19 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       ...COORDINATOR_IMPLEMENTER_ATTRIBUTES,
       {
         name: "Scheduled Start Date+",
+        field: "scheduledStartDate",
         type: "Date Time",
         mandatory: "Mandatory",
       },
-      { name: "Scheduled End Date+", type: "Date Time", mandatory: "Mandatory" },
+      {
+        name: "Scheduled End Date+",
+        field: "scheduledEndDate",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
       {
         name: "Business Justification",
+        field: "businessJustification",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: [
@@ -311,24 +350,32 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     cab: [
       {
         name: "FE Required**",
+        field: "feRequired",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "Remarks for FE Details", type: "Text", mandatory: "Optional" },
-      { name: "CRQ Scheduled By", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "Remarks for FE Details",
+        field: "remarksForFeDetails",
+        type: "Text",
+        mandatory: "Optional",
+      },
+      { name: "CRQ Scheduled By", field: "crqScheduledBy", type: "Text", mandatory: "Mandatory" },
       {
         name: "CRQ Scheduled By Time",
+        field: "crqScheduledByTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
       {
         name: "Activity Executed By*",
+        field: "activityExecutedBy",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: EXECUTED_BY_VALUES,
       },
-      { name: "L3 Approver OLM ID", type: "Text", mandatory: "Mandatory" },
+      { name: "L3 Approver OLM ID", field: "l3ApproverOlmId", type: "Text", mandatory: "Mandatory" },
     ],
   },
   {
@@ -341,18 +388,21 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedy: [
       {
         name: "MOP Creation Method",
+        field: "mopCreationMethod",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: MOP_METHOD_VALUES,
       },
       {
         name: "SOP Document",
+        field: "sopDocument",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
       {
         name: "MOP Document",
+        field: "mopDocument",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: ["Yes"],
@@ -360,9 +410,10 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
-      { name: "MOP Created By", type: "Text", mandatory: "Mandatory" },
+      { name: "MOP Created By", field: "mopCreatedBy", type: "Text", mandatory: "Mandatory" },
       {
         name: "MOP Created By Time",
+        field: "mopCreatedByTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
@@ -377,14 +428,16 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [...CANCELLATION_ATTRIBUTES],
     cab: [
-      { name: "MOP Validated By", type: "Text", mandatory: "Mandatory" },
+      { name: "MOP Validated By", field: "mopValidatedBy", type: "Text", mandatory: "Mandatory" },
       {
         name: "MOP Validated By Time",
+        field: "mopValidatedByTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
       {
         name: "MOP Validation Remark",
+        field: "mopValidationRemark",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: ["Not OK", "OK"],
@@ -404,57 +457,85 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     ],
     planningToolScopes: ["execution"],
     remedy: [
-      { name: "Actual Start Date*+", type: "Date Time", mandatory: "Mandatory" },
-      { name: "Actual End Date*+", type: "Date Time", mandatory: "Mandatory" },
+      {
+        name: "Actual Start Date*+",
+        field: "actualStartDate",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
+      {
+        name: "Actual End Date*+",
+        field: "actualEndDate",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
       ...CANCELLATION_ATTRIBUTES,
     ],
     cab: [
       {
         name: "Activity Executed By*",
+        field: "activityExecutedBy",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: EXECUTED_BY_VALUES,
       },
-      { name: "Actual Implementer Name", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "Actual Implementer Name",
+        field: "actualImplementerName",
+        type: "Text",
+        mandatory: "Mandatory",
+      },
       {
         name: "Actual Implementer Phone No",
+        field: "actualImplementerPhoneNo",
         type: "Numbers",
         mandatory: "Mandatory",
       },
       {
         name: "Exit Criteria Fulfilled**",
+        field: "exitCriteriaFulfilled",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
       {
         name: "MOP Referred During Activity",
+        field: "mopReferredDuringActivity",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
       {
         name: "Pre Check Done**",
+        field: "preCheckDone",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "Pre - Checks Done By", type: "Text", mandatory: "Mandatory" },
-      { name: "Pre-Check Done Time", type: "Date Time", mandatory: "Mandatory" },
+      { name: "Pre - Checks Done By", field: "preChecksDoneBy", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "Pre-Check Done Time",
+        field: "preCheckDoneTime",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
       {
         name: "Post Check Done**",
+        field: "postCheckDone",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "Post - Checks Done By", type: "Text", mandatory: "Mandatory" },
+      { name: "Post - Checks Done By", field: "postChecksDoneBy", type: "Text", mandatory: "Mandatory" },
       {
         name: "Post-Check Done Time",
+        field: "postCheckDoneTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
       {
         name: "Requested Date Deviation Reason",
+        field: "requestedDateDeviationReason",
         type: "Dropdown",
         mandatory: "Optional",
         values: [
@@ -488,6 +569,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       },
       {
         name: "Executer Location",
+        field: "executerLocation",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: [
@@ -500,12 +582,14 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       },
       {
         name: "MOP Execution Method",
+        field: "mopExecutionMethod",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: MOP_METHOD_VALUES,
       },
       {
         name: "CRQ approval status",
+        field: "crqApprovalStatus",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: ["PENDING FOR APPROVAL", "REJECTED", "APPROVED"],
@@ -519,55 +603,82 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolPhase: "Task Closure",
     remedyStatuses: ["Completed"],
     planningToolScopes: ["closure"],
-    remedy: [{ name: "Completed Date", type: "Date Time", mandatory: "Mandatory" }],
+    remedy: [
+      { name: "Completed Date", field: "completedDate", type: "Date Time", mandatory: "Mandatory" },
+    ],
     cab: [
       {
         name: "Change Activity Done",
+        field: "changeActivityDone",
         type: "Radio Button",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
       {
         name: "Change Activity Done Time",
+        field: "changeActivityDoneTime",
         type: "Date Time",
         mandatory: "Mandatory",
       },
-      { name: "CRQ Closed By", type: "Text", mandatory: "Mandatory" },
-      { name: "CRQ Closed By Time", type: "Date Time", mandatory: "Mandatory" },
+      { name: "CRQ Closed By", field: "crqClosedBy", type: "Text", mandatory: "Mandatory" },
+      {
+        name: "CRQ Closed By Time",
+        field: "crqClosedByTime",
+        type: "Date Time",
+        mandatory: "Mandatory",
+      },
     ],
   },
 ];
 
-// ─── Planning Tool master field list (filtered per stage via scopes) ─────────
+// ─── Planning Tool (Cygnet) master field list, filtered per stage via scopes ─
 
 export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
-  { name: "change_id", type: "Text", mandatory: "Mandatory", scope: "always" },
   {
-    name: "cms_function",
+    name: "Change ID",
+    field: "changeId",
+    type: "Text",
+    mandatory: "Mandatory",
+    scope: "always",
+    readOnly: true,
+    autoSetFrom: "crqNo",
+  },
+  {
+    name: "CMS Function",
+    field: "cmsFunction",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
     readOnly: true,
   },
   {
-    name: "cms_sub_function",
+    name: "CMS Sub Function",
+    field: "cmsSubFunction",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
     readOnly: true,
   },
-  { name: "plan_id", type: "Text", mandatory: "Mandatory", scope: "backend" },
-  { name: "task_id", type: "Text", mandatory: "Mandatory", scope: "backend" },
+  { name: "Plan ID", field: "planId", type: "Text", mandatory: "Mandatory", scope: "backend" },
+  { name: "Task ID", field: "taskId", type: "Text", mandatory: "Mandatory", scope: "backend" },
   {
-    name: "requestor_type",
+    name: "Requestor Type",
+    field: "requestorType",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
     values: ["Ops", "IT", "NOC", "Vendor", "Customer"],
   },
-  { name: "requestor_name", type: "Text", mandatory: "Mandatory", scope: "always" },
   {
-    name: "circle",
+    name: "Requestor Name",
+    field: "requestorName",
+    type: "Text",
+    mandatory: "Mandatory",
+    scope: "always",
+  },
+  {
+    name: "Circle",
+    field: "circle",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -595,7 +706,8 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "vendor",
+    name: "Vendor",
+    field: "vendor",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -613,7 +725,8 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "domain",
+    name: "Domain",
+    field: "domain",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -634,21 +747,24 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "opcat_level_1",
+    name: "Opcat Level 1",
+    field: "opcatLevel1",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
     values: ["Network", "Hardware", "Software", "Service", "Application"],
   },
   {
-    name: "opcat_level_2",
+    name: "Opcat Level 2",
+    field: "opcatLevel2",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
     values: ["MPLS", "DWDM", "IP", "Optical", "Router", "Switch", "Firewall"],
   },
   {
-    name: "opcat_level_3",
+    name: "Opcat Level 3",
+    field: "opcatLevel3",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -662,105 +778,122 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "change_type",
+    name: "Change Type",
+    field: "changeType",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
     values: ["Planned", "Emergency", "Standard", "Normal", "Project"],
   },
   {
-    name: "change_impact",
+    name: "Change Impact",
+    field: "changeImpact",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
     values: ["Minor", "Major", "Critical", "Extensive/Widespread"],
   },
   {
-    name: "activity_window",
+    name: "Activity Window",
+    field: "activityWindow",
     type: "Text",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "requested_start_time",
+    name: "Requested Start Time",
+    field: "requestedStartTime",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "requested_end_time",
+    name: "Requested End Time",
+    field: "requestedEndTime",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "scheduled_start_time",
+    name: "Scheduled Start Time",
+    field: "scheduledStartTime",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "scheduled_end_time",
+    name: "Scheduled End Time",
+    field: "scheduledEndTime",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "coordinator_company",
+    name: "Coordinator Company",
+    field: "coordinatorCompany",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
-    name: "coordinator_organization",
+    name: "Coordinator Organization",
+    field: "coordinatorOrganization",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
-    name: "coordinator_group",
+    name: "Coordinator Group",
+    field: "coordinatorGroup",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
-    name: "implementer_company",
+    name: "Implementer Company",
+    field: "implementerCompany",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "implementer_organization",
+    name: "Implementer Organization",
+    field: "implementerOrganization",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "implementer_group",
+    name: "Implementer Group",
+    field: "implementerGroup",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "execution_engineer_name",
+    name: "Execution Engineer Name",
+    field: "executionEngineerName",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "execution_engineer_contact",
+    name: "Execution Engineer Contact",
+    field: "executionEngineerContact",
     type: "Numbers",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "execution_engineer_details",
+    name: "Execution Engineer Details",
+    field: "executionEngineerDetails",
     type: "Text",
     mandatory: "Optional",
     scope: "execution",
   },
   {
-    name: "cms_status",
+    name: "CMS Status",
+    field: "cmsStatus",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -778,14 +911,16 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "approval_status",
+    name: "Approval Status",
+    field: "approvalStatus",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "scheduling",
     values: ["Pending", "Approved", "Rejected", "Deferred"],
   },
   {
-    name: "remedy_status",
+    name: "Remedy Status",
+    field: "remedyStatus",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -805,51 +940,47 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "task_closure_status",
+    name: "Task Closure Status",
+    field: "taskClosureStatus",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "closure",
     values: ["Open", "In Progress", "Success", "Failed", "Closed"],
   },
   {
-    name: "completion_time",
+    name: "Completion Time",
+    field: "completionTime",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "closure",
   },
   {
-    name: "cancellation_time",
+    name: "Cancellation Time",
+    field: "cancellationTime",
     type: "Date Time",
     mandatory: "Optional",
     scope: "backend",
   },
   {
-    name: "rejection_time",
+    name: "Rejection Time",
+    field: "rejectionTime",
     type: "Date Time",
     mandatory: "Optional",
     scope: "backend",
   },
   {
-    name: "closure_reason",
+    name: "Closure Reason",
+    field: "closureReason",
     type: "Dropdown",
     mandatory: "Optional",
     scope: "closure",
     values: ["Successful", "Partial Success", "Failed", "Rolled Back", "Cancelled"],
   },
   {
-    name: "failure_remarks",
+    name: "Failure Remarks",
+    field: "failureRemarks",
     type: "Text",
     mandatory: "Optional",
     scope: "backend",
   },
 ];
-
-/**
- * Assembles the mock API response for one CRQ. The schema is identical for
- * every CRQ today; the real endpoint will return the same shape per CRQ.
- */
-export const buildCrqAttributeSchemaMock = (crqNo: string): CrqAttributeSchema => ({
-  crqNo,
-  stages: CMS_STAGE_SCHEMAS,
-  planningToolAttributes: PLANNING_TOOL_ATTRIBUTES,
-});

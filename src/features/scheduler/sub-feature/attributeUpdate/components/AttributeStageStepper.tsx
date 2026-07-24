@@ -54,8 +54,8 @@ export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
           sx={{
             textAlign: "center",
             px: 0.75,
-            pt: 1.6,
-            pb: 1.35,
+            pt: 1.2,
+            pb: 1,
             minWidth: 0,
             cursor: interactive ? "pointer" : "default",
             opacity: interactive || isActive ? 1 : 0.55,
@@ -72,11 +72,11 @@ export const AttributeStageStepper: React.FC<AttributeStageStepperProps> = ({
               display: "inline-flex",
               alignItems: "center",
               justifyContent: "center",
-              width: 28,
-              height: 28,
+              width: 24,
+              height: 24,
               borderRadius: "50%",
-              mb: 0.7,
-              fontSize: 13,
+              mb: 0.5,
+              fontSize: 12,
               fontWeight: 600,
               bgcolor: isDone
                 ? STEPPER_DONE.bg

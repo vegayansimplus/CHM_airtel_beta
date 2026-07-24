@@ -1,11 +1,11 @@
-import React from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Chip,
-  CircularProgress,
   Dialog,
   DialogTitle,
   IconButton,
+  Skeleton,
   Stack,
   Tooltip,
   Typography,
@@ -15,10 +15,19 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
+import { useForm, useWatch } from "react-hook-form";
+import { toast } from "react-toastify";
 
 import { useTabColorTokens } from "../../../../../style/theme";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import { useAttributeUpdate } from "../hooks/useAttributeUpdate";
+import { useSaveAttributeUpdateMutation } from "../api/attributeUpdateApiSlice";
+import {
+  buildAttributeFormDefaults,
+  buildAttributeSaveSections,
+  computeStageCompletion,
+  type AttributeFormValues,
+} from "../utils/attributeUpdate.utils";
 import { AttributeStageStepper } from "./AttributeStageStepper";
 import { AttributeCrqHeaderCard } from "./AttributeCrqHeaderCard";
 import { AttributeApiChips } from "./AttributeApiChips";
@@ -26,11 +35,20 @@ import { RemedySubStatusBar } from "./RemedySubStatusBar";
 import { AttributeSection } from "./AttributeSection";
 import { AttributeDialogFooter } from "./AttributeDialogFooter";
 
+const SectionSkeleton: React.FC = () => (
+  <Skeleton
+    variant="rounded"
+    height={120}
+    sx={{ mb: 1.75, borderRadius: "12px" }}
+  />
+);
+
 /**
  * "Attribute Update" dialog: for the selected CRQ it shows, per CMS stage,
- * every attribute updated in Remedy / CAB / the Planning Tool. Fully driven
- * by the attributeUpdate Redux slice — mount it once on the hosting page and
- * open it via `useOpenAttributeUpdate()`.
+ * every attribute updated in Remedy / CAB / the Planning Tool (Cygnet),
+ * loaded live via GET /attributeupdate/details and saved via
+ * POST /attributeupdate/save. Mount it once on the hosting page and open it
+ * via `useOpenAttributeUpdate()`.
  */
 export const AttributeUpdateDialog: React.FC = () => {
   const theme = useTheme();
@@ -44,6 +62,7 @@ export const AttributeUpdateDialog: React.FC = () => {
     error,
     stageList,
     selectedStageIndex,
+    cmsStage,
     isStageLocked,
     stageView,
     close,
@@ -52,6 +71,48 @@ export const AttributeUpdateDialog: React.FC = () => {
     goToNextStage,
     goToPreviousStage,
   } = useAttributeUpdate();
+
+  const [saveAttributeUpdate, { isLoading: isSaving }] = useSaveAttributeUpdateMutation();
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<AttributeFormValues>({
+    defaultValues: buildAttributeFormDefaults(stageView),
+  });
+
+  // Re-seed the form whenever the selected stage or its live values change
+  // (stage navigation, or a fresh fetch after a successful Save).
+  useEffect(() => {
+    reset(buildAttributeFormDefaults(stageView));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stageView]);
+
+  // Whole-form live watch, purely to keep the header card's mandatory-field
+  // progress bar in sync as the user types (before Save).
+  const liveFormValues = useWatch({ control });
+  const completion = stageView
+    ? computeStageCompletion(stageView, liveFormValues as AttributeFormValues)
+    : { filled: 0, total: 0 };
+
+  const onSave = handleSubmit(async (values) => {
+    if (!crq || !stageView || !cmsStage) return;
+    const sections = buildAttributeSaveSections(stageView, values);
+    try {
+      const response = await saveAttributeUpdate({
+        crqNo: crq.crqNo,
+        cmsStage,
+        ...sections,
+      }).unwrap();
+      toast.success(response?.message || "Attributes saved.");
+    } catch (err) {
+      toast.error(
+        (err as any)?.data?.message || "Failed to save attributes. Please try again.",
+      );
+    }
+  });
 
   return (
     <Dialog
@@ -183,13 +244,14 @@ export const AttributeUpdateDialog: React.FC = () => {
         />
       )}
 
-      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2.25 }}>
+      <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2 }}>
         {isLoading && (
-          <Stack alignItems="center" spacing={1.5} sx={{ py: 8 }}>
-            <CircularProgress size={28} />
-            <Typography sx={{ fontSize: 13, color: colors.textSecondary }}>
-              Loading attribute details…
-            </Typography>
+          <Stack spacing={0} sx={{ pt: 1 }}>
+            <Skeleton variant="rounded" height={72} sx={{ mb: 1.75, borderRadius: "12px" }} />
+            <Skeleton variant="rounded" height={44} sx={{ mb: 1.75, borderRadius: "12px" }} />
+            <SectionSkeleton />
+            <SectionSkeleton />
+            <SectionSkeleton />
           </Stack>
         )}
 
@@ -204,6 +266,7 @@ export const AttributeUpdateDialog: React.FC = () => {
             <AttributeCrqHeaderCard
               crq={crq}
               stageView={stageView}
+              completion={completion}
               colors={colors}
             />
             <AttributeApiChips colors={colors} />
@@ -222,17 +285,23 @@ export const AttributeUpdateDialog: React.FC = () => {
             <AttributeSection
               system="remedy"
               attributes={stageView.remedyAttributes}
+              control={control}
+              errors={errors}
               colors={colors}
             />
             <AttributeSection
               system="cab"
               attributes={stageView.cabAttributes}
+              control={control}
+              errors={errors}
               colors={colors}
             />
             <AttributeSection
               system="planningTool"
               attributes={stageView.planningToolVisible}
               backendAttributes={stageView.planningToolBackend}
+              control={control}
+              errors={errors}
               colors={colors}
             />
 
@@ -242,6 +311,8 @@ export const AttributeUpdateDialog: React.FC = () => {
               onPrevious={goToPreviousStage}
               onNext={goToNextStage}
               onCancel={close}
+              onSave={onSave}
+              isSaving={isSaving}
               navigationEnabled={!isStageLocked}
               colors={colors}
             />
