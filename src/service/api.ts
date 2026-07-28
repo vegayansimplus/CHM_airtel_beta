@@ -104,6 +104,8 @@ export const api = createApi({
     "GoldenSetTag",
     "FutureWeekTag",
     "StageWorkflow",
+    "CrqReschedule",
+    "CrqValidation",
     "Scheduling",
     "NotificationConfig",
     "CabKpi",

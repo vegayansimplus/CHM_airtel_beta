@@ -4,6 +4,8 @@ import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, GlobalStyles, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
+import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 
@@ -49,6 +51,16 @@ import { useOpenAttributeUpdate } from "../../sub-feature/attributeUpdate/hooks/
 const AttributeUpdateDialog = lazy(
   () => import("../../sub-feature/attributeUpdate/components/AttributeUpdateDialog"),
 );
+
+// Same reasoning as AttributeUpdateDialog: the wizard pulls in its own calendar
+// grid, five step components and RTK Query endpoints, none of which are needed
+// until someone actually clicks Reschedule.
+const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
+
+// Same reasoning again: the Validate dialog carries its own form state hook and
+// RTK Query endpoints, needed only once someone clicks Validate on the
+// Plan & Inventory stage.
+const ValidateDialog = lazy(() => import("../crq-workflow/validate/ValidateDialog"));
 
 const GlobalStyleBlock = (
   <GlobalStyles
@@ -104,6 +116,8 @@ export const CrqDetailedView: React.FC = () => {
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
+  const [rescheduleOpen, setRescheduleOpen] = useState(false);
+  const [validateOpen, setValidateOpen] = useState(false);
   const openAttributeUpdate = useOpenAttributeUpdate();
 
   // Overview endpoint: every CRQ of the scope regardless of current stage,
@@ -322,6 +336,21 @@ export const CrqDetailedView: React.FC = () => {
 
   const crqActions: CRQAction[] = useMemo(
     () => [
+      // Plan & Inventory only: the validation attributes belong to the VALIDATE
+      // stage, so the action appears on that stage and follows the same gate the
+      // panel's own Start/Pause uses - enabled while the stage is the CRQ's
+      // current (editable) one, present but inert once it has moved on.
+      ...(isReviewStage
+        ? [
+            {
+              key: "validate",
+              label: "Validate",
+              icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} />,
+              disabled: !selectedCrq || stageMode !== "editable",
+              onClick: () => setValidateOpen(true),
+            } satisfies CRQAction,
+          ]
+        : []),
       {
         key: "attribute-update",
         label: "Attribute Update",
@@ -336,8 +365,15 @@ export const CrqDetailedView: React.FC = () => {
         disabled: !selectedCrq,
         onClick: handleShowPrevCrqStatus,
       },
+      {
+        key: "reschedule",
+        label: "Reschedule",
+        icon: <EventRepeatRoundedIcon sx={{ fontSize: 16 }} />,
+        disabled: !selectedCrq,
+        onClick: () => setRescheduleOpen(true),
+      },
     ],
-    [selectedCrq, openAttributeUpdate, handleShowPrevCrqStatus],
+    [selectedCrq, isReviewStage, stageMode, openAttributeUpdate, handleShowPrevCrqStatus],
   );
 
   if (isError) {
@@ -452,6 +488,33 @@ export const CrqDetailedView: React.FC = () => {
       <Suspense fallback={null}>
         <AttributeUpdateDialog />
       </Suspense>
+
+      {/* Same on-demand mount as the wizard below. The dialog reads its own
+          details from get_crq_validation_details and writes nothing outside
+          CRQ_VALIDATION_DETAILS_TBL, so no cockpit refresh is needed on save. */}
+      {validateOpen && (
+        <Suspense fallback={null}>
+          <ValidateDialog
+            open={validateOpen}
+            onClose={() => setValidateOpen(false)}
+            crqNo={selectedCrq?.crqNo ?? null}
+            colors={colors}
+          />
+        </Suspense>
+      )}
+
+      {/* Mounted only once opened, so the wizard's chunk is fetched on demand. */}
+      {rescheduleOpen && (
+        <Suspense fallback={null}>
+          <RescheduleDialog
+            open={rescheduleOpen}
+            onClose={() => setRescheduleOpen(false)}
+            crqId={selectedCrq?.crqId ?? null}
+            crqNo={selectedCrq?.crqNo ?? null}
+            colors={colors}
+          />
+        </Suspense>
+      )}
     </Box>
   );
 };
