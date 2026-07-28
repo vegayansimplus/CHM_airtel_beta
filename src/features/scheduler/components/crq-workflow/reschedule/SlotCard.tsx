@@ -88,6 +88,20 @@ export const SlotCard: React.FC<SlotCardProps> = ({ slot, selected, onSelect, co
     </Stack>
 
     <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ columnGap: 0.6, rowGap: 0.5 }}>
+      {/* Every slot the procedure returns is in OFFERED state - anything
+          reserved, confirmed or expired is filtered out before it gets here. */}
+      <Chip
+        label="Available"
+        size="small"
+        sx={{
+          height: 18,
+          fontSize: 9.5,
+          fontWeight: 800,
+          bgcolor: colors.successDim,
+          color: colors.success,
+          border: `1px solid ${colors.successBorder}`,
+        }}
+      />
       {slot.shiftLetter && (
         <Chip
           label={`Shift ${slot.shiftLetter}`}

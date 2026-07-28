@@ -4,39 +4,41 @@ import type {
   RescheduleConfirmResponse,
   RescheduleContext,
   RescheduleInitiateResponse,
+  RescheduleMoveStageResponse,
   RescheduleSlotsResponse,
   RescheduleStatusResponse,
 } from "../types/reschedule.types";
 
 /**
- * The reschedule wizard's six procedure calls, one endpoint each
+ * The reschedule wizard's procedure calls, one endpoint each
  * (CrqRescheduleController -> CRQ_SP_RESCHEDULE_*).
  *
- * Only the two reads are queries; every step that writes is a mutation, so the
- * wizard can never fire one twice by re-rendering. `context` and `calendar` are
- * cached per CRQ / per attempt and invalidated by the writes that actually
- * change them, which is what lets Step 2 re-open without refetching and the
- * cockpit refresh itself once a reschedule lands.
+ * Only the reads are queries; every step that writes is a mutation, so the
+ * wizard can never fire one twice by re-rendering. Two steps need no request of
+ * their own at all: `initiate` returns the scheduling calendar with the attempt,
+ * and `move-stage` returns the engineer slots with the stage change - the
+ * dedicated calendar/slots endpoints exist only for the Refresh actions, which
+ * must recompute without repeating an earlier step.
  */
 export const rescheduleApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
-    // GET /crqworkflow/reschedule/context?crqId=
+    // GET /crq/reschedule/context?crqId=
     getRescheduleContext: builder.query<RescheduleContext, { crqId: number }>({
       query: ({ crqId }) => ({
-        url: "/crqworkflow/reschedule/context",
+        url: "/crq/reschedule/context",
         method: "GET",
         params: { crqId },
       }),
       providesTags: (_r, _e, arg) => [{ type: "CrqReschedule", id: `ctx-${arg.crqId}` }],
     }),
 
-    // POST /crqworkflow/reschedule/initiate
+    // POST /crq/reschedule/initiate -> attempt + calendar in one round trip
     initiateReschedule: builder.mutation<
       RescheduleInitiateResponse,
       { crqId: number; reason: string }
     >({
       query: (body) => ({
-        url: "/crqworkflow/reschedule/initiate",
+        url: "/crq/reschedule/initiate",
         method: "POST",
         body,
       }),
@@ -44,35 +46,34 @@ export const rescheduleApiSlice = api.injectEndpoints({
       invalidatesTags: (_r, _e, arg) => [{ type: "CrqReschedule", id: `ctx-${arg.crqId}` }],
     }),
 
-    // GET /crqworkflow/reschedule/calendar?rescheduleId=
+    // GET /crq/reschedule/{rescheduleId}/calendar - Refresh only
     getRescheduleCalendar: builder.query<RescheduleCalendar, { rescheduleId: number }>({
       query: ({ rescheduleId }) => ({
-        url: "/crqworkflow/reschedule/calendar",
+        url: `/crq/reschedule/${rescheduleId}/calendar`,
         method: "GET",
-        params: { rescheduleId },
       }),
       providesTags: (_r, _e, arg) => [{ type: "CrqReschedule", id: `cal-${arg.rescheduleId}` }],
     }),
 
-    // POST /crqworkflow/reschedule/save-date
+    // POST /crq/reschedule/save-date
     saveRescheduleDate: builder.mutation<
       RescheduleStatusResponse,
       { rescheduleId: number; desiredDate: string }
     >({
       query: (body) => ({
-        url: "/crqworkflow/reschedule/save-date",
+        url: "/crq/reschedule/save-date",
         method: "POST",
         body,
       }),
     }),
 
-    // POST /crqworkflow/reschedule/move-stage
+    // POST /crq/reschedule/move-stage -> stage change + engineer slots
     moveRescheduleStage: builder.mutation<
-      RescheduleStatusResponse,
+      RescheduleMoveStageResponse,
       { rescheduleId: number; toStage: string; crqId: number }
     >({
       query: ({ rescheduleId, toStage }) => ({
-        url: "/crqworkflow/reschedule/move-stage",
+        url: "/crq/reschedule/move-stage",
         method: "POST",
         body: { rescheduleId, toStage },
       }),
@@ -80,28 +81,26 @@ export const rescheduleApiSlice = api.injectEndpoints({
       // cockpit's overview and this CRQ's context are now stale.
       invalidatesTags: (_r, _e, arg) => [
         { type: "CrqReschedule", id: `ctx-${arg.crqId}` },
-        { type: "CrqReschedule", id: `slots-${arg.rescheduleId}` },
         "CrqReview",
       ],
     }),
 
-    // GET /crqworkflow/reschedule/slots?rescheduleId=
+    // GET /crq/reschedule/{rescheduleId}/slots - Refresh only
     getRescheduleSlots: builder.query<RescheduleSlotsResponse, { rescheduleId: number }>({
       query: ({ rescheduleId }) => ({
-        url: "/crqworkflow/reschedule/slots",
+        url: `/crq/reschedule/${rescheduleId}/slots`,
         method: "GET",
-        params: { rescheduleId },
       }),
       providesTags: (_r, _e, arg) => [{ type: "CrqReschedule", id: `slots-${arg.rescheduleId}` }],
     }),
 
-    // POST /crqworkflow/reschedule/confirm-slot
+    // POST /crq/reschedule/confirm-slot
     confirmRescheduleSlot: builder.mutation<
       RescheduleConfirmResponse,
       { rescheduleId: number; slotLabel: string; crqId: number }
     >({
       query: ({ rescheduleId, slotLabel }) => ({
-        url: "/crqworkflow/reschedule/confirm-slot",
+        url: "/crq/reschedule/confirm-slot",
         method: "POST",
         body: { rescheduleId, slotLabel },
       }),
@@ -112,13 +111,13 @@ export const rescheduleApiSlice = api.injectEndpoints({
       ],
     }),
 
-    // POST /crqworkflow/reschedule/cancel
+    // POST /crq/reschedule/cancel
     cancelReschedule: builder.mutation<
       RescheduleStatusResponse,
       { rescheduleId: number; reason?: string; crqId: number }
     >({
       query: ({ rescheduleId, reason }) => ({
-        url: "/crqworkflow/reschedule/cancel",
+        url: "/crq/reschedule/cancel",
         method: "POST",
         body: { rescheduleId, reason },
       }),
@@ -137,10 +136,10 @@ export const rescheduleApiSlice = api.injectEndpoints({
 export const {
   useGetRescheduleContextQuery,
   useInitiateRescheduleMutation,
-  useGetRescheduleCalendarQuery,
+  useLazyGetRescheduleCalendarQuery,
   useSaveRescheduleDateMutation,
   useMoveRescheduleStageMutation,
-  useGetRescheduleSlotsQuery,
+  useLazyGetRescheduleSlotsQuery,
   useConfirmRescheduleSlotMutation,
   useCancelRescheduleMutation,
 } = rescheduleApiSlice;

@@ -10,9 +10,12 @@ import { RescheduleCalendar } from "../RescheduleCalendar";
 
 /**
  * Step 2 - pick the desired date out of the window
- * Get_Predicted_SlotDates_Reschedule computed. The calendar is only fetched
- * once this step is reached, and the same cached response is reused if the
- * user steps away and comes back.
+ * Get_Predicted_SlotDates_Reschedule computed.
+ *
+ * The calendar normally arrives with the initiate response, so reaching this
+ * step costs no request at all; Refresh (and resuming an interrupted attempt)
+ * recomputes it via CRQ_SP_RESCHEDULE_GET_CALENDAR, which does not create a
+ * second attempt row the way re-initiating would.
  */
 export const SelectDateStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }> = ({
   wizard,
@@ -22,20 +25,20 @@ export const SelectDateStep: React.FC<{ wizard: RescheduleWizard; colors: Colors
     calendar,
     isCalendarLoading,
     calendarError,
-    refetchCalendar,
+    refreshCalendar,
     desiredDate,
     setDesiredDate,
   } = wizard;
 
-  if (isCalendarLoading) return <StepSkeleton rows={2} height={120} />;
+  if (isCalendarLoading && !calendar) return <StepSkeleton rows={2} height={120} />;
 
-  if (calendarError) {
+  if (calendarError && !calendar) {
     return (
       <Box>
         <Alert
           severity="error"
           action={
-            <Button size="small" onClick={() => refetchCalendar()} startIcon={<RefreshRoundedIcon />}>
+            <Button size="small" onClick={() => refreshCalendar()} startIcon={<RefreshRoundedIcon />}>
               Retry
             </Button>
           }
@@ -61,7 +64,8 @@ export const SelectDateStep: React.FC<{ wizard: RescheduleWizard; colors: Colors
         action={
           <Button
             size="small"
-            onClick={() => refetchCalendar()}
+            onClick={() => refreshCalendar()}
+            disabled={isCalendarLoading}
             startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
             sx={{ textTransform: "none", fontSize: 11.5, fontWeight: 700 }}
           >

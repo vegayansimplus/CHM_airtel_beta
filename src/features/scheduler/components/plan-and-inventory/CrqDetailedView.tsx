@@ -8,6 +8,7 @@ import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
+import { usePermission } from "../../../auth/hooks/usePermission";
 
 import {
   useGetCrqWorkflowOverviewQuery,
@@ -61,6 +62,18 @@ const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/Reschedul
 // RTK Query endpoints, needed only once someone clicks Validate on the
 // Plan & Inventory stage.
 const ValidateDialog = lazy(() => import("../crq-workflow/validate/ValidateDialog"));
+
+/**
+ * Stages that expose the Reschedule action. Scheduling and Network Execution
+ * (Activity Implement) are the only two where the CRQ already has an engineer
+ * slot reserved - on earlier stages there is no reservation to move, and on
+ * Task Closure the procedures refuse outright ("CRQ is already closed").
+ */
+const RESCHEDULABLE_STAGES = new Set<WorkflowStageId>(["scheduling", "activityimplement"]);
+
+/** RBAC module + permission the Reschedule action requires (WEB_MODULE / WEB_PERMISSION). */
+const SCHEDULER_MODULE = "Scheduler";
+const UPDATE_PERMISSION = "UPDATE";
 
 const GlobalStyleBlock = (
   <GlobalStyles
@@ -119,6 +132,9 @@ export const CrqDetailedView: React.FC = () => {
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
   const openAttributeUpdate = useOpenAttributeUpdate();
+
+  const { hasPermission } = usePermission();
+  const canReschedule = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
 
   // Overview endpoint: every CRQ of the scope regardless of current stage,
   // each carrying its full per-stage history - so a CRQ stays visible here
@@ -365,15 +381,31 @@ export const CrqDetailedView: React.FC = () => {
         disabled: !selectedCrq,
         onClick: handleShowPrevCrqStatus,
       },
-      {
-        key: "reschedule",
-        label: "Reschedule",
-        icon: <EventRepeatRoundedIcon sx={{ fontSize: 16 }} />,
-        disabled: !selectedCrq,
-        onClick: () => setRescheduleOpen(true),
-      },
+      // Scheduling and Network Execution only: these are the two stages where an
+      // engineer reservation already exists, which is exactly what
+      // CRQ_SP_RESCHEDULE_CONFIRM_SLOT archives and replaces. Also gated on the
+      // Scheduler module's UPDATE permission, like every other mutating action.
+      ...(RESCHEDULABLE_STAGES.has(selectedStageId) && canReschedule
+        ? [
+            {
+              key: "reschedule",
+              label: "Reschedule",
+              icon: <EventRepeatRoundedIcon sx={{ fontSize: 16 }} />,
+              disabled: !selectedCrq,
+              onClick: () => setRescheduleOpen(true),
+            } satisfies CRQAction,
+          ]
+        : []),
     ],
-    [selectedCrq, isReviewStage, stageMode, openAttributeUpdate, handleShowPrevCrqStatus],
+    [
+      selectedCrq,
+      isReviewStage,
+      stageMode,
+      selectedStageId,
+      canReschedule,
+      openAttributeUpdate,
+      handleShowPrevCrqStatus,
+    ],
   );
 
   if (isError) {

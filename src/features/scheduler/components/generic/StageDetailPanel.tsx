@@ -14,6 +14,8 @@ interface StageDetailPanelProps {
   onToggle: (id: string) => void;
   onSelect: (crq: any) => void;
   onStartPause: (crq: any) => void;
+  /** Passed through to StageCard; omitted on stages that cannot reschedule. */
+  onReschedule?: (crq: any) => void;
 }
 
 /**
@@ -29,6 +31,7 @@ export const StageDetailPanel: React.FC<StageDetailPanelProps> = ({
   onToggle,
   onSelect,
   onStartPause,
+  onReschedule,
 }) => (
   <Box
     sx={{
@@ -105,6 +108,11 @@ export const StageDetailPanel: React.FC<StageDetailPanelProps> = ({
             )
           }
           onStartPause={() => onStartPause(crq)}
+          onReschedule={
+            onReschedule
+              ? () => onReschedule({ ...crq, planNumber: plan.planNumber })
+              : undefined
+          }
         />
       ))
     )}

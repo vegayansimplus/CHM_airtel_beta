@@ -4,10 +4,10 @@ import { toast } from "react-toastify";
 import {
   useCancelRescheduleMutation,
   useConfirmRescheduleSlotMutation,
-  useGetRescheduleCalendarQuery,
   useGetRescheduleContextQuery,
-  useGetRescheduleSlotsQuery,
   useInitiateRescheduleMutation,
+  useLazyGetRescheduleCalendarQuery,
+  useLazyGetRescheduleSlotsQuery,
   useMoveRescheduleStageMutation,
   useSaveRescheduleDateMutation,
 } from "../../../api/rescheduleApiSlice";
@@ -16,6 +16,7 @@ import type {
   RescheduleAttemptStatus,
   RescheduleCalendarModel,
   RescheduleConfirmResponse,
+  RescheduleSlot,
 } from "../../../types/reschedule.types";
 
 /** Wizard steps, in the order the stepper renders them. */
@@ -59,6 +60,25 @@ const splitDates = (csv: string | null | undefined): Set<string> =>
       .filter(Boolean),
   );
 
+/** Both the initiate response and the calendar refresh carry these six fields. */
+const toCalendarModel = (source: {
+  message?: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  busyDates: string | null;
+  weekendDates: string | null;
+  holidayDates: string | null;
+  networkFreeDates: string | null;
+}): RescheduleCalendarModel => ({
+  message: source.message ?? null,
+  startDate: source.startDate,
+  endDate: source.endDate,
+  busyDates: splitDates(source.busyDates),
+  weekendDates: splitDates(source.weekendDates),
+  holidayDates: splitDates(source.holidayDates),
+  networkFreezeDates: splitDates(source.networkFreeDates),
+});
+
 const errorMessage = (err: unknown, fallback: string): string =>
   (err as { data?: { message?: string } })?.data?.message || fallback;
 
@@ -71,12 +91,14 @@ interface UseRescheduleWizardArgs {
 
 /**
  * Owns every piece of reschedule wizard state and the order the procedures run
- * in. The dialog and its five step components stay presentational, so a step
- * can be reordered or re-styled without touching the call sequence.
+ * in. The dialog and its step components stay presentational, so a step can be
+ * reordered or re-styled without touching the call sequence.
  *
- * Each of the three lazily-loaded reads (context / calendar / slots) is gated
- * behind the step that needs it, so opening the dialog costs exactly one
- * request and nothing is fetched for a step the user never reaches.
+ * Request budget for a full pass: context, initiate, save-date, move-stage,
+ * confirm-slot - five calls, one per user action. The calendar arrives with
+ * initiate and the slots with move-stage, so neither has a fetch of its own;
+ * the lazy calendar/slots endpoints fire only on an explicit Refresh, or when
+ * an interrupted attempt is resumed and the step's data was never in memory.
  */
 export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRescheduleWizardArgs) {
   const [step, setStep] = useState<number>(STEP_DETAILS);
@@ -89,6 +111,20 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   const [confirmation, setConfirmation] = useState<RescheduleConfirmResponse | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [resumed, setResumed] = useState(false);
+  /**
+   * True while the user is re-picking a date for an attempt whose stage move is
+   * already committed, so submitDate re-cuts the offer window instead of
+   * walking on to the Move Stage step.
+   */
+  const [reofferingDate, setReofferingDate] = useState(false);
+
+  // Held locally because they arrive as part of a mutation's response, not from
+  // a query cache - a refresh simply overwrites them.
+  const [calendar, setCalendar] = useState<RescheduleCalendarModel | null>(null);
+  const [calendarError, setCalendarError] = useState<string | null>(null);
+  const [slots, setSlots] = useState<RescheduleSlot[]>([]);
+  const [slotsMessage, setSlotsMessage] = useState<string | null>(null);
+  const [slotsError, setSlotsError] = useState<string | null>(null);
 
   const resetAll = useCallback(() => {
     setStep(STEP_DETAILS);
@@ -101,6 +137,12 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     setConfirmation(null);
     setStepError(null);
     setResumed(false);
+    setReofferingDate(false);
+    setCalendar(null);
+    setCalendarError(null);
+    setSlots([]);
+    setSlotsMessage(null);
+    setSlotsError(null);
   }, []);
 
   // A fresh open always starts from a clean slate; the resume effect below
@@ -117,62 +159,6 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     error: contextError,
   } = useGetRescheduleContextQuery({ crqId: crqId as number }, { skip: !open || !crqId });
 
-  // Adopt an attempt that a previous session left open instead of creating a
-  // second one - CRQ_SP_RESCHEDULE_INITIATE would happily insert another row.
-  // Gated on still being on the opening step: every later write invalidates the
-  // context query, and a refetch must never yank the user back a step.
-  useEffect(() => {
-    if (!open || resumed || step !== STEP_DETAILS || !context?.activeRescheduleId) return;
-    setRescheduleId(context.activeRescheduleId);
-    setDesiredDate(context.activeDesiredDate ?? null);
-    setToStage(context.activeToStage ?? null);
-    setStep(resumeStep(context.activeRescheduleStatus, context.activeDesiredDate));
-    setResumed(true);
-  }, [open, resumed, step, context]);
-
-  /* ── Step 2 (read): Get_Predicted_SlotDates_Reschedule ────────────────── */
-  const {
-    data: calendarRaw,
-    isFetching: isCalendarLoading,
-    isError: isCalendarError,
-    error: calendarError,
-    refetch: refetchCalendar,
-  } = useGetRescheduleCalendarQuery(
-    { rescheduleId: rescheduleId as number },
-    { skip: !open || !rescheduleId || step < STEP_DATE },
-  );
-
-  const calendar: RescheduleCalendarModel | null = useMemo(() => {
-    if (!calendarRaw) return null;
-    return {
-      message: calendarRaw.message,
-      startDate: calendarRaw.startDate,
-      endDate: calendarRaw.endDate,
-      busyDates: splitDates(calendarRaw.busyDates),
-      weekendDates: splitDates(calendarRaw.weekendDates),
-      holidayDates: splitDates(calendarRaw.holidayDates),
-      networkFreezeDates: splitDates(calendarRaw.networkFreeDates),
-    };
-  }, [calendarRaw]);
-
-  /* ── Step 4 (read): CRQ_SP_RESCHEDULE_GET_SLOTS ───────────────────────── */
-  const {
-    data: slotsResponse,
-    isFetching: isSlotsLoading,
-    isError: isSlotsError,
-    error: slotsError,
-    refetch: refetchSlots,
-  } = useGetRescheduleSlotsQuery(
-    { rescheduleId: rescheduleId as number },
-    { skip: !open || !rescheduleId || step < STEP_SLOT },
-  );
-
-  const slots = slotsResponse?.slots ?? [];
-  const selectedSlot = useMemo(
-    () => slots.find((s) => s.label === selectedSlotLabel) ?? null,
-    [slots, selectedSlotLabel],
-  );
-
   /* ── Writes ───────────────────────────────────────────────────────────── */
   const [initiate, { isLoading: isInitiating }] = useInitiateRescheduleMutation();
   const [saveDate, { isLoading: isSavingDate }] = useSaveRescheduleDateMutation();
@@ -180,8 +166,68 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   const [confirmSlot, { isLoading: isConfirming }] = useConfirmRescheduleSlotMutation();
   const [cancelAttempt, { isLoading: isCancelling }] = useCancelRescheduleMutation();
 
+  /* ── Refresh-only reads ───────────────────────────────────────────────── */
+  const [fetchCalendar, { isFetching: isCalendarLoading }] = useLazyGetRescheduleCalendarQuery();
+  const [fetchSlots, { isFetching: isSlotsLoading }] = useLazyGetRescheduleSlotsQuery();
+
   const isBusy =
     isInitiating || isSavingDate || isMovingStage || isConfirming || isCancelling;
+
+  /** Recompute the date window for the current attempt (no new attempt row). */
+  const refreshCalendar = useCallback(
+    async (id?: number) => {
+      const target = id ?? rescheduleId;
+      if (!target) return;
+      setCalendarError(null);
+      try {
+        const res = await fetchCalendar({ rescheduleId: target }).unwrap();
+        setCalendar(toCalendarModel(res));
+      } catch (err) {
+        setCalendarError(errorMessage(err, "Could not load the scheduling calendar."));
+      }
+    },
+    [rescheduleId, fetchCalendar],
+  );
+
+  /** Re-cut the offer window. Never repeats the stage move. */
+  const refreshSlots = useCallback(
+    async (id?: number) => {
+      const target = id ?? rescheduleId;
+      if (!target) return;
+      setSlotsError(null);
+      try {
+        const res = await fetchSlots({ rescheduleId: target }).unwrap();
+        setSlots(res.slots ?? []);
+        setSlotsMessage(res.message ?? null);
+      } catch (err) {
+        setSlotsError(errorMessage(err, "Could not load engineer slots."));
+      }
+    },
+    [rescheduleId, fetchSlots],
+  );
+
+  // Adopt an attempt that a previous session left open instead of creating a
+  // second one - CRQ_SP_RESCHEDULE_INITIATE would happily insert another row.
+  // Gated on still being on the opening step: every later write invalidates the
+  // context query, and a refetch must never yank the user back a step.
+  useEffect(() => {
+    if (!open || resumed || step !== STEP_DETAILS || !context?.activeRescheduleId) return;
+    const target = resumeStep(context.activeRescheduleStatus, context.activeDesiredDate);
+    setRescheduleId(context.activeRescheduleId);
+    setDesiredDate(context.activeDesiredDate ?? null);
+    setToStage(context.activeToStage ?? null);
+    setStep(target);
+    setResumed(true);
+    // Resuming skips the call that would normally have supplied this step's
+    // data, so fetch just that one.
+    if (target === STEP_SLOT) void refreshSlots(context.activeRescheduleId);
+    else if (target === STEP_DATE) void refreshCalendar(context.activeRescheduleId);
+  }, [open, resumed, step, context, refreshCalendar, refreshSlots]);
+
+  const selectedSlot = useMemo(
+    () => slots.find((s) => s.label === selectedSlotLabel) ?? null,
+    [slots, selectedSlotLabel],
+  );
 
   /** Step 1 -> 2. Reuses the resumed attempt rather than opening a second one. */
   const submitDetails = useCallback(async () => {
@@ -192,6 +238,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
 
     if (rescheduleId) {
       setStep(STEP_DATE);
+      if (!calendar) void refreshCalendar();
       return;
     }
     try {
@@ -203,6 +250,10 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
         return;
       }
       setRescheduleId(res.rescheduleId);
+      // The calendar came back with the attempt; only fall back to a separate
+      // fetch if the procedure could not compute it.
+      if (res.startDate) setCalendar(toCalendarModel(res));
+      else void refreshCalendar(res.rescheduleId);
       setStep(STEP_DATE);
       if (res.status === "partial" && res.message) toast.warn(res.message);
     } catch (err) {
@@ -210,7 +261,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
       setStepError(msg);
       toast.error(msg);
     }
-  }, [crqId, reason, rescheduleId, initiate]);
+  }, [crqId, reason, rescheduleId, calendar, initiate, refreshCalendar]);
 
   /** Step 2 -> 3. CRQ_SP_RESCHEDULE_SAVE_DATE re-validates the future date. */
   const submitDate = useCallback(async () => {
@@ -218,20 +269,50 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     setStepError(null);
     try {
       await saveDate({ rescheduleId, desiredDate }).unwrap();
+      if (reofferingDate) {
+        // The stage move is committed history and must never run twice - it
+        // would move the CRQ back another stage and spend a second of the three
+        // allowed reschedules. Only the offer window is re-cut, against the date
+        // just saved; the procedure leaves the attempt at STAGE_MOVED so
+        // CRQ_SP_RESCHEDULE_GET_SLOTS still accepts it.
+        setReofferingDate(false);
+        setSelectedSlotLabel(null);
+        setStep(STEP_SLOT);
+        await refreshSlots();
+        return;
+      }
       setStep(STEP_STAGE);
     } catch (err) {
       const msg = errorMessage(err, "The selected date could not be saved.");
       setStepError(msg);
       toast.error(msg);
     }
-  }, [rescheduleId, desiredDate, saveDate]);
+  }, [rescheduleId, desiredDate, saveDate, reofferingDate, refreshSlots]);
 
-  /** Step 3 -> 4. Moves the CRQ and computes the offer window in one call. */
+  /**
+   * Escape hatch from a slot step that came back empty. Sends the user back to
+   * the calendar without repeating the stage move, so losing the race for the
+   * last capacity on a date costs a re-pick rather than the whole attempt.
+   */
+  const chooseAnotherDate = useCallback(() => {
+    setStepError(null);
+    setSlotsError(null);
+    setSelectedSlotLabel(null);
+    setReofferingDate(true);
+    setStep(STEP_DATE);
+    // A resumed attempt reaches the slot step without ever loading a calendar.
+    if (!calendar) void refreshCalendar();
+  }, [calendar, refreshCalendar]);
+
+  /** Step 3 -> 4. Moves the CRQ and returns the offer window in one call. */
   const submitStage = useCallback(async () => {
     if (!rescheduleId || !toStage || !crqId) return;
     setStepError(null);
     try {
       const res = await moveStage({ rescheduleId, toStage, crqId }).unwrap();
+      setSlots(res.slots ?? []);
+      setSlotsMessage(res.message ?? null);
+      setSlotsError(null);
       setStep(STEP_SLOT);
       // The stage move committed even when the slot computation behind it did
       // not; the Slot step's own Refresh retries just that half.
@@ -307,21 +388,21 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     // step 2
     calendar,
     isCalendarLoading,
-    calendarError: isCalendarError
-      ? errorMessage(calendarError, "Could not load the scheduling calendar.")
-      : null,
-    refetchCalendar,
+    calendarError,
+    refreshCalendar,
     desiredDate,
     setDesiredDate,
+    reofferingDate,
+    chooseAnotherDate,
     // step 3
     toStage,
     setToStage,
     // step 4
     slots,
-    slotsMessage: slotsResponse?.message ?? null,
+    slotsMessage,
     isSlotsLoading,
-    slotsError: isSlotsError ? errorMessage(slotsError, "Could not load engineer slots.") : null,
-    refetchSlots,
+    slotsError,
+    refreshSlots,
     selectedSlotLabel,
     setSelectedSlotLabel,
     selectedSlot,

@@ -1,5 +1,6 @@
 import React from "react";
-import { Alert, Box, Button, Typography } from "@mui/material";
+import { Alert, Box, Button, Stack, Typography } from "@mui/material";
+import EditCalendarRoundedIcon from "@mui/icons-material/EditCalendarRounded";
 import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
@@ -11,9 +12,10 @@ import { SlotCard } from "../SlotCard";
 /**
  * Step 4 - pick one of the offered engineer slots.
  *
- * Refresh re-runs CRQ_SP_RESCHEDULE_GET_SLOTS alone: the stage move is already
- * committed, so re-cutting the offer window never repeats an earlier step.
- * Nothing is reserved here - the slot is only held at Confirm.
+ * The slots arrive with the move-stage response, so reaching this step costs no
+ * request. Refresh re-runs CRQ_SP_RESCHEDULE_GET_SLOTS alone: the stage move is
+ * already committed, so re-cutting the offer window never repeats an earlier
+ * step. Nothing is reserved here - the slot is only held at Confirm.
  */
 export const SelectSlotStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }> = ({
   wizard,
@@ -24,22 +26,36 @@ export const SelectSlotStep: React.FC<{ wizard: RescheduleWizard; colors: Colors
     slotsMessage,
     isSlotsLoading,
     slotsError,
-    refetchSlots,
+    refreshSlots,
     selectedSlotLabel,
     setSelectedSlotLabel,
     desiredDate,
+    chooseAnotherDate,
   } = wizard;
 
   const refreshButton = (
-    <Button
-      size="small"
-      onClick={() => refetchSlots()}
-      disabled={isSlotsLoading}
-      startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
-      sx={{ textTransform: "none", fontSize: 11.5, fontWeight: 700 }}
-    >
-      Refresh Slots
-    </Button>
+    <Stack direction="row" spacing={0.5}>
+      {/* The stage move is already committed, so the only way out of an empty
+          window is a different date - not a repeat of the previous step. */}
+      <Button
+        size="small"
+        onClick={chooseAnotherDate}
+        disabled={isSlotsLoading}
+        startIcon={<EditCalendarRoundedIcon sx={{ fontSize: 15 }} />}
+        sx={{ textTransform: "none", fontSize: 11.5, fontWeight: 700 }}
+      >
+        Change Date
+      </Button>
+      <Button
+        size="small"
+        onClick={() => refreshSlots()}
+        disabled={isSlotsLoading}
+        startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
+        sx={{ textTransform: "none", fontSize: 11.5, fontWeight: 700 }}
+      >
+        Refresh Slots
+      </Button>
+    </Stack>
   );
 
   return (

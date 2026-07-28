@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash('/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql' -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36 -t -e ' *)",
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql\" -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36)",
+      "Bash(echo \"APPLY EXIT: $?\")",
+      "Bash(\"/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql\" -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36 -t -e \"CALL CRQ_SP_RESCHEDULE_INITIATE\\(31,'SUJIT123','verify calendar fix'\\);\")"
+    ],
+    "additionalDirectories": [
+      "D:\\CHM_airtel_scheduler\\Github_Repo\\airtelmanagement\\db\\migration"
+    ]
+  }
+}

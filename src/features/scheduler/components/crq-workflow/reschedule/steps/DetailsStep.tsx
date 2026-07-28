@@ -69,8 +69,20 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             accent={colors.accent}
           />
           <InfoTile label="Plan" value={context.planNo} colors={colors} mono />
-          <InfoTile label="Task" value={context.taskId} colors={colors} mono />
+          <InfoTile
+            label="Status"
+            value={context.currentStatus ?? "—"}
+            colors={colors}
+          />
         </Stack>
+        {/* The reschedule moves the CRQ's booked window, so a multi-task CRQ
+            moves as a unit - worth saying, since only one schedule exists. */}
+        {(context.taskCount ?? 0) > 1 && (
+          <Typography sx={{ fontSize: 11.5, color: colors.textDim, mt: 1 }}>
+            This CRQ has {context.taskCount} tasks. Rescheduling moves the CRQ's execution window,
+            so all of them move together.
+          </Typography>
+        )}
       </StepSection>
 
       <StepSection

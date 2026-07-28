@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { Suspense, lazy, useEffect, useMemo, useState } from "react";
 import {
   Box,
   Chip,
@@ -29,6 +29,23 @@ import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import type { StageKey } from "../../types/stageWorkflow.types";
+import { usePermission } from "../../../auth/hooks/usePermission";
+
+// Loaded on demand: the wizard carries its own calendar grid, step components
+// and RTK Query endpoints, none of which the stage table itself needs.
+const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
+
+/**
+ * Stages whose cards expose the Reschedule action. Scheduling and Network
+ * Execution (Activity Implement) are the only two where the CRQ already holds
+ * an engineer reservation - which is exactly what
+ * CRQ_SP_RESCHEDULE_CONFIRM_SLOT archives and replaces.
+ */
+const RESCHEDULABLE_STAGES = new Set<StageKey>(["scheduling", "activityimplement"]);
+
+/** RBAC module + permission the Reschedule action requires. */
+const SCHEDULER_MODULE = "Scheduler";
+const UPDATE_PERMISSION = "UPDATE";
 
 interface GenericStagePageProps {
   stageKey: StageKey;
@@ -65,6 +82,11 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
+  const [rescheduleCrq, setRescheduleCrq] = useState<any | null>(null);
+
+  const { hasPermission } = usePermission();
+  const canReschedule =
+    RESCHEDULABLE_STAGES.has(stageKey) && hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
 
   useEffect(() => {
     injectGlobalStyles();
@@ -217,6 +239,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         onToggle={toggleCrq}
         onSelect={setSelectedCrq}
         onStartPause={handleStartPause}
+        onReschedule={canReschedule ? setRescheduleCrq : undefined}
       />
     ),
     renderTopToolbarCustomActions,
@@ -258,6 +281,20 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   return (
     <Box id={`${stageKey}-container`} sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}>
       <MaterialReactTable table={table} />
+
+      {/* Exact same wizard the CRQ cockpit opens - mounted only once a card's
+          Reschedule is clicked, so its chunk is fetched on demand. */}
+      {rescheduleCrq && (
+        <Suspense fallback={null}>
+          <RescheduleDialog
+            open={!!rescheduleCrq}
+            onClose={() => setRescheduleCrq(null)}
+            crqId={rescheduleCrq.crqId ?? null}
+            crqNo={rescheduleCrq.crqNo ?? null}
+            colors={colors}
+          />
+        </Suspense>
+      )}
     </Box>
   );
 };

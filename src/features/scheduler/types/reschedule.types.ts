@@ -41,8 +41,15 @@ export interface RescheduleContext {
   canReschedule: boolean;
   blockedReason: string | null;
   planNo: string | null;
+  /**
+   * Scheduling-engine coordinates the CRQ is actually booked under, resolved
+   * by CRQ_SP_RESCHEDULE_RESOLVE_CRQ from the CRQ's own reservation. Kept for
+   * diagnostics: a reschedule is scoped to the CRQ, never to a task.
+   */
   taskRowId: number | null;
   taskId: string | null;
+  /** How many tasks the CRQ has - all of them move with the CRQ's schedule. */
+  taskCount: number | null;
   engineerOlmId: string | null;
   engineerName: string | null;
   shiftLetter: string | null;
@@ -62,12 +69,21 @@ export interface RescheduleContext {
   activeActivityEpoch: string | null;
 }
 
-/** POST /initiate - CRQ_SP_RESCHEDULE_INITIATE. */
+/**
+ * POST /initiate - CRQ_SP_RESCHEDULE_INITIATE. Carries the scheduling calendar
+ * alongside the new attempt, since the procedure computes both in one call.
+ */
 export interface RescheduleInitiateResponse {
   status: RescheduleCallStatus;
   message: string | null;
   rescheduleId: number | null;
   activityEpoch: string | null;
+  startDate: string | null;
+  endDate: string | null;
+  busyDates: string | null;
+  weekendDates: string | null;
+  holidayDates: string | null;
+  networkFreeDates: string | null;
 }
 
 /**
@@ -96,7 +112,7 @@ export interface RescheduleCalendarModel {
   networkFreezeDates: Set<string>;
 }
 
-/** POST /save-date, /move-stage, /cancel. */
+/** POST /save-date, /cancel. */
 export interface RescheduleStatusResponse {
   status: RescheduleCallStatus;
   message: string | null;
@@ -117,8 +133,19 @@ export interface RescheduleSlot {
   skillLevel: string | null;
 }
 
-/** GET /slots - CRQ_SP_RESCHEDULE_GET_SLOTS. */
+/** GET /{rescheduleId}/slots - CRQ_SP_RESCHEDULE_GET_SLOTS. */
 export interface RescheduleSlotsResponse {
+  status: RescheduleCallStatus;
+  message: string | null;
+  slots: RescheduleSlot[];
+}
+
+/**
+ * POST /move-stage - CRQ_SP_RESCHEDULE_MOVE_STAGE. Returns the recomputed
+ * offer window with the stage change; `slots` is empty on a "partial" status,
+ * meaning the move committed but the slot computation behind it did not.
+ */
+export interface RescheduleMoveStageResponse {
   status: RescheduleCallStatus;
   message: string | null;
   slots: RescheduleSlot[];

@@ -14,6 +14,7 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
+import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import { format } from "date-fns";
 import type { StageConfig } from "../../types/stageWorkflow.types";
 import { StageHistoryPanel } from "./StageHistoryPanel";
@@ -29,6 +30,12 @@ interface StageCardProps {
   onToggle: () => void;
   onSelect: () => void;
   onStartPause: () => void;
+  /**
+   * Supplied only by the stages that can reschedule (Scheduling, Network
+   * Execution) and only when the user holds the permission - the button is
+   * absent otherwise, so this stays stage-agnostic.
+   */
+  onReschedule?: () => void;
 }
 
 const STATUS_COLOR: Record<string, "default" | "success" | "warning" | "info"> = {
@@ -58,6 +65,7 @@ export const StageCard: React.FC<StageCardProps> = ({
   onToggle,
   onSelect,
   onStartPause,
+  onReschedule,
 }) => {
   const status = crq?.[stageConfig.statusField] ?? "Not Started";
   const isRunning = status === "In Progress";
@@ -229,6 +237,40 @@ export const StageCard: React.FC<StageCardProps> = ({
         >
           {isFailed ? "Disabled" : isRunning ? "Pause" : "Start"}
         </Button>
+
+        {onReschedule && (
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<EventRepeatRoundedIcon sx={{ fontSize: "14px !important" }} />}
+            onClick={(e) => {
+              // The card body toggles selection; the action must not.
+              e.stopPropagation();
+              onReschedule();
+            }}
+            sx={{
+              flexShrink: 0,
+              height: 30,
+              minWidth: 110,
+              fontSize: 11,
+              fontWeight: 700,
+              letterSpacing: 0.3,
+              borderRadius: "8px",
+              px: 1.5,
+              transition: "all 0.15s ease",
+              bgcolor: colors.accentDim,
+              color: colors.accent,
+              borderColor: colors.accentBorder,
+              "&:hover": {
+                bgcolor: colors.accent,
+                color: "#fff",
+                borderColor: colors.accent,
+              },
+            }}
+          >
+            Reschedule
+          </Button>
+        )}
       </Stack>
 
       {/* ── Tasks + History Collapse ── */}
