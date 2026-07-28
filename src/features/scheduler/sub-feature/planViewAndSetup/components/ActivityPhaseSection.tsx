@@ -5,6 +5,7 @@ import {
   AccordionSummary,
   Box,
   Chip,
+  CircularProgress,
   FormControl,
   FormHelperText,
   InputAdornment,
@@ -12,6 +13,7 @@ import {
   MenuItem,
   Select,
   Typography,
+  useTheme,
 } from "@mui/material";
 import {
   AccessTime,
@@ -25,6 +27,7 @@ import {
 } from "@mui/icons-material";
 import TeamAssignmentSelect from "../../../../orgHierarchy/components/TeamAssignmentSelect";
 import NumericField from "../../../../../components/common/NumericField";
+import { parseShift, shiftColor } from "../utils/shiftFormat";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +39,9 @@ interface Props {
   phaseIndex: number;
   shiftError?: boolean;
   teamError?: boolean;
+  /** Live shift names from the DB (GET /monthlyrosterview/shiftdropdowns). */
+  shiftOptions: string[];
+  shiftsLoading?: boolean;
 }
 
 // ─── Accent colors per phase ─────────────────────────────────────────────────
@@ -44,10 +50,13 @@ const ACCENT_COLORS = [
   "#5C6BC0", "#26A69A", "#FFA726", "#AB47BC", "#42A5F5", "#EF5350",
 ];
 
+/** Matches PlanDetailDialog's LEVELS so Add and Edit offer the same range. */
+const LEVELS = ["L1", "L2", "L3", "L4"];
+
 const FIELD_GRID_SX = {
   display: "grid",
   gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(4, 1fr)" },
-  gap: 2,
+  gap: 1.5,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -60,7 +69,10 @@ const ActivityPhaseSection: React.FC<Props> = ({
   phaseIndex,
   shiftError,
   teamError,
+  shiftOptions,
+  shiftsLoading,
 }) => {
+  const theme = useTheme();
   const [manuallyExpanded, setManuallyExpanded] = useState(phaseIndex === 0);
   const accent = ACCENT_COLORS[phaseIndex % ACCENT_COLORS.length];
   const isConfigured = !!value.shift && !!value.minimumLevelRequirement;
@@ -81,32 +93,44 @@ const ActivityPhaseSection: React.FC<Props> = ({
         borderRadius: "12px !important",
         "&::before": { display: "none" },
         overflow: "hidden",
-        transition: "border-color 0.15s",
+        transition: "border-color 0.2s ease, box-shadow 0.2s ease",
+        "&:hover": { boxShadow: "0 2px 10px rgba(0,0,0,0.06)" },
       }}
     >
       <AccordionSummary
         expandIcon={<ExpandMore />}
-        sx={{ bgcolor: "grey.50", px: 2.5, minHeight: 60 }}
+        sx={{
+          bgcolor: "grey.50",
+          px: 2,
+          minHeight: 50,
+          "&.Mui-expanded": { minHeight: 50 },
+          "& .MuiAccordionSummary-content": { my: 1 },
+          transition: "background-color 0.15s ease",
+          "& .MuiAccordionSummary-expandIconWrapper": {
+            transition: "transform 0.2s ease",
+          },
+        }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
           <Box
             sx={{
-              width: 30,
-              height: 30,
+              width: 26,
+              height: 26,
               flexShrink: 0,
               borderRadius: "50%",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 700,
               color: "#fff",
               bgcolor: shiftError || teamError ? "error.main" : accent,
+              transition: "background-color 0.2s ease",
             }}
           >
             {phaseIndex + 1}
           </Box>
-          <Typography fontWeight={700} sx={{ flexShrink: 0 }}>
+          <Typography fontWeight={700} fontSize={14} sx={{ flexShrink: 0 }}>
             {title}
           </Typography>
 
@@ -134,26 +158,71 @@ const ActivityPhaseSection: React.FC<Props> = ({
         </Box>
       </AccordionSummary>
 
-      <AccordionDetails sx={{ p: 2.5, bgcolor: "background.paper" }}>
+      <AccordionDetails sx={{ p: 2, bgcolor: "background.paper" }}>
         {/* ── Row 1: core fields ──────────────────────────────── */}
         <Box sx={FIELD_GRID_SX}>
-          {/* Shift */}
-          <FormControl fullWidth size="small" error={shiftError}>
+          {/* Shift — live from GET /monthlyrosterview/shiftdropdowns */}
+          <FormControl fullWidth size="small" error={shiftError} disabled={shiftsLoading}>
             <InputLabel>Shift</InputLabel>
             <Select
-              value={value.shift}
+              value={shiftsLoading ? "" : value.shift}
               label="Shift"
               onChange={(e) => onChange("shift", e.target.value)}
               startAdornment={
                 <InputAdornment position="start">
-                  <Schedule fontSize="small" />
+                  {shiftsLoading ? (
+                    <CircularProgress size={14} thickness={5} />
+                  ) : (
+                    <Schedule fontSize="small" />
+                  )}
                 </InputAdornment>
               }
+              renderValue={(selected) => {
+                if (!selected) return "";
+                const { code, range } = parseShift(selected as string);
+                return (
+                  <Box component="span" sx={{ display: "inline-flex", alignItems: "center", gap: 0.75 }}>
+                    <Box
+                      component="span"
+                      sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: shiftColor(range, theme), flexShrink: 0 }}
+                    />
+                    <Box component="span" sx={{ fontWeight: 700, color: shiftColor(range, theme) }}>{code}</Box>
+                    {range && (
+                      <Box component="span" sx={{ fontSize: 11, color: "text.secondary" }}>
+                        {range}
+                      </Box>
+                    )}
+                  </Box>
+                );
+              }}
             >
-              <MenuItem value="General">General</MenuItem>
-              <MenuItem value="Morning">Morning</MenuItem>
-              <MenuItem value="Evening">Evening</MenuItem>
-              <MenuItem value="Night">Night</MenuItem>
+              {shiftsLoading ? (
+                <MenuItem value="" disabled>
+                  Loading shifts…
+                </MenuItem>
+              ) : shiftOptions.length === 0 ? (
+                <MenuItem value="" disabled>
+                  No shifts configured
+                </MenuItem>
+              ) : (
+                shiftOptions.map((s) => {
+                  const { code, range } = parseShift(s);
+                  return (
+                    <MenuItem key={s} value={s} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <Box
+                        component="span"
+                        sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: shiftColor(range, theme), flexShrink: 0 }}
+                      />
+                      <Box component="span" sx={{ fontWeight: 700, color: shiftColor(range, theme), minWidth: 28 }}>{code}</Box>
+                      {range && (
+                        <Box component="span" sx={{ fontSize: 12, color: "text.secondary" }}>
+                          {range}
+                        </Box>
+                      )}
+                    </MenuItem>
+                  );
+                })
+              )}
             </Select>
             {shiftError && <FormHelperText>Required</FormHelperText>}
           </FormControl>
@@ -171,9 +240,11 @@ const ActivityPhaseSection: React.FC<Props> = ({
                 </InputAdornment>
               }
             >
-              <MenuItem value="L1">L1</MenuItem>
-              <MenuItem value="L2">L2</MenuItem>
-              <MenuItem value="L3">L3</MenuItem>
+              {LEVELS.map((lvl) => (
+                <MenuItem key={lvl} value={lvl}>
+                  {lvl}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
@@ -222,8 +293,8 @@ const ActivityPhaseSection: React.FC<Props> = ({
             sx={{
               ...FIELD_GRID_SX,
               gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr", md: "repeat(3, 1fr)" },
-              mt: 2,
-              pt: 2,
+              mt: 1.5,
+              pt: 1.5,
               borderTop: "1px dashed",
               borderColor: "divider",
             }}

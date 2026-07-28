@@ -10,25 +10,29 @@ import {
   IconButton,
   InputAdornment,
   LinearProgress,
+  Skeleton,
   Stack,
   TextField,
-  ToggleButton,
-  ToggleButtonGroup,
+  Tooltip,
   Typography,
+  useTheme,
 } from "@mui/material";
+import { alpha } from "@mui/material/styles";
 import {
   Add,
   Close,
-  LightMode,
-  NightsStay,
   Save,
   Schedule,
-  WbSunny,
 } from "@mui/icons-material";
 import { toast } from "react-toastify";
 
-import { useAddActivityMutation, type PlanViewRow } from "../api/planApiSlice";
+import {
+  useAddActivityMutation,
+  useGetShiftDropdownsQuery,
+  type PlanViewRow,
+} from "../api/planApiSlice";
 import ActivityPhaseSection from "./ActivityPhaseSection";
+import { parseShift, shiftColor } from "../utils/shiftFormat";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -85,7 +89,20 @@ const AddActivityDialog: React.FC<Props> = ({
   onClose,
   existingActivityNames = [],
 }) => {
+  const theme = useTheme();
   const [addActivity, { isLoading }] = useAddActivityMutation();
+
+  // Live shift options, shared with the Edit-phase dialog's identical dedup
+  // pattern (PlanDetailDialog.tsx) — RTK Query dedupes this against that
+  // dialog's own subscription, so opening both never double-fetches.
+  const { data: shiftData, isFetching: shiftsLoading } = useGetShiftDropdownsQuery();
+  const shiftOptions = useMemo(
+    () =>
+      Array.from(
+        new Set((shiftData ?? []).map((s) => (s.shiftRange ?? "").trim()).filter(Boolean)),
+      ),
+    [shiftData],
+  );
 
   const [form, setForm] = useState(INITIAL_FORM);
 
@@ -162,8 +179,9 @@ const AddActivityDialog: React.FC<Props> = ({
     return !nameError && missingShifts.size === 0 && missingTeams.size === 0;
   };
 
-  const applyShiftToAll = useCallback((_: React.MouseEvent, shift: string | null) => {
-    if (!shift) return;
+  const [appliedShift, setAppliedShift] = useState<string | null>(null);
+
+  const applyShiftToAll = useCallback((shift: string) => {
     setForm((prev) => {
       const updated = { ...prev };
       PHASES.forEach(({ key }) => {
@@ -171,6 +189,8 @@ const AddActivityDialog: React.FC<Props> = ({
       });
       return updated;
     });
+    setAppliedShift(shift);
+    setPhaseShiftErrors(new Set());
   }, []);
 
   // ── Build API payload with prefixed param names ────────────────────────────
@@ -216,6 +236,7 @@ const AddActivityDialog: React.FC<Props> = ({
       setActivityNameError(null);
       setPhaseShiftErrors(new Set());
       setPhaseTeamErrors(new Set());
+      setAppliedShift(null);
       onClose();
     } catch (err) {
       console.error(err);
@@ -230,6 +251,7 @@ const AddActivityDialog: React.FC<Props> = ({
     setActivityNameError(null);
     setPhaseShiftErrors(new Set());
     setPhaseTeamErrors(new Set());
+    setAppliedShift(null);
     onClose();
   };
 
@@ -286,8 +308,8 @@ const AddActivityDialog: React.FC<Props> = ({
         sx={{ height: 3 }}
       />
 
-      <DialogContent sx={{ p: 3 }}>
-        <Stack spacing={3} sx={{ pt: 2 }}>
+      <DialogContent sx={{ p: 2.5 }}>
+        <Stack spacing={2} sx={{ pt: 1.5 }}>
           <TextField
             fullWidth
             label="Activity Name"
@@ -314,30 +336,100 @@ const AddActivityDialog: React.FC<Props> = ({
 
           <Box
             sx={{
-              display: "flex", alignItems: "center", gap: 2,
-              p: 1.5, bgcolor: "action.hover", borderRadius: 2, flexWrap: "wrap",
+              p: 1.5,
+              borderRadius: 2.5,
+              border: "1px solid",
+              borderColor: alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.4 : 0.18),
+              background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, theme.palette.mode === "dark" ? 0.16 : 0.09)}, ${alpha(theme.palette.info.main, theme.palette.mode === "dark" ? 0.1 : 0.05)})`,
+              transition: "background-color 0.2s ease",
             }}
           >
-            <Typography variant="body2" fontWeight={600} sx={{ mr: 0.5 }}>
-              Apply shift to all phases:
-            </Typography>
-            <ToggleButtonGroup
-              exclusive size="small" onChange={applyShiftToAll}
-              sx={{ bgcolor: "background.paper", borderRadius: 1.5 }}
-            >
-              <ToggleButton value="General" sx={{ px: 1.5, fontSize: 12 }}>
-                <Schedule sx={{ fontSize: 14, mr: 0.5 }} /> General
-              </ToggleButton>
-              <ToggleButton value="Morning" sx={{ px: 1.5, fontSize: 12 }}>
-                <WbSunny sx={{ fontSize: 14, mr: 0.5 }} /> Morning
-              </ToggleButton>
-              <ToggleButton value="Evening" sx={{ px: 1.5, fontSize: 12 }}>
-                <LightMode sx={{ fontSize: 14, mr: 0.5 }} /> Evening
-              </ToggleButton>
-              <ToggleButton value="Night" sx={{ px: 1.5, fontSize: 12 }}>
-                <NightsStay sx={{ fontSize: 14, mr: 0.5 }} /> Night
-              </ToggleButton>
-            </ToggleButtonGroup>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: shiftOptions.length ? 1.25 : 0 }}>
+              <Box
+                sx={{
+                  width: 24, height: 24, borderRadius: "50%", flexShrink: 0,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  bgcolor: "primary.main", color: "primary.contrastText",
+                }}
+              >
+                <Schedule sx={{ fontSize: 14 }} />
+              </Box>
+              <Box>
+                <Typography variant="body2" fontWeight={700} lineHeight={1.2}>
+                  Quick Apply
+                </Typography>
+                <Typography variant="caption" color="text.secondary" lineHeight={1.2}>
+                  Tap a shift to set it across all 6 phases at once
+                </Typography>
+              </Box>
+            </Box>
+
+            {shiftsLoading ? (
+              <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
+                {[0, 1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} variant="rounded" width={68} height={44} sx={{ borderRadius: 2.5 }} />
+                ))}
+              </Stack>
+            ) : shiftOptions.length === 0 ? (
+              <Typography variant="caption" color="text.secondary">
+                No shifts configured yet
+              </Typography>
+            ) : (
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                {shiftOptions.map((s) => {
+                  const { code, range } = parseShift(s);
+                  const accent = shiftColor(range, theme);
+                  const selected = appliedShift === s;
+                  return (
+                    <Tooltip key={s} title={range ? `${code} · ${range}` : code} arrow disableInteractive>
+                      <Box
+                        component="button"
+                        type="button"
+                        onClick={() => applyShiftToAll(s)}
+                        sx={{
+                          display: "flex", flexDirection: "column", alignItems: "center",
+                          justifyContent: "center",
+                          minWidth: 66, px: 1.25, py: 0.75, gap: 0.15,
+                          borderRadius: 2.5, cursor: "pointer",
+                          border: "1.5px solid",
+                          borderColor: selected ? accent : alpha(accent, 0.35),
+                          bgcolor: selected ? accent : alpha(accent, 0.08),
+                          boxShadow: selected ? `0 3px 10px ${alpha(accent, 0.4)}` : "none",
+                          transition: "transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, border-color 0.15s ease",
+                          "&:hover": {
+                            transform: "translateY(-1px)",
+                            borderColor: accent,
+                            bgcolor: selected ? accent : alpha(accent, 0.16),
+                            boxShadow: `0 3px 8px ${alpha(accent, 0.3)}`,
+                          },
+                          "&:active": { transform: "translateY(0)" },
+                        }}
+                      >
+                        <Typography
+                          sx={{
+                            fontSize: 13, fontWeight: 800, lineHeight: 1.2,
+                            color: selected ? "#fff" : accent,
+                          }}
+                        >
+                          {code}
+                        </Typography>
+                        {range && (
+                          <Typography
+                            sx={{
+                              fontSize: 9.5, whiteSpace: "nowrap", lineHeight: 1.2,
+                              color: selected ? "#fff" : "text.secondary",
+                              opacity: selected ? 0.9 : 1,
+                            }}
+                          >
+                            {range}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Tooltip>
+                  );
+                })}
+              </Box>
+            )}
           </Box>
 
           <Divider>
@@ -356,6 +448,8 @@ const AddActivityDialog: React.FC<Props> = ({
               phaseIndex={idx}
               shiftError={phaseShiftErrors.has(key)}
               teamError={phaseTeamErrors.has(key)}
+              shiftOptions={shiftOptions}
+              shiftsLoading={shiftsLoading}
             />
           ))}
         </Stack>

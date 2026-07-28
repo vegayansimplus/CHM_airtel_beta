@@ -100,8 +100,10 @@ export const PlanViewTable: React.FC<Props> = ({
     null,
   );
 
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+
   const {
-    data: apiRows = [],
+    data,
     isLoading,
     isFetching,
     isError,
@@ -113,13 +115,15 @@ export const PlanViewTable: React.FC<Props> = ({
       functionId,
       domainId,
       subDomainId,
-      page: 0,
-      size: 10,
+      page: pagination.pageIndex,
+      size: pagination.pageSize,
     },
     {
       skip: subDomainId === undefined,
     },
   );
+
+  const apiRows = data?.content ?? [];
 
   const handleOpenEdit = (rowData: PlanViewRow) => {
     setSelectedRowData(rowData);
@@ -222,12 +226,15 @@ export const PlanViewTable: React.FC<Props> = ({
     state: {
       isLoading,
       showProgressBars: isFetching && !isLoading,
+      pagination,
     },
     initialState: {
       density: "compact",
-      pagination: { pageSize: 10, pageIndex: 0 },
       showGlobalFilter: true,
     },
+    manualPagination: true,
+    rowCount: data?.totalElements ?? 0,
+    onPaginationChange: setPagination,
     enableStickyHeader: true,
     enableFacetedValues: true,
     paginationDisplayMode: "pages",

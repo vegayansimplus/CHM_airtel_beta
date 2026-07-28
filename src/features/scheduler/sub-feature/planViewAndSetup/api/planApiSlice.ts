@@ -34,8 +34,19 @@ export interface PlanViewQueryParams {
   functionId?: number;
   domainId?: number;
   subDomainId?: number;
+  statusFilter?: string;
   page?: number;
   size?: number;
+}
+
+/** Mirrors backend common/dto/PageResponseDto.java */
+export interface PlanPageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
 }
 
 export interface AddPlanRequest {
@@ -146,7 +157,7 @@ export interface ShiftDropdown {
 
 export const planApi = api.injectEndpoints({
   endpoints: (builder) => ({
-    getPlanView: builder.query<PlanViewRow[], PlanViewQueryParams>({
+    getPlanView: builder.query<PlanPageResponse<PlanViewRow>, PlanViewQueryParams>({
       query: (params) => ({ url: "/plan/view", method: "GET", params }),
       providesTags: ["Plan"],
     }),
