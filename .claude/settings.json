@@ -1,13 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash('/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql' -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36 -t -e ' *)",
-      "Bash(\"/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql\" -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36)",
-      "Bash(echo \"APPLY EXIT: $?\")",
-      "Bash(\"/c/Program Files/MySQL/MySQL Server 5.7/bin/mysql\" -h 192.168.0.36 -P 24801 -u root Vegayan_CHM_36 -t -e \"CALL CRQ_SP_RESCHEDULE_INITIATE\\(31,'SUJIT123','verify calendar fix'\\);\")"
-    ],
-    "additionalDirectories": [
-      "D:\\CHM_airtel_scheduler\\Github_Repo\\airtelmanagement\\db\\migration"
+      "Skill(update-config)",
+      "Skill(update-config:*)",
+      "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.local.json','utf8'\\)\\); console.log\\('both valid JSON'\\)\")",
+      "Bash(powershell -NoProfile -Command \"if \\(Test-Path 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule'\\) { Get-ChildItem -Recurse 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule' | Select-Object -ExpandProperty FullName } else { Write-Output 'NOT FOUND' }\")"
     ]
   }
 }

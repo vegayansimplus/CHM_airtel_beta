@@ -103,7 +103,6 @@ interface UseRescheduleWizardArgs {
 export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRescheduleWizardArgs) {
   const [step, setStep] = useState<number>(STEP_DETAILS);
   const [reason, setReason] = useState("");
-  const [reasonTouched, setReasonTouched] = useState(false);
   const [rescheduleId, setRescheduleId] = useState<number | null>(null);
   const [desiredDate, setDesiredDate] = useState<string | null>(null);
   const [toStage, setToStage] = useState<CrqStageEnum | null>(null);
@@ -129,7 +128,6 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   const resetAll = useCallback(() => {
     setStep(STEP_DETAILS);
     setReason("");
-    setReasonTouched(false);
     setRescheduleId(null);
     setDesiredDate(null);
     setToStage(null);
@@ -232,8 +230,6 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   /** Step 1 -> 2. Reuses the resumed attempt rather than opening a second one. */
   const submitDetails = useCallback(async () => {
     if (!crqId) return;
-    setReasonTouched(true);
-    if (!reason.trim()) return;
     setStepError(null);
 
     if (rescheduleId) {
@@ -384,7 +380,6 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     contextError: isContextError ? errorMessage(contextError, "Could not load CRQ details.") : null,
     reason,
     setReason,
-    reasonTouched,
     // step 2
     calendar,
     isCalendarLoading,

@@ -29,7 +29,7 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
   wizard,
   colors,
 }) => {
-  const { context, isContextLoading, contextError, reason, setReason, reasonTouched } = wizard;
+  const { context, isContextLoading, contextError, reason, setReason } = wizard;
 
   if (isContextLoading) return <StepSkeleton rows={4} />;
   if (contextError) return <Alert severity="error">{contextError}</Alert>;
@@ -38,7 +38,6 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
   const used = context.rescheduleCount ?? 0;
   const max = context.maxReschedules ?? 3;
   const usedPct = Math.min(100, (used / Math.max(1, max)) * 100);
-  const reasonMissing = reasonTouched && !reason.trim();
 
   return (
     <Box>
@@ -154,8 +153,7 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
       </StepSection>
 
       <TextField
-        label="Reason for reschedule"
-        required
+        label="Reason for reschedule (optional)"
         fullWidth
         multiline
         minRows={2}
@@ -163,12 +161,7 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
         value={reason}
         onChange={(e) => setReason(e.target.value.slice(0, 500))}
         disabled={!context.canReschedule}
-        error={reasonMissing}
-        helperText={
-          reasonMissing
-            ? "A reason is required - it is written to the CRQ history with this reschedule."
-            : `${reason.length}/500`
-        }
+        helperText={`${reason.length}/500`}
         size="small"
       />
     </Box>

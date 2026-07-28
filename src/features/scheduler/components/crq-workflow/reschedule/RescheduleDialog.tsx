@@ -85,7 +85,7 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   const canContinue = (() => {
     switch (step) {
       case STEP_DETAILS:
-        return !!context?.canReschedule && !!wizard.reason.trim();
+        return !!context?.canReschedule;
       case STEP_DATE:
         return !!wizard.desiredDate;
       case STEP_STAGE:
