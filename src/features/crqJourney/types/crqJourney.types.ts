@@ -1,4 +1,4 @@
-// ─── Enums ────────────────────────────────────────────────────────────────────
+// ─── Step / approval status enums (drive card colors, not raw backend text) ──
 
 export type StepStatus = "completed" | "in_progress" | "pending" | "not_started";
 
@@ -8,84 +8,74 @@ export type ApprovalIconKey =
   | "mobility"
   | "b2b"
   | "telemedia"
-  | "user"
   | "optical"
   | "packet"
   | "security"
   | "others";
 
-export type Priority = "high" | "medium" | "low";
+// ─── Raw API row shapes (mirror backend DTOs exactly) ────────────────────────
 
-export type CrqStatus = "in_progress" | "pending" | "completed" | "cancelled";
-
-// ─── Data Models ──────────────────────────────────────────────────────────────
-
-export interface CrqInfo {
-  id: string;
-  title: string;
-  requester: string;
-  priority: Priority;
-  createdOn: string;
-  status: CrqStatus;
-  slaRemaining: string;
+/** One row from GetCRQBySubDomainId — backs the CRQ search/autocomplete. */
+export interface CrqJourneySearchRow {
+  crqNo: string;
+  currentStage: string;
+  currentStatus: string;
+  enteredCurrentStageAt: string | null;
 }
 
-export interface ParallelActivityStep {
-  id: string;
-  label: string;
-  iconType: "team" | "tools" | "clipboard" | "chart";
-  status: StepStatus;
+/** One row from sp_get_crq_journey_page — dynamic-length CRQ journey. */
+export interface CrqJourneyStageRow {
+  stage: string;
+  status: string;
 }
 
-export interface ApprovalTrigger {
-  id: string;
-  name: string;
-  icon: ApprovalIconKey;
-  status: ApprovalStatus;
+/** Result set 1 of get_crq_details — the CRQ info card. */
+export interface CrqDetailsInfo {
+  crqNo: string;
+  currentStage: string;
+  currentStatus: string;
+  teamFunction: string | null;
+  teamSubFunction: string | null;
+  createdDate: string | null;
+  remark: string | null;
 }
 
-export interface SchedulingStep {
-  id: string;
-  label: string;
-  iconType: "calendar" | "team" | "shield" | "check";
-  status: StepStatus;
+/** Result set 2 of get_crq_details — one row per canonical workflow stage. */
+export interface CrqDetailsStage {
+  stage: string;
+  stageStatus: string;
+  isCurrent: boolean;
+  assignedTo: string | null;
+  performedBy: string | null;
+  assignStart: string | null;
+  assignEnd: string | null;
+  stageStartDate: string | null;
+  stageEndDate: string | null;
 }
 
-export interface ExecutionStep {
-  id: string;
-  label: string;
-  iconType: "tools" | "check";
-  status: StepStatus;
+export interface CrqDetailsResponse {
+  info: CrqDetailsInfo | null;
+  stages: CrqDetailsStage[];
 }
 
-export interface MopStep {
-  id: string;
-  label: string;
-  status: StepStatus;
-}
+// ─── Feature 1 (/cabmanager/journey) — grouped, dynamic-length flow ──────────
+//
+// sp_get_crq_journey_page always returns, in order:
+//   1. SPOC/FE ASSIGNMENT           (exactly 1 row)
+//   2. 0..N linked CAB service rows (Mobility / Enterprise-B2B / Telemedia / …)
+//   3. CONFLICT CHECK                (exactly 1 row)
+//   4. the 7 canonical workflow stages (always present, fixed order)
+// groupJourneyStages() below turns that flat list into this shape.
 
-export interface CrqFlowData {
-  parallelActivities: {
-    row1: ParallelActivityStep[];
-    row2: ParallelActivityStep[];
-  };
-  mopSteps: MopStep[];
-  approvalTriggers: ApprovalTrigger[];
-  schedulingSteps: SchedulingStep[];
-  executionSteps: ExecutionStep[];
-}
-
-export interface CrqJourneyData {
-  crqInfo: CrqInfo;
-  flowData: CrqFlowData;
-}
-
-// ─── State ────────────────────────────────────────────────────────────────────
-
-export interface CrqJourneyState {
-  selectedCrqId: string | null;
-  showLegend: boolean;
-  isLoading: boolean;
-  error: string | null;
-  data: CrqJourneyData | null;
+export interface CrqJourneyFlow {
+  assignment: CrqJourneyStageRow | null;
+  approvals: CrqJourneyStageRow[];
+  conflictCheck: CrqJourneyStageRow | null;
+  validate: CrqJourneyStageRow | null;
+  impactAnalysis: CrqJourneyStageRow | null;
+  mopCreate: CrqJourneyStageRow | null;
+  mopValidate: CrqJourneyStageRow | null;
+  scheduling: CrqJourneyStageRow | null;
+  implementation: CrqJourneyStageRow | null;
+  closure: CrqJourneyStageRow | null;
 }

@@ -2,7 +2,15 @@ import React from "react";
 import { Box, Typography } from "@mui/material";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 
-export const CrqEmptyState: React.FC = () => (
+interface CrqEmptyStateProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export const CrqEmptyState: React.FC<CrqEmptyStateProps> = ({
+  title = "No CRQ Selected",
+  subtitle = "Choose a Change Request above to view its journey flow.",
+}) => (
   <Box
     sx={{
       display: "flex",
@@ -31,10 +39,10 @@ export const CrqEmptyState: React.FC = () => (
     </Box>
     <Box sx={{ textAlign: "center" }}>
       <Typography sx={{ fontWeight: 600, color: "#1F2937", fontSize: 15 }}>
-        No CRQ Selected
+        {title}
       </Typography>
-      <Typography sx={{ fontSize: 13.5, color: "text.secondary", mt: 0.5 }}>
-        Choose a Change Request above to view its journey flow.
+      <Typography sx={{ fontSize: 13.5, color: "text.secondary", mt: 0.5, maxWidth: 320 }}>
+        {subtitle}
       </Typography>
     </Box>
   </Box>

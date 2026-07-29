@@ -1,0 +1,104 @@
+import React from "react";
+import { Autocomplete, Box, CircularProgress, TextField, Typography, useTheme } from "@mui/material";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
+import type { OrgFilterKey, OrgFilterOption, OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
+import type { CrqJourneySearchRow } from "../../types/crqJourney.types";
+
+interface CrqDetailsSearchBarProps {
+  role: string;
+  values: OrgFilterValues;
+  options: Record<OrgFilterKey, OrgFilterOption[]>;
+  onFilterChange: (key: OrgFilterKey, value?: number) => void;
+  crqOptions: CrqJourneySearchRow[];
+  isLoadingCrqs: boolean;
+  value: CrqJourneySearchRow | null;
+  onChange: (crq: CrqJourneySearchRow | null) => void;
+}
+
+export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
+  role,
+  values,
+  options,
+  onFilterChange,
+  crqOptions,
+  isLoadingCrqs,
+  value,
+  onChange,
+}) => {
+  const theme = useTheme();
+  const scopeSelected = values.subDomain != null;
+
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        flexWrap: "wrap",
+        gap: 2,
+        p: "14px 18px",
+        borderRadius: "14px",
+        background:
+          theme.palette.mode === "dark"
+            ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
+            : "linear-gradient(135deg, rgba(255,255,255,0.85), rgba(255,255,255,0.55))",
+        backdropFilter: "blur(18px)",
+        WebkitBackdropFilter: "blur(18px)",
+        border: `1px solid ${theme.palette.divider}`,
+        boxShadow: theme.palette.mode === "dark" ? "0 8px 28px rgba(0,0,0,0.4)" : "0 8px 28px rgba(16,40,70,0.06)",
+      }}
+    >
+      <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
+
+      <Autocomplete<CrqJourneySearchRow>
+        size="small"
+        sx={{ flex: 1, minWidth: 320 }}
+        options={crqOptions}
+        value={value}
+        loading={isLoadingCrqs}
+        disabled={!scopeSelected}
+        getOptionLabel={(crq) => crq.crqNo}
+        isOptionEqualToValue={(a, b) => a.crqNo === b.crqNo}
+        onChange={(_e, crq) => onChange(crq)}
+        filterOptions={(opts, state) => {
+          const q = state.inputValue.trim().toLowerCase();
+          if (!q) return opts;
+          return opts.filter((crq) => crq.crqNo.toLowerCase().includes(q));
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder={scopeSelected ? "Look up a CRQ number…" : "Select a Sub Domain first"}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "999px",
+                background: theme.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "#fff",
+                fontFamily: "Roboto Mono, monospace",
+                fontSize: 13,
+              },
+            }}
+            InputProps={{
+              ...params.InputProps,
+              startAdornment: <SearchRoundedIcon sx={{ fontSize: 18, color: "text.disabled", ml: "6px" }} />,
+              endAdornment: (
+                <>
+                  {isLoadingCrqs && <CircularProgress color="inherit" size={14} />}
+                  {params.InputProps.endAdornment}
+                </>
+              ),
+            }}
+          />
+        )}
+        renderOption={(props, crq) => (
+          <Box component="li" {...props} key={crq.crqNo} sx={{ display: "flex", gap: 1.5 }}>
+            <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 600, color: "#1565C0" }}>
+              {crq.crqNo}
+            </Typography>
+            <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>{crq.currentStage}</Typography>
+          </Box>
+        )}
+        noOptionsText={scopeSelected ? "No CRQs found for this Sub Domain" : "Select a Sub Domain first"}
+      />
+    </Box>
+  );
+};

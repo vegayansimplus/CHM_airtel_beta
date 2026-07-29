@@ -40,8 +40,15 @@ import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkfl
 // import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
 // import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
 
-
-import { CabDashboardPage, AllCrqsPage, MyCrqsPage, CabPlanningPage, CabSessionsPage, ImplementationPage, AdminPage } from "../features/cabManager";
+import {
+  CabDashboardPage,
+  AllCrqsPage,
+  MyCrqsPage,
+  CabPlanningPage,
+  CabSessionsPage,
+  ImplementationPage,
+  AdminPage,
+} from "../features/cabManager";
 import CabManagerMainPageTab from "../features/cabManager/pages/CabManagerMainPageTab";
 import { CrqJourneyPage } from "../features/crqJourney";
 import UserManagement from "../features/userManagement/components/UserManagement";
