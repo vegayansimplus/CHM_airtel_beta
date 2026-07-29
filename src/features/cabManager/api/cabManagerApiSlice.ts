@@ -620,6 +620,8 @@ import type {
   CabSessionDetail,
   Crq,
   CrqActionResult,
+  CrqConflictDecisionPayload,
+  CrqConflictDetail,
   CrqFilters,
   CrqJourney,
   DashboardData,
@@ -1170,6 +1172,31 @@ getImplementation: builder.query<ImplementationDetail, void>({
         { type: "CabCrq", id: "MINE" },
       ],
     }),
+
+    // ── CONFLICT CHECK ────────────────────────────────────────────────────
+    getCrqConflicts: builder.query<CrqConflictDetail[], string>({
+      queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: `/cab/crqs/${encodeURIComponent(crqNo)}/conflicts`, method: "GET" },
+          baseQuery,
+          async () => await mockDelay([])
+        ),
+      providesTags: (_r, _e, crqNo) => [{ type: "CabCrq" as const, id: `CONFLICTS-${crqNo}` }],
+    }),
+
+    submitCrqConflictDecision: builder.mutation<CrqActionResult, CrqConflictDecisionPayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/crqs/${encodeURIComponent(body.crqNo)}/conflicts/decision`,
+            method: "POST",
+            body: { flag: body.flag },
+          },
+          baseQuery,
+          async () => await mockDelay({ status: "Success", message: `Conflict decision "${body.flag}" recorded.` })
+        ),
+      invalidatesTags: (_r, _e, b) => [{ type: "CabCrq" as const, id: `CONFLICTS-${b.crqNo}` }],
+    }),
   }),
   overrideExisting: false,
 });
@@ -1198,6 +1225,7 @@ export const {
   useGetEscalationMatrixQuery,
   useGetAdminUsersQuery,
   useGetAuditLogQuery,
+  useGetCrqConflictsQuery,
   // mutations
   usePlanCabMutation,
   useCreateCrqMutation,
@@ -1211,4 +1239,5 @@ export const {
   useAddCabRejectReasonMutation,
   useUpdateCabRejectReasonMutation,
   useDeleteCabRejectReasonMutation,
+  useSubmitCrqConflictDecisionMutation,
 } = cabPortalApi;

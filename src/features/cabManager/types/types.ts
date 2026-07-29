@@ -300,6 +300,22 @@ export interface ReschedulePayload { serviceApprovalId: number; newDate: string;
 // ── Workflow action result (approve / reject / reschedule) ─────────────────
 export interface CrqActionResult { status: string; message: string; }
 
+// ── Conflict check (AllCRQs / MyCRQs "Conflict" action) ─────────────────────
+export interface CrqConflictDetail {
+  executionDate: string;
+  neLabel: string;
+  conflictingCrqNo: string;
+  currentStage: string;
+  currentStatus: string;
+  taskId: string;
+  planActivityDetails: string;
+  activityPlanStartDate: string;
+  activityPlanEndDate: string;
+}
+
+export type CrqConflictFlag = "YES" | "NO";
+export interface CrqConflictDecisionPayload { crqNo: string; flag: CrqConflictFlag; }
+
 // ── Reject reasons (AllCRQs reject dropdown) ────────────────────────────────
 export interface CabRejectReason { reasonId: number; reasonText: string; }
 

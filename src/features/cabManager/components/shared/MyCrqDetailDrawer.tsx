@@ -13,11 +13,13 @@ import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
 import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
+import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetMyCrqByIdQuery } from "../../api/cabManagerApiSlice";
 import { AssignSpocModal } from "../modals/AssignSpocModal";
 import { AssignFeModal } from "../modals/AssignFeModal";
+import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -28,6 +30,7 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
 
   const [assignSpocOpen, setAssignSpocOpen] = useState(false);
   const [assignFeOpen, setAssignFeOpen] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
 
   return (
     <Drawer anchor="right" open={open} onClose={onClose} PaperProps={{ sx: { width: 480 } }}>
@@ -104,6 +107,12 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
                   Re-assign FE
                 </Button>
               </Stack>
+              <Stack direction="row" alignItems="center" justifyContent="space-between">
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>Conflict check</Typography>
+                <Button size="small" variant="outlined" color="warning" startIcon={<ReportProblemOutlinedIcon />} onClick={() => setConflictOpen(true)}>
+                  Conflict
+                </Button>
+              </Stack>
             </Stack>
           </>
         )}
@@ -126,6 +135,13 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
           setAssignFeOpen(false);
           onClose();
         }}
+      />
+
+      <ConflictCrqModal
+        open={conflictOpen}
+        crqNo={crqId}
+        onClose={() => setConflictOpen(false)}
+        onSuccess={() => setConflictOpen(false)}
       />
     </Drawer>
   );
