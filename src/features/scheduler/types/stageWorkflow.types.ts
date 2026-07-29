@@ -96,6 +96,7 @@ export interface StageConfig {
   buildDonePayload: (
     formValues: Record<string, any>,
     crq: any,
+    context?: { currentUserOlmId?: string | null },
   ) => Record<string, any>;
 }
 

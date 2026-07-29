@@ -26,10 +26,67 @@ function buildStageConfig(
   return {
     statusField: "status",
     statusOptions: DEFAULT_STATUS_OPTIONS,
-    fields: [...CANCELLATION_FIELDS, REMARK_FIELD],
+    // On Cancel, "Remedy Status" (field1) and "Remedy Remark" (field5) are
+    // the only status/remark inputs shown - the generic CHM Remark box is
+    // redundant here, so it's hidden and its backend param is filled from
+    // field5 instead of asking for the same text twice.
+    fields: [
+      ...CANCELLATION_FIELDS,
+      { ...REMARK_FIELD, visibleWhen: (v) => v.status !== "canceled" },
+    ],
     ...partial,
   };
 }
+
+/**
+ * Shared shape for every stage's /done payload: crqNo/crqId/olmId/localStatus/
+ * remark/planNumber, plus (only on Cancel) the cancellation block params.
+ * `extra` lets a stage add its own fields on top (e.g. taskNumber).
+ */
+function buildCommonDonePayload(
+  values: Record<string, any>,
+  crq: any,
+  context: { currentUserOlmId?: string | null } | undefined,
+  extra: Record<string, any> = {},
+): Record<string, any> {
+  const isCanceled = values.status === "canceled";
+  // field4 (Cancellation Rejection Owner) is a "readonly" field - the
+  // renderer shows it as a plain TextField, not an RHF Controller, so it
+  // never lands in `values`. Re-derive it the same way the field config
+  // does instead of reading a key that's always undefined.
+  const field4Config = CANCELLATION_FIELDS.find((f) => f.name === "field4");
+  const field4Value = field4Config?.deriveValue?.(values) ?? "";
+
+  return {
+    // olmId = the logged-in user actioning this stage, not a field stored
+    // on the CRQ.
+    olmId: context?.currentUserOlmId ?? "",
+    crqNo: crq?.crqNo ?? "",
+    crqId: crq?.crqId ?? "",
+    localStatus: isCanceled
+      ? (values.field1 ?? "Cancelled")
+      : values.status === "Done"
+        ? "DONE"
+        : values.status,
+    remark: isCanceled ? (values.field5 ?? "") : (values.remark ?? ""),
+    planNumber: crq?.planNumber ?? "",
+    ...extra,
+    ...(isCanceled && {
+      cygnetStatus: values.cygnetStatus,
+      field1: values.field1,
+      field3: values.cancellationReason,
+      field4: field4Value,
+      field5: values.field5,
+    }),
+  };
+}
+
+/** Comma-separated task IDs for every task under a CRQ. */
+const taskNumbersOf = (crq: any): string =>
+  (crq?.tasks ?? [])
+    .map((t: any) => t?.taskId)
+    .filter(Boolean)
+    .join(",") || (crq?.taskId ?? "");
 
 /**
  * Single source of truth for all 7(+) workflow stages.
@@ -51,16 +108,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "IMPACT_ANALYSIS",
     statusField: "impactAnalysisStatus",
     olmIdField: "olmidImpactAnalysis",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidImpactAnalysis ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      taskNumber: crq?.taskId ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 
   mopcreate: buildStageConfig({
@@ -71,15 +122,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "MOP_CREATION",
     statusField: "mopCreateStatus",
     olmIdField: "olmidMopCreation",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidMopCreation ?? crq?.olmidMopCreate ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 
   mopvalidate: buildStageConfig({
@@ -90,15 +136,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "MOP_VALIDATION",
     statusField: "mopValidateStatus",
     olmIdField: "olmidMopValidation",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidMopValidation ?? crq?.olmidMopValidate ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 
   scheduling: buildStageConfig({
@@ -109,15 +150,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "SCHEDULING_APPROVAL",
     statusField: "schedulingStatus",
     olmIdField: "olmidSchedulingApproval",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidSchedulingApproval ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 
   activityimplement: buildStageConfig({
@@ -128,16 +164,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "EXECUTION",
     statusField: "activityImplementStatus",
     olmIdField: "olmidExecution",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidExecution ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      taskNumber: crq?.taskId ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 
   closer: buildStageConfig({
@@ -148,15 +178,10 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "CLOSURE",
     statusField: "crqCloserStatus",
     olmIdField: "olmidClosure",
-    buildDonePayload: (values, crq) => ({
-      crqNo: crq?.crqNo ?? "",
-      crqId: crq?.crqId ?? "",
-      olmId: crq?.olmidClosure ?? "",
-      localStatus: values.status === "Done" ? "DONE" : values.status,
-      remark: values.remark ?? "",
-      planNumber: crq?.planNumber ?? "",
-      ...values,
-    }),
+    buildDonePayload: (values, crq, context) =>
+      buildCommonDonePayload(values, crq, context, {
+        taskNumber: taskNumbersOf(crq),
+      }),
   }),
 };
 

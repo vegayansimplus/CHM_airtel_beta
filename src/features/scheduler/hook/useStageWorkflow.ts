@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { getStageConfig } from "../constants/stageConfig";
 import {
@@ -6,6 +7,7 @@ import {
   useSubmitStageDoneMutation,
 } from "../api/stageWorkflowApiSlice";
 import type { StageKey } from "../types/stageWorkflow.types";
+import type { RootState } from "../../../app/store";
 
 const TOAST_OPTS = {
   position: "top-right" as const,
@@ -19,6 +21,7 @@ const TOAST_OPTS = {
 
 export const useStageWorkflow = (stageKey: StageKey) => {
   const stageConfig = getStageConfig(stageKey);
+  const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
   const [updateStageStatus, { isLoading: isTogglingStatus }] =
     useUpdateStageStatusMutation();
   const [submitStageDone, { isLoading: isSubmittingDone }] =
@@ -57,7 +60,9 @@ export const useStageWorkflow = (stageKey: StageKey) => {
   const submitDone = useCallback(
     async (formValues: Record<string, any>, crq: any) => {
       try {
-        const payload = stageConfig.buildDonePayload(formValues, crq);
+        const payload = stageConfig.buildDonePayload(formValues, crq, {
+          currentUserOlmId,
+        });
         const response = await submitStageDone({
           stageKey,
           ...payload,
@@ -75,7 +80,7 @@ export const useStageWorkflow = (stageKey: StageKey) => {
         return { success: false };
       }
     },
-    [stageKey, stageConfig, submitStageDone],
+    [stageKey, stageConfig, submitStageDone, currentUserOlmId],
   );
 
   return {
