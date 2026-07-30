@@ -53,6 +53,12 @@ import CabManagerMainPageTab from "../features/cabManager/pages/CabManagerMainPa
 import { CrqJourneyPage } from "../features/crqJourney";
 import UserManagement from "../features/userManagement/components/UserManagement";
 import PageLoader from "../components/loading/PageLoader";
+import {
+  AnalyticsMainPageTab,
+  AnalyticsDashboardPage,
+  CrqAnalyticsPage,
+  AnalyticsReportsPage,
+} from "../features/crqAnalytics";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -158,6 +164,25 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="sessions" element={<CabSessionsPage />} />
           <Route path="implementation" element={<ImplementationPage />} />
           <Route path="admin" element={<AdminPage />} />
+        </Route>
+
+        <Route
+          path="analytics"
+          element={
+            <PrivateRoute
+              element={
+                <AnalyticsMainPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AnalyticsDashboardPage />} />
+          <Route path="crq-analytics" element={<CrqAnalyticsPage />} />
+          <Route path="reports" element={<AnalyticsReportsPage />} />
         </Route>
 
         <Route

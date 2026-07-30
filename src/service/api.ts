@@ -120,5 +120,6 @@ export const api = createApi({
     "UserManagementProfile",
     "Attendance",
     "AttributeUpdate",
+    "CrqAnalytics",
   ],
 });

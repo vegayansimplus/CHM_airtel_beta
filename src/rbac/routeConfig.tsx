@@ -8,6 +8,7 @@ import MailIcon from "@mui/icons-material/Mail";
 import PersonIcon from "@mui/icons-material/Person";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 import FilterTiltShiftIcon from "@mui/icons-material/FilterTiltShift";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import Badge from "@mui/material/Badge";
 
 export interface SidebarItem {
@@ -69,5 +70,11 @@ export const getSidebarConfig = (inboxCount: number): SidebarItem[] => [
     text: "User Management",
     icon: <SupervisedUserCircle />,
     requiredModule: "User Management",
+  },
+  {
+    to: "/analytics",
+    text: "Analytics",
+    icon: <InsightsRoundedIcon />,
+    requiredModule: "CRQ Analytics",
   },
 ];
