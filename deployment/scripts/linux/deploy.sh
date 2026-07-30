@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================================
 # CHM - Deploy built artifacts on the Linux server. Run with sudo.
-#  - React dist/        -> /var/www/chm/airtelchm
+#  - React dist/        -> /var/www/chm/airtelchmbeta
 #  - error pages        -> /var/www/chm/error-pages
 #  - WAR                -> /opt/chm/app/airtelmanagement.war (previous kept as .bak)
 #  - logback-linux.xml  -> /opt/chm/config/
@@ -24,8 +24,8 @@ echo "=== Stopping backend ==="
 systemctl stop chm-backend || true
 
 echo "=== Deploying frontend ==="
-mkdir -p "$WWW_ROOT/airtelchm" "$WWW_ROOT/error-pages"
-rsync -a --delete "$FRONTEND_DIST/" "$WWW_ROOT/airtelchm/"
+mkdir -p "$WWW_ROOT/airtelchmbeta" "$WWW_ROOT/error-pages"
+rsync -a --delete "$FRONTEND_DIST/" "$WWW_ROOT/airtelchmbeta/"
 rsync -a "$DEPLOY_SRC/config/error-pages/" "$WWW_ROOT/error-pages/"
 chown -R nginx:nginx "$WWW_ROOT" 2>/dev/null || chown -R www-data:www-data "$WWW_ROOT"
 
@@ -50,4 +50,4 @@ nginx -t && systemctl reload nginx
 echo
 echo "DEPLOY OK - verify:"
 echo "  curl -s http://127.0.0.1:8686/actuator/health"
-echo "  curl -sI http://localhost/airtelchm/"
+echo "  curl -sI http://localhost/airtelchmbeta/"

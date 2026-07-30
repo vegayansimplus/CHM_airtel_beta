@@ -9,7 +9,7 @@ C:\tools\nssm\nssm.exe                 NSSM service manager
 C:\vegayan\simplus\
 ├── airtelcms-config.properties        external runtime config (DB/SSH/SFTP) - REQUIRED
 ├── app\airtelmanagement.war           Spring Boot executable WAR
-├── www\airtelchm\                     React build (Vite dist/)
+├── www\airtelchmbeta\                 React build (Vite dist/)
 ├── www\error-pages\50x.html           custom error page
 └── sftp_uploads\                      SFTP working dir (hardcoded in AppPropertiesConfig)
 D:\files_path, D:\files_path2          CSV/file paths (application.properties)
@@ -80,7 +80,7 @@ On the build machine (can be the server itself), run
 Run [deployment/scripts/windows/deploy.bat](scripts/windows/deploy.bat) **as Administrator**. It:
 
 1. Stops `CHM-Backend` (no-op on first deploy).
-2. Mirrors `dist\` → `C:\vegayan\simplus\www\airtelchm` and error pages → `www\error-pages`.
+2. Mirrors `dist\` → `C:\vegayan\simplus\www\airtelchmbeta` and error pages → `www\error-pages`.
 3. Copies the WAR → `C:\vegayan\simplus\app\airtelmanagement.war`.
 4. Creates `D:\files_path`, `D:\files_path2`, `D:\CHM_LOGS`, `sftp_uploads` if missing.
 5. Warns if the external config file is missing.
@@ -122,19 +122,19 @@ curl -i http://127.0.0.1:1857/auth/v1/signin -X POST -H "Content-Type: applicati
 ::    expect 400/401 (reachable; bad credentials is fine)
 
 :: 3. Nginx serves the SPA
-curl -i http://localhost/airtelchm/
-::    expect 200 + HTML containing /airtelchm/assets/...
+curl -i http://localhost/airtelchmbeta/
+::    expect 200 + HTML containing /airtelchmbeta/assets/...
 
 :: 4. Nginx proxies the API (prefix stripped)
 curl -i http://localhost/changemanagementnew/auth/v1/signin -X POST -H "Content-Type: application/json" -d "{}"
 ::    expect same status as step 2
 
 :: 5. SPA deep-link fallback
-curl -i http://localhost/airtelchm/some/deep/route
+curl -i http://localhost/airtelchmbeta/some/deep/route
 ::    expect 200 + index.html
 ```
 
-From a workstation browser: `http://<server-ip>/airtelchm/` → login page loads,
+From a workstation browser: `http://<server-ip>/airtelchmbeta/` → login page loads,
 sign in works, refresh on an inner page does **not** 404, an Excel upload succeeds,
 and DevTools shows API calls going to `http://<server-ip>/changemanagementnew/...`
 with **no CORS errors**.
@@ -147,6 +147,6 @@ with **no CORS errors**.
 |---------|-------------|
 | CHM-Backend stops immediately | Missing/invalid `C:\vegayan\simplus\airtelcms-config.properties` — check `D:\CHM_LOGS\backend-stderr.log` |
 | 502 from Nginx | Backend not running or still starting — check `net start CHM-Backend`, actuator health |
-| Blank page at `/airtelchm/` | dist not deployed to `www\airtelchm`, or build made without `.env.production` |
+| Blank page at `/airtelchmbeta/` | dist not deployed to `www\airtelchmbeta`, or build made without `.env.production` |
 | API calls hit dev IP `192.168.0.x:1857` | Frontend built with the dev `.env` — confirm `.env.production` exists, rebuild |
-| Login OK but refresh 404s | `try_files ... /airtelchm/index.html` missing from nginx.conf |
+| Login OK but refresh 404s | `try_files ... /airtelchmbeta/index.html` missing from nginx.conf |

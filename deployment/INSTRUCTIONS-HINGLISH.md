@@ -25,7 +25,7 @@ nahi". English reference guides: [WINDOWS-DEPLOYMENT.md](WINDOWS-DEPLOYMENT.md),
                          ┌─────────────────────────── SERVER ───────────────────────────┐
                          │                                                              │
  User ka browser ──────▶ │  Nginx (port 80)                                             │
- http://server-ip/       │    ├── /airtelchm/            → React static files           │
+ http://server-ip/       │    ├── /airtelchmbeta/        → React static files               │
                          │    │                            (C:\vegayan\simplus\www)     │
                          │    └── /changemanagementnew/  → Spring Boot backend          │
                          │                                 (127.0.0.1:1857)             │
@@ -297,14 +297,14 @@ deployment\scripts\windows\deploy.bat
 ```
 
 **Kya karta hai:**
-- `dist\` → `C:\vegayan\simplus\www\airtelchm\` copy (robocopy /MIR — purana saaf karke)
+- `dist\` → `C:\vegayan\simplus\www\airtelchmbeta\` copy (robocopy /MIR — purana saaf karke)
 - WAR → `C:\vegayan\simplus\app\airtelmanagement.war` copy
 - Error pages → `C:\vegayan\simplus\www\error-pages\`
 - Runtime folders banata hai: `D:\files_path`, `D:\files_path2`, `D:\CHM_LOGS`,
   `C:\vegayan\simplus\sftp_uploads`
 - Config file missing ho to **WARNING** print karta hai
 
-**Expected output (end me):** `DEPLOY OK - verify: curl http://localhost/airtelchm/ ...`
+**Expected output (end me):** `DEPLOY OK - verify: curl http://localhost/airtelchmbeta/ ...`
 
 Pehli baar `net stop CHM-Backend` pe "service does not exist" jaisa message
 aayega — **normal hai**, service abhi bani hi nahi.
@@ -381,7 +381,7 @@ curl http://127.0.0.1:8686/actuator/health
 ### Test 2 — Nginx frontend serve kar raha hai?
 
 ```bat
-curl -i http://localhost/airtelchm/
+curl -i http://localhost/airtelchmbeta/
 ```
 
 **Expected (pehli lines):**
@@ -408,10 +408,10 @@ backend tak pahunchi). `502 Bad Gateway` aaye to backend down hai.
 Kisi bhi LAN machine ke browser me:
 
 ```
-http://<server-ka-ip>/airtelchm/
+http://<server-ka-ip>/airtelchmbeta/
 ```
 
-Example: `http://10.20.30.40/airtelchm/`
+Example: `http://10.20.30.40/airtelchmbeta/`
 
 Checklist:
 - [ ] Login page dikha
@@ -566,7 +566,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 
 DEPLOY OK - verify:
   curl -s http://127.0.0.1:8686/actuator/health
-  curl -sI http://localhost/airtelchm/
+  curl -sI http://localhost/airtelchmbeta/
 ```
 
 deploy.sh ye bhi karta hai: purani WAR ka `.bak` backup rakhta hai, aur
@@ -582,7 +582,7 @@ curl -s http://127.0.0.1:8686/actuator/health
 # → {"status":"UP"}
 
 # Frontend:
-curl -sI http://localhost/airtelchm/ | head -1
+curl -sI http://localhost/airtelchmbeta/ | head -1
 # → HTTP/1.1 200 OK
 
 # Service status:
@@ -691,12 +691,12 @@ register karo.
    raha hai. Check: `sudo grep denied /var/log/audit/audit.log | grep nginx`
    Fix: `sudo setsebool -P httpd_can_network_connect 1`
 
-### 5.3 — `/airtelchm/` pe blank white page
+### 5.3 — `/airtelchmbeta/` pe blank white page
 
 F12 → Console kholo. **Example error:**
 
 ```
-Failed to load resource: net::ERR_ABORTED 404  /airtelchm/assets/index-Cx4T9dka.js
+Failed to load resource: net::ERR_ABORTED 404  /airtelchmbeta/assets/index-Cx4T9dka.js
 ```
 
 → `index.html` naya hai lekin assets purane (ya deploy adhura hua).
@@ -718,9 +718,9 @@ hai — sirf file badalna kaafi nahi, rebuild zaroori hai.)
 
 ### 5.5 — Andar ke page pe F5 refresh karne pe 404
 
-**Example:** `http://server/airtelchm/roster/weekly` pe ho, F5 dabaya → nginx ka 404.
+**Example:** `http://server/airtelchmbeta/roster/weekly` pe ho, F5 dabaya → nginx ka 404.
 
-**Wajah:** Nginx me SPA fallback (`try_files ... /airtelchm/index.html`) wala
+**Wajah:** Nginx me SPA fallback (`try_files ... /airtelchmbeta/index.html`) wala
 config load nahi hua — purana/default config chal raha hai.
 
 **Fix (Windows):**

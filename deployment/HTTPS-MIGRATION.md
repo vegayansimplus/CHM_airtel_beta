@@ -76,7 +76,7 @@ terminates at Nginx, and the backend stays on loopback HTTP. Two optional notes:
 1. Obtain certificate + key, place per table above.
 2. Deploy the HTTPS Nginx config, `nginx -t`, reload.
 3. Open 443 in the firewall.
-4. Browse `https://<host>/airtelchm/` — login and API calls must work unchanged.
+4. Browse `https://<host>/airtelchmbeta/` — login and API calls must work unchanged.
 5. Confirm `http://` URLs redirect to `https://`.
 6. (After confidence) keep HSTS enabled; set up renewal.
 

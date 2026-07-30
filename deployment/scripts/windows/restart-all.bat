@@ -4,4 +4,4 @@ net stop CHM-Nginx
 net stop CHM-Backend
 net start CHM-Backend
 net start CHM-Nginx
-echo Verify: curl http://localhost/airtelchm/
+echo Verify: curl http://localhost/airtelchmbeta/

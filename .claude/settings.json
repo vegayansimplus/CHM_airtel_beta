@@ -4,7 +4,8 @@
       "Skill(update-config)",
       "Skill(update-config:*)",
       "Bash(node -e \"JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.json','utf8'\\)\\); JSON.parse\\(require\\('fs'\\).readFileSync\\('.claude/settings.local.json','utf8'\\)\\); console.log\\('both valid JSON'\\)\")",
-      "Bash(powershell -NoProfile -Command \"if \\(Test-Path 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule'\\) { Get-ChildItem -Recurse 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule' | Select-Object -ExpandProperty FullName } else { Write-Output 'NOT FOUND' }\")"
+      "Bash(powershell -NoProfile -Command \"if \\(Test-Path 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule'\\) { Get-ChildItem -Recurse 'd:\\\\CHM_airtel_scheduler\\\\Github_Repo\\\\CHM_airtel_beta\\\\src\\\\features\\\\scheduler\\\\components\\\\crq-workflow\\\\reschedule' | Select-Object -ExpandProperty FullName } else { Write-Output 'NOT FOUND' }\")",
+      "Bash(echo \"exit:$?\")"
     ]
   }
 }
