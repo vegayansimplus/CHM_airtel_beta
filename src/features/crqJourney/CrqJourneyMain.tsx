@@ -1,35 +1,13 @@
 import { Box } from "@mui/material";
-import { CrqJourneyPage } from "./pages/CrqJourneyPage";
-// import { authStorage } from "../../app/store/auth.storage";
-// import { useOrgHierarchyState } from "../orgHierarchy/hooks/useOrgHierarchyState";
-// import { useOrgHierarchyFilters } from "../orgHierarchy/hooks/useOrgHierarchyFilters";
-// import OrgHierarchyFilters from "../orgHierarchy/components/OrgHierarchyFiltersV2";
+import { CrqDetailsPage } from "./pages/CrqDetailsPage";
 
-
-export const CrqJourneyMain = () => {
-  // const loggedUser = authStorage.getUser();
-  // const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  // const { values, handleChange } = useOrgHierarchyState();
-  // const { options } = useOrgHierarchyFilters(values);
-
-  return (
-    <>
-      {/* ── Org Hierarchy Filters ── */}
-      {/* <Box>
-        
-        <OrgHierarchyFilters
-          role={roleName}
-          values={values}
-          options={options}
-          onChange={handleChange}
-        />
-        
-      </Box> */}
-
-      {/* ── CRQ Selector + Journey Flow ── */}
-      <Box>
-        <CrqJourneyPage />
-      </Box>
-    </>
-  );
-};
+// Renders at /scheduler/crqjourney. Deliberately a different visualization
+// from /cabmanager/journey's CrqJourneyPage (horizontal pipeline canvas) —
+// this is an info-card + vertical audit-trail timeline built from
+// get_crq_details, which carries assignment/performer/timestamp detail the
+// CAB pipeline view doesn't need.
+export const CrqJourneyMain = () => (
+  <Box>
+    <CrqDetailsPage />
+  </Box>
+);

@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { authStorage } from "../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import { useGetCrqsBySubDomainQuery, useGetCrqJourneyStagesQuery } from "../api/crqJourneyExplorer.api";
-import { groupJourneyStages } from "../utils/crqJourney.utils";
+import { useGetCrqsBySubDomainQuery, useGetCrqDetailsQuery } from "../api/crqJourneyExplorer.api";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
-/** Drives /cabmanager/journey: sub-domain scoped CRQ search → dynamic-length journey flow. */
-export const useCrqJourney = () => {
+/** Drives /scheduler/crqjourney: sub-domain scoped CRQ search → info card + 7-stage timeline. */
+export const useCrqDetails = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
@@ -15,7 +14,6 @@ export const useCrqJourney = () => {
   const { options } = useOrgHierarchyFilters(values);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);
-  const [showLegend, setShowLegend] = useState(true);
 
   const subDomainId = values.subDomain;
 
@@ -24,18 +22,15 @@ export const useCrqJourney = () => {
     { skip: subDomainId == null }
   );
 
-  // A different sub-domain scope invalidates whatever CRQ was picked before.
   useEffect(() => {
     setSelectedCrq(null);
   }, [subDomainId]);
 
   const {
-    data: stageRows,
-    isFetching: isLoadingJourney,
-    isError: isJourneyError,
-  } = useGetCrqJourneyStagesQuery(selectedCrq?.crqNo ?? "", { skip: !selectedCrq });
-
-  const flow = useMemo(() => (stageRows ? groupJourneyStages(stageRows) : null), [stageRows]);
+    data: details,
+    isFetching: isLoading,
+    isError,
+  } = useGetCrqDetailsQuery(selectedCrq?.crqNo ?? "", { skip: !selectedCrq });
 
   return {
     roleName,
@@ -46,10 +41,8 @@ export const useCrqJourney = () => {
     isLoadingCrqs,
     selectedCrq,
     handleSelectCrq: setSelectedCrq,
-    showLegend,
-    handleToggleLegend: () => setShowLegend((v) => !v),
-    isLoading: isLoadingJourney,
-    error: isJourneyError ? "Failed to load CRQ journey." : null,
-    flow,
+    details: details ?? null,
+    isLoading,
+    error: isError ? "Failed to load CRQ details." : null,
   };
 };

@@ -1,23 +1,23 @@
 import React from "react";
 import { Box, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import type { StepStatus } from "../types/crqJourney.types";
 import { STEP_STATUS_CONFIG } from "../utils/crqJourney.utils";
 
 interface StepStatusBadgeProps {
   status: StepStatus;
   showDot?: boolean;
+  /** Show the real backend status text instead of the generic StepStatus label. */
+  label?: string;
 }
 
 export const StepStatusBadge: React.FC<StepStatusBadgeProps> = ({
   status,
   showDot = true,
+  label,
 }) => {
   const cfg = STEP_STATUS_CONFIG[status];
-  const isCompleted = status === "completed";
-  const isInProgress = status === "in_progress";
-  const showPulse = isInProgress || status === "pending";
+  const showPulse = status === "in_progress" || status === "pending";
 
   return (
     <Box
@@ -68,7 +68,7 @@ export const StepStatusBadge: React.FC<StepStatusBadgeProps> = ({
       <Typography
         sx={{ fontSize: 11.5, fontWeight: 600, color: cfg.color }}
       >
-        {cfg.label}
+        {label ?? cfg.label}
       </Typography>
     </Box>
   );
