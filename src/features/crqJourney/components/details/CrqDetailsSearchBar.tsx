@@ -4,6 +4,7 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterKey, OrgFilterOption, OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 import type { CrqJourneySearchRow } from "../../types/crqJourney.types";
+import { statusChipColor } from "../../utils/crqJourney.utils";
 
 interface CrqDetailsSearchBarProps {
   role: string;
@@ -46,13 +47,17 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
         WebkitBackdropFilter: "blur(18px)",
         border: `1px solid ${theme.palette.divider}`,
         boxShadow: theme.palette.mode === "dark" ? "0 8px 28px rgba(0,0,0,0.4)" : "0 8px 28px rgba(16,40,70,0.06)",
+        transition: "box-shadow 0.2s ease",
+        "&:focus-within": {
+          boxShadow: `0 0 0 3px ${theme.palette.primary.main}22, 0 8px 28px rgba(16,40,70,0.08)`,
+        },
       }}
     >
       <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
 
       <Autocomplete<CrqJourneySearchRow>
         size="small"
-        sx={{ flex: 1, minWidth: 320 }}
+        sx={{ flex: 1, minWidth: { xs: "100%", sm: 320 } }}
         options={crqOptions}
         value={value}
         loading={isLoadingCrqs}
@@ -89,14 +94,18 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
             }}
           />
         )}
-        renderOption={(props, crq) => (
-          <Box component="li" {...props} key={crq.crqNo} sx={{ display: "flex", gap: 1.5 }}>
-            <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 600, color: "#1565C0" }}>
-              {crq.crqNo}
-            </Typography>
-            <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>{crq.currentStage}</Typography>
-          </Box>
-        )}
+        renderOption={(props, crq) => {
+          const chip = statusChipColor(crq.currentStatus);
+          return (
+            <Box component="li" {...props} key={crq.crqNo} sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: "50%", background: chip.dot, flexShrink: 0 }} />
+              <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 600, color: theme.palette.primary.main }}>
+                {crq.crqNo}
+              </Typography>
+              <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>{crq.currentStage}</Typography>
+            </Box>
+          );
+        }}
         noOptionsText={scopeSelected ? "No CRQs found for this Sub Domain" : "Select a Sub Domain first"}
       />
     </Box>
