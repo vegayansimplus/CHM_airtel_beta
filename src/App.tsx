@@ -25,6 +25,9 @@ const App: React.FC = () => {
   );
 
   return (
+    // BASE_URL comes from vite.config.ts's `base` (itself driven by the
+    // VITE_APP_BASE_PATH env var), so this always matches wherever the app
+    // is actually served from - no hardcoded deployment path here.
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/^\/|\/$/g, "")}>
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>

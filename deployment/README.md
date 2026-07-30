@@ -31,9 +31,13 @@ no backend code change is required.
 1. **Build commands** — frontend: `npm run ready-hoja` (= `vite build`, output `dist/`);
    backend: `mvnw package` (produces `target/airtelmanagement-0.0.1-SNAPSHOT.war`,
    executable because `spring-boot-starter-tomcat` is *not* `provided`).
-2. **Base path** — the SPA must be served at `/airtelchmbeta/` (`vite.config.ts` `base` and
-   `BrowserRouter basename="airtelchmbeta"`). Deep links like `/airtelchmbeta/roster/...` must
-   fall back to `index.html` (handled in the Nginx configs).
+2. **Base path** — the SPA is served at `/airtelchmbeta/`, set via `VITE_APP_BASE_PATH` in
+   `.env` / `.env.production` (read by `vite.config.ts`'s `base`; `BrowserRouter`'s
+   `basename` in `src/App.tsx` derives from that same value at runtime, so the two can
+   never drift apart). To retarget a deployment to a different sub-path (or `/`), change
+   `VITE_APP_BASE_PATH` and rebuild - no source edit needed - and update the matching
+   Nginx `location` blocks to the same path. Deep links like `/airtelchmbeta/roster/...`
+   must fall back to `index.html` (handled in the Nginx configs).
 3. **External runtime config (mandatory)** — `AppPropertiesConfig.java` reads:
    - Windows: `C:\vegayan\simplus\airtelcms-config.properties`
    - Linux: `/home/vegayan/simplus/config_airtel.properties`

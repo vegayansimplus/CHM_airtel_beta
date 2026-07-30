@@ -150,3 +150,4 @@ with **no CORS errors**.
 | Blank page at `/airtelchmbeta/` | dist not deployed to `www\airtelchmbeta`, or build made without `.env.production` |
 | API calls hit dev IP `192.168.0.x:1857` | Frontend built with the dev `.env` — confirm `.env.production` exists, rebuild |
 | Login OK but refresh 404s | `try_files ... /airtelchmbeta/index.html` missing from nginx.conf |
+| `<Router basename="..."> is not able to match the URL` | Stale `dist/` served under a URL/Nginx path that no longer matches the `VITE_APP_BASE_PATH` it was built with — rebuild (`npm run ready-hoja`) after any `VITE_APP_BASE_PATH` or Nginx path change and redeploy |
