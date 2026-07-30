@@ -21,6 +21,10 @@ import SettingsIcon from "@mui/icons-material/Settings";
 import TuneIcon from "@mui/icons-material/Tune";
 // import PaletteIcon from "@mui/icons-material/Palette";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
+import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
+import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
 import { usePermission } from "./usePermission";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -205,6 +209,35 @@ const ALL_NAV_ITEMS: NavItem[] = [
     text: "User Management",
     icon: <SupervisedUserCircle />,
     requiredModule: "User Management",
+  },
+  {
+    to: "/analytics",
+    text: "Analytics",
+    icon: <InsightsRoundedIcon />,
+    requiredModule: "CRQ Analytics",
+    children: [
+      {
+        to: "/analytics/dashboard",
+        text: "Dashboard",
+        icon: <DashboardRoundedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/dashboard"],
+      },
+      {
+        to: "/analytics/crq-analytics",
+        text: "CRQ Analytics",
+        icon: <QueryStatsRoundedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/crq-analytics"],
+      },
+      {
+        to: "/analytics/reports",
+        text: "Reports",
+        icon: <SummarizeRoundedIcon />,
+        requiredModule: "CRQ Analytics",
+        matchPaths: ["/analytics/reports"],
+      },
+    ],
   },
   {
     to: "/global-settings",

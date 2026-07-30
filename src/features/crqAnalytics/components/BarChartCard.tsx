@@ -1,0 +1,86 @@
+import { useMemo } from "react";
+import { useTheme } from "@mui/material";
+import { Bar } from "react-chartjs-2";
+import type { ChartOptions } from "chart.js";
+import { chartChrome } from "../utils/chartPalette";
+import { EmptyOrErrorState } from "./EmptyOrErrorState";
+import "../utils/chartSetup";
+
+export interface BarSeries {
+  label: string;
+  data: number[];
+  color: string;
+}
+
+interface Props {
+  labels: string[];
+  series: BarSeries[];
+  horizontal?: boolean;
+  isLoading?: boolean;
+  isError?: boolean;
+}
+
+export function BarChartCard({ labels, series, horizontal = false, isLoading, isError }: Props) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const chrome = chartChrome(isDark);
+
+  const data = useMemo(
+    () => ({
+      labels,
+      datasets: series.map((s) => ({
+        label: s.label,
+        data: s.data,
+        backgroundColor: s.color,
+        borderRadius: 4,
+        borderSkipped: "bottom" as const,
+        maxBarThickness: 24,
+        barPercentage: 0.6,
+        categoryPercentage: 0.7,
+      })),
+    }),
+    [labels, series],
+  );
+
+  const options = useMemo<ChartOptions<"bar">>(
+    () => ({
+      indexAxis: horizontal ? "y" : "x",
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      plugins: {
+        legend: {
+          display: series.length > 1,
+          position: "bottom",
+          labels: { color: chrome.text, usePointStyle: true, boxWidth: 8, boxHeight: 8, font: { size: 11 } },
+        },
+        tooltip: {
+          backgroundColor: theme.palette.background.paper,
+          titleColor: chrome.text,
+          bodyColor: chrome.text,
+          borderColor: theme.palette.divider,
+          borderWidth: 1,
+          padding: 10,
+          cornerRadius: 8,
+        },
+      },
+      scales: {
+        x: {
+          grid: { display: horizontal, color: chrome.gridline },
+          ticks: { color: chrome.muted, font: { size: 11 } },
+        },
+        y: {
+          beginAtZero: true,
+          grid: { display: !horizontal, color: chrome.gridline },
+          ticks: { color: chrome.muted, font: { size: 11 }, precision: 0 },
+        },
+      },
+    }),
+    [horizontal, series.length, chrome, theme],
+  );
+
+  if (isError) return <EmptyOrErrorState kind="error" />;
+  if (!isLoading && labels.length === 0) return <EmptyOrErrorState kind="empty" />;
+
+  return <Bar data={data} options={options} />;
+}

@@ -1,26 +1,72 @@
-import React from "react";
-import { Box, Typography, useTheme } from "@mui/material";
-import type { CrqDetailsInfo } from "../../types/crqJourney.types";
-import { formatDateTime, formatStatusLabel, statusChipColor } from "../../utils/crqJourney.utils";
+import React, { useCallback, useMemo, useState } from "react";
+import { Box, IconButton, Snackbar, Tooltip, Typography, useTheme } from "@mui/material";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
+import type { CrqDetailsInfo, CrqDetailsStage } from "../../types/crqJourney.types";
+import { formatDateTime, formatStatusLabel, normalizeStepStatus, statusChipColor } from "../../utils/crqJourney.utils";
 
 interface CrqDetailsInfoCardProps {
   info: CrqDetailsInfo;
+  /** Optional — when supplied, renders a "X of N stages complete" progress bar in the header. */
+  stages?: CrqDetailsStage[];
 }
 
-const Field = ({ label, value }: { label: string; value: React.ReactNode }) => (
-  <Box sx={{ display: "flex", flexDirection: "column", gap: "4px", minWidth: 0 }}>
-    <Typography sx={{ fontSize: 10.5, color: "text.disabled", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-      {label}
-    </Typography>
-    <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: "text.primary", wordBreak: "break-word" }}>
-      {value}
-    </Typography>
-  </Box>
-);
+const Field = ({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ElementType;
+  label: string;
+  value: React.ReactNode;
+}) => {
+  const theme = useTheme();
+  return (
+    <Box sx={{ display: "flex", gap: 1.25, minWidth: 0 }}>
+      <Box
+        sx={{
+          flexShrink: 0,
+          width: 30,
+          height: 30,
+          borderRadius: "9px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: theme.palette.mode === "dark" ? "rgba(255,255,255,0.05)" : "rgba(13,27,42,0.04)",
+        }}
+      >
+        <Icon sx={{ fontSize: 15, color: "text.secondary" }} />
+      </Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: "3px", minWidth: 0 }}>
+        <Typography sx={{ fontSize: 10.5, color: "text.disabled", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          {label}
+        </Typography>
+        <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: "text.primary", wordBreak: "break-word" }}>
+          {value}
+        </Typography>
+      </Box>
+    </Box>
+  );
+};
 
-export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info }) => {
+export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, stages }) => {
   const theme = useTheme();
   const chip = statusChipColor(info.currentStatus);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(() => {
+    navigator.clipboard.writeText(info.crqNo).then(() => setCopied(true));
+  }, [info.crqNo]);
+
+  const progress = useMemo(() => {
+    if (!stages || stages.length === 0) return null;
+    const completed = stages.filter((s) => normalizeStepStatus(s.stageStatus) === "completed").length;
+    return { completed, total: stages.length, pct: Math.round((completed / stages.length) * 100) };
+  }, [stages]);
 
   return (
     <Box
@@ -28,8 +74,13 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info }) 
         borderRadius: "14px",
         border: `1px solid ${theme.palette.divider}`,
         background: theme.palette.background.paper,
-        boxShadow: "0 1px 3px rgba(16,40,70,0.05)",
+        boxShadow: theme.palette.mode === "dark" ? "0 1px 3px rgba(0,0,0,0.3)" : "0 1px 3px rgba(16,40,70,0.05)",
         overflow: "hidden",
+        animation: "crqCardFadeIn 0.3s ease-out",
+        "@keyframes crqCardFadeIn": {
+          from: { opacity: 0, transform: "translateY(6px)" },
+          to: { opacity: 1, transform: "translateY(0)" },
+        },
       }}
     >
       {/* accent header */}
@@ -40,13 +91,27 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info }) 
           display: "flex",
           alignItems: "center",
           gap: 1.5,
+          flexWrap: "wrap",
           background: chip.bg,
           borderBottom: `1px solid ${theme.palette.divider}`,
         }}
       >
-        <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 15, fontWeight: 700, color: "#1565C0" }}>
+        <Typography
+          sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 15, fontWeight: 700, color: theme.palette.primary.main }}
+        >
           {info.crqNo}
         </Typography>
+        <Tooltip title={copied ? "Copied!" : "Copy CRQ number"} placement="top" arrow>
+          <IconButton
+            size="small"
+            onClick={handleCopy}
+            sx={{ p: "3px", color: "text.disabled", "&:hover": { color: theme.palette.primary.main } }}
+            aria-label="Copy CRQ number"
+          >
+            <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
+          </IconButton>
+        </Tooltip>
+
         <Box
           sx={{
             display: "inline-flex",
@@ -65,26 +130,64 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info }) 
           <Box component="span" sx={{ width: 6, height: 6, borderRadius: "50%", background: chip.dot }} />
           {formatStatusLabel(info.currentStatus)}
         </Box>
-        <Typography sx={{ ml: "auto", fontSize: 12, color: "text.secondary" }}>
+
+        <Typography sx={{ fontSize: 12, color: "text.secondary" }}>
           Current stage: <strong>{info.currentStage}</strong>
         </Typography>
+
+        {progress && (
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 1, minWidth: 160 }}>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
+              {progress.completed}/{progress.total} stages
+            </Typography>
+            <Box
+              sx={{
+                width: 90,
+                height: 6,
+                borderRadius: "999px",
+                background: theme.palette.mode === "dark" ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.08)",
+                overflow: "hidden",
+              }}
+            >
+              <Box
+                sx={{
+                  height: "100%",
+                  borderRadius: "999px",
+                  width: `${progress.pct}%`,
+                  background: `linear-gradient(90deg, ${theme.palette.primary.main}, ${theme.palette.success.main})`,
+                  transition: "width 0.6s ease-out",
+                }}
+              />
+            </Box>
+            {progress.pct === 100 && <CheckRoundedIcon sx={{ fontSize: 15, color: theme.palette.success.main }} />}
+          </Box>
+        )}
       </Box>
 
       {/* field grid */}
       <Box
         sx={{
           px: 2.5,
-          py: 2,
+          py: 2.25,
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
           gap: 2.5,
         }}
       >
-        <Field label="Team Function" value={info.teamFunction ?? "—"} />
-        <Field label="Team Sub-Function" value={info.teamSubFunction ?? "—"} />
-        <Field label="Created On" value={formatDateTime(info.createdDate)} />
-        <Field label="Remark" value={info.remark?.trim() ? info.remark : "—"} />
+        <Field icon={BusinessCenterRoundedIcon} label="Team Function" value={info.teamFunction ?? "—"} />
+        <Field icon={AccountTreeRoundedIcon} label="Team Sub-Function" value={info.teamSubFunction ?? "—"} />
+        <Field icon={CalendarMonthRoundedIcon} label="Created On" value={formatDateTime(info.createdDate)} />
+        <Field icon={ChatBubbleOutlineRoundedIcon} label="Remark" value={info.remark?.trim() ? info.remark : "—"} />
       </Box>
+
+      <Snackbar
+        open={copied}
+        autoHideDuration={1600}
+        onClose={() => setCopied(false)}
+        message="CRQ number copied"
+        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
+        ContentProps={{ sx: { fontSize: 12.5, minWidth: "unset", py: 0.5 } }}
+      />
     </Box>
   );
 };

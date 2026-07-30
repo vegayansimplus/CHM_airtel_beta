@@ -25,7 +25,7 @@ const App: React.FC = () => {
   );
 
   return (
-    <BrowserRouter basename="airtelchmbeta">
+    <BrowserRouter basename={import.meta.env.BASE_URL.replace(/^\/|\/$/g, "")}>
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={theme}>
           <CssBaseline />

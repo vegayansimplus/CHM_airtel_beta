@@ -4,7 +4,7 @@ Deployment package for the CHM application:
 
 | Component | Technology | Detail |
 |-----------|-----------|--------|
-| Frontend  | React 19 + Vite 7 (TypeScript) | Served under base path `/airtelchm/` |
+| Frontend  | React 19 + Vite 7 (TypeScript) | Served under base path `/airtelchmbeta/` |
 | Backend   | Spring Boot (executable WAR), Java 17 | Listens on `1857`, actuator on `8686` |
 | Database  | MySQL (external, credentials via config file) | `airtelcms-config.properties` |
 | Web server| Nginx | Reverse proxy + static file server, port `80` |
@@ -14,9 +14,9 @@ Deployment package for the CHM application:
 
 ```
 Browser ──HTTP :80──▶ Nginx
-                       ├── /airtelchm/            → React static build (dist/)
+                       ├── /airtelchmbeta/        → React static build (dist/)
                        ├── /changemanagementnew/  → proxy → Spring Boot 127.0.0.1:1857
-                       └── /                      → redirect → /airtelchm/
+                       └── /                      → redirect → /airtelchmbeta/
 Spring Boot ──▶ MySQL, Remedy/Helix APIs, Cygnet, SSH/SFTP hosts
 ```
 
@@ -31,8 +31,8 @@ no backend code change is required.
 1. **Build commands** — frontend: `npm run ready-hoja` (= `vite build`, output `dist/`);
    backend: `mvnw package` (produces `target/airtelmanagement-0.0.1-SNAPSHOT.war`,
    executable because `spring-boot-starter-tomcat` is *not* `provided`).
-2. **Base path** — the SPA must be served at `/airtelchm/` (`vite.config.ts` `base` and
-   `BrowserRouter basename="airtelchm"`). Deep links like `/airtelchm/roster/...` must
+2. **Base path** — the SPA must be served at `/airtelchmbeta/` (`vite.config.ts` `base` and
+   `BrowserRouter basename="airtelchmbeta"`). Deep links like `/airtelchmbeta/roster/...` must
    fall back to `index.html` (handled in the Nginx configs).
 3. **External runtime config (mandatory)** — `AppPropertiesConfig.java` reads:
    - Windows: `C:\vegayan\simplus\airtelcms-config.properties`

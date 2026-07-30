@@ -1,7 +1,7 @@
 @echo off
 REM ============================================================================
 REM CHM - Deploy built artifacts on the Windows server.
-REM  - Copies React dist/  -> C:\vegayan\simplus\www\airtelchm
+REM  - Copies React dist/  -> C:\vegayan\simplus\www\airtelchmbeta
 REM  - Copies WAR          -> C:\vegayan\simplus\app\airtelmanagement.war
 REM  - Copies error pages  -> C:\vegayan\simplus\www\error-pages
 REM Stops the backend service first, restarts everything after.
@@ -24,7 +24,7 @@ net stop CHM-Backend 2>nul
 
 echo === Deploying frontend ===
 if not exist "%WWW_ROOT%" mkdir "%WWW_ROOT%"
-robocopy "%FRONTEND_DIST%" "%WWW_ROOT%\airtelchm" /MIR /NFL /NDL /NJH
+robocopy "%FRONTEND_DIST%" "%WWW_ROOT%\airtelchmbeta" /MIR /NFL /NDL /NJH
 if errorlevel 8 goto :fail
 robocopy "%ERROR_PAGES%" "%WWW_ROOT%\error-pages" /MIR /NFL /NDL /NJH
 if errorlevel 8 goto :fail
@@ -51,7 +51,7 @@ net start CHM-Nginx    || echo WARNING: could not start CHM-Nginx (may already b
 "C:\nginx\nginx.exe" -p C:\nginx -s reload 2>nul
 
 echo.
-echo DEPLOY OK - verify:  curl http://localhost/airtelchm/  and  curl http://127.0.0.1:8686/actuator/health
+echo DEPLOY OK - verify:  curl http://localhost/airtelchmbeta/  and  curl http://127.0.0.1:8686/actuator/health
 exit /b 0
 
 :fail

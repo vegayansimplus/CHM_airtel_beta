@@ -1,0 +1,59 @@
+import { useMemo, useState } from "react";
+import dayjs, { type Dayjs } from "dayjs";
+import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
+import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { authStorage } from "../../../app/store/auth.storage";
+import { resolveQuickRange, type QuickDateFilter } from "../utils/dateRange";
+import type { CRQAnalyticsFilterParams } from "../types/crqAnalytics.types";
+
+/** Org-hierarchy scope + date range, combined into the filter params every analytics endpoint expects. */
+export function useAnalyticsFilters() {
+  const loggedUser = authStorage.getUser();
+  const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
+
+  const { values: orgValues, handleChange: onOrgFilterChange, resetAll: resetOrgFilters } = useOrgHierarchyState();
+  const { options: orgOptions } = useOrgHierarchyFilters(orgValues);
+
+  const [quickFilter, setQuickFilter] = useState<QuickDateFilter>("30d");
+  const [customStart, setCustomStart] = useState<Dayjs | null>(dayjs().subtract(30, "day"));
+  const [customEnd, setCustomEnd] = useState<Dayjs | null>(dayjs());
+
+  const { startDate, endDate } = useMemo(() => {
+    if (quickFilter === "custom") {
+      return {
+        startDate: customStart?.isValid() ? customStart.format("YYYY-MM-DD") : dayjs().subtract(30, "day").format("YYYY-MM-DD"),
+        endDate: customEnd?.isValid() ? customEnd.format("YYYY-MM-DD") : dayjs().format("YYYY-MM-DD"),
+      };
+    }
+    return resolveQuickRange(quickFilter);
+  }, [quickFilter, customStart, customEnd]);
+
+  const filters: CRQAnalyticsFilterParams = useMemo(
+    () => ({
+      verticalId: orgValues.vertical,
+      teamFunctionId: orgValues.teamFunction,
+      domainId: orgValues.domain,
+      subDomainId: orgValues.subDomain,
+      startDate,
+      endDate,
+    }),
+    [orgValues, startDate, endDate],
+  );
+
+  return {
+    roleName,
+    orgValues,
+    orgOptions,
+    onOrgFilterChange,
+    resetOrgFilters,
+    quickFilter,
+    setQuickFilter,
+    customStart,
+    setCustomStart,
+    customEnd,
+    setCustomEnd,
+    filters,
+  };
+}
+
+export type UseAnalyticsFiltersReturn = ReturnType<typeof useAnalyticsFilters>;

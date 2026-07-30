@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
-import { useUpdateNotificationMutation } from "../api/notificationApiSlice";
+import { useCreateNotificationMutation } from "../api/notificationApiSlice";
 
 // ─── Animations CSS ───────────────────────────────────────────────────────────
 const BASE_CSS = `
@@ -209,7 +209,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
   const tk = useNotifTokens(theme);
 
   const [addNotification, { isLoading, isError, reset: resetMutation }] =
-    useUpdateNotificationMutation();
+    useCreateNotificationMutation();
 
   // Form state
   const [module, setModule]     = useState("");
@@ -262,10 +262,9 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
   const handleSave = async () => {
     if (!validate()) return;
     try {
-      // configId 0 = create (the endpoint upserts on configId). The dialog's
-      // Self/Manager channels have no API counterpart yet; only Team maps.
+      // The dialog's Self/Manager channels have no API counterpart yet;
+      // only Team and the master Active switch map to real columns.
       await addNotification({
-        configId: 0,
         moduleCode: module.trim(),
         subModuleCode: subModule.trim(),
         actionCode: action.trim(),
@@ -275,6 +274,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }
         notifySuperAdmin: false,
         notifyTeamMember: team,
         notifyVerticalHead: false,
+        isActive: status,
       }).unwrap();
       reset();
       onClose();

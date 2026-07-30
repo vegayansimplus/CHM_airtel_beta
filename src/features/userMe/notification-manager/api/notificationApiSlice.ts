@@ -11,10 +11,27 @@ export interface ApiNotificationSetting {
   notifyTeamMember: boolean;
   notifyVerticalHead: boolean;
   subModuleCode: string;
+  isActive: boolean;
 }
 
 // UI model matches the API shape exactly
 export type TransformedNotificationSetting = ApiNotificationSetting;
+
+/** The boolean columns the generic single-column update endpoint can touch. */
+export type NotificationBooleanField = {
+  [K in keyof ApiNotificationSetting]: ApiNotificationSetting[K] extends boolean
+    ? K
+    : never;
+}[keyof ApiNotificationSetting];
+
+export type NewNotificationInput = Omit<ApiNotificationSetting, "configId">;
+
+// sp_update_notification_manager builds `SET <columnName> = ?` via raw SQL
+// concatenation (no parameter binding for the column name itself), so this
+// conversion must only ever be fed one of our own known boolean field names
+// — never user-supplied text — to stay safe.
+const toDbColumn = (field: string): string =>
+  field.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
 
 export const notificationApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -23,25 +40,42 @@ export const notificationApiSlice = api.injectEndpoints({
       providesTags: ["NotificationConfig"],
     }),
 
-    // Upsert. configId > 0 edits an existing rule (patched optimistically
-    // below so toggles flip instantly); configId 0 creates a new rule, and
-    // only that case refetches the list to pick up the server-assigned id.
-    updateNotification: builder.mutation<void, ApiNotificationSetting>({
+    createNotification: builder.mutation<void, NewNotificationInput>({
       query: (body) => ({
-        url: "/notificationmanager/insertupdatenotificationmanager",
+        url: "/notification-manager/add",
         method: "POST",
         body,
       }),
-      invalidatesTags: (_result, _error, arg) =>
-        arg.configId ? [] : ["NotificationConfig"],
-      async onQueryStarted(updated, { dispatch, queryFulfilled }) {
+      invalidatesTags: ["NotificationConfig"],
+    }),
+
+    // Single-column toggle (per-role recipients, or the master isActive
+    // switch). Patched optimistically so switches flip instantly; rolled
+    // back on failure.
+    updateNotificationField: builder.mutation<
+      void,
+      { configId: number; field: NotificationBooleanField; value: boolean }
+    >({
+      query: ({ configId, field, value }) => ({
+        url: "/notification-manager/update",
+        method: "PATCH",
+        params: {
+          configId,
+          columnName: toDbColumn(field),
+          newValue: value,
+        },
+      }),
+      async onQueryStarted(
+        { configId, field, value },
+        { dispatch, queryFulfilled },
+      ) {
         const patch = dispatch(
           notificationApiSlice.util.updateQueryData(
             "getNotificationConfigs",
             undefined,
             (draft) => {
-              const row = draft.find((r) => r.configId === updated.configId);
-              if (row) Object.assign(row, updated);
+              const row = draft.find((r) => r.configId === configId);
+              if (row) row[field] = value;
             },
           ),
         );
@@ -54,10 +88,9 @@ export const notificationApiSlice = api.injectEndpoints({
     }),
 
     deleteNotification: builder.mutation<void, { configId: number }>({
-      query: (body) => ({
-        url: "/notificationmanager/deletenotificationmanager",
-        method: "POST",
-        body,
+      query: ({ configId }) => ({
+        url: `/notification-manager/delete/${configId}`,
+        method: "DELETE",
       }),
       async onQueryStarted({ configId }, { dispatch, queryFulfilled }) {
         const patch = dispatch(
@@ -79,6 +112,7 @@ export const notificationApiSlice = api.injectEndpoints({
 
 export const {
   useGetNotificationConfigsQuery,
-  useUpdateNotificationMutation,
+  useCreateNotificationMutation,
+  useUpdateNotificationFieldMutation,
   useDeleteNotificationMutation,
 } = notificationApiSlice;

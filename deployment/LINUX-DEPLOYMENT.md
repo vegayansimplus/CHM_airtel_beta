@@ -8,7 +8,7 @@ Target layout on the server:
 ├── config/logback-linux.xml           external logback (Linux log paths)
 ├── files_path/, files_path2/          replaces D:/files_path* via --file.base.path
 /var/www/chm/
-├── airtelchm/                         React build (Vite dist/)
+├── airtelchmbeta/                     React build (Vite dist/)
 └── error-pages/50x.html
 /home/vegayan/simplus/
 ├── config_airtel.properties           external runtime config (DB/SSH/SFTP) - REQUIRED
@@ -52,7 +52,7 @@ Create the schemas/user referenced by the config file (`DBSOURCE_USERMGMT_DBNAME
 sudo useradd --system --home /opt/chm --shell /usr/sbin/nologin chm
 
 sudo mkdir -p /opt/chm/{app,config,files_path,files_path2} \
-              /var/www/chm/{airtelchm,error-pages} \
+              /var/www/chm/{airtelchmbeta,error-pages} \
               /var/log/chm \
               /home/vegayan/simplus/sftp_uploads
 
@@ -135,7 +135,7 @@ sudo restorecon -Rv /var/www/chm
 Run [deployment/scripts/linux/deploy.sh](scripts/linux/deploy.sh) with sudo. It:
 
 1. Stops `chm-backend`.
-2. rsyncs `dist/` → `/var/www/chm/airtelchm/` (with `--delete`) and error pages.
+2. rsyncs `dist/` → `/var/www/chm/airtelchmbeta/` (with `--delete`) and error pages.
 3. Copies the WAR → `/opt/chm/app/airtelmanagement.war`, keeping the previous as `.bak`
    (rollback = `mv airtelmanagement.war.bak airtelmanagement.war && systemctl restart chm-backend`).
 4. Installs `logback-linux.xml`, fixes ownership, warns if the external config is missing.
@@ -157,8 +157,8 @@ curl -si http://127.0.0.1:1857/auth/v1/signin -X POST \
      -H "Content-Type: application/json" -d '{}' | head -1
                                                    # 400/401 = backend reachable
 
-curl -sI http://localhost/airtelchm/ | head -1     # HTTP/1.1 200
-curl -sI http://localhost/airtelchm/deep/route | head -1   # 200 (SPA fallback)
+curl -sI http://localhost/airtelchmbeta/ | head -1     # HTTP/1.1 200
+curl -sI http://localhost/airtelchmbeta/deep/route | head -1   # 200 (SPA fallback)
 
 curl -si http://localhost/changemanagementnew/auth/v1/signin -X POST \
      -H "Content-Type: application/json" -d '{}' | head -1
@@ -167,7 +167,7 @@ curl -si http://localhost/changemanagementnew/auth/v1/signin -X POST \
 sudo reboot                                        # then re-check: both services up
 ```
 
-From a workstation browser: `http://<server-ip>/airtelchm/` → login, navigate,
+From a workstation browser: `http://<server-ip>/airtelchmbeta/` → login, navigate,
 refresh a deep link (no 404), upload an Excel file, confirm DevTools shows all API
 calls on `/changemanagementnew/...` with no CORS errors.
 
