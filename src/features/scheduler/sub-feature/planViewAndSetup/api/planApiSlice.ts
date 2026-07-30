@@ -153,6 +153,99 @@ export interface ShiftDropdown {
   shiftRange: string;
 }
 
+// ─── Plan+Activity Bulk Excel Upload Types ─────────────────────────────────────
+
+/** One row of the Plan+Activity bulk-upload sheet. Mirrors backend PlanActivityExcelRowDto. */
+export interface PlanActivityExcelRow {
+  rowNumber: number;
+
+  chmDomainName: string;
+  chmSubDomainName: string;
+  networkDomain: string;
+  layer: string;
+  planType: string;
+  vendorOem: string;
+  changeImpact: string;
+
+  activityName: string;
+
+  crqReviewShift: string;
+  crqReviewMinimumLevelRequirement: string;
+  crqReviewRequiredTimeMinutes: number | null;
+  crqReviewTeamName: string;
+
+  impactAnalysisShift: string;
+  impactAnalysisMinimumLevelRequirement: string;
+  impactAnalysisRequiredTimeMinutes: number | null;
+  impactAnalysisTeamName: string;
+
+  schedulingShift: string;
+  schedulingMinimumLevelRequirement: string;
+  schedulingRequiredTimeMinutes: number | null;
+  schedulingTeamName: string;
+
+  mopCreateShift: string;
+  mopCreateMinimumLevelRequirement: string;
+  mopCreateRequiredTimeMinutes: number | null;
+  mopCreateTeamName: string;
+
+  mopValidateShift: string;
+  mopValidateMinimumLevelRequirement: string;
+  mopValidateRequiredTimeMinutes: number | null;
+  mopValidateTeamName: string;
+
+  crqExecutionShift: string;
+  crqExecutionMinimumLevelRequirement: string;
+  crqExecutionRequiredTimeMinutes: number | null;
+  crqExecutionDaysMargin: number | null;
+  crqExecutionReservationMargin: number | null;
+  crqExecutionRollbackTime: number | null;
+  crqExecutionTeamName: string;
+
+  // Resolved server-side during /parse and /upload — echoed back to the client,
+  // not editable, but round-tripped so /upload doesn't need to re-resolve names.
+  chmDomainId?: number | null;
+  chmSubDomainId?: number | null;
+  crqReviewTeamId?: number | null;
+  impactAnalysisTeamId?: number | null;
+  schedulingTeamId?: number | null;
+  mopCreateTeamId?: number | null;
+  mopValidateTeamId?: number | null;
+  crqExecutionTeamId?: number | null;
+}
+
+export interface PlanActivityValidationError {
+  rowNumber: number;
+  column: string;
+  value: string | null;
+  error: string;
+}
+
+export interface PlanActivityExcelParseResponse {
+  totalRows: number;
+  validRowCount: number;
+  invalidRowCount: number;
+  rows: PlanActivityExcelRow[];
+  errors: PlanActivityValidationError[];
+}
+
+export interface PlanActivityExcelRowResult {
+  rowNumber: number;
+  activityName: string;
+  status: "SUCCESS" | "FAILED";
+  message: string;
+  planId: number | null;
+  activityId: string | null;
+}
+
+export interface PlanActivityExcelUploadSummary {
+  totalRows: number;
+  successCount: number;
+  failedCount: number;
+  processingTimeMs: number;
+  results: PlanActivityExcelRowResult[];
+}
+
 // ─── API Endpoints ────────────────────────────────────────────────────────────
 
 export const planApi = api.injectEndpoints({
@@ -211,6 +304,35 @@ export const planApi = api.injectEndpoints({
       }),
       invalidatesTags: ["Plan"],
     }),
+
+    // ── Plan+Activity Bulk Excel Upload ──────────────────────────────────────
+    downloadPlanActivityTemplate: builder.query<Blob, void>({
+      query: () => ({
+        url: "/activity/excel/v1/template",
+        method: "GET",
+        responseHandler: (response) => response.blob(),
+        cache: "no-cache",
+      }),
+    }),
+    parsePlanActivityExcel: builder.mutation<PlanActivityExcelParseResponse, File>({
+      query: (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: "/activity/excel/v1/parse",
+          method: "POST",
+          body: formData,
+        };
+      },
+    }),
+    uploadPlanActivityExcel: builder.mutation<PlanActivityExcelUploadSummary, PlanActivityExcelRow[]>({
+      query: (rows) => ({
+        url: "/activity/excel/v1/upload",
+        method: "POST",
+        body: rows,
+      }),
+      invalidatesTags: ["Plan"],
+    }),
   }),
 });
 
@@ -222,4 +344,7 @@ export const {
   useUpdateActivityPhaseMutation,
   useUpdatePlanMutation,
   useAddPlanMutation,
+  useLazyDownloadPlanActivityTemplateQuery,
+  useParsePlanActivityExcelMutation,
+  useUploadPlanActivityExcelMutation,
 } = planApi;

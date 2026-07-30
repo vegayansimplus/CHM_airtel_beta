@@ -19,11 +19,13 @@ import AddIcon from "@mui/icons-material/Add";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import { useActivity } from "../hooks/useActivity";
 import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
 import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
 import { PlanAddDialog } from "./PlanAddDialog";
+import { UploadPlanActivityDialog } from "./excelUpload/UploadPlanActivityDialog";
 
 interface Props {
   verticalId?: number;
@@ -91,6 +93,7 @@ export const PlanViewTable: React.FC<Props> = ({
 }) => {
   const { handleOpenPlanDialog } = useActivity();
   const [addPlanDialogOpen, setAddPlanDialogOpen] = useState(false);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -141,6 +144,10 @@ export const PlanViewTable: React.FC<Props> = ({
 
   const handleOpenAddPlanDialog = () => setAddPlanDialogOpen(true);
   const handleCloseAddPlanDialog = () => setAddPlanDialogOpen(false);
+
+  const handleOpenUploadDialog = () => setUploadDialogOpen(true);
+  const handleCloseUploadDialog = () => setUploadDialogOpen(false);
+  const handleUploadSuccess = () => refetch();
 
 
   // ── Columns ───────────────────────────────────────────────────────────────
@@ -268,6 +275,22 @@ export const PlanViewTable: React.FC<Props> = ({
             </IconButton>
           </span>
         </Tooltip>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<UploadFileIcon sx={{ fontSize: 14 }} />}
+          onClick={handleOpenUploadDialog}
+          sx={{
+            fontSize: 12,
+            py: 0.5,
+            px: 1.5,
+            borderRadius: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+        >
+          Upload Excel
+        </Button>
         <Button
           variant="contained"
           size="small"
@@ -468,6 +491,13 @@ export const PlanViewTable: React.FC<Props> = ({
         chmSubDomainOptions={chmSubDomainOptions}
         selectedChmDomain={selectedChmDomain}
         selectedChmSubDomain={selectedChmSubDomain}
+      />
+
+      {/* Bulk Upload Plan + Activity Dialog Component */}
+      <UploadPlanActivityDialog
+        open={uploadDialogOpen}
+        onClose={handleCloseUploadDialog}
+        onSuccess={handleUploadSuccess}
       />
     </>
   );

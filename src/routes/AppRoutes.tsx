@@ -86,14 +86,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          {/* <Route path="/home" element={<HomeDashboard />} /> */}
-          {/* ModernHomeDashboard */}
           <Route path="/home" element={<ModernHomeDashboard />} />
-          <Route
-            path="/homedashboard"
-            // element={<Dashboard />}
-            element={<UserManagement />}
-          />
         </Route>
         <Route
           path="team"
