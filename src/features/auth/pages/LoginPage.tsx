@@ -802,9 +802,9 @@ const LoginPage: React.FC = () => {
             }}
           >
             {dark ? (
-              <LightModeOutlined sx={{ fontSize: 15 }} />
+              <LightModeOutlined sx={{ fontSize: 14 }} />
             ) : (
-              <DarkModeOutlined sx={{ fontSize: 15 }} />
+              <DarkModeOutlined sx={{ fontSize: 14 }} />
             )}
             <Typography
               component="span"
@@ -834,6 +834,11 @@ const LoginPage: React.FC = () => {
                 alignItems: "center",
                 justifyContent: "space-between",
                 gap: 1.5,
+                // The theme toggle button floats absolutely over the card's
+                // top-right corner (top: 18, right: 18) - nudge this row
+                // down a touch so the security badge doesn't sit flush
+                // under/behind it.
+                mt: 1,
               }}
             >
               <Box
