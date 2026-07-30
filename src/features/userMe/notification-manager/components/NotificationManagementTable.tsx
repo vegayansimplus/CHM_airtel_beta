@@ -24,19 +24,16 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import { getNotifTokens } from "../style/notificationTokens";
-import {
-  NOTIFY_ROLES,
-  isAnyNotifyEnabled,
-  type NotifyToggleField,
-} from "../constants/notifyRoles";
+import { NOTIFY_ROLES } from "../constants/notifyRoles";
 import NotifSwitch from "./NotifSwitch";
 import StatusBadge from "./StatusBadge";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
 import {
   useGetNotificationConfigsQuery,
-  useUpdateNotificationMutation,
+  useUpdateNotificationFieldMutation,
   useDeleteNotificationMutation,
   type ApiNotificationSetting,
+  type NotificationBooleanField,
 } from "../api/notificationApiSlice";
 
 const NotificationManagementTable = () => {
@@ -51,7 +48,7 @@ const NotificationManagementTable = () => {
     isError,
     refetch,
   } = useGetNotificationConfigsQuery();
-  const [updateNotification] = useUpdateNotificationMutation();
+  const [updateNotificationField] = useUpdateNotificationFieldMutation();
   const [deleteNotification, { isLoading: isDeleting }] =
     useDeleteNotificationMutation();
 
@@ -64,10 +61,14 @@ const NotificationManagementTable = () => {
   // Toggles patch the RTK Query cache optimistically (see notificationApiSlice),
   // so switches flip instantly and no global "busy" lock is needed.
   const handleToggle = useCallback(
-    (rule: ApiNotificationSetting, field: NotifyToggleField) => {
-      updateNotification({ ...rule, [field]: !rule[field] });
+    (rule: ApiNotificationSetting, field: NotificationBooleanField) => {
+      updateNotificationField({
+        configId: rule.configId,
+        field,
+        value: !rule[field],
+      });
     },
-    [updateNotification],
+    [updateNotificationField],
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -91,7 +92,7 @@ const NotificationManagementTable = () => {
       {
         accessorKey: "moduleCode",
         header: "Module",
-        size: 140,
+        size: 116,
         Cell: ({ cell }) => (
           <Box
             component="span"
@@ -127,7 +128,7 @@ const NotificationManagementTable = () => {
       {
         accessorKey: "subModuleCode",
         header: "Sub-Module",
-        size: 160,
+        size: 140,
         Cell: ({ cell }) => (
           <Typography
             component="span"
@@ -140,7 +141,7 @@ const NotificationManagementTable = () => {
       {
         accessorKey: "actionCode",
         header: "Action",
-        size: 130,
+        size: 116,
         Cell: ({ cell }) => (
           <Box
             component="span"
@@ -164,38 +165,53 @@ const NotificationManagementTable = () => {
       },
       {
         id: "status",
+        accessorKey: "isActive",
         header: "Status",
-        size: 104,
+        size: 112,
         enableSorting: false,
         enableGlobalFilter: false,
         ...centered,
         Cell: ({ row }) => (
-          <StatusBadge active={isAnyNotifyEnabled(row.original)} />
+          <Stack direction="row" alignItems="center" justifyContent="center" gap={0.5}>
+            <NotifSwitch
+              checked={row.original.isActive}
+              onChange={() => handleToggle(row.original, "isActive")}
+              inputProps={{
+                "aria-label": `Enable or disable rule for ${row.original.actionCode}`,
+              }}
+            />
+            <StatusBadge active={row.original.isActive} />
+          </Stack>
         ),
       },
       ...NOTIFY_ROLES.map<MRT_ColumnDef<ApiNotificationSetting>>(
-        ({ field, label }) => ({
+        ({ field, label, shortLabel }) => ({
           accessorKey: field,
-          header: label,
-          size: 104,
+          header: shortLabel,
+          size: 76,
           enableSorting: false,
           enableGlobalFilter: false,
           ...centered,
           Cell: ({ cell, row }) => (
-            <NotifSwitch
-              checked={cell.getValue<boolean>()}
-              onChange={() => handleToggle(row.original, field)}
-              inputProps={{
-                "aria-label": `${label} notifications for ${row.original.actionCode}`,
-              }}
-            />
+            <Tooltip title={label} enterDelay={400}>
+              <span>
+                <NotifSwitch
+                  checked={cell.getValue<boolean>()}
+                  disabled={!row.original.isActive}
+                  onChange={() => handleToggle(row.original, field)}
+                  inputProps={{
+                    "aria-label": `${label} notifications for ${row.original.actionCode}`,
+                  }}
+                />
+              </span>
+            </Tooltip>
           ),
         }),
       ),
       {
         id: "delete",
-        header: "Delete",
-        size: 80,
+        header: "",
+        size: 52,
         enableSorting: false,
         enableGlobalFilter: false,
         ...centered,
@@ -250,9 +266,24 @@ const NotificationManagementTable = () => {
           ? "0 8px 32px rgba(0,0,0,0.45)"
           : "0 4px 24px rgba(13,27,42,0.08)",
         overflow: "hidden",
+        width: "100%",
+        maxWidth: "100%",
       },
     },
-    muiTableContainerProps: { sx: { maxHeight: "76vh" } },
+    muiTableContainerProps: {
+      sx: {
+        maxHeight: "76vh",
+        maxWidth: "100%",
+        overflowX: "auto",
+        // Slim, unobtrusive scrollbar so the compact layout doesn't feel bulky
+        // on the narrow viewports it's actually needed on.
+        "&::-webkit-scrollbar": { height: 7 },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: alpha(tk.accent, 0.35),
+          borderRadius: 4,
+        },
+      },
+    },
 
     renderTopToolbar: ({ table }) => (
       <Box
@@ -262,8 +293,8 @@ const NotificationManagementTable = () => {
           alignItems: "center",
           justifyContent: "space-between",
           gap: 1,
-          px: 2,
-          py: 1.25,
+          px: 1.5,
+          py: 1,
           borderBottom: `1px solid ${tk.border}`,
         }}
       >
@@ -322,20 +353,20 @@ const NotificationManagementTable = () => {
           : "linear-gradient(rgba(13,27,42,0.03), rgba(13,27,42,0.03))",
         color: tk.textSecondary,
         borderBottom: `2px solid ${tk.border}`,
-        px: 1.5,
-        py: 1.5,
-        fontSize: 11.5,
+        px: 1.1,
+        py: 1.1,
+        fontSize: 11,
         fontWeight: 700,
-        letterSpacing: "0.05em",
+        letterSpacing: "0.04em",
         textTransform: "uppercase",
         whiteSpace: "nowrap",
       },
     },
     muiTableBodyCellProps: {
       sx: {
-        px: 1.5,
-        py: 1.4,
-        fontSize: 13,
+        px: 1.1,
+        py: 0.9,
+        fontSize: 12.5,
         color: "text.primary",
         verticalAlign: "middle",
         borderBottom: `1px solid ${tk.border}`,

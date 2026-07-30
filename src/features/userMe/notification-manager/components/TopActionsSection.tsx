@@ -16,10 +16,11 @@ const TopActionsSection: React.FC<TopActionsSectionProps> = ({
     <div
       style={{
         display: "flex",
-        alignItems: "flex-start",
+        flexWrap: "wrap",
+        alignItems: "center",
         justifyContent: "space-between",
-        marginBottom: 24,
-        gap: 16,
+        marginBottom: 14,
+        gap: 12,
       }}
     >
       {/* ── Left: Title + subtitle ── */}
@@ -73,10 +74,10 @@ const TopActionsSection: React.FC<TopActionsSectionProps> = ({
 
         <span
           style={{
-            fontSize: 22,
+            fontSize: 18,
             fontWeight: 800,
             color: tk.textPrimary,
-            letterSpacing: "-0.5px",
+            letterSpacing: "-0.4px",
             lineHeight: 1.2,
           }}
         >
@@ -84,10 +85,10 @@ const TopActionsSection: React.FC<TopActionsSectionProps> = ({
         </span>
         <span
           style={{
-            fontSize: 13,
+            fontSize: 12,
             fontWeight: 400,
             color: tk.textSecondary,
-            marginTop: 2,
+            marginTop: 1,
           }}
         >
           Manage event-based alerts across modules and roles
