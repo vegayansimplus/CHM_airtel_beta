@@ -1,11 +1,16 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { Box, GlobalStyles, Typography, useTheme } from "@mui/material";
+import { Box, GlobalStyles, IconButton, Skeleton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
+import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
+import FindInPageRoundedIcon from "@mui/icons-material/FindInPageRounded";
+import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import { usePermission } from "../../../auth/hooks/usePermission";
@@ -32,7 +37,7 @@ import { CrqWorkflowHeader } from "../crq-workflow/CrqWorkflowHeader";
 import { StageRail } from "../crq-workflow/StageRail";
 import { CrqActionPanel, type StageMode, type CRQAction } from "../crq-workflow/CrqActionPanel";
 import { StageSummaryGrid } from "../crq-workflow/StageSummaryGrid";
-import { StageHistoryPanel } from "../generic/StageHistoryPanel";
+import { CrqHistoryTable } from "../crq-workflow/CrqHistoryTable";
 
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
@@ -92,6 +97,24 @@ const GlobalStyleBlock = (
   />
 );
 
+/** Placeholder shown while the overview query is in flight - mirrors the
+ * real layout's shape (header strip, stage rail, a couple of field cards)
+ * instead of a bare loading string. */
+const CockpitSkeleton: React.FC<{ colors: ReturnType<typeof useTabColorTokens> }> = ({ colors }) => (
+  <Box sx={{ flex: 1, p: 2 }}>
+    <Skeleton variant="rounded" height={52} sx={{ borderRadius: colors.radius, mb: 1 }} />
+    <Stack direction="row" spacing={0.75} sx={{ mb: 1.5 }}>
+      {Array.from({ length: 6 }).map((_, i) => (
+        <Skeleton key={i} variant="rounded" width={128} height={54} sx={{ borderRadius: colors.radius }} />
+      ))}
+    </Stack>
+    <Skeleton variant="rounded" height={40} sx={{ borderRadius: colors.radius, mb: 1.5 }} />
+    {Array.from({ length: 3 }).map((_, i) => (
+      <Skeleton key={i} variant="rounded" height={44} sx={{ borderRadius: colors.radius, mb: 1 }} />
+    ))}
+  </Box>
+);
+
 /**
  * Single-CRQ workflow cockpit at /scheduler/crqWorkflow/:crqNo. Reuses the
  * exact same data + mutations as the list pages (useGetCrqReviewQuery,
@@ -125,6 +148,9 @@ export const CrqDetailedView: React.FC = () => {
 
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
+  // Purely presentational - hides the plan/CRQ tree so tablet-width viewports
+  // aren't cramped; doesn't affect selection state or any data fetch.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
@@ -410,10 +436,27 @@ export const CrqDetailedView: React.FC = () => {
 
   if (isError) {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography color="error">
-          Failed to load CRQ details. {(error as any)?.error || "Please refresh."}
-        </Typography>
+      <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
+        <Stack
+          alignItems="center"
+          spacing={1}
+          sx={{
+            p: 3,
+            maxWidth: 420,
+            textAlign: "center",
+            border: `1px solid ${colors.dangerBorder}`,
+            borderRadius: colors.radiusL,
+            bgcolor: colors.dangerDim,
+          }}
+        >
+          <ErrorOutlineRoundedIcon sx={{ fontSize: 28, color: colors.danger }} />
+          <Typography sx={{ fontWeight: 700, fontSize: 14, color: colors.textPrimary }}>
+            Failed to load CRQ details
+          </Typography>
+          <Typography sx={{ fontSize: 12.5, color: colors.textSecondary }}>
+            {(error as any)?.error || "Please refresh."}
+          </Typography>
+        </Stack>
       </Box>
     );
   }
@@ -431,31 +474,74 @@ export const CrqDetailedView: React.FC = () => {
       }}
     >
       {GlobalStyleBlock}
-      <Box sx={{ flex: 1, display: "flex", minHeight: 0 }}>
-        <CrqWorkflowSidebar
-          plans={filteredPlans}
-          expPlans={expPlans}
-          expCrqs={expCrqs}
-          selectedCrqNo={selectedCrqNo}
-          onTogglePlan={handleTogglePlan}
-          onToggleCrq={handleToggleCrq}
-          onSelectCrq={handleSelectCrq}
-          searchValue={globalSearchInput}
-          onSearchChange={setGlobalSearchInput}
-          colors={colors}
-        />
+      <Box sx={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
+        {!sidebarCollapsed && (
+          <CrqWorkflowSidebar
+            plans={filteredPlans}
+            expPlans={expPlans}
+            expCrqs={expCrqs}
+            selectedCrqNo={selectedCrqNo}
+            onTogglePlan={handleTogglePlan}
+            onToggleCrq={handleToggleCrq}
+            onSelectCrq={handleSelectCrq}
+            searchValue={globalSearchInput}
+            onSearchChange={setGlobalSearchInput}
+            colors={colors}
+          />
+        )}
+
+        <Tooltip title={sidebarCollapsed ? "Show CRQ list" : "Hide CRQ list"} placement="right">
+          <IconButton
+            size="small"
+            onClick={() => setSidebarCollapsed((v) => !v)}
+            sx={{
+              position: "absolute",
+              top: 10,
+              left: sidebarCollapsed ? 8 : 314,
+              zIndex: 3,
+              width: 26,
+              height: 26,
+              bgcolor: colors.surface,
+              border: `1px solid ${colors.border}`,
+              boxShadow: "0 2px 6px rgba(20,30,50,0.12)",
+              transition: "left 0.15s ease",
+              "&:hover": { bgcolor: colors.surface2 },
+            }}
+          >
+            {sidebarCollapsed ? (
+              <ChevronRightRoundedIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <ChevronLeftRoundedIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
 
         <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
           {!selectedCrq ? (
-            <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
-              <Typography sx={{ color: colors.textDim }}>
-                {!plansOriginal.length
-                  ? "Loading CRQ workflow…"
-                  : selectedCrqNo
-                    ? `No CRQ found for ${selectedCrqNo}.`
-                    : "Select a CRQ from the left to view its workflow."}
-              </Typography>
-            </Box>
+            !plansOriginal.length ? (
+              <CockpitSkeleton colors={colors} />
+            ) : (
+              <Stack
+                alignItems="center"
+                justifyContent="center"
+                spacing={1}
+                sx={{ flex: 1, p: 4, textAlign: "center" }}
+              >
+                {selectedCrqNo ? (
+                  <FindInPageRoundedIcon sx={{ fontSize: 36, color: colors.textDim }} />
+                ) : (
+                  <TouchAppRoundedIcon sx={{ fontSize: 36, color: colors.textDim }} />
+                )}
+                <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
+                  {selectedCrqNo ? `No CRQ found for ${selectedCrqNo}` : "Select a CRQ"}
+                </Typography>
+                <Typography sx={{ fontSize: 12.5, color: colors.textDim, maxWidth: 320 }}>
+                  {selectedCrqNo
+                    ? "It may have been removed, or you may not have access to it."
+                    : "Choose a CRQ from the list on the left to view its full workflow details."}
+                </Typography>
+              </Stack>
+            )
           ) : (
             <>
               <CrqWorkflowHeader crq={selectedCrq} currentStageIndex={currentStageIndex} colors={colors} />
@@ -467,7 +553,7 @@ export const CrqDetailedView: React.FC = () => {
                 colors={colors}
               />
 
-              <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
+              <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
                 <CrqActionPanel
                   stageLabel={WORKFLOW_STAGES[selectedStageIndex].label}
                   mode={stageMode}
@@ -482,8 +568,8 @@ export const CrqDetailedView: React.FC = () => {
                 <StageSummaryGrid fields={getStageSummaryFields(selectedStageId, selectedCrq)} colors={colors} />
 
                 {/* Completed previous stages - read-only, no actions. */}
-                <Box sx={{ mt: 2.5 }}>
-                  <StageHistoryPanel history={selectedCrq.history} colors={colors} />
+                <Box sx={{ mt: 1.5 }}>
+                  <CrqHistoryTable history={selectedCrq.history} colors={colors} />
                 </Box>
               </Box>
             </>

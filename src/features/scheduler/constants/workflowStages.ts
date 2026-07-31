@@ -179,8 +179,85 @@ export function stageStatePalette(
 }
 
 export interface StageSummaryField {
+  /** Raw API field name (e.g. "olmidReview") - used for presentational grouping only. */
+  key: string;
   label: string;
   value: string;
+}
+
+export type SummarySectionId =
+  | "general"
+  | "workflow"
+  | "scheduling"
+  | "engineer"
+  | "activity"
+  | "remarks";
+
+export interface SummarySectionDef {
+  id: SummarySectionId;
+  label: string;
+  /** MUI icon name from @mui/icons-material, resolved by the consuming component. */
+  icon: string;
+}
+
+/** Display order for the categorized field sections in the CRQ summary body. */
+export const SECTION_DEFS: SummarySectionDef[] = [
+  { id: "general", label: "General Information", icon: "InfoOutlined" },
+  { id: "workflow", label: "Workflow Details", icon: "AccountTreeRounded" },
+  { id: "scheduling", label: "Scheduling Details", icon: "EventRounded" },
+  { id: "engineer", label: "Engineer Details", icon: "EngineeringRounded" },
+  { id: "activity", label: "Activity Details", icon: "BoltRounded" },
+  { id: "remarks", label: "Remarks / Comments", icon: "ChatBubbleOutlineRounded" },
+];
+
+/**
+ * Buckets a raw CRQ field key into one of SECTION_DEFS for presentational
+ * grouping only - doesn't change which fields are shown or their values,
+ * just how getStageSummaryFields' flat list is organized into cards.
+ * Ordered keyword match (first match wins); anything unmatched falls back
+ * to "general".
+ */
+export function categorizeStageField(key: string): SummarySectionId {
+  const k = key.toLowerCase();
+
+  if (k.includes("remark") || k.includes("comment")) return "remarks";
+
+  if (
+    k.includes("olm") ||
+    k.includes("assign") ||
+    k.includes("performedby") ||
+    k.includes("engineer") ||
+    k.includes("vendor") ||
+    k.includes("firstname") ||
+    k.includes("lastname") ||
+    k.includes("company")
+  )
+    return "engineer";
+
+  if (k.includes("date") && (k.includes("plan") || k.includes("schedule") || k.includes("requested") || k.includes("impact")))
+    return "scheduling";
+
+  if (
+    k.includes("task") ||
+    k.includes("activity") ||
+    k.includes("sequence") ||
+    k.includes("location") ||
+    k.includes("territory") ||
+    k.includes("nodetype") ||
+    k.includes("nelabel") ||
+    k.includes("profiletype")
+  )
+    return "activity";
+
+  if (
+    k.includes("status") ||
+    k.includes("stage") ||
+    k.includes("state") ||
+    k.includes("workflow")
+  )
+    return "workflow";
+
+  return "general";
 }
 
 /** Fields rendered elsewhere (sidebar/header) or structural - never shown
@@ -259,6 +336,7 @@ export function getStageSummaryFields(
       return true;
     })
     .map((key) => ({
+      key,
       label: humanizeKey(key),
       value: formatFieldValue(key, c[key]),
     }));

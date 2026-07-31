@@ -1,6 +1,12 @@
-import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import React, { useState } from "react";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
 import { format } from "date-fns";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
+import UpdateRoundedIcon from "@mui/icons-material/UpdateRounded";
+import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
 import type { Colors } from "../../types/colorTypes";
 import type { Crq } from "../../types/crqWorkflow.types";
 import { WORKFLOW_STAGES } from "../../constants/workflowStages";
@@ -12,9 +18,15 @@ interface CrqWorkflowHeaderProps {
 }
 
 const formatDate = (value?: string | null) => {
-  if (!value) return "—";
+  if (!value) return null;
   const d = new Date(value);
-  return Number.isNaN(d.getTime()) ? "—" : format(d, "dd-MMM-yyyy HH:mm");
+  return Number.isNaN(d.getTime()) ? null : format(d, "dd-MMM-yyyy HH:mm");
+};
+
+const parseDate = (value?: string | null): Date | null => {
+  if (!value) return null;
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 };
 
 /** Palette for a value rendered as a chip, keyed off simple keyword heuristics. */
@@ -29,7 +41,7 @@ const statusPalette = (value: string, colors: Colors) => {
   return { bg: colors.accentDim, fg: colors.accent };
 };
 
-const MetaChip: React.FC<{ label: string; colors: Colors }> = ({ label, colors }) => {
+const StatusChip: React.FC<{ label: string; colors: Colors }> = ({ label, colors }) => {
   const p = statusPalette(label, colors);
   return (
     <Box
@@ -39,7 +51,7 @@ const MetaChip: React.FC<{ label: string; colors: Colors }> = ({ label, colors }
         px: 1,
         py: "3px",
         borderRadius: "6px",
-        fontSize: 12,
+        fontSize: 11.5,
         fontWeight: 700,
         whiteSpace: "nowrap",
         bgcolor: p.bg,
@@ -51,27 +63,109 @@ const MetaChip: React.FC<{ label: string; colors: Colors }> = ({ label, colors }
   );
 };
 
-/** CRQ summary header: crqNo + Plan Start/End, CRQ Status, Current Stage, OLM ID. */
+/** One label/value field in the summary strip, with an optional leading icon. */
+const Field: React.FC<{
+  label: string;
+  icon?: React.ReactNode;
+  children: React.ReactNode;
+}> = ({ label, icon, children }) => (
+  <Box>
+    <Stack direction="row" alignItems="center" spacing={0.4}>
+      {icon}
+      <Typography
+        sx={{
+          fontSize: 9,
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+          fontWeight: 800,
+          color: "inherit",
+          opacity: 0.6,
+        }}
+      >
+        {label}
+      </Typography>
+    </Stack>
+    <Box sx={{ mt: 0.25 }}>{children}</Box>
+  </Box>
+);
+
+/** Extra CRQ-provided fields (department/support group/category) shown under
+ * their own real names - never relabeled as "Team/Sub Function" since no
+ * field with that exact meaning exists on this data model. */
+const EXTRA_FIELD_LABELS: Array<[key: string, label: string]> = [
+  ["assignedDepartment", "Assigned Department"],
+  ["supportGroupName", "Support Group"],
+  ["assignedGroup", "Assigned Group"],
+  ["categorizationTier_1", "Category"],
+];
+
+/** Compact CRQ summary strip: identity, live status/stage, assigned engineer,
+ * raised/last-updated dates, and (when present) an assignment/department field. */
 export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
   crq,
   currentStageIndex,
   colors,
 }) => {
   const c = crq as any;
+  const [copied, setCopied] = useState(false);
   const currentStage = WORKFLOW_STAGES[currentStageIndex];
-  const olmId = c.olmidReview ?? c.olmidImpactAnalysis ?? "—";
 
-  const metaFields = [
-    { label: "Plan Start", value: formatDate(c.activityPlanStartDate) },
-    { label: "Plan End", value: formatDate(c.activityPlanEndDate) },
-    { label: "CRQ Status", value: c.crqStatus ?? "—", chip: true },
-    { label: "Current Stage", value: currentStage.label, chip: true },
-    { label: "OLM ID", value: olmId },
-  ];
+  const currentHistoryEntry = crq.history?.find((h) => h.current) ?? null;
+  const anyAssignedEntry = crq.history?.find((h) => h.assignedTo || h.performedBy) ?? null;
+  const engineer =
+    c.olmidReview ??
+    c.olmidImpactAnalysis ??
+    currentHistoryEntry?.assignedTo ??
+    currentHistoryEntry?.performedBy ??
+    anyAssignedEntry?.assignedTo ??
+    anyAssignedEntry?.performedBy ??
+    null;
+
+  const lastUpdatedDate = (() => {
+    const dates: Date[] = [];
+    (crq.history ?? []).forEach((h) => {
+      const s = parseDate(h.startedAt);
+      const e = parseDate(h.completedAt);
+      if (s) dates.push(s);
+      if (e) dates.push(e);
+    });
+    [
+      "activityPlanStartDate",
+      "activityPlanEndDate",
+      "impactStartDate",
+      "impactEndDate",
+      "reviewStartDate",
+      "reviewEndDate",
+    ].forEach((k) => {
+      const d = parseDate(c[k]);
+      if (d) dates.push(d);
+    });
+    if (!dates.length) return null;
+    return new Date(Math.max(...dates.map((d) => d.getTime())));
+  })();
+
+  const extraField = EXTRA_FIELD_LABELS.find(([key]) => typeof c[key] === "string" && c[key].trim());
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(crq.crqNo);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1200);
+    } catch {
+      // Clipboard API unavailable - no-op.
+    }
+  };
 
   return (
-    <Box sx={{ bgcolor: colors.surface, borderBottom: `1px solid ${colors.border}`, px: 2.25, py: 1.1 }}>
-      <Stack direction="row" alignItems="center" spacing={2} flexWrap="wrap" useFlexGap sx={{ rowGap: 0.75 }}>
+    <Box sx={{ bgcolor: colors.surface, borderBottom: `1px solid ${colors.border}`, px: 2, py: 1 }}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.75}
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ rowGap: 0.75, color: colors.textPrimary }}
+      >
         <Box>
           <Typography
             sx={{
@@ -84,35 +178,64 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
           >
             Change Request
           </Typography>
-          <Typography sx={{ fontFamily: "monospace", fontSize: 15.5, fontWeight: 700, color: colors.textPrimary }}>
-            {crq.crqNo}
-          </Typography>
-        </Box>
-        <Box sx={{ width: "1px", height: 26, bgcolor: colors.border }} />
-        {metaFields.map((m) => (
-          <Box key={m.label}>
-            <Typography
-              sx={{
-                fontSize: 9,
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
-                color: colors.textDim,
-                fontWeight: 800,
-              }}
-            >
-              {m.label}
+          <Stack direction="row" alignItems="center" spacing={0.4}>
+            <Typography sx={{ fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>
+              {crq.crqNo}
             </Typography>
-            {m.chip ? (
-              <Box sx={{ mt: 0.25 }}>
-                <MetaChip label={m.value} colors={colors} />
-              </Box>
-            ) : (
-              <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary, mt: 0.15 }}>
-                {m.value}
-              </Typography>
-            )}
-          </Box>
-        ))}
+            <Tooltip title={copied ? "Copied!" : "Copy CRQ number"} arrow>
+              <IconButton
+                size="small"
+                onClick={handleCopy}
+                sx={{ p: "2px", color: colors.textDim, "&:hover": { color: colors.accent } }}
+                aria-label="Copy CRQ number"
+              >
+                {copied ? (
+                  <CheckRoundedIcon sx={{ fontSize: 13, color: colors.success }} />
+                ) : (
+                  <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
+                )}
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        </Box>
+
+        <Box sx={{ width: "1px", height: 26, bgcolor: colors.border }} />
+
+        <Field label="CRQ Status">
+          <StatusChip label={c.crqStatus ?? "—"} colors={colors} />
+        </Field>
+
+        <Field label="Current Stage">
+          <StatusChip label={currentStage.label} colors={colors} />
+        </Field>
+
+        <Field label="Assigned Engineer" icon={<PersonOutlineRoundedIcon sx={{ fontSize: 12, color: colors.textDim }} />}>
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{engineer ?? "—"}</Typography>
+        </Field>
+
+        {extraField && (
+          <Field label={extraField[1]} icon={<ApartmentRoundedIcon sx={{ fontSize: 12, color: colors.textDim }} />}>
+            <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{c[extraField[0]]}</Typography>
+          </Field>
+        )}
+
+        <Field label="Raised" icon={<CalendarTodayRoundedIcon sx={{ fontSize: 11, color: colors.textDim }} />}>
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>
+            {formatDate(crq.crqRaisedDate) ?? "—"}
+          </Typography>
+        </Field>
+
+        <Field label="Last Updated" icon={<UpdateRoundedIcon sx={{ fontSize: 11, color: colors.textDim }} />}>
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>
+            {lastUpdatedDate ? format(lastUpdatedDate, "dd-MMM-yyyy HH:mm") : "—"}
+          </Typography>
+        </Field>
+
+        <Field label="Plan Window">
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+            {formatDate(c.activityPlanStartDate) ?? "—"} → {formatDate(c.activityPlanEndDate) ?? "—"}
+          </Typography>
+        </Field>
       </Stack>
     </Box>
   );
