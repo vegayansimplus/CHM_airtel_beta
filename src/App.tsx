@@ -13,6 +13,7 @@ import { AppScrollView } from "./components/ui/AppScrollView";
 
 const App: React.FC = () => {
   const isAuth = useAppSelector((s) => s.auth.isAuthenticated);
+  const isHydrated = useAppSelector((s) => s.auth.hydrated);
 
   const [theme, colorMode] = useMode();
   const [dynamicHeaderText, setDynamicHeaderText] = useState("CHM");
@@ -33,7 +34,7 @@ const App: React.FC = () => {
         <ThemeProvider theme={theme}>
           <CssBaseline />
           <div className="app">
-            {isAuth && (
+            {isAuth && isHydrated && (
               <>
                 <Header
                   dynamicHeaderText={dynamicHeaderText}

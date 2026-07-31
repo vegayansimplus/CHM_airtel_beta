@@ -125,6 +125,19 @@ function GlobalLoaderOverlay() {
     return () => clearTimeout(timeout);
   }, []);
 
+  // index.html locks body scroll from first paint (inline style) so there's
+  // no scroll movement/scrollbar flicker while the splash covers an
+  // assembling page. This keeps that lock alive for as long as this overlay
+  // is actually mounted - AnimatePresence delays unmount until the exit fade
+  // finishes, so scroll is restored the instant (not before) the splash is
+  // visually gone.
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, []);
+
   return (
     <motion.div
       key="global-loader-backdrop"

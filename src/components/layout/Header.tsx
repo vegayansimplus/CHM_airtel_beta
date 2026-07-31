@@ -163,6 +163,8 @@ const Header: React.FC<HeaderProps> = ({
             <img
               src={AirtelLog}
               alt="Airtel Logo"
+              width={80}
+              height={35}
               style={{ width: "80px", maxWidth: "18vw", height: "auto", objectFit: "contain" }}
             />
           </IconButton>
@@ -214,7 +216,14 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Right — Bell + user menu */}
         <Box display="flex" alignItems="center" gap="8px" flexShrink={0}>
-          <Box component="img" src={VegayanLogo} alt="Logo" width={100} sx={{ display: { xs: "none", md: "block" } }} />
+          <Box
+            component="img"
+            src={VegayanLogo}
+            alt="Logo"
+            width={100}
+            height={28}
+            sx={{ display: { xs: "none", md: "block" }, objectFit: "contain" }}
+          />
 
           <NotificationBell onViewAll={() => navigate("/notifications")} />
 

@@ -5,7 +5,6 @@ import { Provider } from "react-redux";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { store } from "./app/store.ts";
-import { CssBaseline } from "@mui/material";
 import AuthHydrator from "./features/auth/utils/AuthHydrator.tsx";
 import GlobalLoader from "./components/loading/GlobalLoader";
 import { LoadingProvider } from "./components/loading/LoadingProvider";
@@ -13,7 +12,6 @@ import { LoadingProvider } from "./components/loading/LoadingProvider";
 createRoot(document.getElementById("root")!).render(
   <>
     <Provider store={store}>
-      <CssBaseline />
       <LoadingProvider>
         <AuthHydrator />
         <GlobalLoader/>

@@ -305,8 +305,9 @@ const SideBar: React.FC<SideBarProps> = ({
                 component="img"
                 src={vegayanLogo}
                 alt="Logo"
+                width={34}
+                height={34}
                 sx={{
-                  width: 34,
                   filter: `drop-shadow(0 0 6px ${colors.accentLight}80)`,
                 }}
               />
