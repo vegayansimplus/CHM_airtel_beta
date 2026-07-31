@@ -34,3 +34,23 @@ export const fadeIn = (mounted: boolean, delay: number): CSSProperties => ({
   transform: mounted ? "none" : "translateY(12px)",
   transition: `opacity 0.45s ease ${delay}s, transform 0.45s ease ${delay}s`,
 });
+
+/** Expanding ring pulse — used for "live"/"now" markers (attendance timeline, active session dot). */
+export const pulseRingSx = (color: string) => ({
+  "@keyframes dashboardPulseRing": {
+    "0%": { boxShadow: `0 0 0 0 ${color}` },
+    "70%": { boxShadow: "0 0 0 8px transparent" },
+    "100%": { boxShadow: "0 0 0 0 transparent" },
+  },
+  animation: "dashboardPulseRing 1.8s ease-out infinite",
+});
+
+/** Soft breathing glow, used behind the hero live timer while clocked in. */
+export const pulseGlowSx = (color: string) => ({
+  "@keyframes dashboardPulseGlow": {
+    "0%, 100%": { opacity: 0.35, transform: "scale(0.96)" },
+    "50%": { opacity: 0.7, transform: "scale(1.04)" },
+  },
+  animation: "dashboardPulseGlow 2.6s ease-in-out infinite",
+  background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
+});
