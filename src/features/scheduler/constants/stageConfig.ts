@@ -82,7 +82,7 @@ function buildCommonDonePayload(
 }
 
 /** Comma-separated task IDs for every task under a CRQ. */
-const taskNumbersOf = (crq: any): string =>
+export const taskNumbersOf = (crq: any): string =>
   (crq?.tasks ?? [])
     .map((t: any) => t?.taskId)
     .filter(Boolean)

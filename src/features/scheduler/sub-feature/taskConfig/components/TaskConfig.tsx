@@ -350,11 +350,14 @@ interface TaskConfigProps {
     schedulingApprovals: boolean;
   }[];
   isLoading?: boolean;
+  /** True while a filter change is re-fetching data for an already-rendered table. */
+  isFetching?: boolean;
 }
 
 export const TaskConfig: React.FC<TaskConfigProps> = ({
   data: propData,
   isLoading,
+  isFetching,
 }) => {
   const [data, setData] = useState<TaskData[]>([]);
   const [search] = useState<string>("");
@@ -684,6 +687,7 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
     enableRowSelection: false,
     enableStickyHeader: true,
     initialState: { density: "compact" },
+    state: { isLoading: isFetching },
     muiTablePaperProps: {
       elevation: 0,
       sx: {

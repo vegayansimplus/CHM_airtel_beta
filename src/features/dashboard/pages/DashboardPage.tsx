@@ -1,9 +1,9 @@
-import { Box, CircularProgress, useTheme } from "@mui/material";
+import { Box, useTheme } from "@mui/material";
 import React, { type JSX, useEffect, Suspense } from "react";
-import { Outlet } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
-import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
+import PageLoader from "../../../components/loading/PageLoader";
+import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 
 interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -19,7 +19,6 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
   /* ===================== HOOKS (ALWAYS FIRST) ===================== */
   const theme = useTheme();
   const bg = useTabColorTokens(theme);
-  const user = useAppSelector((s) => s.auth.user);
 
   /* ===================== EFFECTS ===================== */
 
@@ -28,23 +27,6 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
     setDynamicHeaderText("Home");
     setDynamicHeaderIcon(HEADER_ICON);
   }, [setDynamicHeaderText, setDynamicHeaderIcon]);
-
-  /* ===================== GUARD (AFTER HOOKS) ===================== */
-
-  if (!user) {
-    return (
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          height: "70vh",
-        }}
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   /* ===================== RENDER ===================== */
 
@@ -74,21 +56,8 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
     >
       {/* -------- Content Area -------- */}
       <Box sx={{ pl: 2, pr: 2, pt: "45px", minHeight: "60vh" }}>
-        <Suspense
-          fallback={
-            <Box
-              sx={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                height: "50vh",
-              }}
-            >
-              <CircularProgress />
-            </Box>
-          }
-        >
-          <Outlet />
+        <Suspense fallback={<PageLoader height="50vh" />}>
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

@@ -31,7 +31,7 @@ export const TeamManagementMain = () => {
 
   const subDomainId = filters.subDomain;
 
-  const { data } = useGetEmployeesBySubDomainQuery(
+  const { data, isFetching: isFetchingEmployees } = useGetEmployeesBySubDomainQuery(
     {
       subDomainId: subDomainId as number,
       employeeStatus: status,
@@ -41,10 +41,12 @@ export const TeamManagementMain = () => {
     { skip: !subDomainId },
   );
 
-  const { data: overviewData } = useGetEmpCountBySubDomainIdQuery(
+  const { data: overviewData, isFetching: isFetchingOverview } = useGetEmpCountBySubDomainIdQuery(
     { subDomainId: subDomainId as number },
     { skip: !subDomainId },
   );
+
+  const isFetchingTeam = isFetchingEmployees || isFetchingOverview;
 
   const tableData = useMemo(() => data?.content ?? [], [data]);
   const totalRowCount = useMemo(() => data?.totalElements ?? 0, [data]);
@@ -86,6 +88,7 @@ export const TeamManagementMain = () => {
         overview={overview}
         isFilterSelected={Boolean(subDomainId)}
         onFilteredRowsChange={setFilteredRows}
+        isFetching={isFetchingTeam}
       />
     </>
   );

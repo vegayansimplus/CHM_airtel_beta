@@ -86,7 +86,7 @@ export function CabPlanningPage() {
     columns,
     data: queue.data ?? [],
     getRowId: (row) => row.crqNo,
-    state: { isLoading: queue.isLoading, rowSelection },
+    state: { isLoading: queue.isFetching, rowSelection },
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
     initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },

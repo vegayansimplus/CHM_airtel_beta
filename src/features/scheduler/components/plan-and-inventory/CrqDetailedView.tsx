@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, GlobalStyles, IconButton, Skeleton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -20,11 +21,12 @@ import {
   useSubmitCrqReviewDoneMutation,
   useUpdateCrqReviewStatusMutation,
 } from "../../api/crqreviewApiSlice";
-import { getStageConfig } from "../../constants/stageConfig";
+import { getStageConfig, taskNumbersOf } from "../../constants/stageConfig";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import type { Crq, Plan } from "../../types/crqWorkflow.types";
 import type { StageKey } from "../../types/stageWorkflow.types";
+import type { RootState } from "../../../../app/store";
 import {
   WORKFLOW_STAGES,
   getStageSummaryFields,
@@ -161,6 +163,7 @@ export const CrqDetailedView: React.FC = () => {
 
   const { hasPermission } = usePermission();
   const canReschedule = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
+  const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
   // Overview endpoint: every CRQ of the scope regardless of current stage,
   // each carrying its full per-stage history - so a CRQ stays visible here
@@ -336,16 +339,33 @@ export const CrqDetailedView: React.FC = () => {
   /**
    * Plan & Inventory review submit -> /crqworkflow/updatecrqreview/done.
    * On Pass the backend advances the CRQ to Impact Analysis transactionally.
+   * Mirrors buildCommonDonePayload's shape (stageConfig.ts) so this stage's
+   * mandatory olmId/planNumber/taskNumber and the cancellation block reach
+   * the backend exactly like the other six stages.
    */
   const handleReviewSubmit = useCallback(
     async (data: any) => {
       try {
+        const isCanceled = data.status === "canceled";
         const response = await submitCrqReviewDone({
           crqNo: data.crqNo,
           crqId: data.crqId,
-          localStatus: data.status === "Done" ? "DONE" : data.status,
-          remark: data.remark ?? "",
-          olmId: data.olmId,
+          olmId: currentUserOlmId ?? "",
+          localStatus: isCanceled
+            ? (data.field1 ?? "Cancelled")
+            : data.status === "Done"
+              ? "DONE"
+              : data.status,
+          remark: isCanceled ? (data.field5 ?? "") : (data.remark ?? ""),
+          planNumber: data.planNumber ?? selectedCrq?.planNumber ?? "",
+          taskNumber: taskNumbersOf(selectedCrq),
+          ...(isCanceled && {
+            cygnetStatus: data.cygnetStatus,
+            field1: data.field1,
+            field3: data.cancellationReason,
+            field4: data.field4,
+            field5: data.field5,
+          }),
         }).unwrap();
         toast.success(response?.message || `Review for ${data.crqNo} submitted.`);
         return { success: true };
@@ -354,7 +374,7 @@ export const CrqDetailedView: React.FC = () => {
         return { success: false };
       }
     },
-    [submitCrqReviewDone],
+    [submitCrqReviewDone, currentUserOlmId, selectedCrq],
   );
 
   /** Real previous-stage data (crq.history) - replaces the old mock lookup. */

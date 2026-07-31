@@ -64,25 +64,55 @@ export const rosterApiSlice = api.injectEndpoints({
     // POST /crqworkflow/updatecrqreview/done - completes (or fails) the
     // Plan & Inventory review; on "DONE" the backend advances the CRQ to
     // Impact Analysis in a single transaction.
+    // Backend controller requires olmId/crqNo/crqId/localStatus/remark/
+    // planNumber/taskNumber (all mandatory @RequestParam), plus optional
+    // cygnetStatus/field1/field3/field4/field5 for the cancellation flow.
     submitCrqReviewDone: builder.mutation<
       { message?: string },
       {
         crqNo: string;
         crqId: number | string;
+        olmId: string;
         localStatus: string;
         remark?: string;
-        olmId?: string;
+        planNumber: string;
+        taskNumber: string;
+        cygnetStatus?: string;
+        field1?: string;
+        field3?: string;
+        field4?: string;
+        field5?: string;
       }
     >({
-      query: ({ crqNo, crqId, localStatus, remark, olmId }) => ({
+      query: ({
+        crqNo,
+        crqId,
+        olmId,
+        localStatus,
+        remark,
+        planNumber,
+        taskNumber,
+        cygnetStatus,
+        field1,
+        field3,
+        field4,
+        field5,
+      }) => ({
         url: "/crqworkflow/updatecrqreview/done",
         method: "POST",
         params: {
           crqNo,
           crqId,
+          olmId,
           localStatus,
           remark: remark ?? "",
-          ...(olmId ? { olmId } : {}),
+          planNumber,
+          taskNumber,
+          cygnetStatus,
+          field1,
+          field3,
+          field4,
+          field5,
         },
       }),
       invalidatesTags: ["CrqReview", { type: "StageWorkflow", id: "impactanalysis" }],

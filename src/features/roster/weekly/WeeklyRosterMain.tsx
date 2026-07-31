@@ -99,7 +99,7 @@ export const WeeklyRosterMain = ({
   /* ── API ──────────────────────────────────────────────────────────── */
   const shouldSkip = !subDomainId || subDomainId === 0;
 
-  const { data, error, isLoading, refetch } = useGetRosterViewQuery(
+  const { data, error, isLoading, isFetching, refetch } = useGetRosterViewQuery(
     {
       domainId: domainId ?? 0,
       subDomainId: subDomainId ?? 0,
@@ -446,7 +446,7 @@ export const WeeklyRosterMain = ({
       )}
 
       {/* Table */}
-      <RosterTableFrame height={450}>
+      <RosterTableFrame height={450} loading={isFetching}>
         {/* ── Head ─────────────────────────────────────────────── */}
         <TableHead>
           <TableRow>

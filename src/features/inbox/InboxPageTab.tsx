@@ -1,9 +1,10 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
-import { useLocation, Outlet, Link } from "react-router";
+import { useLocation, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../app/hooks";
 import PageLoader from "../../components/loading/PageLoader";
+import AnimatedOutlet from "../../components/loading/AnimatedOutlet";
 
 interface InboxPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -141,7 +142,7 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
 
       <Box sx={{ p: 0, minHeight: "65vh" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
-          <Outlet />
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

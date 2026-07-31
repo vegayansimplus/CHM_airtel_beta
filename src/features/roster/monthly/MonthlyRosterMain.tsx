@@ -46,7 +46,7 @@ export const MonthlyRosterMain = ({
 
   /* ── API ────────────────────────────────────────────────────────────── */
   const shouldSkip = !subDomainId || subDomainId === 0;
-  const { data, isLoading, isError } = useGetRosterViewQuery(
+  const { data, isFetching, isError } = useGetRosterViewQuery(
     {
       domainId: domainId ?? 0,
       subDomainId: subDomainId ?? 0,
@@ -165,7 +165,7 @@ export const MonthlyRosterMain = ({
       {/* Table */}
       <RosterTableFrame
         height={450}
-        loading={isLoading}
+        loading={isFetching}
         tableSx={
           detailedView
             ? {

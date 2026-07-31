@@ -1,10 +1,11 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, Suspense, useEffect, useMemo } from "react";
-import { useLocation, Outlet, Link } from "react-router";
+import { useLocation, Link } from "react-router";
 // import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import PageLoader from "../../../components/loading/PageLoader";
+import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 
 
 
@@ -156,7 +157,7 @@ const SchedulerMainTab: React.FC = () => {
 
       <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
-          <Outlet />
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

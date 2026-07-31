@@ -93,6 +93,8 @@ interface Props {
   overview?: OverviewType;
   isFilterSelected: boolean;
   onFilteredRowsChange?: (rows: Record<string, any>[]) => void;
+  /** True while a filter/status change is re-fetching data for an already-rendered table. */
+  isFetching?: boolean;
 }
 
 const DEFAULT_VISIBLE = [
@@ -117,6 +119,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
   overview,
   isFilterSelected,
   onFilteredRowsChange,
+  isFetching,
 }) => {
   const [editData, setEditData] = useState<any | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -322,7 +325,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
     // any page instead of only the currently loaded server page.
     manualPagination: false,
     onPaginationChange: setPagination,
-    state: { pagination, columnVisibility },
+    state: { pagination, columnVisibility, isLoading: isFetching },
     onColumnVisibilityChange: setColumnVisibility,
     enablePagination: true,
     enableColumnFilters: true,
