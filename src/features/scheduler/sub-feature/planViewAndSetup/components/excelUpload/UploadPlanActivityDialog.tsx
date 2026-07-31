@@ -34,7 +34,6 @@ import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
 import {
-  useLazyDownloadPlanActivityTemplateQuery,
   useParsePlanActivityExcelMutation,
   useUploadPlanActivityExcelMutation,
   type PlanActivityExcelParseResponse,
@@ -42,6 +41,7 @@ import {
   type PlanActivityExcelUploadSummary,
   type PlanActivityValidationError,
 } from "../../api/planApiSlice";
+import { useDownloadPlanActivityTemplate } from "../../hooks/useDownloadPlanActivityTemplate";
 
 interface Props {
   open: boolean;
@@ -60,7 +60,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
   const [parseResult, setParseResult] = useState<PlanActivityExcelParseResponse | null>(null);
   const [uploadSummary, setUploadSummary] = useState<PlanActivityExcelUploadSummary | null>(null);
 
-  const [triggerDownload, { isFetching: isDownloading }] = useLazyDownloadPlanActivityTemplateQuery();
+  const { download: downloadTemplate, isDownloading } = useDownloadPlanActivityTemplate();
   const [parseExcel, { isLoading: isParsing }] = useParsePlanActivityExcelMutation();
   const [uploadExcel, { isLoading: isUploading }] = useUploadPlanActivityExcelMutation();
 
@@ -73,13 +73,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
   const handleDownloadTemplate = async () => {
     try {
-      const blob = await triggerDownload().unwrap();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = "Plan_Activity_Upload_Template.xlsx";
-      a.click();
-      URL.revokeObjectURL(url);
+      await downloadTemplate();
     } catch {
       // download error surfaced via RTK Query state elsewhere
     }
@@ -189,9 +183,10 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
           );
         },
       },
+      { accessorKey: "verticalName", header: "Vertical", size: 130 },
+      { accessorKey: "functionName", header: "Team Function", size: 140 },
       { accessorKey: "chmDomainName", header: "CHM Domain", size: 140 },
       { accessorKey: "chmSubDomainName", header: "CHM Sub Domain", size: 140 },
-      { accessorKey: "networkDomain", header: "Network Domain", size: 130 },
       { accessorKey: "layer", header: "Layer", size: 90 },
       { accessorKey: "planType", header: "Plan Type", size: 130 },
       { accessorKey: "vendorOem", header: "Vendor / OEM", size: 120 },
@@ -281,8 +276,9 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                   Start with the official template
                 </Typography>
                 <Typography variant="body2" color="text.secondary" mb={2}>
-                  Download the template with dropdowns for CHM Domain / Sub Domain,
-                  Layer, Plan Type, Shift, Level and Team already populated.
+                  Download the template with cascading dropdowns for Vertical, Team
+                  Function, CHM Domain / Sub Domain, Layer, Plan Type, Shift, Level
+                  and Team already populated.
                 </Typography>
                 <Button
                   variant="contained"

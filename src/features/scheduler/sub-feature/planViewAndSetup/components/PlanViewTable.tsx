@@ -20,9 +20,11 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
+import DownloadIcon from "@mui/icons-material/Download";
 
 import { useActivity } from "../hooks/useActivity";
 import { useGetPlanViewQuery, type PlanViewRow } from "../api/planApiSlice";
+import { useDownloadPlanActivityTemplate } from "../hooks/useDownloadPlanActivityTemplate";
 import { PlanEditDialog, type FilterOption } from "./PlanEditDialog";
 import { PlanAddDialog } from "./PlanAddDialog";
 import { UploadPlanActivityDialog } from "./excelUpload/UploadPlanActivityDialog";
@@ -94,6 +96,7 @@ export const PlanViewTable: React.FC<Props> = ({
   const { handleOpenPlanDialog } = useActivity();
   const [addPlanDialogOpen, setAddPlanDialogOpen] = useState(false);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const { download: downloadTemplate, isDownloading: isDownloadingTemplate } = useDownloadPlanActivityTemplate();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
@@ -148,6 +151,14 @@ export const PlanViewTable: React.FC<Props> = ({
   const handleOpenUploadDialog = () => setUploadDialogOpen(true);
   const handleCloseUploadDialog = () => setUploadDialogOpen(false);
   const handleUploadSuccess = () => refetch();
+
+  const handleDownloadTemplate = async () => {
+    try {
+      await downloadTemplate();
+    } catch {
+      // download error surfaced via RTK Query state elsewhere
+    }
+  };
 
 
   // ── Columns ───────────────────────────────────────────────────────────────
@@ -275,6 +286,23 @@ export const PlanViewTable: React.FC<Props> = ({
             </IconButton>
           </span>
         </Tooltip>
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<DownloadIcon sx={{ fontSize: 14 }} />}
+          onClick={handleDownloadTemplate}
+          disabled={isDownloadingTemplate}
+          sx={{
+            fontSize: 12,
+            py: 0.5,
+            px: 1.5,
+            borderRadius: 1.5,
+            textTransform: "none",
+            fontWeight: 600,
+          }}
+        >
+          {isDownloadingTemplate ? "Downloading…" : "Download Template"}
+        </Button>
         <Button
           variant="outlined"
           size="small"

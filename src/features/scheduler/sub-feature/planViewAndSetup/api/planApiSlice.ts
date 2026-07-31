@@ -155,13 +155,20 @@ export interface ShiftDropdown {
 
 // ─── Plan+Activity Bulk Excel Upload Types ─────────────────────────────────────
 
-/** One row of the Plan+Activity bulk-upload sheet. Mirrors backend PlanActivityExcelRowDto. */
+/**
+ * One row of the Plan+Activity bulk-upload sheet. Mirrors backend
+ * PlanActivityExcelRowDto. Every hierarchy/team field is a plain name —
+ * sp_insert_plan_activity (updated 2026-07-31) resolves Vertical/Team
+ * Function/Domain/Sub Domain/Team names to IDs itself, so no ID fields are
+ * ever sent to or echoed back from the backend.
+ */
 export interface PlanActivityExcelRow {
   rowNumber: number;
 
+  verticalName: string;
+  functionName: string;
   chmDomainName: string;
   chmSubDomainName: string;
-  networkDomain: string;
   layer: string;
   planType: string;
   vendorOem: string;
@@ -201,17 +208,6 @@ export interface PlanActivityExcelRow {
   crqExecutionReservationMargin: number | null;
   crqExecutionRollbackTime: number | null;
   crqExecutionTeamName: string;
-
-  // Resolved server-side during /parse and /upload — echoed back to the client,
-  // not editable, but round-tripped so /upload doesn't need to re-resolve names.
-  chmDomainId?: number | null;
-  chmSubDomainId?: number | null;
-  crqReviewTeamId?: number | null;
-  impactAnalysisTeamId?: number | null;
-  schedulingTeamId?: number | null;
-  mopCreateTeamId?: number | null;
-  mopValidateTeamId?: number | null;
-  crqExecutionTeamId?: number | null;
 }
 
 export interface PlanActivityValidationError {

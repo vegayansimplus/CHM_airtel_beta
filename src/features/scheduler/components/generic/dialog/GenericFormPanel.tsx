@@ -12,6 +12,7 @@ import {
   alpha,
 } from "@mui/material";
 import { useForm, useWatch } from "react-hook-form";
+import { toast } from "react-toastify";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
@@ -60,7 +61,29 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   const values = useWatch({ control }) as Record<string, any>;
 
   const handleFormSubmit = async (formValues: Record<string, any>) => {
-    if (!crq?.crqNo || !crq?.crqId || !formValues.status) return;
+    if (!crq?.crqNo || !crq?.crqId) {
+      toast.error("CRQ details missing. Please select a valid CRQ.");
+      return;
+    }
+    if (!formValues.status) {
+      toast.error("Please select an outcome.");
+      return;
+    }
+
+    // Config-driven required check - covers the cancellation block
+    // (cygnetStatus/field1/cancellationReason/field5) and the CHM remark,
+    // whichever of stageConfig.fields is currently required for this
+    // outcome, without hardcoding any stage-specific field names.
+    const missing = stageConfig.fields
+      .filter((f) => f.type !== "readonly")
+      .filter((f) => (f.requiredWhen ? f.requiredWhen(formValues) : f.required))
+      .filter((f) => !formValues[f.name])
+      .map((f) => f.label);
+    if (missing.length) {
+      toast.error(`Required: ${missing.join(", ")}`);
+      return;
+    }
+
     setIsSubmitting(true);
     const result = await onSubmitDone(formValues, crq);
     setIsSubmitting(false);

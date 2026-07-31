@@ -2,6 +2,7 @@ import React from "react";
 import {
   Box,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -83,6 +84,7 @@ export const FieldRenderer: React.FC<FieldRendererProps> = ({
                   </MenuItem>
                 ))}
               </Select>
+              {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
             </FormControl>
           );
         }
