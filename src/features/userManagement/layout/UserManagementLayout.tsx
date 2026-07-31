@@ -1,7 +1,8 @@
 import React from "react";
-import { Outlet, useNavigate, useLocation } from "react-router";
+import { useNavigate, useLocation } from "react-router";
 import { Box, Tabs, Tab, Typography, useTheme } from "@mui/material";
 import { useTabColorTokens } from "../../../style/theme";
+import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 
 const TAB_ROUTES = ["usermang", "userlogs"] as const;
 type TabRoute = (typeof TAB_ROUTES)[number];
@@ -129,7 +130,7 @@ const UserManagementLayout: React.FC = () => {
 
       {/* Routed child renders here */}
       <Box sx={{ p: 3 }}>
-        <Outlet />
+        <AnimatedOutlet />
       </Box>
     </Box>
   );

@@ -58,11 +58,13 @@ export function useDashboardAttendance(): DashboardAttendanceState {
     clockIn: (mode) => {
       triggerClockIn(mode)
         .unwrap()
+        .then(() => toast.success("🎉 Welcome back! Your attendance has started successfully."))
         .catch((err) => reportAttendanceError(err, "Failed to clock in. Please try again."));
     },
     clockOut: () => {
       triggerClockOut()
         .unwrap()
+        .then(() => toast.success("👏 Great work! Your attendance has been recorded successfully."))
         .catch((err) => reportAttendanceError(err, "Failed to clock out. Please try again."));
     },
   };

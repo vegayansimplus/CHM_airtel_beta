@@ -95,6 +95,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const {
     data: stageData,
     isLoading,
+    isFetching,
     isError,
     error,
   } = useGetStageDataQuery(
@@ -244,6 +245,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     ),
     renderTopToolbarCustomActions,
     initialState: { density: "compact" },
+    state: { isLoading: isFetching },
     muiDetailPanelProps: { sx: { padding: 0 } },
     muiTablePaperProps: {
       elevation: 0,

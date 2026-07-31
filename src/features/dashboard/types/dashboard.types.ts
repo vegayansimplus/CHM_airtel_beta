@@ -108,3 +108,16 @@ export interface AttendanceRow {
   status: AttendanceStatus;
   workedMinutes: number | null;
 }
+
+/**
+ * A single clock-in/out pair, list-shaped so the UI can render multiple
+ * sessions per day once the backend supports it. Today's API only ever
+ * yields at most one session — see buildSessions() in utils/attendanceSessions.ts.
+ */
+export interface AttendanceSession {
+  index: number;
+  clockInTime: string;
+  clockOutTime: string | null;
+  durationMinutes: number | null;
+  isActive: boolean;
+}

@@ -63,7 +63,7 @@ export function AllCrqsPage() {
 
   // const [openNew, setOpenNew] = useState(false);
 
-  const { data, isLoading, isError, error, refetch } = useGetAllCrqsQuery(filters);
+  const { data, isFetching, isError, error, refetch } = useGetAllCrqsQuery(filters);
   // const { data: services } = useGetCabServicesQuery();
   // const serviceNameByCode = useMemo(
   //   () => new Map((services ?? []).map((s) => [s.serviceCode, s.serviceName])),
@@ -164,7 +164,7 @@ export function AllCrqsPage() {
   const table = useMaterialReactTable({
     columns,
     data: data ?? [],
-    state: { isLoading },
+    state: { isLoading: isFetching },
     initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },
     enableTopToolbar: false,
     enableStickyHeader: true,

@@ -167,6 +167,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const {
     data: reviewData,
     isLoading,
+    isFetching,
     isError,
     error,
   } = useGetCrqReviewQuery(
@@ -439,6 +440,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     ),
     renderTopToolbarCustomActions,
     initialState: { density: "compact" },
+    state: { isLoading: isFetching },
     muiDetailPanelProps: { sx: { padding: 0 } },
     muiTablePaperProps: {
       elevation: 0,

@@ -1,14 +1,51 @@
-import React, { useState } from "react";
-import { Box, Fade, Typography } from "@mui/material";
+import React, { useMemo, useState } from "react";
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Chip,
+  Fade,
+  Stack,
+  Typography,
+} from "@mui/material";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import EventRoundedIcon from "@mui/icons-material/EventRounded";
+import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
+import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import type { Colors } from "../../types/colorTypes";
-import type { StageSummaryField } from "../../constants/workflowStages";
+import {
+  SECTION_DEFS,
+  categorizeStageField,
+  type StageSummaryField,
+  type SummarySectionId,
+} from "../../constants/workflowStages";
 
 interface StageSummaryGridProps {
   fields: StageSummaryField[];
   colors: Colors;
 }
+
+const SECTION_ICONS: Record<SummarySectionId, React.ElementType> = {
+  general: InfoOutlinedIcon,
+  workflow: AccountTreeRoundedIcon,
+  scheduling: EventRoundedIcon,
+  engineer: EngineeringRoundedIcon,
+  activity: BoltRoundedIcon,
+  remarks: ChatBubbleOutlineRoundedIcon,
+};
+
+/** Sections open by default - the highest-value information, kept visible
+ * without an extra click; the rest starts collapsed to keep the page short. */
+const DEFAULT_OPEN: Partial<Record<SummarySectionId, boolean>> = {
+  general: true,
+  workflow: true,
+};
 
 const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ field, colors }) => {
   const [copied, setCopied] = useState(false);
@@ -33,7 +70,7 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
         border: `1px solid ${colors.border}`,
         borderLeft: `3px solid ${copied ? colors.success : colors.accentBorder}`,
         borderRadius: colors.radius,
-        p: "9px 12px",
+        p: "7px 10px",
         bgcolor: colors.surface,
         cursor: "pointer",
         transition: "border-color .15s ease, box-shadow .15s ease, transform .15s ease",
@@ -47,7 +84,7 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
     >
       <Typography
         sx={{
-          fontSize: 10,
+          fontSize: 9.5,
           textTransform: "uppercase",
           letterSpacing: 0.5,
           color: colors.textDim,
@@ -58,7 +95,7 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
       </Typography>
       <Typography
         sx={{
-          fontSize: 13.5,
+          fontSize: 13,
           fontWeight: 700,
           color: colors.textPrimary,
           mt: 0.3,
@@ -73,8 +110,8 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
         className="copy-affordance"
         sx={{
           position: "absolute",
-          top: 8,
-          right: 8,
+          top: 7,
+          right: 7,
           opacity: 0,
           transition: "opacity .15s ease",
           color: colors.textDim,
@@ -93,14 +130,28 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
 };
 
 /**
- * Generic label/value card grid - reused by every stage's detail body so no
- * stage needs its own bespoke summary layout. Cards are click-to-copy for
- * quick reuse of a value (crq id, node ip, ...) elsewhere.
+ * CRQ field body - the same flat field list getStageSummaryFields has always
+ * returned (identical values, identical set regardless of selected stage),
+ * now organized into named, collapsible sections instead of one long grid.
+ * Grouping is presentational only (categorizeStageField), driven off each
+ * field's raw API key - no data is added, removed or renamed.
  */
-export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({
-  fields,
-  colors,
-}) => {
+export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({ fields, colors }) => {
+  const [expanded, setExpanded] = useState<Partial<Record<SummarySectionId, boolean>>>(DEFAULT_OPEN);
+
+  const sections = useMemo(() => {
+    const groups: Record<SummarySectionId, StageSummaryField[]> = {
+      general: [],
+      workflow: [],
+      scheduling: [],
+      engineer: [],
+      activity: [],
+      remarks: [],
+    };
+    fields.forEach((f) => groups[categorizeStageField(f.key)].push(f));
+    return SECTION_DEFS.map((def) => ({ def, fields: groups[def.id] })).filter((s) => s.fields.length > 0);
+  }, [fields]);
+
   if (!fields.length) {
     return (
       <Box
@@ -119,23 +170,74 @@ export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({
   }
 
   return (
-    <Box
-      sx={{
-        display: "grid",
-        gridTemplateColumns: {
-          xs: "1fr",
-          sm: "repeat(2, 1fr)",
-          md: "repeat(3, 1fr)",
-          lg: "repeat(4, 1fr)",
-          xl: "repeat(5, 1fr)",
-        },
-        gap: 1,
-      }}
-    >
-      {fields.map((f) => (
-        <SummaryCard key={f.label} field={f} colors={colors} />
-      ))}
-    </Box>
+    <Stack spacing={1}>
+      {sections.map(({ def, fields: sectionFields }) => {
+        const Icon = SECTION_ICONS[def.id];
+        const isOpen = !!expanded[def.id];
+        return (
+          <Accordion
+            key={def.id}
+            expanded={isOpen}
+            onChange={(_, next) => setExpanded((prev) => ({ ...prev, [def.id]: next }))}
+            disableGutters
+            elevation={0}
+            sx={{
+              bgcolor: colors.surface,
+              border: `1px solid ${colors.border}`,
+              borderRadius: `${colors.radiusL} !important`,
+              overflow: "hidden",
+              "&:before": { display: "none" },
+            }}
+          >
+            <AccordionSummary
+              expandIcon={<ExpandMoreRoundedIcon sx={{ color: colors.textSecondary, fontSize: 19 }} />}
+              sx={{
+                px: 1.75,
+                minHeight: 44,
+                "& .MuiAccordionSummary-content": { alignItems: "center", my: 0.75, gap: 1 },
+              }}
+            >
+              <Icon sx={{ fontSize: 16, color: colors.textDim }} />
+              <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: colors.textPrimary }}>
+                {def.label}
+              </Typography>
+              <Chip
+                label={sectionFields.length}
+                size="small"
+                sx={{
+                  height: 18,
+                  minWidth: 18,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  bgcolor: colors.trackOff,
+                  color: colors.textDim,
+                  "& .MuiChip-label": { px: "6px" },
+                }}
+              />
+            </AccordionSummary>
+            <AccordionDetails sx={{ px: 1.75, py: 1.5, pt: 0 }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: {
+                    xs: "1fr",
+                    sm: "repeat(2, 1fr)",
+                    md: "repeat(3, 1fr)",
+                    lg: "repeat(4, 1fr)",
+                    xl: "repeat(5, 1fr)",
+                  },
+                  gap: 0.75,
+                }}
+              >
+                {sectionFields.map((f) => (
+                  <SummaryCard key={f.key} field={f} colors={colors} />
+                ))}
+              </Box>
+            </AccordionDetails>
+          </Accordion>
+        );
+      })}
+    </Stack>
   );
 };
 

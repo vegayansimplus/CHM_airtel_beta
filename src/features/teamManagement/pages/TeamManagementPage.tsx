@@ -1,11 +1,12 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { type JSX, useEffect, useMemo, useState, Suspense } from "react";
-import { useLocation, useNavigate, Outlet } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 // import { alpha } from "@mui/material/styles";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import PageLoader from "../../../components/loading/PageLoader";
+import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 
 interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -183,7 +184,7 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
         }}
       >
         <Suspense fallback={<PageLoader height="50vh" />}>
-          <Outlet />
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

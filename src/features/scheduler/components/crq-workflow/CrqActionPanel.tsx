@@ -4,7 +4,6 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import CustomActionButton from "../../../../components/common/CustomActionButton";
 import type { Colors } from "../../types/colorTypes";
 
 export type StageMode = "editable" | "view" | "locked";
@@ -30,6 +29,36 @@ interface CrqActionPanelProps {
   recordActions: CRQAction[];
   colors: Colors;
 }
+
+/** Lighter, smaller "utility tier" button for record-level actions (Validate,
+ * Attribute Update, ...) - visually subordinate to the Start/Pause/Review
+ * pair, which stay full-weight. Local to this panel rather than reusing the
+ * shared CustomActionButton, since that component is also used by pages
+ * outside this screen's redesign scope. */
+const UtilityActionButton: React.FC<{ action: CRQAction; colors: Colors }> = ({ action, colors }) => (
+  <Button
+    variant="outlined"
+    size="small"
+    disabled={action.disabled}
+    onClick={action.onClick}
+    startIcon={action.icon}
+    sx={{
+      height: 30,
+      textTransform: "none",
+      fontWeight: 600,
+      fontSize: 12,
+      borderRadius: "7px",
+      px: 1.3,
+      borderColor: colors.border,
+      color: colors.textSecondary,
+      bgcolor: "transparent",
+      "&:hover": { borderColor: colors.accentBorder, bgcolor: colors.accentDim, color: colors.accent },
+      "&.Mui-disabled": { borderColor: colors.border, color: colors.textDim },
+    }}
+  >
+    {action.label}
+  </Button>
+);
 
 const MODE_COPY: Record<StageMode, { badge: string; note: string }> = {
   editable: {
@@ -81,9 +110,9 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
         bgcolor: colors.surface,
         border: `1px solid ${colors.border}`,
         borderRadius: colors.radius,
-        px: 1.75,
-        py: 1,
-        mb: 1.5,
+        px: 1.5,
+        py: 0.85,
+        mb: 1.25,
       }}
     >
       <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
@@ -91,9 +120,9 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
           label={copy.badge}
           size="small"
           sx={{
-            height: 22,
+            height: 20,
             fontWeight: 800,
-            fontSize: 10.5,
+            fontSize: 10,
             textTransform: "uppercase",
             letterSpacing: "0.4px",
             bgcolor: badgePalette.bg,
@@ -101,11 +130,11 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
             flexShrink: 0,
           }}
         />
-        <Typography sx={{ fontSize: 13.5, fontWeight: 800, color: colors.textPrimary }} noWrap>
+        <Typography sx={{ fontSize: 13, fontWeight: 800, color: colors.textPrimary }} noWrap>
           {stageLabel}
         </Typography>
         <Tooltip title={copy.note} arrow placement="bottom-start">
-          <InfoOutlinedIcon sx={{ fontSize: 15, color: colors.textDim, cursor: "help", flexShrink: 0 }} />
+          <InfoOutlinedIcon sx={{ fontSize: 14, color: colors.textDim, cursor: "help", flexShrink: 0 }} />
         </Tooltip>
       </Stack>
 
@@ -115,17 +144,10 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
         flexWrap="wrap"
         justifyContent={{ xs: "flex-start", lg: "flex-end" }}
         useFlexGap
-        sx={{ columnGap: 1, rowGap: 1 }}
+        sx={{ columnGap: 0.75, rowGap: 0.75 }}
       >
         {recordActions.map((action) => (
-          <CustomActionButton
-            key={action.key}
-            label={action.label}
-            disabled={action.disabled}
-            onClick={action.onClick}
-            startIcon={action.icon}
-            colors={colors}
-          />
+          <UtilityActionButton key={action.key} action={action} colors={colors} />
         ))}
 
         {mode === "editable" && (

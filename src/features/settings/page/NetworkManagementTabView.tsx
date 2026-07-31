@@ -1,9 +1,10 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
-import { useLocation, Outlet, Link } from "react-router";
+import { useLocation, Link } from "react-router";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import PageLoader from "../../../components/loading/PageLoader";
+import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 
 const NetworkManagementTabView: React.FC = () => {
   const location = useLocation();
@@ -143,7 +144,7 @@ const NetworkManagementTabView: React.FC = () => {
 
       <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
-          <Outlet />
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

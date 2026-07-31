@@ -4,8 +4,9 @@ import {
   Tab,
 } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
-import { useLocation, useNavigate, Outlet } from "react-router";
+import { useLocation, useNavigate } from "react-router";
 import PageLoader from "../loading/PageLoader";
+import AnimatedOutlet from "../loading/AnimatedOutlet";
 
 export interface TabConfig {
   label: string;
@@ -105,7 +106,7 @@ const ReusableTabLayout: React.FC<ReusableTabLayoutProps> = ({
       {/* ---------- Content ---------- */}
       <Box sx={{ p: 3, minHeight: "60vh" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
-          <Outlet />
+          <AnimatedOutlet />
         </Suspense>
       </Box>
     </Box>

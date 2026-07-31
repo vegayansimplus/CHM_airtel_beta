@@ -11,7 +11,7 @@ export const TaskConfigMain = () => {
   const { values, handleChange } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
   const shouldFetch = Boolean(values.domain && values.subDomain);
-  const { data, isLoading } = useGetTaskConfigViewQuery(
+  const { data, isLoading, isFetching } = useGetTaskConfigViewQuery(
     { domainId: values.domain!, subDomainId: values.subDomain! },
     { skip: !shouldFetch },
   );
@@ -24,7 +24,7 @@ export const TaskConfigMain = () => {
         options={options}
         onChange={handleChange}
       />
-      <TaskConfig data={data} isLoading={isLoading} />
+      <TaskConfig data={data} isLoading={isLoading} isFetching={isFetching} />
     </>
   );
 };

@@ -1,8 +1,10 @@
 import { Box, Typography } from "@mui/material";
+import { motion } from "framer-motion";
 import { format } from "date-fns";
 import type { Colors } from "../types/colorTypes";
 import type { AttendanceStatus } from "../types/dashboard.types";
 import { parseShiftTime } from "../../userMe/userRoster/utils/rosterTransform";
+import { pulseRingSx } from "../constants/dashboard.styles";
 
 interface AttendanceTimelineProps {
   shiftRange: string | null;
@@ -62,6 +64,8 @@ export function AttendanceTimeline({ shiftRange, clockInTime, clockOutTime, stat
   const segmentEndPct =
     status === "CLOCKED_OUT" ? (clockOutPct ?? segmentStartPct) : status === "CLOCKED_IN" ? nowPct : segmentStartPct;
 
+  const springTransition = { type: "spring" as const, stiffness: 120, damping: 20 };
+
   return (
     <Box sx={{ pt: "2px" }}>
       <Box
@@ -72,22 +76,23 @@ export function AttendanceTimeline({ shiftRange, clockInTime, clockOutTime, stat
           background: colors.border,
           mt: "20px",
           mb: "6px",
-          "@keyframes attendanceNowPulse": {
-            "0%": { boxShadow: `0 0 0 0 ${colors.accentBorder}` },
-            "70%": { boxShadow: `0 0 0 7px transparent` },
-            "100%": { boxShadow: `0 0 0 0 transparent` },
-          },
+          overflow: "visible",
         }}
       >
         {clockInPct != null && (
-          <Box
-            sx={{
+          <motion.div
+            initial={false}
+            animate={{ left: `${segmentStartPct}%`, width: `${Math.max(segmentEndPct - segmentStartPct, 0)}%` }}
+            transition={springTransition}
+            style={{
               position: "absolute",
-              left: `${segmentStartPct}%`,
-              width: `${Math.max(segmentEndPct - segmentStartPct, 0)}%`,
+              top: 0,
               height: "100%",
               borderRadius: "3px",
-              background: status === "CLOCKED_OUT" ? colors.textDim : colors.success,
+              background:
+                status === "CLOCKED_OUT"
+                  ? colors.textDim
+                  : `linear-gradient(90deg, ${colors.success}, ${colors.accent})`,
             }}
           />
         )}
@@ -135,7 +140,7 @@ export function AttendanceTimeline({ shiftRange, clockInTime, clockOutTime, stat
               height: 10,
               borderRadius: "50%",
               background: colors.accent,
-              animation: "attendanceNowPulse 1.8s ease-out infinite",
+              ...pulseRingSx(colors.accentBorder),
             }}
           />
         )}
