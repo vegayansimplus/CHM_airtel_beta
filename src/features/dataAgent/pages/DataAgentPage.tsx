@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
-import { Box, Button, Stack, Typography, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Button, Stack, Tooltip, Typography, useMediaQuery, useTheme } from "@mui/material";
 import ViewSidebarRoundedIcon from "@mui/icons-material/ViewSidebarRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import FullscreenRoundedIcon from "@mui/icons-material/FullscreenRounded";
+import FullscreenExitRoundedIcon from "@mui/icons-material/FullscreenExitRounded";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import {
@@ -17,6 +19,7 @@ import ChatPanel from "../components/ChatPanel";
 import VisualizationCanvas from "../components/VisualizationCanvas";
 import SelectionPopup from "../components/SelectionPopup";
 import { useTextSelection } from "../hooks/useTextSelection";
+import { useFullWindow } from "../hooks/useFullWindow";
 import { generateId } from "../utils/generateId";
 import type { CanvasPage, ChatMessage, QueryResult, WidgetState } from "../types/dataAgent.types";
 
@@ -66,6 +69,8 @@ export default function DataAgentPage() {
   const [activeTab, setActiveTab] = useState<"canvas" | "saved">("canvas");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [vizOpen, setVizOpen] = useState(false);
+  const [vizMaximized, setVizMaximized] = useState(false);
+  const { isFullWindow, toggleFullWindow } = useFullWindow();
   const [vizWidth, setVizWidth] = useState(() => {
     const saved = localStorage.getItem(VIZ_WIDTH_KEY);
     return saved ? parseInt(saved, 10) : 480;
@@ -237,21 +242,34 @@ export default function DataAgentPage() {
 
   return (
     <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-        // The Header and SideBar are both `position: fixed` and out of
-        // document flow (see Header.tsx's headerOffset / SideBar.tsx's
-        // Drawer paper), so every top-level route shell has to carve out
-        // its own clearance for them — same pl/pt DashboardViewPage and
-        // ReusableTabLayout use. box-sizing: border-box (from CssBaseline)
-        // means the padding is included in the 100vh, not additive.
-        pl: 8,
-        pt: "45px",
-        height: "100vh",
-        overflow: "hidden",
-        bgcolor: c.bg,
-      }}
+      sx={
+        isFullWindow
+          ? {
+              display: "flex",
+              flexDirection: "column",
+              position: "fixed",
+              inset: 0,
+              zIndex: theme.zIndex.modal + 1,
+              height: "100vh",
+              overflow: "hidden",
+              bgcolor: c.bg,
+            }
+          : {
+              display: "flex",
+              flexDirection: "column",
+              // The Header and SideBar are both `position: fixed` and out of
+              // document flow (see Header.tsx's headerOffset / SideBar.tsx's
+              // Drawer paper), so every top-level route shell has to carve out
+              // its own clearance for them — same pl/pt DashboardViewPage and
+              // ReusableTabLayout use. box-sizing: border-box (from CssBaseline)
+              // means the padding is included in the 100vh, not additive.
+              pl: 8,
+              pt: "45px",
+              height: "100vh",
+              overflow: "hidden",
+              bgcolor: c.bg,
+            }
+      }
     >
       <Stack direction="row" alignItems="center" gap={1.5} sx={{ px: 2.5, py: 1.5, borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
         <AutoAwesomeRoundedIcon sx={{ color: c.accent }} />
@@ -262,40 +280,57 @@ export default function DataAgentPage() {
           size="small"
           variant={vizOpen ? "contained" : "outlined"}
           startIcon={<ViewSidebarRoundedIcon fontSize="small" />}
-          onClick={() => setVizOpen((v) => !v)}
+          onClick={() => {
+            setVizOpen((v) => !v);
+            setVizMaximized(false);
+          }}
           sx={{ textTransform: "none" }}
         >
           {vizOpen ? "Hide canvas" : "Show canvas"}
         </Button>
+        <Tooltip title={isFullWindow ? "Exit full window" : "Full window view"}>
+          <Button
+            size="small"
+            variant={isFullWindow ? "contained" : "outlined"}
+            onClick={toggleFullWindow}
+            sx={{ textTransform: "none", minWidth: 0, px: 1.25 }}
+          >
+            {isFullWindow ? <FullscreenExitRoundedIcon fontSize="small" /> : <FullscreenRoundedIcon fontSize="small" />}
+          </Button>
+        </Tooltip>
       </Stack>
 
       <Box sx={{ flex: 1, display: "flex", overflow: "hidden", position: "relative" }}>
-        <ChatHistorySidebar
-          displayName={displayName || "You"}
-          history={history}
-          loading={historyLoading}
-          collapsed={isDownSm || sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed((v) => !v)}
-          onSelect={(question) => setChatInput(question)}
-          onDelete={(id) => deleteHistoryEntry(id)}
-          onClear={() => clearHistoryMutation()}
-        />
+        {!vizMaximized && (
+          <ChatHistorySidebar
+            displayName={displayName || "You"}
+            history={history}
+            loading={historyLoading}
+            collapsed={isDownSm || sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((v) => !v)}
+            onSelect={(question) => setChatInput(question)}
+            onDelete={(id) => deleteHistoryEntry(id)}
+            onClear={() => clearHistoryMutation()}
+          />
+        )}
 
-        <ChatPanel
-          messages={messages}
-          chatInput={chatInput}
-          onChatInputChange={setChatInput}
-          onSend={sendChat}
-          onRetry={sendChat}
-          onClearConversation={clearConversation}
-          loading={asking}
-          error={chatError}
-          onAddToCanvas={addToCanvas}
-        />
+        {!vizMaximized && (
+          <ChatPanel
+            messages={messages}
+            chatInput={chatInput}
+            onChatInputChange={setChatInput}
+            onSend={sendChat}
+            onRetry={sendChat}
+            onClearConversation={clearConversation}
+            loading={asking}
+            error={chatError}
+            onAddToCanvas={addToCanvas}
+          />
+        )}
 
         {vizOpen && (
           <>
-            {!isDownMd && (
+            {!isDownMd && !vizMaximized && (
               <Box
                 onMouseDown={startVizDrag}
                 sx={{ width: 4, flexShrink: 0, cursor: "col-resize", bgcolor: c.border, "&:hover": { bgcolor: c.accent } }}
@@ -305,7 +340,9 @@ export default function DataAgentPage() {
               sx={
                 isDownMd
                   ? { position: "fixed", inset: 0, zIndex: theme.zIndex.modal, overflow: "hidden" }
-                  : { width: vizWidth, flexShrink: 0, borderLeft: `1px solid ${c.border}`, overflow: "hidden" }
+                  : vizMaximized
+                    ? { flex: 1, overflow: "hidden" }
+                    : { width: vizWidth, flexShrink: 0, borderLeft: `1px solid ${c.border}`, overflow: "hidden" }
               }
             >
               <VisualizationCanvas
@@ -317,7 +354,12 @@ export default function DataAgentPage() {
                 onAddPage={addPage}
                 onDeletePage={deletePage}
                 onRenamePage={renamePage}
-                onClose={() => setVizOpen(false)}
+                onClose={() => {
+                  setVizOpen(false);
+                  setVizMaximized(false);
+                }}
+                isMaximized={vizMaximized}
+                onToggleMaximize={() => setVizMaximized((v) => !v)}
                 onWidgetTypeChange={(id, type) => updateWidget(id, { type })}
                 onWidgetClose={removeWidget}
                 onWidgetPositionChange={(id, x, y) => updateWidget(id, { x, y })}

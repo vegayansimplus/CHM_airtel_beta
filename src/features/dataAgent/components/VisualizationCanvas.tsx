@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Box, IconButton, Stack, TextField, Tabs, Tab, Typography, useTheme } from "@mui/material";
+import { Box, IconButton, Stack, TextField, Tabs, Tab, Tooltip, Typography, useTheme } from "@mui/material";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AddRoundedIcon from "@mui/icons-material/AddRounded";
 import StarRoundedIcon from "@mui/icons-material/StarRounded";
 import BubbleChartRoundedIcon from "@mui/icons-material/BubbleChartRounded";
 import BookmarkBorderRoundedIcon from "@mui/icons-material/BookmarkBorderRounded";
+import OpenInFullRoundedIcon from "@mui/icons-material/OpenInFullRounded";
+import CloseFullscreenRoundedIcon from "@mui/icons-material/CloseFullscreenRounded";
 import { useTabColorTokens } from "../../../style/theme";
 import Widget from "./Widget";
 import { renderWidgetChart } from "./renderWidgetChart";
@@ -20,6 +22,8 @@ interface VisualizationCanvasProps {
   onDeletePage: (id: string) => void;
   onRenamePage: (id: string, name: string) => void;
   onClose: () => void;
+  isMaximized: boolean;
+  onToggleMaximize: () => void;
   onWidgetTypeChange: (widgetId: string, type: ChartType) => void;
   onWidgetClose: (widgetId: string) => void;
   onWidgetPositionChange: (widgetId: string, x: number, y: number) => void;
@@ -39,6 +43,8 @@ export default function VisualizationCanvas({
   onDeletePage,
   onRenamePage,
   onClose,
+  isMaximized,
+  onToggleMaximize,
   onWidgetTypeChange,
   onWidgetClose,
   onWidgetPositionChange,
@@ -75,6 +81,15 @@ export default function VisualizationCanvas({
           <Tab value="canvas" label={`Canvas (${widgets.length})`} />
           <Tab value="saved" label={`Saved (${savedWidgets.length})`} />
         </Tabs>
+        <Tooltip title={isMaximized ? "Restore split view" : "Maximize canvas"}>
+          <IconButton size="small" onClick={onToggleMaximize}>
+            {isMaximized ? (
+              <CloseFullscreenRoundedIcon sx={{ fontSize: 15 }} />
+            ) : (
+              <OpenInFullRoundedIcon sx={{ fontSize: 15 }} />
+            )}
+          </IconButton>
+        </Tooltip>
         <IconButton size="small" onClick={onClose}>
           <CloseRoundedIcon sx={{ fontSize: 16 }} />
         </IconButton>
