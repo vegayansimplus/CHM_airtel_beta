@@ -121,5 +121,7 @@ export const api = createApi({
     "Attendance",
     "AttributeUpdate",
     "CrqAnalytics",
+    "SftpWindowsFiles",
+    "SftpLinuxFiles",
   ],
 });

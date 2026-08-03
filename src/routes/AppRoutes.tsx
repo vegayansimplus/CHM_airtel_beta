@@ -59,6 +59,11 @@ import {
   CrqAnalyticsPage,
   AnalyticsReportsPage,
 } from "../features/crqAnalytics";
+import {
+  SftpManagementMainPageTab,
+  WindowsSftpPage,
+  LinuxSftpPage,
+} from "../features/sftpManagement";
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -264,6 +269,23 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="usermang" replace />} />
           <Route path="usermang" element={<UserManagement />} />
           <Route path="userlogs" element={<UserLogs />} />
+        </Route>
+        <Route
+          path="sftp-management"
+          element={
+            <PrivateRoute
+              element={
+                <SftpManagementMainPageTab
+                  setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                />
+              }
+            />
+          }
+        >
+          <Route index element={<Navigate to="windows" replace />} />
+          <Route path="windows" element={<WindowsSftpPage />} />
+          <Route path="linux" element={<LinuxSftpPage />} />
         </Route>
         <Route path="global-settings">
           <Route
