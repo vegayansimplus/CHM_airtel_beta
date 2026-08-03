@@ -1,6 +1,7 @@
 import React, { type JSX, Suspense } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
+import DefaultRedirect from "./DefaultRedirect";
 import CommonContainer from "../components/common/CommonContainer";
 import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
 import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
@@ -312,8 +313,8 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           element={<PrivateRoute element={<DataAgentPage />} />}
         />
 
-        <Route index element={<Navigate to="/home" replace />} />
-        <Route path="*" element={<Navigate to="/home" replace />} />
+        <Route index element={<DefaultRedirect />} />
+        <Route path="*" element={<DefaultRedirect />} />
       </Routes>
     </Suspense>
   );

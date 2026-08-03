@@ -27,14 +27,27 @@ import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CloseIcon from "@mui/icons-material/Close";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
+import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
+import { useDispatch } from "react-redux";
 import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
 import {
+  orgHierarchyApi,
   useLazyDownloadEmployeeTemplateQuery,
-  useUploadEmployeesFromExcelMutation,
+  useStartExcelUploadAsyncMutation,
+  useGetUploadStatusQuery,
+  useLazyGetUploadResultQuery,
+  useLazyGetUploadErrorReportQuery,
   type ExcelUploadRowResult,
+  type ExcelUploadJobStatus,
 } from "../../api/teamManagement.api";
+
+const TERMINAL_STATUSES: ExcelUploadJobStatus[] = [
+  "COMPLETED",
+  "COMPLETED_WITH_ERRORS",
+  "FAILED",
+];
 
 /* ─── Props ─────────────────────────────────────────────────────────────── */
 interface Props {
@@ -70,17 +83,57 @@ const resultColumns: MRT_ColumnDef<ExcelUploadRowResult>[] = [
 
 /* ─── Component ─────────────────────────────────────────────────────────── */
 export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
+  const dispatch = useDispatch();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeStep,   setActiveStep]   = useState(0);
   const [isDragging,   setIsDragging]   = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileError,    setFileError]    = useState<string | null>(null);
-  const [resultData,   setResultData]   = useState<ExcelUploadRowResult[]>([]);
+  const [uploadId,     setUploadId]     = useState<string | null>(null);
+  const [isTerminal,   setIsTerminal]   = useState(false);
 
   const [triggerDownload, { isFetching: isDownloading }] =
     useLazyDownloadEmployeeTemplateQuery();
-  const [uploadEmployees, { isLoading: isUploading }] =
-    useUploadEmployeesFromExcelMutation();
+  const [startUpload, { isLoading: isStartingUpload }] =
+    useStartExcelUploadAsyncMutation();
+
+  /* ── Poll progress until a terminal status is observed, then stop ── */
+  const { data: uploadStatus } = useGetUploadStatusQuery(uploadId ?? "", {
+    skip: !uploadId || isTerminal,
+    pollingInterval: 1500,
+  });
+
+  const [fetchResult, { data: uploadResult }] = useLazyGetUploadResultQuery();
+  const [fetchErrorReport, { isFetching: isDownloadingReport }] =
+    useLazyGetUploadErrorReportQuery();
+
+  useEffect(() => {
+    if (uploadStatus && TERMINAL_STATUSES.includes(uploadStatus.status)) {
+      setIsTerminal(true);
+    }
+  }, [uploadStatus]);
+
+  useEffect(() => {
+    if (uploadId && isTerminal) {
+      fetchResult(uploadId);
+      dispatch(orgHierarchyApi.util.invalidateTags(["EMPLOYEES"]));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [uploadId, isTerminal]);
+
+  /* ── Row results merged from DB batch results + pre-DB validation errors ── */
+  const resultData = useMemo<ExcelUploadRowResult[]>(() => {
+    if (!uploadResult) return [];
+    const validationRows: ExcelUploadRowResult[] = uploadResult.validationErrors.map((e) => ({
+      rowNumber: e.rowNumber,
+      olmid: e.olmid,
+      status: "FAILED",
+      message: `${e.columnName}: ${e.errorMessage}`,
+    }));
+    return [...uploadResult.rowResults, ...validationRows].sort(
+      (a, b) => a.rowNumber - b.rowNumber,
+    );
+  }, [uploadResult]);
 
   /* ── Summary counts ── */
   const successCount = useMemo(
@@ -88,7 +141,7 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
     [resultData],
   );
   const failedCount = useMemo(
-    () => resultData.filter((r) => r.status === "FAILED").length,
+    () => resultData.filter((r) => r.status !== "SUCCESS").length,
     [resultData],
   );
 
@@ -128,17 +181,34 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
   const handleUpload = async () => {
     if (!selectedFile) return;
     try {
-      const response = await uploadEmployees(selectedFile).unwrap();
-      setResultData(response);
+      const response = await startUpload(selectedFile).unwrap();
+      setUploadId(response.uploadId);
+      setIsTerminal(false);
       setActiveStep(2);
     } catch (error) {
       console.error("Upload failed:", error);
     }
   };
 
+  const handleDownloadErrorReport = async () => {
+    if (!uploadId) return;
+    try {
+      const blob = await fetchErrorReport(uploadId).unwrap();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Excel_Upload_Error_Report_${uploadId}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      // download error handled by RTK Query
+    }
+  };
+
   const handleReset = () => {
     setSelectedFile(null);
-    setResultData([]);
+    setUploadId(null);
+    setIsTerminal(false);
     setFileError(null);
     setActiveStep(1);
     if (fileInputRef.current) fileInputRef.current.value = "";
@@ -335,12 +405,12 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
                 </Box>
               )}
 
-              {/* Upload progress */}
-              {isUploading && (
+              {/* Upload starting (brief - just the initial request round trip) */}
+              {isStartingUpload && (
                 <Fade in>
                   <Box>
                     <Typography variant="body2" color="text.secondary" mb={1}>
-                      Processing employees…
+                      Uploading file…
                     </Typography>
                     <LinearProgress sx={{ borderRadius: 2 }} />
                   </Box>
@@ -361,9 +431,47 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
           )}
 
           {/* ════════════════════════════════════════════════════════════
-              STEP 2 — Results
+              STEP 2a — Live progress (non-terminal)
           ════════════════════════════════════════════════════════════ */}
-          {activeStep === 2 && resultData.length > 0 && (
+          {activeStep === 2 && !isTerminal && (
+            <Stack spacing={3} alignItems="center" sx={{ py: 5 }}>
+              <Typography variant="h6" fontWeight={700}>
+                {uploadStatus?.stage ?? "Starting upload…"}
+              </Typography>
+
+              <Box sx={{ width: "100%" }}>
+                <LinearProgress
+                  variant="determinate"
+                  value={uploadStatus?.percentComplete ?? 5}
+                  sx={{ borderRadius: 2, height: 8 }}
+                />
+              </Box>
+
+              <Stack direction="row" spacing={4} flexWrap="wrap" justifyContent="center">
+                <Typography variant="body2" color="text.secondary">
+                  Batch {uploadStatus?.currentBatch ?? 0} of {uploadStatus?.totalBatches || "-"}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {uploadStatus?.processedRows ?? 0} / {uploadStatus?.totalRows ?? 0} rows processed
+                </Typography>
+                {uploadStatus?.estimatedSecondsRemaining != null &&
+                  uploadStatus.estimatedSecondsRemaining > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      ~{uploadStatus.estimatedSecondsRemaining}s remaining
+                    </Typography>
+                  )}
+              </Stack>
+
+              {uploadId && (
+                <Chip label={`Upload ID: ${uploadId}`} size="small" variant="outlined" />
+              )}
+            </Stack>
+          )}
+
+          {/* ════════════════════════════════════════════════════════════
+              STEP 2b — Results (terminal)
+          ════════════════════════════════════════════════════════════ */}
+          {activeStep === 2 && isTerminal && uploadResult && (
             <Stack spacing={3}>
               {/* Summary cards */}
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
@@ -416,7 +524,22 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
               </Stack>
 
               {failedCount > 0 && (
-                <Alert severity="warning">
+                <Alert
+                  severity="warning"
+                  action={
+                    uploadResult?.errorReportAvailable && (
+                      <Button
+                        size="small"
+                        startIcon={<ArticleOutlinedIcon />}
+                        onClick={handleDownloadErrorReport}
+                        disabled={isDownloadingReport}
+                        sx={{ textTransform: "none", fontWeight: 600 }}
+                      >
+                        {isDownloadingReport ? "Preparing…" : "Download Error Report"}
+                      </Button>
+                    )
+                  }
+                >
                   {failedCount} row{failedCount > 1 ? "s" : ""} failed. Fix the
                   highlighted issues and re-upload only the failed rows.
                 </Alert>
@@ -448,16 +571,16 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
         {activeStep === 1 && (
           <Button
             variant="contained"
-            disabled={!selectedFile || isUploading}
+            disabled={!selectedFile || isStartingUpload}
             onClick={handleUpload}
             startIcon={<UploadFileIcon />}
             sx={{ textTransform: "none", fontWeight: 600, borderRadius: 2, px: 3 }}
           >
-            {isUploading ? "Uploading…" : "Upload File"}
+            {isStartingUpload ? "Uploading…" : "Upload File"}
           </Button>
         )}
 
-        {activeStep === 2 && (
+        {activeStep === 2 && isTerminal && (
           <Button
             variant="outlined"
             startIcon={<RestartAltIcon />}
