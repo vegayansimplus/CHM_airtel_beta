@@ -229,6 +229,22 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
   const validCount = parseResult ? parseResult.validRowCount : 0;
   const invalidCount = parseResult ? parseResult.invalidRowCount : 0;
 
+  // Rows skipped before upload, categorized by why they were invalid — a row
+  // can land in more than one bucket (e.g. a bad hierarchy value AND a bad
+  // team name), so counts are not a strict partition of invalidCount.
+  const validationBreakdown = useMemo(() => {
+    const HIERARCHY_COLUMNS = new Set(["Vertical", "Team Function", "CHM Domain", "CHM Sub Domain"]);
+    const duplicateRows = new Set<number>();
+    const hierarchyRows = new Set<number>();
+    const teamRows = new Set<number>();
+    (parseResult?.errors ?? []).forEach((e) => {
+      if (e.error.toLowerCase().includes("duplicate")) duplicateRows.add(e.rowNumber);
+      else if (HIERARCHY_COLUMNS.has(e.column)) hierarchyRows.add(e.rowNumber);
+      else if (e.column.endsWith("Team")) teamRows.add(e.rowNumber);
+    });
+    return { duplicate: duplicateRows.size, hierarchy: hierarchyRows.size, team: teamRows.size };
+  }, [parseResult]);
+
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
@@ -480,10 +496,10 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
                   <Typography variant="h5" fontWeight={700}>
-                    {uploadSummary.totalRows}
+                    {parseResult?.totalRows ?? uploadSummary.totalRows}
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Total Rows
+                    Total Records
                   </Typography>
                 </Paper>
                 <Paper sx={{ flex: 1, p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "success.light", bgcolor: "success.50" }}>
@@ -494,7 +510,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                         {uploadSummary.successCount}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Successful
+                        Successfully Uploaded
                       </Typography>
                     </Box>
                   </Stack>
@@ -513,7 +529,7 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                         {uploadSummary.failedCount}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        Failed
+                        Failed Records
                       </Typography>
                     </Box>
                   </Stack>
@@ -524,6 +540,54 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Processing Time
+                  </Typography>
+                </Paper>
+              </Stack>
+
+              <Typography variant="subtitle2" fontWeight={700}>
+                Rows Skipped Before Upload ({invalidCount})
+              </Typography>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                <Paper
+                  sx={{
+                    flex: 1, p: 2, borderRadius: 3, border: "1px solid",
+                    borderColor: validationBreakdown.duplicate ? "warning.light" : "grey.200",
+                    bgcolor: validationBreakdown.duplicate ? "warning.50" : "grey.50",
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={700} color={validationBreakdown.duplicate ? "warning.dark" : "text.disabled"}>
+                    {validationBreakdown.duplicate}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Duplicate Records
+                  </Typography>
+                </Paper>
+                <Paper
+                  sx={{
+                    flex: 1, p: 2, borderRadius: 3, border: "1px solid",
+                    borderColor: validationBreakdown.hierarchy ? "warning.light" : "grey.200",
+                    bgcolor: validationBreakdown.hierarchy ? "warning.50" : "grey.50",
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={700} color={validationBreakdown.hierarchy ? "warning.dark" : "text.disabled"}>
+                    {validationBreakdown.hierarchy}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Invalid Hierarchy Records
+                  </Typography>
+                </Paper>
+                <Paper
+                  sx={{
+                    flex: 1, p: 2, borderRadius: 3, border: "1px solid",
+                    borderColor: validationBreakdown.team ? "warning.light" : "grey.200",
+                    bgcolor: validationBreakdown.team ? "warning.50" : "grey.50",
+                  }}
+                >
+                  <Typography variant="h6" fontWeight={700} color={validationBreakdown.team ? "warning.dark" : "text.disabled"}>
+                    {validationBreakdown.team}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Invalid Team Mapping
                   </Typography>
                 </Paper>
               </Stack>
