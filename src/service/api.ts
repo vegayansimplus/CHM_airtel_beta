@@ -121,5 +121,6 @@ export const api = createApi({
     "Attendance",
     "AttributeUpdate",
     "CrqAnalytics",
+    "DataAgentHistory",
   ],
 });
