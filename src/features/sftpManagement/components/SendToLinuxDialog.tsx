@@ -108,6 +108,7 @@ export default function SendToLinuxDialog({ open, fileName, onClose }: SendToLin
       a.click();
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
+      toast.success(`${remoteFileName} downloaded successfully.`);
     } catch {
       toast.error(`Failed to download ${remoteFileName} from the remote server.`);
     } finally {
@@ -132,6 +133,7 @@ export default function SendToLinuxDialog({ open, fileName, onClose }: SendToLin
               required
               value={conn.host}
               onChange={(e) => setConn((c) => ({ ...c, host: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 4 }}>
@@ -141,6 +143,7 @@ export default function SendToLinuxDialog({ open, fileName, onClose }: SendToLin
               fullWidth
               value={conn.port ?? 22}
               onChange={(e) => setConn((c) => ({ ...c, port: Number(e.target.value) || 22 }))}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
@@ -150,6 +153,7 @@ export default function SendToLinuxDialog({ open, fileName, onClose }: SendToLin
               required
               value={conn.username}
               onChange={(e) => setConn((c) => ({ ...c, username: e.target.value }))}
+              slotProps={{ inputLabel: { shrink: true } }}
             />
           </Grid>
           <Grid size={{ xs: 6 }}>
@@ -161,6 +165,7 @@ export default function SendToLinuxDialog({ open, fileName, onClose }: SendToLin
               value={conn.password}
               onChange={(e) => setConn((c) => ({ ...c, password: e.target.value }))}
               slotProps={{
+                inputLabel: { shrink: true },
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">

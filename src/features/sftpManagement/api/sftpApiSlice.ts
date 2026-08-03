@@ -28,6 +28,7 @@ export const sftpApi = api.injectEndpoints({
           url: `/api/sftpfromui/upload?replace=${replace}`,
           method: "POST",
           body: formData,
+          responseHandler: "text",
         };
       },
       invalidatesTags: ["SftpWindowsFiles"],
@@ -36,6 +37,7 @@ export const sftpApi = api.injectEndpoints({
       query: (fileName) => ({
         url: `/api/sftpfromui/delete/${encodeURIComponent(fileName)}`,
         method: "DELETE",
+        responseHandler: "text",
       }),
       invalidatesTags: ["SftpWindowsFiles"],
     }),
@@ -60,6 +62,7 @@ export const sftpApi = api.injectEndpoints({
           url: `/api/sftp/linux/upload?replace=${replace}`,
           method: "POST",
           body: formData,
+          responseHandler: "text",
         };
       },
       invalidatesTags: ["SftpLinuxFiles"],
@@ -68,6 +71,7 @@ export const sftpApi = api.injectEndpoints({
       query: (fileName) => ({
         url: `/api/sftp/linux/delete/${encodeURIComponent(fileName)}`,
         method: "DELETE",
+        responseHandler: "text",
       }),
       invalidatesTags: ["SftpLinuxFiles"],
     }),

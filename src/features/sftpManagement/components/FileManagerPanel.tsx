@@ -81,6 +81,7 @@ export default function FileManagerPanel({
     setDownloadingFile(fileName);
     try {
       await onDownload(fileName);
+      toast.success(`${fileName} downloaded successfully.`);
     } catch {
       toast.error(`Failed to download ${fileName}.`);
     } finally {
