@@ -29,6 +29,9 @@ import { usePermission } from "./usePermission";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchemaIcon from "@mui/icons-material/Schema";
+import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
+import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
+import TerminalIcon from "@mui/icons-material/Terminal";
 import { useCabRole } from "../features/cabManager/hooks/useCabRole";
 import { ROLE_SCREENS } from "../features/cabManager/data/cabManager.mock";
 
@@ -236,6 +239,30 @@ const ALL_NAV_ITEMS: NavItem[] = [
         icon: <SummarizeRoundedIcon />,
         requiredModule: "CRQ Analytics",
         matchPaths: ["/analytics/reports"],
+      },
+    ],
+  },
+  {
+    to: "/sftp-management",
+    text: "SFTP Management",
+    icon: <CloudSyncOutlinedIcon />,
+    requiredModule: "SFTP Management",
+    children: [
+      {
+        to: "/sftp-management/windows",
+        text: "Windows",
+        icon: <DnsOutlinedIcon />,
+        requiredModule: "SFTP Management",
+        requiredSubModule: "Windows",
+        matchPaths: ["/sftp-management/windows"],
+      },
+      {
+        to: "/sftp-management/linux",
+        text: "Linux",
+        icon: <TerminalIcon />,
+        requiredModule: "SFTP Management",
+        requiredSubModule: "Linux",
+        matchPaths: ["/sftp-management/linux"],
       },
     ],
   },

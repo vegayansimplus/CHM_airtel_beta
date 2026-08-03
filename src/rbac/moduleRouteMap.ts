@@ -9,6 +9,7 @@ export const MODULE_ROUTE_MAP: Record<string, string[]> = {
   "Role-Based Access Control":  ["/scheduler"],
   "Cab Manager":                ["/cabmanager"],
   "CRQ Analytics":              ["/analytics"],
+  "SFTP Management":            ["/sftp-management"],
   "Authentication":             [],  // auth module — no dedicated route
 };
 
@@ -21,6 +22,7 @@ export const ROUTE_MODULE_MAP: Record<string, string> = {
   "/scheduler":        "Role-Based Access Control",
   "/cabmanager":       "Cab Manager",
   "/analytics":        "CRQ Analytics",
+  "/sftp-management":  "SFTP Management",
   "/inbox":            "Notification System",
   "/me":               null,   // available to all authenticated users
   "/home":             null,   // available to all
