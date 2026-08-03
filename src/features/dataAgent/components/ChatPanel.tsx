@@ -1,8 +1,12 @@
-import { useEffect, useRef } from "react";
-import { Avatar, Box, Button, Chip, Stack, TextField, Typography, useTheme } from "@mui/material";
+import { useEffect, useRef, useState } from "react";
+import { Avatar, Box, Button, Chip, IconButton, Stack, TextField, Tooltip, Typography, useTheme } from "@mui/material";
 import SendRoundedIcon from "@mui/icons-material/SendRounded";
 import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import AddchartRoundedIcon from "@mui/icons-material/AddchartRounded";
+import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import ReplayRoundedIcon from "@mui/icons-material/ReplayRounded";
+import DeleteSweepOutlinedIcon from "@mui/icons-material/DeleteSweepOutlined";
 import { useTabColorTokens } from "../../../style/theme";
 import type { ChatMessage, QueryResult } from "../types/dataAgent.types";
 
@@ -19,6 +23,8 @@ interface ChatPanelProps {
   chatInput: string;
   onChatInputChange: (value: string) => void;
   onSend: (override?: string) => void;
+  onRetry: (question: string) => void;
+  onClearConversation: () => void;
   loading: boolean;
   error: string | null;
   onAddToCanvas: (result: QueryResult) => void;
@@ -29,6 +35,8 @@ export default function ChatPanel({
   chatInput,
   onChatInputChange,
   onSend,
+  onRetry,
+  onClearConversation,
   loading,
   error,
   onAddToCanvas,
@@ -44,22 +52,29 @@ export default function ChatPanel({
 
   return (
     <Box sx={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
-      <Stack direction="row" flexWrap="wrap" gap={1} sx={{ px: 2.5, py: 1.25, borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
-        {SUGGESTIONS.map((s) => (
-          <Chip
-            key={s}
-            label={s}
-            size="small"
-            variant="outlined"
-            onClick={() => onSend(s)}
-            sx={{ fontSize: 11, borderRadius: 100 }}
-          />
-        ))}
+      <Stack direction="row" alignItems="center" gap={1} sx={{ px: 2.5, py: 1.25, borderBottom: `1px solid ${c.border}`, flexShrink: 0 }}>
+        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ flex: 1 }}>
+          {SUGGESTIONS.map((s) => (
+            <Chip
+              key={s}
+              label={s}
+              size="small"
+              variant="outlined"
+              onClick={() => onSend(s)}
+              sx={{ fontSize: 11, borderRadius: 100 }}
+            />
+          ))}
+        </Stack>
+        <Tooltip title="Clear conversation">
+          <IconButton size="small" onClick={onClearConversation}>
+            <DeleteSweepOutlinedIcon sx={{ fontSize: 18, color: c.textSecondary }} />
+          </IconButton>
+        </Tooltip>
       </Stack>
 
       <Box sx={{ flex: 1, overflowY: "auto", p: 2.5, display: "flex", flexDirection: "column", gap: 1.75 }}>
         {messages.map((msg) => (
-          <ChatBubble key={msg.id} msg={msg} onAddToCanvas={onAddToCanvas} />
+          <ChatBubble key={msg.id} msg={msg} onAddToCanvas={onAddToCanvas} onRetry={onRetry} />
         ))}
         <div ref={bottomRef} />
       </Box>
@@ -101,14 +116,28 @@ export default function ChatPanel({
   );
 }
 
-function ChatBubble({ msg, onAddToCanvas }: { msg: ChatMessage; onAddToCanvas: (result: QueryResult) => void }) {
+function formatTime(iso: string): string {
+  try {
+    return new Date(iso).toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+interface ChatBubbleProps {
+  msg: ChatMessage;
+  onAddToCanvas: (result: QueryResult) => void;
+  onRetry: (question: string) => void;
+}
+
+function ChatBubble({ msg, onAddToCanvas, onRetry }: ChatBubbleProps) {
   const theme = useTheme();
   const c = useTabColorTokens(theme);
   const isUser = msg.role === "user";
 
   if (isUser) {
     return (
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 0.4 }}>
         <Box
           sx={{
             maxWidth: "75%",
@@ -123,6 +152,9 @@ function ChatBubble({ msg, onAddToCanvas }: { msg: ChatMessage; onAddToCanvas: (
         >
           {msg.text}
         </Box>
+        <Typography variant="caption" sx={{ color: c.textSecondary, fontSize: 10, pr: 0.5 }}>
+          {formatTime(msg.timestamp)}
+        </Typography>
       </Box>
     );
   }
@@ -196,21 +228,67 @@ function ChatBubble({ msg, onAddToCanvas }: { msg: ChatMessage; onAddToCanvas: (
           </Stack>
         )}
 
-        {msg.hasData && !msg.error && msg.result && (
-          <Stack direction="row" flexWrap="wrap" gap={0.75} sx={{ mt: 1 }}>
+        <Stack direction="row" alignItems="center" flexWrap="wrap" gap={0.75} sx={{ mt: 0.75 }}>
+          <Typography variant="caption" sx={{ color: c.textSecondary, fontSize: 10 }}>
+            {formatTime(msg.timestamp)}
+          </Typography>
+
+          <CopyButton text={msg.text} />
+
+          {msg.error && msg.question && (
+            <Button
+              size="small"
+              variant="text"
+              startIcon={<ReplayRoundedIcon sx={{ fontSize: 14 }} />}
+              onClick={() => onRetry(msg.question!)}
+              sx={{ textTransform: "none", fontSize: 11, color: c.textSecondary, minWidth: 0, py: 0 }}
+            >
+              Retry
+            </Button>
+          )}
+
+          {msg.hasData && !msg.error && msg.result && (
             <Button
               size="small"
               variant="text"
               startIcon={<AddchartRoundedIcon sx={{ fontSize: 15 }} />}
               onClick={() => onAddToCanvas(msg.result!)}
-              sx={{ textTransform: "none", fontSize: 11, color: c.textSecondary }}
+              sx={{ textTransform: "none", fontSize: 11, color: c.textSecondary, minWidth: 0, py: 0 }}
             >
               Pin to canvas
             </Button>
-          </Stack>
-        )}
+          )}
+        </Stack>
       </Box>
     </Stack>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const theme = useTheme();
+  const c = useTabColorTokens(theme);
+  const [copied, setCopied] = useState(false);
+
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      /* clipboard permission denied - silently ignore, non-critical */
+    }
+  };
+
+  return (
+    <Tooltip title={copied ? "Copied!" : "Copy response"}>
+      <IconButton size="small" onClick={copy} sx={{ p: 0.4 }}>
+        {copied ? (
+          <CheckRoundedIcon sx={{ fontSize: 13, color: "success.main" }} />
+        ) : (
+          <ContentCopyRoundedIcon sx={{ fontSize: 13, color: c.textSecondary }} />
+        )}
+      </IconButton>
+    </Tooltip>
   );
 }
 

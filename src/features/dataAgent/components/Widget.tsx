@@ -293,7 +293,8 @@ function FeedbackPopover({
   const submit = async () => {
     if (!rating) return;
     try {
-      await submitFeedback({ requestId: widgetId, panelId: question, rating, comment }).unwrap();
+      // Thumbs map onto the server's 1-5 rating scale: up = most helpful, down = least.
+      await submitFeedback({ requestId: widgetId, panelId: question, rating: rating === "up" ? 5 : 1, comment }).unwrap();
       setTimeout(onClose, 1200);
     } catch {
       // isError already surfaces the failure in the popover below.

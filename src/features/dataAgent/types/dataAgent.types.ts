@@ -56,6 +56,7 @@ export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   text: string;
+  timestamp: string;
   loading?: boolean;
   error?: boolean;
   result?: QueryResult;
@@ -63,6 +64,8 @@ export interface ChatMessage {
   columns?: string[];
   intent?: string;
   hasData?: boolean;
+  /** The user's original question — assistant messages only, lets a failed reply be retried. */
+  question?: string;
 }
 
 export interface HistoryEntry {

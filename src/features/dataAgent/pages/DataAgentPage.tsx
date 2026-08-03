@@ -22,6 +22,8 @@ import type { CanvasPage, ChatMessage, QueryResult, WidgetState } from "../types
 
 const PAGES_KEY = "dataAgent.canvasPages";
 const VIZ_WIDTH_KEY = "dataAgent.vizPanelWidth";
+const WELCOME_TEXT =
+  "Hi! Ask me anything about your network data. I'll fetch results and explain them — pin any response to the canvas to visualize it.";
 
 function loadPages(): CanvasPage[] {
   try {
@@ -31,6 +33,22 @@ function loadPages(): CanvasPage[] {
     /* fall through to default */
   }
   return [{ id: generateId(), name: "Page 1", widgets: [] }];
+}
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+/** Pulls the backend's ApiResponse.message out of an RTK Query error, falling back to a generic message. */
+function extractErrorMessage(err: unknown): string {
+  if (err && typeof err === "object" && "data" in err) {
+    const data = (err as { data?: unknown }).data;
+    if (data && typeof data === "object" && "message" in data) {
+      const message = (data as { message?: unknown }).message;
+      if (typeof message === "string" && message.trim()) return message;
+    }
+  }
+  return "Unable to reach the Data Agent server.";
 }
 
 export default function DataAgentPage() {
@@ -54,12 +72,7 @@ export default function DataAgentPage() {
   });
 
   const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      text: "Hi! Ask me anything about your network data. I'll fetch results and explain them — pin any response to the canvas to visualize it.",
-      hasData: false,
-    },
+    { id: "welcome", role: "assistant", text: WELCOME_TEXT, timestamp: nowIso(), hasData: false },
   ]);
   const [chatInput, setChatInput] = useState("");
   const [chatError, setChatError] = useState<string | null>(null);
@@ -164,14 +177,25 @@ export default function DataAgentPage() {
     const aiMsgId = generateId();
     setMessages((prev) => [
       ...prev,
-      { id: userMsgId, role: "user", text: q, hasData: false },
-      { id: aiMsgId, role: "assistant", text: "", hasData: false, loading: true },
+      { id: userMsgId, role: "user", text: q, timestamp: nowIso(), hasData: false },
+      { id: aiMsgId, role: "assistant", text: "", timestamp: nowIso(), hasData: false, loading: true, question: q },
     ]);
     setChatInput("");
     setChatError(null);
 
     try {
       const result = await askQuestion({ question: q }).unwrap();
+
+      // The server can answer 200 with a populated `error` field (e.g. an
+      // unanswerable question) rather than an HTTP failure - surface that
+      // the same way as a transport-level failure, not as a normal reply.
+      if (result.error) {
+        setMessages((prev) =>
+          prev.map((m) => (m.id === aiMsgId ? { ...m, text: result.error as string, loading: false, error: true } : m)),
+        );
+        return;
+      }
+
       const rows = result.rows ?? [];
       const summary = result.summary ?? "";
       const rowCount = result.row_count ?? rows.length;
@@ -197,13 +221,19 @@ export default function DataAgentPage() {
       saveHistory({ question: q, summary: replyText, intent: result.intent, rowCount }).catch(() => {
         /* history save is non-critical */
       });
-    } catch {
+    } catch (err) {
+      const message = extractErrorMessage(err);
       setMessages((prev) =>
-        prev.map((m) => (m.id === aiMsgId ? { ...m, text: "Something went wrong. Please try again.", loading: false, error: true } : m)),
+        prev.map((m) => (m.id === aiMsgId ? { ...m, text: message, loading: false, error: true } : m)),
       );
-      setChatError("Unable to reach the Data Agent server.");
+      setChatError(message);
     }
   };
+
+  const clearConversation = () =>
+    setMessages([
+      { id: generateId(), role: "assistant", text: WELCOME_TEXT, timestamp: nowIso(), hasData: false },
+    ]);
 
   return (
     <Box
@@ -256,6 +286,8 @@ export default function DataAgentPage() {
           chatInput={chatInput}
           onChatInputChange={setChatInput}
           onSend={sendChat}
+          onRetry={sendChat}
+          onClearConversation={clearConversation}
           loading={asking}
           error={chatError}
           onAddToCanvas={addToCanvas}

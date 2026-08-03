@@ -9,7 +9,8 @@ export interface ApiMessageResponse {
 export interface FeedbackRequest {
   requestId: string;
   panelId: string;
-  rating: "up" | "down";
+  /** 1-5, matching the Traffic QA server's /feedback contract. */
+  rating: number;
   comment?: string;
 }
 
