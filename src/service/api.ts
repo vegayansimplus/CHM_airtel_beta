@@ -123,5 +123,6 @@ export const api = createApi({
     "CrqAnalytics",
     "SftpWindowsFiles",
     "SftpLinuxFiles",
+    "DataAgentHistory",
   ],
 });

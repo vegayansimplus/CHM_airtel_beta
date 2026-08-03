@@ -59,6 +59,7 @@ import {
   CrqAnalyticsPage,
   AnalyticsReportsPage,
 } from "../features/crqAnalytics";
+import DataAgentPage from "../features/dataAgent/pages/DataAgentPage";
 import {
   SftpManagementMainPageTab,
   WindowsSftpPage,
@@ -306,6 +307,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             <Route path="orgconfig" element={<OrganizationConfigPage />} />
           </Route>
         </Route>
+        <Route
+          path="data-agent"
+          element={<PrivateRoute element={<DataAgentPage />} />}
+        />
+
         <Route index element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>

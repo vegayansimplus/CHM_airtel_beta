@@ -25,6 +25,7 @@ import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
 import { usePermission } from "./usePermission";
 
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
@@ -241,6 +242,12 @@ const ALL_NAV_ITEMS: NavItem[] = [
         matchPaths: ["/analytics/reports"],
       },
     ],
+  },
+  {
+    to: "/data-agent",
+    text: "Data Agent",
+    icon: <AutoAwesomeRoundedIcon />,
+    requiredModule: "Data Agent",
   },
   {
     to: "/sftp-management",
