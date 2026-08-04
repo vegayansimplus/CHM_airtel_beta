@@ -21,6 +21,8 @@ import {
   normalizeModuleHierarchy,
 } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
+import { hasModuleIn, hasSubModuleIn } from "../../../rbac/permissionCore";
+import { getFirstAccessiblePath } from "../../../rbac/routeAccess";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
 import ConnectionSecurityBadge from "../components/ConnectionSecurityBadge";
@@ -367,8 +369,18 @@ const LoginPage: React.FC = () => {
     // Writing to localStorage above already notifies any other open tab
     // via the native `storage` event (see AuthHydrator), so no separate
     // broadcast is needed here.
+    // Redux hasn't re-rendered with the new user yet, so the landing target
+    // is computed directly from the just-fetched user object (via the same
+    // pure predicates usePermission() uses) rather than the usePermission
+    // hook, which would still read the pre-login (unauthenticated) state.
+    const target =
+      getFirstAccessiblePath(
+        (moduleName) => hasModuleIn(user.modules, user.roleCode, moduleName),
+        (moduleName, subModuleName) =>
+          hasSubModuleIn(user.moduleHierarchy, user.roleCode, moduleName, subModuleName),
+      ) ?? "/";
     const from = (location.state as { from?: string } | null)?.from;
-    navigate(from && from !== "/login" ? from : "/home", { replace: true });
+    navigate(from && from !== "/login" ? from : target, { replace: true });
   };
 
   const handleForceLogout = async () => {

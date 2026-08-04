@@ -19,8 +19,86 @@ export interface CreateUserDropdownResponse {
 export interface ExcelUploadRowResult {
   rowNumber: number;
   olmid: string;
-  status: "SUCCESS" | "FAILED";
+  status: "SUCCESS" | "FAILED" | "SKIPPED";
   message: string;
+}
+
+export type ExcelUploadJobStatus =
+  | "QUEUED"
+  | "VALIDATING"
+  | "PROCESSING"
+  | "COMPLETED"
+  | "COMPLETED_WITH_ERRORS"
+  | "FAILED";
+
+export interface ExcelUploadStartResponse {
+  uploadId: string;
+  status: ExcelUploadJobStatus;
+  message: string;
+  fileName: string;
+  fileSizeBytes: number;
+  totalRows: number;
+}
+
+export interface ExcelUploadProgress {
+  uploadId: string;
+  status: ExcelUploadJobStatus;
+  stage: string;
+  percentComplete: number;
+
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateRows: number;
+  processedRows: number;
+  successCount: number;
+  failureCount: number;
+  skippedRows: number;
+
+  currentBatch: number;
+  totalBatches: number;
+  estimatedSecondsRemaining: number | null;
+
+  startedAt: string;
+  completedAt: string | null;
+  durationMs: number | null;
+  errorMessage: string | null;
+}
+
+export interface ExcelValidationError {
+  rowNumber: number;
+  olmid: string;
+  columnName: string;
+  invalidValue: string;
+  errorMessage: string;
+  status: string;
+}
+
+export interface ExcelUploadSummary {
+  uploadId: string;
+  fileName: string;
+  uploadedBy: string;
+  totalRows: number;
+  validRows: number;
+  invalidRows: number;
+  duplicateRows: number;
+  processedRows: number;
+  successCount: number;
+  failureCount: number;
+  skippedRows: number;
+  totalBatches: number;
+  totalDurationMs: number;
+  avgMsPerBatch: number;
+  avgMsPerRecord: number;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+export interface ExcelUploadResult {
+  summary: ExcelUploadSummary;
+  rowResults: ExcelUploadRowResult[];
+  validationErrors: ExcelValidationError[];
+  errorReportAvailable: boolean;
 }
 
 export const orgHierarchyApi = api.injectEndpoints({
@@ -77,7 +155,7 @@ export const orgHierarchyApi = api.injectEndpoints({
       }),
     }),
 
-    // ── Upload filled Excel file ──────────────────────────────────────────
+    // ── Upload filled Excel file (synchronous - kept for backward compatibility) ──
     uploadEmployeesFromExcel: builder.mutation<ExcelUploadRowResult[], File>({
       query: (file) => {
         const formData = new FormData();
@@ -89,6 +167,47 @@ export const orgHierarchyApi = api.injectEndpoints({
         };
       },
       invalidatesTags: ["EMPLOYEES"],
+    }),
+
+    // ── Upload filled Excel file (asynchronous — returns an uploadId immediately) ──
+    startExcelUploadAsync: builder.mutation<ExcelUploadStartResponse, File>({
+      query: (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        return {
+          url: "/teamoverview/excel/v1/upload/async",
+          method: "POST",
+          body: formData,
+        };
+      },
+      // Nothing is written to the DB yet at this point - invalidation happens
+      // once the caller observes a terminal status from getUploadStatus.
+    }),
+
+    // ── Poll upload progress ──────────────────────────────────────────────
+    getUploadStatus: builder.query<ExcelUploadProgress, string>({
+      query: (uploadId) => ({
+        url: `/teamoverview/excel/v1/upload/${uploadId}/status`,
+        method: "GET",
+      }),
+    }),
+
+    // ── Fetch final row results + validation errors once terminal ────────
+    getUploadResult: builder.query<ExcelUploadResult, string>({
+      query: (uploadId) => ({
+        url: `/teamoverview/excel/v1/upload/${uploadId}/result`,
+        method: "GET",
+      }),
+    }),
+
+    // ── Download the error report workbook ────────────────────────────────
+    getUploadErrorReport: builder.query<Blob, string>({
+      query: (uploadId) => ({
+        url: `/teamoverview/excel/v1/upload/${uploadId}/error-report`,
+        method: "GET",
+        responseHandler: (response) => response.blob(),
+        cache: "no-cache",
+      }),
     }),
   }),
 
@@ -103,6 +222,10 @@ export const {
   // lazy query so we can trigger download on button click
   useLazyDownloadEmployeeTemplateQuery,
   useUploadEmployeesFromExcelMutation,
+  useStartExcelUploadAsyncMutation,
+  useGetUploadStatusQuery,
+  useLazyGetUploadResultQuery,
+  useLazyGetUploadErrorReportQuery,
 } = orgHierarchyApi;
 
 // import { api } from "../../../service/api";

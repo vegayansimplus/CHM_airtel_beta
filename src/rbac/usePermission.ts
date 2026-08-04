@@ -1,8 +1,9 @@
 // src/rbac/usePermission.ts
 import { useMemo } from "react";
 import { useAppSelector } from "../app/hooks";
+import { canIn, hasModuleIn, hasSubModuleIn, isSuperAdminRole, type PermAction } from "./permissionCore";
 
-export type PermAction = "VIEW" | "CREATE" | "UPDATE" | "DELETE" | "APPROVE" | "REJECT";
+export type { PermAction };
 
 export interface PermissionUtils {
   /** Check if the user has a specific action on a module */
@@ -28,27 +29,16 @@ export const usePermission = (): PermissionUtils => {
     const modules = user?.modules ?? {};
     const moduleHierarchy = user?.moduleHierarchy ?? [];
     const roleCode = user?.roleCode ?? null;
-    const isSuperAdmin = roleCode === "SUPER_ADMIN";
+    const isSuperAdmin = isSuperAdminRole(roleCode);
 
-    const can = (moduleName: string, action: PermAction): boolean => {
-      // Super admins bypass all checks — they always have full access
-      if (isSuperAdmin) return true;
-      return modules[moduleName]?.includes(action) ?? false;
-    };
+    const can = (moduleName: string, action: PermAction): boolean =>
+      canIn(modules, roleCode, moduleName, action);
 
-    const hasModule = (moduleName: string): boolean => {
-      if (isSuperAdmin) return true;
-      return !!modules[moduleName] && modules[moduleName].length > 0;
-    };
+    const hasModule = (moduleName: string): boolean =>
+      hasModuleIn(modules, roleCode, moduleName);
 
-    const hasSubModule = (moduleName: string, subModuleName: string): boolean => {
-      if (isSuperAdmin) return true;
-      const mod = moduleHierarchy.find((m) => m.moduleName === moduleName);
-      const subModule = mod?.subModules.find(
-        (sm) => sm.subModuleName === subModuleName,
-      );
-      return !!subModule && subModule.permissions.length > 0;
-    };
+    const hasSubModule = (moduleName: string, subModuleName: string): boolean =>
+      hasSubModuleIn(moduleHierarchy, roleCode, moduleName, subModuleName);
 
     const canAll = (moduleName: string, actions: PermAction[]): boolean =>
       actions.every((a) => can(moduleName, a));
