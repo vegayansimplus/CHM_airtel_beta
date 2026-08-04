@@ -763,8 +763,11 @@ Linux pe: `sudo ss -ltnp | grep :80` (aksar Apache — `sudo systemctl disable -
 
 ### 5.7 — Excel upload fail: "413 Request Entity Too Large"
 
-Nginx me upload limit **50 MB** set hai (`client_max_body_size 50m`). Isse
+Nginx me upload limit **1024 MB (1 GB)** set hai (`client_max_body_size 1024m`). Isse
 badi file chahiye to nginx config me ye value badhao, `nginx -t`, phir reload.
+Agar backend (Spring Boot) apna alag `spring.servlet.multipart.max-file-size` /
+`max-request-size` set karta hai, wo bhi is se badhana padega — nginx sirf
+proxy-level limit hai, backend apna khud ka limit reject kar sakta hai.
 
 ### 5.8 — Login ke baad turant logout / token issues
 

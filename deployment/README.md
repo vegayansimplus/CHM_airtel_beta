@@ -54,7 +54,7 @@ no backend code change is required.
    handling is needed in the proxy.
 7. **Long-running operations** — the backend triggers SSH scripts and SFTP transfers,
    and Excel uploads exist (`EmployeeExcelController`). Nginx is configured with
-   `client_max_body_size 50m` and `proxy_read_timeout 300s`.
+   `client_max_body_size 1024m` and `proxy_read_timeout 300s`.
 
 ## Deployment-related improvements identified
 
