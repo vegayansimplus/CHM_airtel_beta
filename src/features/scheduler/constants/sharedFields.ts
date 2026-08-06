@@ -91,13 +91,3 @@ export const CANCELLATION_FIELDS: StageFieldConfig[] = [
     requiredWhen: (v) => v.status === "canceled",
   },
 ];
-
-/** Always-present "Additional Notes" remark field, required only for
- * Failed/Cancelled outcomes - shared across every stage. */
-export const REMARK_FIELD: StageFieldConfig = {
-  name: "remark",
-  label: "CHM Remark",
-  type: "textarea",
-  placeholder: "Enter any additional remarks or observations…",
-  requiredWhen: (v) => v.status === "Failed" || v.status === "canceled",
-};

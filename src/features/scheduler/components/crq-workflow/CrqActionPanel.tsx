@@ -1,5 +1,5 @@
 import React from "react";
-import { Button, Chip, Divider, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, Button, Chip, Divider, Stack, Tooltip, Typography } from "@mui/material";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -98,133 +98,140 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
       : { bg: colors.trackOff, fg: colors.textDim };
 
   return (
-    <Stack
-      direction={{ xs: "column", lg: "row" }}
-      alignItems={{ xs: "stretch", lg: "center" }}
-      justifyContent="space-between"
-      spacing={1.5}
-      sx={{
-        position: "sticky",
-        top: 0,
-        zIndex: 2,
-        bgcolor: colors.surface,
-        border: `1px solid ${colors.border}`,
-        borderRadius: colors.radius,
-        px: 1.5,
-        py: 0.85,
-        mb: 1.25,
-      }}
-    >
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
-        <Chip
-          label={copy.badge}
-          size="small"
-          sx={{
-            height: 20,
-            fontWeight: 800,
-            fontSize: 10,
-            textTransform: "uppercase",
-            letterSpacing: "0.4px",
-            bgcolor: badgePalette.bg,
-            color: badgePalette.fg,
-            flexShrink: 0,
-          }}
-        />
-        <Typography sx={{ fontSize: 13, fontWeight: 800, color: colors.textPrimary }} noWrap>
-          {stageLabel}
-        </Typography>
-        <Tooltip title={copy.note} arrow placement="bottom-start">
-          <InfoOutlinedIcon sx={{ fontSize: 14, color: colors.textDim, cursor: "help", flexShrink: 0 }} />
-        </Tooltip>
-      </Stack>
-
+    // Rendered by CrqDetailedView as a static sibling of CrqWorkflowHeader/
+    // StageRail, outside the scrollable stage-content Box - not sticky.
+    // Position-sticky + z-index inside that scroll container proved
+    // unreliable (scrolled Accordion content from StageSummaryGrid kept
+    // rendering above it), so this card simply never enters the scrolling
+    // region at all: structurally, nothing scrolled can appear above it.
+    <Box sx={{ px: 2, pt: 2 }}>
       <Stack
-        direction="row"
-        alignItems="center"
-        flexWrap="wrap"
-        justifyContent={{ xs: "flex-start", lg: "flex-end" }}
-        useFlexGap
-        sx={{ columnGap: 0.75, rowGap: 0.75 }}
+        direction={{ xs: "column", lg: "row" }}
+        alignItems={{ xs: "stretch", lg: "center" }}
+        justifyContent="space-between"
+        spacing={1.5}
+        sx={{
+          bgcolor: colors.surface,
+          border: `1px solid ${colors.border}`,
+          borderRadius: colors.radius,
+          boxShadow: colors.isDark
+            ? "0 4px 14px rgba(0,0,0,0.45)"
+            : "0 4px 14px rgba(15,23,42,0.1)",
+          px: 1.5,
+          py: 0.85,
+        }}
       >
-        {recordActions.map((action) => (
-          <UtilityActionButton key={action.key} action={action} colors={colors} />
-        ))}
-
-        {mode === "editable" && (
-          <>
-            <Divider
-              orientation="vertical"
-              flexItem
-              sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
-            />
-            <Button
-              variant="contained"
-              size="small"
-              disabled={isBusy}
-              onClick={onStartPause}
-              startIcon={
-                isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
-              }
-              sx={{
-                height: 34,
-                textTransform: "none",
-                fontWeight: 700,
-                fontSize: 13,
-                borderRadius: "8px",
-                px: 2.2,
-                boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
-                border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
-                background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
-                color: isRunning ? colors.danger : "#fff",
-                "&:hover": {
-                  boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
-                  background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
-                  transform: "translateY(-1px)",
-                },
-              }}
-            >
-              {isRunning ? "Pause" : "Start Stage"}
-            </Button>
-            <Button
-              variant="outlined"
-              size="small"
-              onClick={onReview}
-              startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
-              sx={{
-                height: 34,
-                textTransform: "none",
-                fontWeight: 700,
-                fontSize: 13,
-                borderRadius: "8px",
-                px: 2,
-                borderWidth: "1.5px",
-                borderColor: colors.accentBorder,
-                color: colors.accent,
-                bgcolor: colors.surface,
-                "&:hover": { bgcolor: colors.accentDim, borderColor: colors.accent },
-              }}
-            >
-              Review {stageLabel}
-            </Button>
-          </>
-        )}
-
-        {mode !== "editable" && (
+        <Stack direction="row" alignItems="center" spacing={1} sx={{ minWidth: 0 }}>
           <Chip
-            label={mode === "view" ? "✓ Completed" : "Not reached"}
+            label={copy.badge}
             size="small"
             sx={{
-              height: 28,
+              height: 20,
               fontWeight: 800,
-              fontSize: 12,
-              px: 0.5,
-              bgcolor: mode === "view" ? colors.successDim : colors.trackOff,
-              color: mode === "view" ? colors.success : colors.textDim,
+              fontSize: 10,
+              textTransform: "uppercase",
+              letterSpacing: "0.4px",
+              bgcolor: badgePalette.bg,
+              color: badgePalette.fg,
+              flexShrink: 0,
             }}
           />
-        )}
+          <Typography sx={{ fontSize: 13, fontWeight: 800, color: colors.textPrimary }} noWrap>
+            {stageLabel}
+          </Typography>
+          <Tooltip title={copy.note} arrow placement="bottom-start">
+            <InfoOutlinedIcon sx={{ fontSize: 14, color: colors.textDim, cursor: "help", flexShrink: 0 }} />
+          </Tooltip>
+        </Stack>
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          flexWrap="wrap"
+          justifyContent={{ xs: "flex-start", lg: "flex-end" }}
+          useFlexGap
+          sx={{ columnGap: 0.75, rowGap: 0.75 }}
+        >
+          {recordActions.map((action) => (
+            <UtilityActionButton key={action.key} action={action} colors={colors} />
+          ))}
+
+          {mode === "editable" && (
+            <>
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
+              />
+              <Button
+                variant="contained"
+                size="small"
+                disabled={isBusy}
+                onClick={onStartPause}
+                startIcon={
+                  isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
+                }
+                sx={{
+                  height: 34,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  borderRadius: "8px",
+                  px: 2.2,
+                  boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
+                  border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
+                  background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
+                  color: isRunning ? colors.danger : "#fff",
+                  "&:hover": {
+                    boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
+                    background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
+                    transform: "translateY(-1px)",
+                  },
+                }}
+              >
+                {isRunning ? "Pause" : "Start Stage"}
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={onReview}
+                startIcon={<VisibilityIcon sx={{ fontSize: 16 }} />}
+                sx={{
+                  height: 34,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  fontSize: 13,
+                  borderRadius: "8px",
+                  px: 2,
+                  borderWidth: "1.5px",
+                  borderColor: colors.accentBorder,
+                  color: colors.accent,
+                  bgcolor: colors.surface,
+                  "&:hover": { bgcolor: colors.accentDim, borderColor: colors.accent },
+                }}
+              >
+                Review {stageLabel}
+              </Button>
+            </>
+          )}
+
+          {mode !== "editable" && (
+            <Chip
+              label={mode === "view" ? "✓ Completed" : "Not reached"}
+              size="small"
+              sx={{
+                height: 28,
+                fontWeight: 800,
+                fontSize: 12,
+                px: 0.5,
+                bgcolor: mode === "view" ? colors.successDim : colors.trackOff,
+                color: mode === "view" ? colors.success : colors.textDim,
+              }}
+            />
+          )}
+        </Stack>
       </Stack>
-    </Stack>
+    </Box>
   );
 };
 

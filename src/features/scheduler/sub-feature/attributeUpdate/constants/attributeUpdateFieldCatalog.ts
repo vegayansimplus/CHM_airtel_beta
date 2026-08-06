@@ -139,6 +139,46 @@ const COORDINATOR_IMPLEMENTER_ATTRIBUTES: StageAttribute[] = [
   },
 ];
 
+/**
+ * Remedy row's own status column - not editable, mirrors the stage's active
+ * Remedy status (same source as Cygnet's "Remedy Status" field below) so
+ * INSERT_REMEDY_UPDATE_ATTR's status param is never sent null. Every stage
+ * includes this first in its `remedy` array - see buildAttributeSaveSections,
+ * which auto-includes any autoSetFrom field in the save payload.
+ */
+const REMEDY_STATUS_ATTRIBUTE: StageAttribute = {
+  name: "Status",
+  field: "status",
+  type: "Text",
+  mandatory: "Mandatory",
+  readOnly: true,
+  autoSetFrom: "remedyStatus",
+};
+
+/**
+ * Business justification for the change - previously only collected at the
+ * Scheduling stage, now available (editable) at every stage so it's never
+ * dropped from the save payload no matter which stage the user is on.
+ */
+const BUSINESS_JUSTIFICATION_ATTRIBUTE: StageAttribute = {
+  name: "Business Justification",
+  field: "businessJustification",
+  type: "Dropdown",
+  mandatory: "Mandatory",
+  values: [
+    "Corporate Strategic",
+    "Business Unit Strategic",
+    "Maintenance",
+    "Defect",
+    "Upgrade",
+    "Enhancement",
+    "Customer Commitment",
+    "Sarbanes-Oxley",
+    "Real Time Spare consumption",
+    "RMA",
+  ],
+};
+
 // ─── 7 CMS stages (ids reuse the app-wide WorkflowStageId) ───────────────────
 
 export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
@@ -149,7 +189,11 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolPhase: "Planning",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [...COORDINATOR_IMPLEMENTER_ATTRIBUTES],
+    remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
+      ...COORDINATOR_IMPLEMENTER_ATTRIBUTES,
+    ],
     cab: [
       { name: "CRQ Validated By", field: "crqValidatedBy", type: "Text", mandatory: "Mandatory" },
       {
@@ -177,6 +221,8 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
     remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "Impacted Segment",
         field: "impactedSegment",
@@ -291,6 +337,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: ["scheduling"],
     remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
       ...COORDINATOR_IMPLEMENTER_ATTRIBUTES,
       {
         name: "Scheduled Start Date+",
@@ -304,24 +351,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
         type: "Date Time",
         mandatory: "Mandatory",
       },
-      {
-        name: "Business Justification",
-        field: "businessJustification",
-        type: "Dropdown",
-        mandatory: "Mandatory",
-        values: [
-          "Corporate Strategic",
-          "Business Unit Strategic",
-          "Maintenance",
-          "Defect",
-          "Upgrade",
-          "Enhancement",
-          "Customer Commitment",
-          "Sarbanes-Oxley",
-          "Real Time Spare consumption",
-          "RMA",
-        ],
-      },
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
     ],
     cab: [
       {
@@ -362,6 +392,8 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
     remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "MOP Creation Method",
         field: "mopCreationMethod",
@@ -401,7 +433,7 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     planningToolPhase: "MOP Validation",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [],
+    remedy: [REMEDY_STATUS_ATTRIBUTE, BUSINESS_JUSTIFICATION_ATTRIBUTE],
     cab: [
       { name: "MOP Validated By", field: "mopValidatedBy", type: "Text", mandatory: "Mandatory" },
       {
@@ -432,6 +464,8 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     ],
     planningToolScopes: ["execution"],
     remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "Actual Start Date*+",
         field: "actualStartDate",
@@ -578,6 +612,8 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     remedyStatuses: ["Completed"],
     planningToolScopes: ["closure"],
     remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
+      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       { name: "Completed Date", field: "completedDate", type: "Date Time", mandatory: "Mandatory" },
     ],
     cab: [

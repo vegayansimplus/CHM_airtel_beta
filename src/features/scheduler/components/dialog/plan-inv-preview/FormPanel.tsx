@@ -7,7 +7,6 @@ import {
   Collapse,
   DialogActions,
   DialogContent,
-  Divider,
   Fade,
   FormControl,
   InputLabel,
@@ -26,7 +25,6 @@ import TuneRoundedIcon from "@mui/icons-material/TuneRounded";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
-import RateReviewOutlinedIcon from "@mui/icons-material/RateReviewOutlined";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import type { ReviewFormInputs, ThemeColors } from "../../../types/crq.types";
@@ -77,7 +75,6 @@ export const FormPanel: React.FC<Props> = ({
 
   const statusValue = watch("status");
   const selectedReason = watch("cancellationReason");
-  const remarkRequired = statusValue === "Failed" || statusValue === "canceled";
 
   useEffect(() => {
     if (statusValue !== "canceled")
@@ -612,73 +609,6 @@ export const FormPanel: React.FC<Props> = ({
                   </Stack>
                 </Paper>
               </Collapse>
-
-              {/* ── Additional Notes ──────────────────────────────── */}
-              <Box>
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 1.5,
-                    mb: 1.5,
-                  }}
-                >
-                  <Divider sx={{ flex: 1 }} />
-                  <SectionLabel>Additional Notes</SectionLabel>
-                  <Divider sx={{ flex: 1 }} />
-                </Box>
-
-                <Controller
-                  name="remark"
-                  control={control}
-                  rules={{
-                    required: remarkRequired
-                      ? "A remark is required for this outcome."
-                      : false,
-                  }}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      disabled={isCancelled}
-                      label={
-                        remarkRequired
-                          ? "CHM Remark (Required)"
-                          : "CHM Remark (Optional)"
-                      }
-                      placeholder="Enter any additional remarks or observations…"
-                      multiline
-                      rows={3}
-                      fullWidth
-                      error={Boolean(errors.remark)}
-                      helperText={errors.remark?.message}
-                      inputProps={{
-                        "aria-required": remarkRequired,
-                        maxLength: 1000,
-                      }}
-                      InputProps={{
-                        sx: {
-                          borderRadius: 2,
-                          alignItems: "flex-start",
-                          fontSize: 13,
-                        },
-                        startAdornment: (
-                          <RateReviewOutlinedIcon
-                            sx={{
-                              color: colors.textSecondary,
-                              mr: 1,
-                              mt: 1.25,
-                              fontSize: 16,
-                              alignSelf: "flex-start",
-                            }}
-                            aria-hidden="true"
-                          />
-                        ),
-                      }}
-                      InputLabelProps={{ sx: { fontSize: 13 } }}
-                    />
-                  )}
-                />
-              </Box>
             </Box>
           </DialogContent>
 

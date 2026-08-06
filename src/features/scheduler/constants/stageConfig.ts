@@ -1,9 +1,5 @@
 import type { StageConfig, StageKey } from "../types/stageWorkflow.types";
-import {
-  DEFAULT_STATUS_OPTIONS,
-  CANCELLATION_FIELDS,
-  REMARK_FIELD,
-} from "./sharedFields";
+import { DEFAULT_STATUS_OPTIONS, CANCELLATION_FIELDS } from "./sharedFields";
 
 /**
  * Factory that fills in the boilerplate shared by every stage so each
@@ -26,14 +22,12 @@ function buildStageConfig(
   return {
     statusField: "status",
     statusOptions: DEFAULT_STATUS_OPTIONS,
-    // On Cancel, "Remedy Status" (field1) and "Remedy Remark" (field5) are
-    // the only status/remark inputs shown - the generic CHM Remark box is
-    // redundant here, so it's hidden and its backend param is filled from
-    // field5 instead of asking for the same text twice.
-    fields: [
-      ...CANCELLATION_FIELDS,
-      { ...REMARK_FIELD, visibleWhen: (v) => v.status !== "canceled" },
-    ],
+    // The generic "CHM Remark" box has been removed for every stage (same
+    // as Plan & Inventory) - only the cancellation block's own "Remedy
+    // Remark" (field5) is collected now. The backend's `remark` param is
+    // still sent (defaulted to "" in buildCommonDonePayload) so the
+    // mandatory @RequestParam contract stays satisfied.
+    fields: [...CANCELLATION_FIELDS],
     ...partial,
   };
 }

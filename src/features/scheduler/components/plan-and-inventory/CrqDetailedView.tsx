@@ -573,18 +573,20 @@ export const CrqDetailedView: React.FC = () => {
                 colors={colors}
               />
 
-              <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
-                <CrqActionPanel
-                  stageLabel={WORKFLOW_STAGES[selectedStageIndex].label}
-                  mode={stageMode}
-                  isRunning={isRunning}
-                  onStartPause={handleStartPause}
-                  onReview={() => setReviewDialogOpen(true)}
-                  isBusy={activeStageWorkflow?.isTogglingStatus}
-                  recordActions={crqActions}
-                  colors={colors}
-                />
+              {/* Static - deliberately outside the scrollable Box below, so
+                  scrolled stage content can never render above it. */}
+              <CrqActionPanel
+                stageLabel={WORKFLOW_STAGES[selectedStageIndex].label}
+                mode={stageMode}
+                isRunning={isRunning}
+                onStartPause={handleStartPause}
+                onReview={() => setReviewDialogOpen(true)}
+                isBusy={activeStageWorkflow?.isTogglingStatus}
+                recordActions={crqActions}
+                colors={colors}
+              />
 
+              <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2 }}>
                 <StageSummaryGrid fields={getStageSummaryFields(selectedStageId, selectedCrq)} colors={colors} />
 
                 {/* Completed previous stages - read-only, no actions. */}
