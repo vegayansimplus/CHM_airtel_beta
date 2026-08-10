@@ -28,3 +28,14 @@ export interface ApiResponse {
   status: string;
   message: string;
 }
+
+/** Backs CommonEmployeeCreateRequestDto / POST /teamoverview/addnewotheremp — a
+ * lighter "Other User" create (no employment/hierarchy fields); actorUserId is
+ * resolved server-side from the auth token, not sent in the body. */
+export interface CreateOtherEmployeeRequest {
+  olmid: string;
+  employeeName: string;
+  emailId: string;
+  mobileNo: string;
+  roleCode: string;
+}

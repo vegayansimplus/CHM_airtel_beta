@@ -25,6 +25,8 @@ import UserTable from "./UserTable";
 import UserCard from "./UserCard";
 import ProfileDrawer from "./ProfileDrawer";
 import AddUserWizard from "./AddUserWizard";
+import AddUserTypeDialog from "./AddUserTypeDialog";
+import AddOtherUserDialog from "./AddOtherUserDialog";
 import DeleteDialog from "./DeleteDialog";
 import EmptyState from "./EmptyState";
 import LoadingState from "./LoadingState";
@@ -52,7 +54,9 @@ export default function UserManagement() {
 
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<User[] | null>(null);
+  const [addTypeOpen, setAddTypeOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
+  const [addOtherOpen, setAddOtherOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [activeUserId, setActiveUserId] = useState<number | null>(null);
 
@@ -174,7 +178,7 @@ export default function UserManagement() {
   return (
     <Box sx={{ pb: { xs: 9, md: 1 } }}>
       <DashboardHeader
-        onAddUser={() => setAddOpen(true)}
+        onAddUser={() => setAddTypeOpen(true)}
         onImport={() => setImportOpen(true)}
         onExport={handleExport}
         onRefresh={handleRefresh}
@@ -210,13 +214,13 @@ export default function UserManagement() {
               onResetPassword={handleResetPassword}
               onDelete={setDeleteTarget}
               onBulkDelete={setBulkDeleteTargets}
-              onAddUser={() => setAddOpen(true)}
+              onAddUser={() => setAddTypeOpen(true)}
               onResetFilters={handleResetFilters}
               hasActiveFilters={hasActiveFilters}
             />
           ) : sorted.length === 0 && !isFetching ? (
             <EmptyState
-              onAddUser={() => setAddOpen(true)}
+              onAddUser={() => setAddTypeOpen(true)}
               onResetFilters={handleResetFilters}
               showResetFilters={hasActiveFilters}
             />
@@ -311,7 +315,7 @@ export default function UserManagement() {
       {isMobile && (
         <Fab
           color="primary"
-          onClick={() => setAddOpen(true)}
+          onClick={() => setAddTypeOpen(true)}
           sx={{
             position: "fixed",
             bottom: 24,
@@ -330,10 +334,29 @@ export default function UserManagement() {
         onUserChanged={refetch}
       />
 
+      <AddUserTypeDialog
+        open={addTypeOpen}
+        onClose={() => setAddTypeOpen(false)}
+        onSelectTeam={() => {
+          setAddTypeOpen(false);
+          setAddOpen(true);
+        }}
+        onSelectOther={() => {
+          setAddTypeOpen(false);
+          setAddOtherOpen(true);
+        }}
+      />
+
       <AddUserWizard
         open={addOpen}
         onClose={() => setAddOpen(false)}
         actorUserId={actorUserId}
+        onCreated={refetch}
+      />
+
+      <AddOtherUserDialog
+        open={addOtherOpen}
+        onClose={() => setAddOtherOpen(false)}
         onCreated={refetch}
       />
 

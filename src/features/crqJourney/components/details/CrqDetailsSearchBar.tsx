@@ -30,6 +30,16 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
   const theme = useTheme();
   const scopeSelected = values.subDomain != null;
 
+  const emitCrq = (val: CrqJourneySearchRow | string | null) => {
+    if (val == null) return onChange(null);
+    if (typeof val === "string") {
+      const crqNo = val.trim();
+      if (!crqNo) return onChange(null);
+      return onChange({ crqNo, currentStage: "", currentStatus: "", enteredCurrentStageAt: null });
+    }
+    onChange(val);
+  };
+
   return (
     <Box
       sx={{
@@ -55,16 +65,16 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
     >
       <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
 
-      <Autocomplete<CrqJourneySearchRow>
+      <Autocomplete<CrqJourneySearchRow, false, false, true>
         size="small"
         sx={{ flex: 1, minWidth: { xs: "100%", sm: 320 } }}
+        freeSolo
         options={crqOptions}
         value={value}
         loading={isLoadingCrqs}
-        disabled={!scopeSelected}
-        getOptionLabel={(crq) => crq.crqNo}
+        getOptionLabel={(crq) => (typeof crq === "string" ? crq : crq.crqNo)}
         isOptionEqualToValue={(a, b) => a.crqNo === b.crqNo}
-        onChange={(_e, crq) => onChange(crq)}
+        onChange={(_e, crq) => emitCrq(crq)}
         filterOptions={(opts, state) => {
           const q = state.inputValue.trim().toLowerCase();
           if (!q) return opts;
@@ -73,7 +83,7 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
         renderInput={(params) => (
           <TextField
             {...params}
-            placeholder={scopeSelected ? "Look up a CRQ number…" : "Select a Sub Domain first"}
+            placeholder={scopeSelected ? "Look up a CRQ number…" : "Type a CRQ number and press Enter, or pick a Sub Domain to browse…"}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "999px",
@@ -106,7 +116,9 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
             </Box>
           );
         }}
-        noOptionsText={scopeSelected ? "No CRQs found for this Sub Domain" : "Select a Sub Domain first"}
+        noOptionsText={
+          scopeSelected ? "No CRQs found for this Sub Domain" : "Type a full CRQ number and press Enter to look it up"
+        }
       />
     </Box>
   );

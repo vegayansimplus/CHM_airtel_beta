@@ -2,6 +2,7 @@ import { api } from "../../../service/api";
 import type {
   ApiResponse,
   CreateEmployeeRequest,
+  CreateOtherEmployeeRequest,
 } from "../types/createUser.types";
 import type { UpdateEmployeeRequest } from "../types/updateUser.types";
 import type { UpdateUserStatusRequest } from "../types/updateUserStatus.types";
@@ -112,6 +113,15 @@ export const orgHierarchyApi = api.injectEndpoints({
       invalidatesTags: ["EMPLOYEES"],
     }),
 
+    addNewOtherEmployee: builder.mutation<ApiResponse, CreateOtherEmployeeRequest>({
+      query: (body) => ({
+        url: "/teamoverview/addnewotheremp",
+        method: "POST",
+        body,
+      }),
+      invalidatesTags: ["EMPLOYEES"],
+    }),
+
     getCreateUserDropdowns: builder.query<CreateUserDropdownResponse, void>({
       query: () => ({
         url: "/teamoverview/getcreateuserdropdowns",
@@ -216,6 +226,7 @@ export const orgHierarchyApi = api.injectEndpoints({
 
 export const {
   useAddNewEmployeeMutation,
+  useAddNewOtherEmployeeMutation,
   useGetCreateUserDropdownsQuery,
   useUpdateEmployeeMutation,
   useUpdateUserStatusMutation,
