@@ -105,7 +105,7 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
           />
         )}
         renderOption={(props, crq) => {
-          const chip = statusChipColor(crq.currentStatus);
+          const chip = statusChipColor(crq.currentStatus, theme.palette.mode === "dark");
           return (
             <Box component="li" {...props} key={crq.crqNo} sx={{ display: "flex", alignItems: "center", gap: 1.25 }}>
               <Box sx={{ width: 6, height: 6, borderRadius: "50%", background: chip.dot, flexShrink: 0 }} />

@@ -7,7 +7,7 @@ import TimerRoundedIcon from "@mui/icons-material/TimerRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import ViewListRoundedIcon from "@mui/icons-material/ViewListRounded";
 import type { CrqDetailsStage } from "../../types/crqJourney.types";
-import { formatDateTime, formatStageCode, formatStatusLabel, normalizeStepStatus, STEP_STATUS_CONFIG } from "../../utils/crqJourney.utils";
+import { formatDateTime, formatStageCode, formatStatusLabel, normalizeStepStatus, getStepStatusConfig } from "../../utils/crqJourney.utils";
 import { getStageIcon } from "../../utils/stageIcons";
 import { StatusIcon } from "../StepStatusBadge";
 import { CrqJourneyFlowVisual } from "./CrqJourneyFlowVisual";
@@ -170,7 +170,7 @@ export const CrqStageTimeline: React.FC<CrqStageTimelineProps> = ({ stages }) =>
       >
         {stages.map((stage, idx) => {
           const status = normalizeStepStatus(stage.stageStatus);
-          const cfg = STEP_STATUS_CONFIG[status];
+          const cfg = getStepStatusConfig(isDark)[status];
           const Icon = getStageIcon(stage.stage);
           const isLast = idx === stages.length - 1;
           return (
@@ -246,7 +246,7 @@ export const CrqStageTimeline: React.FC<CrqStageTimelineProps> = ({ stages }) =>
       <Box>
         {stages.map((stage, idx) => {
           const status = normalizeStepStatus(stage.isCurrent ? stage.stageStatus : stage.stageStatus);
-          const cfg = STEP_STATUS_CONFIG[status];
+          const cfg = getStepStatusConfig(isDark)[status];
           const isLast = idx === stages.length - 1;
           const hasActivity = stage.assignedTo || stage.performedBy || stage.assignStart || stage.stageStartDate;
           const duration = formatDuration(stage.stageStartDate, stage.stageEndDate);

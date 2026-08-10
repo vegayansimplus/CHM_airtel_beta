@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box, Typography, Paper, useTheme } from "@mui/material";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
 import AssignmentTurnedInRoundedIcon from "@mui/icons-material/AssignmentTurnedInRounded";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
@@ -9,7 +9,7 @@ import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
 import type { CrqJourneyStageRow } from "../types/crqJourney.types";
-import { STEP_STATUS_CONFIG, formatStatusLabel, normalizeStepStatus } from "../utils/crqJourney.utils";
+import { getStepStatusConfig, formatStatusLabel, normalizeStepStatus } from "../utils/crqJourney.utils";
 import { StatusIcon, StepStatusBadge } from "./StepStatusBadge";
 
 const STAGE_ICON_MAP: Record<string, React.ElementType> = {
@@ -30,8 +30,10 @@ interface StageCardProps {
 
 /** Single canonical/assignment stage — used for every fixed (non-dynamic) slot in the journey flow. */
 export const StageCard: React.FC<StageCardProps> = ({ stage, compact = false }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const status = normalizeStepStatus(stage.status);
-  const cfg = STEP_STATUS_CONFIG[status];
+  const cfg = getStepStatusConfig(isDark)[status];
   const Icon = STAGE_ICON_MAP[stage.stage.toUpperCase()] ?? FlagRoundedIcon;
   const isActive = status === "in_progress";
 
@@ -45,15 +47,19 @@ export const StageCard: React.FC<StageCardProps> = ({ stage, compact = false }) 
         borderRadius: "11px",
         p: "11px 12px",
         position: "relative",
-        background: isActive ? "linear-gradient(180deg, #F2F7FE, #E7F0FD)" : "#fff",
-        boxShadow: isActive ? "0 4px 16px rgba(25,118,210,0.18)" : "none",
+        background: isActive
+          ? isDark
+            ? "linear-gradient(180deg, rgba(25,118,210,0.24), rgba(25,118,210,0.08))"
+            : "linear-gradient(180deg, #F2F7FE, #E7F0FD)"
+          : theme.palette.background.paper,
+        boxShadow: isActive ? (isDark ? "0 4px 16px rgba(0,0,0,0.45)" : "0 4px 16px rgba(25,118,210,0.18)") : "none",
         transition: "box-shadow 0.2s",
         flexShrink: 0,
       }}
     >
       <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.1 }}>
         <Icon sx={{ fontSize: 19, color: cfg.color, flexShrink: 0, mt: "1px" }} />
-        <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 600, color: isActive ? "#1565C0" : "#1F2937", lineHeight: 1.25 }}>
+        <Typography sx={{ fontSize: 12.5, fontWeight: isActive ? 700 : 600, color: isActive ? theme.palette.primary.main : "text.primary", lineHeight: 1.25 }}>
           {stage.stage}
         </Typography>
       </Box>

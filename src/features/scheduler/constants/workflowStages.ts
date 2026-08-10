@@ -16,6 +16,7 @@ export type StageRunState =
   | "completed"
   | "in_progress"
   | "failed"
+  | "canceled"
   | "locked"
   | "not_started";
 
@@ -55,12 +56,20 @@ export const WORKFLOW_STAGES: WorkflowStageDescriptor[] = [
 ];
 
 const COMPLETED_VALUES = new Set(["Done", "DONE", "Completed", "completed", "Complete"]);
-const FAILED_VALUES = new Set([
-  "Failed",
-  "failed",
+const FAILED_VALUES = new Set(["Failed", "failed", "FAILED"]);
+// Distinct from FAILED_VALUES so the UI can label a cancelled stage
+// "Canceled" instead of "Failed" - same terminal/negative styling, different
+// wording, since "canceled" (a deliberate stop) reads differently to users
+// than "failed" (an error).
+const CANCELED_VALUES = new Set([
   "canceled",
   "Canceled",
+  "CANCELED",
+  "cancelled",
+  "Cancelled",
+  "CANCELLED",
   "Cancel",
+  "cancel",
 ]);
 const IN_PROGRESS_VALUES = new Set(["In Progress", "in progress"]);
 
@@ -130,6 +139,7 @@ export function resolveStageState(
   const status = entry?.status ?? readStatus(crq, stage);
 
   if (status && COMPLETED_VALUES.has(status)) return "completed";
+  if (status && CANCELED_VALUES.has(status)) return "canceled";
   if (status && FAILED_VALUES.has(status)) return "failed";
   if (stageIndex < currentIndex) return "completed";
   if (stageIndex > currentIndex) return "locked";
@@ -171,6 +181,8 @@ export function stageStatePalette(
       return { bg: colors.infoDim, fg: colors.info, dot: colors.accent, label: "Active" };
     case "failed":
       return { bg: colors.dangerDim, fg: colors.danger, dot: colors.danger, label: "Failed" };
+    case "canceled":
+      return { bg: colors.dangerDim, fg: colors.danger, dot: colors.danger, label: "Canceled" };
     case "locked":
       return { bg: colors.trackOff, fg: colors.textDim, dot: colors.border, label: "Locked" };
     default:

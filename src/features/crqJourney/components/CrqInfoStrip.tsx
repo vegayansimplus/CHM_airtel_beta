@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Box, Typography, Divider, IconButton, Tooltip, Snackbar } from "@mui/material";
+import { Box, Typography, Divider, IconButton, Tooltip, Snackbar, useTheme } from "@mui/material";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
@@ -19,8 +19,10 @@ const MetaItem = ({ label, children }: { label: string; children: React.ReactNod
 );
 
 export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({ info }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const [copied, setCopied] = useState(false);
-  const chip = statusChipColor(info.currentStatus);
+  const chip = statusChipColor(info.currentStatus, isDark);
 
   const handleCopy = useCallback(() => {
     navigator.clipboard.writeText(info.crqNo).then(() => setCopied(true));
@@ -43,11 +45,11 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({ info }) => {
     >
       <MetaItem label="CRQ ID">
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 700, color: "#1565C0", whiteSpace: "nowrap" }}>
+          <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 700, color: theme.palette.primary.main, whiteSpace: "nowrap" }}>
             {info.crqNo}
           </Typography>
           <Tooltip title="Copy ID" placement="top" arrow>
-            <IconButton size="small" onClick={handleCopy} sx={{ p: "2px", color: "text.disabled", "&:hover": { color: "#1565C0" } }} aria-label="Copy CRQ ID">
+            <IconButton size="small" onClick={handleCopy} sx={{ p: "2px", color: "text.disabled", "&:hover": { color: theme.palette.primary.main } }} aria-label="Copy CRQ ID">
               <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
             </IconButton>
           </Tooltip>

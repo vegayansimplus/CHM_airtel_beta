@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import WifiRoundedIcon from "@mui/icons-material/WifiRounded";
 import BusinessRoundedIcon from "@mui/icons-material/BusinessRounded";
 import TvRoundedIcon from "@mui/icons-material/TvRounded";
@@ -11,7 +11,7 @@ import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import type { ApprovalIconKey, CrqJourneyStageRow } from "../types/crqJourney.types";
-import { APPROVAL_STATUS_CONFIG, formatStatusLabel, normalizeApprovalStatus, pickApprovalIcon } from "../utils/crqJourney.utils";
+import { getApprovalStatusConfig, formatStatusLabel, normalizeApprovalStatus, pickApprovalIcon } from "../utils/crqJourney.utils";
 
 const ICON_MAP: Record<ApprovalIconKey, React.ElementType> = {
   mobility:  WifiRoundedIcon,
@@ -35,8 +35,10 @@ interface ApprovalCardProps {
 
 /** One service approval linked to the CRQ (CRQ_CAB_SERVICE_TBL) — count varies per CRQ. */
 export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const status = normalizeApprovalStatus(approval.status);
-  const cfg = APPROVAL_STATUS_CONFIG[status];
+  const cfg = getApprovalStatusConfig(isDark)[status];
   const Icon = ICON_MAP[pickApprovalIcon(approval.stage)];
   const BadgeIcon = BADGE_ICON[status];
   const showPulse = status !== "approved";
@@ -46,7 +48,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval }) => {
       sx={{
         width: 92,
         flexShrink: 0,
-        background: "#fff",
+        background: theme.palette.background.paper,
         border: `1.2px solid ${cfg.borderColor}`,
         borderRadius: "11px",
         py: 1.5,
@@ -54,7 +56,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval }) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        boxShadow: "0 2px 7px rgba(16,40,70,0.07)",
+        boxShadow: isDark ? "0 2px 7px rgba(0,0,0,0.35)" : "0 2px 7px rgba(16,40,70,0.07)",
         position: "relative",
       }}
     >
@@ -78,7 +80,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval }) => {
         sx={{
           fontSize: 11.5,
           fontWeight: 600,
-          color: "#1F2937",
+          color: "text.primary",
           mt: 1.25,
           textAlign: "center",
           lineHeight: 1.2,

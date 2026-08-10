@@ -1,8 +1,8 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { StepStatus } from "../types/crqJourney.types";
-import { STEP_STATUS_CONFIG } from "../utils/crqJourney.utils";
+import { getStepStatusConfig } from "../utils/crqJourney.utils";
 
 interface StepStatusBadgeProps {
   status: StepStatus;
@@ -16,7 +16,8 @@ export const StepStatusBadge: React.FC<StepStatusBadgeProps> = ({
   showDot = true,
   label,
 }) => {
-  const cfg = STEP_STATUS_CONFIG[status];
+  const theme = useTheme();
+  const cfg = getStepStatusConfig(theme.palette.mode === "dark")[status];
   const showPulse = status === "in_progress" || status === "pending";
 
   return (
@@ -84,7 +85,9 @@ export const StatusIcon: React.FC<StatusIconProps> = ({
   status,
   size = 20,
 }) => {
-  const cfg = STEP_STATUS_CONFIG[status];
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const cfg = getStepStatusConfig(isDark)[status];
 
   if (status === "completed") {
     return (
@@ -170,7 +173,7 @@ export const StatusIcon: React.FC<StatusIconProps> = ({
         width: size,
         height: size,
         borderRadius: "50%",
-        background: status === "pending" ? cfg.color : "#CBD5E1",
+        background: status === "pending" ? cfg.color : isDark ? "#475569" : "#CBD5E1",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

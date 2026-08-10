@@ -1,5 +1,5 @@
 import React from "react";
-import { Autocomplete, Box, CircularProgress, TextField, Typography } from "@mui/material";
+import { Autocomplete, Box, CircularProgress, TextField, Typography, useTheme } from "@mui/material";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterKey, OrgFilterOption, OrgFilterValues } from "../../orgHierarchy/types/orgHierarchy.types";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
@@ -26,6 +26,8 @@ export const CrqSelector: React.FC<CrqSelectorProps> = ({
   value,
   onChange,
 }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const scopeSelected = values.subDomain != null;
 
   const emitCrq = (val: CrqJourneySearchRow | string | null) => {
@@ -39,12 +41,12 @@ export const CrqSelector: React.FC<CrqSelectorProps> = ({
   };
 
   return (
-    <Box sx={{ background: "#fff", display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+    <Box sx={{ background: theme.palette.background.paper, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
       <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
 
-      <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
+      {/* <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
         Select CRQ
-      </Typography>
+      </Typography> */}
 
       <Autocomplete<CrqJourneySearchRow, false, false, true>
         size="small"
@@ -86,7 +88,7 @@ export const CrqSelector: React.FC<CrqSelectorProps> = ({
           />
         )}
         renderOption={(props, crq) => {
-          const chip = statusChipColor(crq.currentStatus);
+          const chip = statusChipColor(crq.currentStatus, isDark);
           return (
             <Box component="li" {...props} key={crq.crqNo} sx={{ width: "100%", display: "flex", alignItems: "center", gap: 1 }}>
               <Typography
@@ -94,7 +96,7 @@ export const CrqSelector: React.FC<CrqSelectorProps> = ({
                   fontFamily: "Roboto Mono, monospace",
                   fontSize: 12.5,
                   fontWeight: 600,
-                  color: "#1565C0",
+                  color: theme.palette.primary.main,
                   flexGrow: 1,
                 }}
               >

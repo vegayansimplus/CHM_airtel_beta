@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Box, Tooltip, Typography, useTheme } from "@mui/material";
 import type { CrqDetailsStage } from "../../types/crqJourney.types";
-import { formatDateTime, formatStageCode, formatStatusLabel, normalizeStepStatus, STEP_STATUS_CONFIG } from "../../utils/crqJourney.utils";
+import { formatDateTime, formatStageCode, formatStatusLabel, normalizeStepStatus, getStepStatusConfig } from "../../utils/crqJourney.utils";
 import { getStageIcon } from "../../utils/stageIcons";
 
 interface CrqJourneyFlowVisualProps {
@@ -70,7 +70,7 @@ const StageNode: React.FC<{ stage: CrqDetailsStage; index: number }> = ({ stage,
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const status = normalizeStepStatus(stage.stageStatus);
-  const cfg = STEP_STATUS_CONFIG[status];
+  const cfg = getStepStatusConfig(isDark)[status];
   const Icon = getStageIcon(stage.stage);
   const isCurrent = stage.isCurrent;
   const dim = status === "not_started";

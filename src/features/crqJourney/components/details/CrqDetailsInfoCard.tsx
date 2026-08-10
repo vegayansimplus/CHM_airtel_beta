@@ -55,7 +55,7 @@ const Field = ({
 
 export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, stages }) => {
   const theme = useTheme();
-  const chip = statusChipColor(info.currentStatus);
+  const chip = statusChipColor(info.currentStatus, theme.palette.mode === "dark");
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {

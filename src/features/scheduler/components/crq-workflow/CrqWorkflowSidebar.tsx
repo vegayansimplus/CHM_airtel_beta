@@ -34,6 +34,9 @@ const crqStatusMeta = (crq: Crq, colors: Colors) => {
   if (state === "failed") {
     return { dot: colors.danger, chipBg: colors.dangerDim, chipFg: colors.danger, chipLabel: "Failed" };
   }
+  if (state === "canceled") {
+    return { dot: colors.danger, chipBg: colors.dangerDim, chipFg: colors.danger, chipLabel: "Canceled" };
+  }
   return { dot: colors.textDim, chipBg: colors.trackOff, chipFg: colors.textDim, chipLabel: "Paused" };
 };
 

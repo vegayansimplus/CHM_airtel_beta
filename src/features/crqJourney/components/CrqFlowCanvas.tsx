@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, useTheme, alpha } from "@mui/material";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
@@ -8,7 +8,7 @@ import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import BuildRoundedIcon from "@mui/icons-material/BuildRounded";
 import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlineRounded";
 import type { CrqJourneyFlow } from "../types/crqJourney.types";
-import { formatStatusLabel, normalizeStepStatus, STEP_STATUS_CONFIG } from "../utils/crqJourney.utils";
+import { formatStatusLabel, normalizeStepStatus, getStepStatusConfig } from "../utils/crqJourney.utils";
 import { StageCard } from "./StageCard";
 import { ApprovalCard } from "./ApprovalCard";
 import { RowCard } from "./RowCard";
@@ -139,33 +139,55 @@ const LEGEND = [
 ];
 
 export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend }) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const { assignment, approvals, conflictCheck, validate, impactAnalysis, mopCreate, mopValidate, scheduling, implementation, closure } = flow;
   const hasApprovals = approvals.length > 0;
 
+  const stepCfg = getStepStatusConfig(isDark);
   const schedulingStatus = scheduling ? normalizeStepStatus(scheduling.status) : "not_started";
-  const schedulingCfg = STEP_STATUS_CONFIG[schedulingStatus];
+  const schedulingCfg = stepCfg[schedulingStatus];
 
   const hasConflict = conflictCheck?.status.trim().toUpperCase() === "YES";
-  const conflictColor = hasConflict ? "#E53935" : "#16A34A";
-  const conflictBg = hasConflict ? "#FDEBEA" : "#E9F7EF";
+  const conflictBase = hasConflict ? "#E53935" : "#16A34A";
+  const conflictColor = hasConflict ? (isDark ? "#F09595" : "#C62828") : isDark ? "#5DCAA5" : "#16A34A";
+  const conflictBg = alpha(conflictBase, isDark ? 0.18 : 0.09);
+  const conflictBorder = alpha(conflictBase, isDark ? 0.4 : 0.28);
 
   const implStatus = implementation ? normalizeStepStatus(implementation.status) : "not_started";
-  const implCfg = STEP_STATUS_CONFIG[implStatus];
+  const implCfg = stepCfg[implStatus];
   const closureStatus = closure ? normalizeStepStatus(closure.status) : "not_started";
-  const closureCfg = STEP_STATUS_CONFIG[closureStatus];
+  const closureCfg = stepCfg[closureStatus];
+
+  // Section-header hues (green / purple / orange) — same tone formula as the shared status config.
+  const sectionTone = (base: string, darkText: string, lightText: string) => ({
+    color: isDark ? darkText : lightText,
+    bgColor: alpha(base, isDark ? 0.18 : 0.09),
+  });
+  const parallelTone = sectionTone("#16A34A", "#5DCAA5", "#15803D");
+  const approvalsTone = sectionTone("#7C3AED", "#C4A6F5", "#6D28D9");
+  const schedulingTone = sectionTone("#ED8B00", "#FAC775", "#C2410C");
 
   return (
-    <Box sx={{ background: "#FFFFFF", border: "1px solid rgba(0,0,0,0.07)", borderRadius: "14px", boxShadow: "0 1px 3px rgba(16,40,70,0.05)", p: "10px 10px 10px" }}>
+    <Box
+      sx={{
+        background: theme.palette.background.paper,
+        border: `1px solid ${theme.palette.divider}`,
+        borderRadius: "14px",
+        boxShadow: isDark ? "0 1px 3px rgba(0,0,0,0.35)" : "0 1px 3px rgba(16,40,70,0.05)",
+        p: "10px 10px 10px",
+      }}
+    >
       {/* header row */}
       <Box sx={{ display: "flex", alignItems: "center", mb: 0.5 }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 600, color: "#1F2937" }}>CRQ Process Flow</Typography>
+        <Typography sx={{ fontSize: 16, fontWeight: 600, color: "text.primary" }}>CRQ Process Flow</Typography>
 
         {showLegend && (
           <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 2.75 }}>
             {LEGEND.map(({ color, label }) => (
               <Box key={label} sx={{ display: "flex", alignItems: "center", gap: 0.875 }}>
                 <Box component="span" sx={{ width: 9, height: 9, borderRadius: "50%", background: color }} />
-                <Typography sx={{ fontSize: 12.5, color: "rgba(0,0,0,0.6)" }}>{label}</Typography>
+                <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>{label}</Typography>
               </Box>
             ))}
           </Box>
@@ -177,11 +199,11 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend }
         <Box sx={{ position: "relative", width: 1120, height: 460, margin: "0 auto" }}>
           <ConnectorLayer hasApprovals={hasApprovals} />
 
-          <SectionHeader label="PARALLEL ACTIVITIES" color="#15803D" bgColor="#E7F6EE" icon={LinkRoundedIcon} left={16} width={256} />
+          <SectionHeader label="PARALLEL ACTIVITIES" color={parallelTone.color} bgColor={parallelTone.bgColor} icon={LinkRoundedIcon} left={16} width={256} />
           {hasApprovals && (
-            <SectionHeader label="APPROVALS TRIGGERED" color="#6D28D9" bgColor="#EDE6FB" icon={CheckCircleRoundedIcon} count={approvals.length} left={360} width={332} />
+            <SectionHeader label="APPROVALS TRIGGERED" color={approvalsTone.color} bgColor={approvalsTone.bgColor} icon={CheckCircleRoundedIcon} count={approvals.length} left={360} width={332} />
           )}
-          <SectionHeader label="SCHEDULING & APPROVALS" color="#C2410C" bgColor="#FDF0E2" icon={CalendarMonthRoundedIcon} left={700} width={200} />
+          <SectionHeader label="SCHEDULING & APPROVALS" color={schedulingTone.color} bgColor={schedulingTone.bgColor} icon={CalendarMonthRoundedIcon} left={700} width={200} />
 
           {/* row 1 */}
           {assignment && (
@@ -211,7 +233,18 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend }
           {/* Approvals dashed container + cards */}
           {hasApprovals && (
             <>
-              <Box sx={{ position: "absolute", left: 360, top: 56, width: 332, height: 222, border: "1.6px dashed #B9A6F0", borderRadius: "14px", background: "rgba(124,58,237,0.022)" }} />
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: 360,
+                  top: 56,
+                  width: 332,
+                  height: 222,
+                  border: `1.6px dashed ${isDark ? "rgba(196,166,245,0.45)" : "#B9A6F0"}`,
+                  borderRadius: "14px",
+                  background: isDark ? "rgba(124,58,237,0.06)" : "rgba(124,58,237,0.022)",
+                }}
+              />
               <Box sx={{ position: "absolute", left: 360, top: 74, width: 332, minHeight: 158, display: "flex", flexWrap: "wrap", justifyContent: "center", alignItems: "stretch", gap: "10px", px: 2, zIndex: 1 }}>
                 {approvals.map((a, idx) => (
                   <ApprovalCard key={`${a.stage}-${idx}`} approval={a} />
@@ -240,7 +273,7 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend }
                 statusLabel={hasConflict ? "Conflict Found" : "No Conflict"}
                 color={conflictColor}
                 bgColor={conflictBg}
-                borderColor={hasConflict ? "#F6C7D2" : "#BCE6CC"}
+                borderColor={conflictBorder}
                 pulse={hasConflict}
               />
             )}
@@ -248,10 +281,21 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend }
 
           {/* Execution box */}
           {(implementation || closure) && (
-            <Box sx={{ position: "absolute", left: 902, top: 150, width: 178, border: "1.6px dashed #9EC2EF", borderRadius: "14px", background: "rgba(25,118,210,0.03)", p: "12px 14px" }}>
+            <Box
+              sx={{
+                position: "absolute",
+                left: 902,
+                top: 150,
+                width: 178,
+                border: `1.6px dashed ${isDark ? "rgba(127,180,238,0.45)" : "#9EC2EF"}`,
+                borderRadius: "14px",
+                background: isDark ? "rgba(25,118,210,0.08)" : "rgba(25,118,210,0.03)",
+                p: "12px 14px",
+              }}
+            >
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, justifyContent: "center", mb: 1.5 }}>
-                <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "1px", color: "#1565C0" }}>EXECUTION</Typography>
-                <PlayArrowRoundedIcon sx={{ fontSize: 15, color: "#1976D2" }} />
+                <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: "1px", color: theme.palette.primary.main }}>EXECUTION</Typography>
+                <PlayArrowRoundedIcon sx={{ fontSize: 15, color: theme.palette.primary.main }} />
               </Box>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 {implementation && (

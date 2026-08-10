@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, Paper } from "@mui/material";
+import { Box, Typography, Paper, useTheme } from "@mui/material";
 
 interface RowCardProps {
   icon: React.ElementType;
@@ -12,7 +12,9 @@ interface RowCardProps {
 }
 
 /** Horizontal icon-left row card — matches the original Scheduling-column card style. */
-export const RowCard: React.FC<RowCardProps> = ({ icon: Icon, label, statusLabel, color, bgColor, borderColor, pulse }) => (
+export const RowCard: React.FC<RowCardProps> = ({ icon: Icon, label, statusLabel, color, bgColor, borderColor, pulse }) => {
+  const theme = useTheme();
+  return (
   <Paper
     elevation={0}
     sx={{
@@ -24,7 +26,7 @@ export const RowCard: React.FC<RowCardProps> = ({ icon: Icon, label, statusLabel
       display: "flex",
       alignItems: "center",
       gap: 1.25,
-      background: "#fff",
+      background: theme.palette.background.paper,
       flexShrink: 0,
     }}
   >
@@ -44,7 +46,7 @@ export const RowCard: React.FC<RowCardProps> = ({ icon: Icon, label, statusLabel
       <Icon sx={{ fontSize: 16 }} />
     </Box>
     <Box sx={{ minWidth: 0 }}>
-      <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "#1F2937", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+      <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: "text.primary", lineHeight: 1.2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
         {label}
       </Typography>
       <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, mt: "3px" }}>
@@ -65,4 +67,5 @@ export const RowCard: React.FC<RowCardProps> = ({ icon: Icon, label, statusLabel
       </Box>
     </Box>
   </Paper>
-);
+  );
+};
