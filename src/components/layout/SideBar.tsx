@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import {
   Box,
   Divider,
@@ -22,22 +22,27 @@ import { NavLink, useLocation } from "react-router";
 import MenuIcon from "@mui/icons-material/Menu";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import StarRounded from "@mui/icons-material/StarRounded";
+import StarBorderRounded from "@mui/icons-material/StarBorderRounded";
 import vegayanLogo from "../../assets/images/Airtel.png";
 import { useTabColorTokens } from "../../style/theme";
 import { useAppSelector } from "../../app/hooks";
 import { useGetUnreadNotificationCountQuery } from "../../features/inbox/api/inboxApiSlice";
 import { useSidebarNav, type NavItem } from "../../rbac/useSidebarNav";
 import SmartScrollContainer from "../common/SmartScrollContainer";
+import { DRAWER_WIDTH, COLLAPSED_WIDTH } from "./layoutConstants";
+import { useNavHistory } from "./useNavHistory";
 
 type Colors = ReturnType<typeof useTabColorTokens>;
 
 interface SideBarProps {
   isCollapsed?: boolean;
   onCollapseToggle?: () => void;
+  /** Mobile-only: whether the off-canvas temporary drawer is open. */
+  mobileOpen?: boolean;
+  /** Mobile-only: called to close the off-canvas drawer (backdrop click, nav, Esc). */
+  onMobileClose?: () => void;
 }
-
-const DRAWER_WIDTH = 240;
-const COLLAPSED_WIDTH = 70;
 
 const activeItemSx = (colors: Colors) => ({
   background: "linear-gradient(90deg, rgba(255,255,255,0.22), rgba(255,255,255,0.05))",
@@ -68,8 +73,36 @@ const baseItemSx = (active: boolean, isCollapsed: boolean, colors: Colors) => ({
     background: "linear-gradient(90deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05))",
     transform: "translateX(6px)",
   },
+  "&:hover .fav-star": { opacity: 1 },
   transition: "all 0.28s ease",
 });
+
+/** Small star toggle shown on hover — stops the click from also triggering the NavLink navigation underneath it. */
+const FavoriteToggle: React.FC<{ active: boolean; onToggle: () => void; alwaysVisible?: boolean }> = ({
+  active,
+  onToggle,
+  alwaysVisible,
+}) => (
+  <IconButton
+    className="fav-star"
+    size="small"
+    onClick={(e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle();
+    }}
+    sx={{
+      ml: "auto",
+      opacity: alwaysVisible || active ? 1 : 0,
+      transition: "opacity 0.15s ease",
+      color: active ? "#F6C445" : "rgba(255,255,255,0.55)",
+      p: 0.4,
+      "&:hover": { color: "#F6C445" },
+    }}
+  >
+    {active ? <StarRounded sx={{ fontSize: 17 }} /> : <StarBorderRounded sx={{ fontSize: 17 }} />}
+  </IconButton>
+);
 
 interface SubItemProps {
   item: Omit<NavItem, "children">;
@@ -77,9 +110,11 @@ interface SubItemProps {
   colors: Colors;
   flyout?: boolean;
   onNavigate?: () => void;
+  isFavorite?: boolean;
+  onToggleFavorite?: () => void;
 }
 
-const SubItem: React.FC<SubItemProps> = ({ item, isActive, colors, flyout, onNavigate }) => (
+const SubItem: React.FC<SubItemProps> = ({ item, isActive, colors, flyout, onNavigate, isFavorite, onToggleFavorite }) => (
   <ListItemButton
     component={NavLink}
     to={item.to}
@@ -115,6 +150,7 @@ const SubItem: React.FC<SubItemProps> = ({ item, isActive, colors, flyout, onNav
         background: flyout ? colors.accentDim : "rgba(255,255,255,0.10)",
         transform: "translateX(4px)",
       },
+      "&:hover .fav-star": { opacity: 1 },
       transition: "all 0.22s ease",
     }}
   >
@@ -125,6 +161,7 @@ const SubItem: React.FC<SubItemProps> = ({ item, isActive, colors, flyout, onNav
       primary={item.text}
       primaryTypographyProps={{ fontSize: 13.5, fontWeight: isActive ? 600 : 400, letterSpacing: 0.2 }}
     />
+    {onToggleFavorite && !flyout && <FavoriteToggle active={!!isFavorite} onToggle={onToggleFavorite} />}
   </ListItemButton>
 );
 
@@ -159,9 +196,7 @@ const FlyoutMenu: React.FC<FlyoutMenuProps> = ({
             borderRadius: 3,
             overflow: "hidden",
             background: colors.surface,
-            boxShadow: colors.isDark
-              ? "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)"
-              : `0 8px 32px rgba(30,30,80,0.16), 0 2px 8px ${colors.accent}1A`,
+            boxShadow: colors.shadowElevated,
             border: `1px solid ${colors.border}`,
             py: 0.8,
           }}
@@ -204,16 +239,19 @@ const FlyoutMenu: React.FC<FlyoutMenuProps> = ({
 const SideBar: React.FC<SideBarProps> = ({
   isCollapsed: isCollapsedProp = false,
   onCollapseToggle,
+  mobileOpen = false,
+  onMobileClose,
 }) => {
   const location = useLocation();
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const user = useAppSelector((s) => s.auth.user);
 
-  // Below "sm" the drawer always renders as the narrow icon-only rail —
-  // a 240px expanded drawer would swallow most of a phone viewport.
+  // Below "sm" the sidebar becomes an off-canvas temporary drawer instead
+  // of a permanent rail — a permanent 70px rail on a phone still eats a
+  // meaningful slice of an already-narrow viewport.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const isCollapsed = isMobile || isCollapsedProp;
+  const isCollapsed = isCollapsedProp;
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const [flyoutAnchor, setFlyoutAnchor] = useState<HTMLElement | null>(null);
@@ -227,7 +265,14 @@ const SideBar: React.FC<SideBarProps> = ({
   const inboxCount = countData?.notificationCount ?? 0;
   const sidebarItems = useSidebarNav();
 
-  if (!user) return null;
+  const flatNavItems = useMemo(() => {
+    const flat: Omit<NavItem, "children">[] = [];
+    for (const item of sidebarItems) {
+      flat.push(item);
+      for (const child of item.children ?? []) flat.push(child);
+    }
+    return flat;
+  }, [sidebarItems]);
 
   const isItemActive = (to: string, matchPaths?: string[], exactOnly = false): boolean => {
     const p = location.pathname;
@@ -236,6 +281,29 @@ const SideBar: React.FC<SideBarProps> = ({
     if (matchPaths) return matchPaths.some((mp) => p === mp || p.startsWith(mp + "/"));
     return false;
   };
+
+  const currentNavItem = useMemo(
+    () => flatNavItems.find((it) => isItemActive(it.to, it.matchPaths, true)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [flatNavItems, location.pathname],
+  );
+
+  const { favorites, recents, toggleFavorite, isFavorite } = useNavHistory(currentNavItem?.to);
+
+  const favoriteItems = useMemo(
+    () => favorites.map((path) => flatNavItems.find((it) => it.to === path)).filter((it): it is Omit<NavItem, "children"> => !!it),
+    [favorites, flatNavItems],
+  );
+  const recentItems = useMemo(
+    () =>
+      recents
+        .map((path) => flatNavItems.find((it) => it.to === path))
+        .filter((it): it is Omit<NavItem, "children"> => !!it)
+        .filter((it) => !favorites.includes(it.to)),
+    [recents, flatNavItems, favorites],
+  );
+
+  if (!user) return null;
 
   const toggleGroup = (to: string) =>
     setOpenGroups((prev) => ({ ...prev, [to]: !prev[to] }));
@@ -269,163 +337,131 @@ const SideBar: React.FC<SideBarProps> = ({
     setFlyoutItem(null);
   };
 
-  return (
+  const navContent = (collapsedView: boolean) => (
     <>
-      <Drawer
-        variant="permanent"
-        sx={{
-          width: isCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH,
-          flexShrink: 0,
-          "& .MuiDrawer-paper": {
-            width: isCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH,
-            background: `linear-gradient(180deg, ${theme.palette.primary.dark} 0%, #0b1320 100%)`,
-            color: "#fff",
-            borderRight: "none",
-            transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease",
-            overflowX: "hidden",
-            boxShadow: "2px 0 16px rgba(0,0,0,0.5)",
-            borderRadius: "0 18px 18px 0",
-            display: "flex",
-            flexDirection: "column",
-          },
-        }}
+      {/* ── HEADER ── */}
+      <Box
+        display="flex"
+        alignItems="center"
+        justifyContent={collapsedView ? "center" : "space-between"}
+        px={collapsedView ? 1 : 2}
+        py={1.8}
+        sx={{ flexShrink: 0 }}
       >
-        {/* ── HEADER ── */}
-        <Box
-          display="flex"
-          alignItems="center"
-          justifyContent={isCollapsed ? "center" : "space-between"}
-          px={isCollapsed ? 1 : 2}
-          py={1.8}
-          sx={{ flexShrink: 0 }}
-        >
-          {!isCollapsed && (
-            <Box display="flex" alignItems="center" gap={1.2}>
-              <Box
-                component="img"
-                src={vegayanLogo}
-                alt="Logo"
-                width={34}
-                height={34}
-                sx={{
-                  filter: `drop-shadow(0 0 6px ${colors.accentLight}80)`,
-                }}
-              />
-              <Typography
-                fontWeight={800}
-                letterSpacing={1.4}
-                sx={{
-                  opacity: 0.95,
-                  background: `linear-gradient(90deg, #fff 60%, ${colors.accentLight})`,
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
-              >
-                CHM
-              </Typography>
-            </Box>
-          )}
+        {!collapsedView && (
+          <Box display="flex" alignItems="center" gap={1.2}>
+            <Box
+              component="img"
+              src={vegayanLogo}
+              alt="Logo"
+              width={34}
+              height={34}
+              sx={{ filter: `drop-shadow(0 0 6px ${colors.accentLight}80)` }}
+            />
+            <Typography
+              fontWeight={800}
+              letterSpacing={1.4}
+              sx={{
+                opacity: 0.95,
+                background: `linear-gradient(90deg, #fff 60%, ${colors.accentLight})`,
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+              }}
+            >
+              CHM
+            </Typography>
+          </Box>
+        )}
+        {isMobile ? (
+          <IconButton onClick={onMobileClose} sx={{ color: "#fff", bgcolor: "rgba(255,255,255,0.08)" }}>
+            <MenuIcon />
+          </IconButton>
+        ) : (
           <IconButton
             onClick={onCollapseToggle}
             sx={{
               display: { xs: "none", sm: "inline-flex" },
               color: "#fff",
               bgcolor: "rgba(255,255,255,0.08)",
-              "&:hover": {
-                bgcolor: "rgba(255,255,255,0.18)",
-                transform: "rotate(180deg)",
-              },
+              "&:hover": { bgcolor: "rgba(255,255,255,0.18)", transform: "rotate(180deg)" },
               transition: "all 0.35s ease",
             }}
           >
             <MenuIcon />
           </IconButton>
-        </Box>
+        )}
+      </Box>
 
-        {/* subtle divider under header */}
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mx: 1.5, mb: 0.5, flexShrink: 0 }} />
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.08)", mx: 1.5, mb: 0.5, flexShrink: 0 }} />
 
-        {/* ── NAVIGATION wrapped in SmartScrollContainer ── */}
-        <Box sx={{ flex: 1, overflow: "hidden", px: 0 }}>
-          <SmartScrollContainer height="calc(100vh - 84px)">
-            <List sx={{ px: 1.5, mt: 0.5, pb: 2 }}>
-              {sidebarItems.map((item) => {
-                const { to, text, icon, showBadge, children } = item;
-                const active = isItemActive(to);
-                const hasChildren = Array.isArray(children) && children.length > 0;
-                const groupOpen = hasChildren && isGroupOpen(item);
+      {/* ── NAVIGATION ── */}
+      <Box sx={{ flex: 1, overflow: "hidden", px: 0 }}>
+        <SmartScrollContainer height="calc(100vh - 84px)">
+          {/* Favorites */}
+          {!collapsedView && favoriteItems.length > 0 && (
+            <>
+              <Typography sx={{ px: 2.5, pt: 1.5, pb: 0.3, fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>
+                Favorites
+              </Typography>
+              <List disablePadding sx={{ px: 0.5 }}>
+                {favoriteItems.map((item) => (
+                  <SubItem
+                    key={`fav-${item.to}`}
+                    item={item}
+                    isActive={isItemActive(item.to, item.matchPaths, true)}
+                    colors={colors}
+                    isFavorite
+                    onToggleFavorite={() => toggleFavorite(item.to)}
+                    onNavigate={isMobile ? onMobileClose : undefined}
+                  />
+                ))}
+              </List>
+              <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mx: 1.5, my: 0.75 }} />
+            </>
+          )}
 
-                const renderedIcon = showBadge ? (
-                  <Badge badgeContent={inboxCount} color="error">{icon}</Badge>
-                ) : icon;
+          {/* Recently visited */}
+          {!collapsedView && recentItems.length > 0 && (
+            <>
+              <Typography sx={{ px: 2.5, pt: 0.5, pb: 0.3, fontSize: 10.5, fontWeight: 700, letterSpacing: 1, textTransform: "uppercase", color: "rgba(255,255,255,0.45)" }}>
+                Recently Visited
+              </Typography>
+              <List disablePadding sx={{ px: 0.5 }}>
+                {recentItems.map((item) => (
+                  <SubItem
+                    key={`recent-${item.to}`}
+                    item={item}
+                    isActive={isItemActive(item.to, item.matchPaths, true)}
+                    colors={colors}
+                    isFavorite={isFavorite(item.to)}
+                    onToggleFavorite={() => toggleFavorite(item.to)}
+                    onNavigate={isMobile ? onMobileClose : undefined}
+                  />
+                ))}
+              </List>
+              <Divider sx={{ borderColor: "rgba(255,255,255,0.06)", mx: 1.5, my: 0.75 }} />
+            </>
+          )}
 
-                if (hasChildren) {
-                  return (
-                    <React.Fragment key={to}>
-                      <ListItemButton
-                        onClick={() => !isCollapsed && toggleGroup(to)}
-                        onMouseEnter={(e) => openFlyout(e, item)}
-                        onMouseLeave={scheduleFlyoutClose}
-                        sx={baseItemSx(active, isCollapsed, colors)}
-                      >
-                        <ListItemIcon
-                          sx={{
-                            color: "inherit",
-                            minWidth: 42,
-                            transform: active ? "scale(1.15)" : "scale(1)",
-                            transition: "transform 0.25s ease",
-                          }}
-                        >
-                          {renderedIcon}
-                        </ListItemIcon>
-                        {!isCollapsed && (
-                          <>
-                            <ListItemText
-                              primary={text}
-                              primaryTypographyProps={{
-                                fontSize: 14.5,
-                                fontWeight: active ? 600 : 400,
-                                letterSpacing: 0.3,
-                              }}
-                            />
-                            <Box
-                              component="span"
-                              sx={{
-                                display: "flex",
-                                color: "rgba(255,255,255,0.55)",
-                                "& svg": { fontSize: 18 },
-                              }}
-                            >
-                              {groupOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                            </Box>
-                          </>
-                        )}
-                      </ListItemButton>
+          <List sx={{ px: 1.5, mt: 0.5, pb: 2 }}>
+            {sidebarItems.map((item) => {
+              const { to, text, icon, showBadge, children } = item;
+              const active = isItemActive(to);
+              const hasChildren = Array.isArray(children) && children.length > 0;
+              const groupOpen = hasChildren && isGroupOpen(item);
 
-                      {!isCollapsed && (
-                        <Collapse in={groupOpen} timeout={260} unmountOnExit>
-                          <List disablePadding sx={{ pb: 0.5 }}>
-                            {children!.map((child) => (
-                              <SubItem
-                                key={child.to}
-                                item={child}
-                                isActive={isItemActive(child.to, child.matchPaths, true)}
-                                colors={colors}
-                              />
-                            ))}
-                          </List>
-                        </Collapse>
-                      )}
-                    </React.Fragment>
-                  );
-                }
+              const renderedIcon = showBadge ? (
+                <Badge badgeContent={inboxCount} color="error">{icon}</Badge>
+              ) : icon;
 
+              if (hasChildren) {
                 return (
-                  <Tooltip key={to} title={isCollapsed ? text : ""} placement="right" arrow>
+                  <React.Fragment key={to}>
                     <ListItemButton
-                      component={NavLink}
-                      to={to}
-                      sx={baseItemSx(active, isCollapsed, colors)}
+                      onClick={() => !collapsedView && toggleGroup(to)}
+                      onMouseEnter={(e) => openFlyout(e, item)}
+                      onMouseLeave={scheduleFlyoutClose}
+                      sx={baseItemSx(active, collapsedView, colors)}
                     >
                       <ListItemIcon
                         sx={{
@@ -437,23 +473,126 @@ const SideBar: React.FC<SideBarProps> = ({
                       >
                         {renderedIcon}
                       </ListItemIcon>
-                      {!isCollapsed && (
-                        <ListItemText
-                          primary={text}
-                          primaryTypographyProps={{
-                            fontSize: 14.5,
-                            fontWeight: active ? 600 : 400,
-                            letterSpacing: 0.3,
-                          }}
-                        />
+                      {!collapsedView && (
+                        <>
+                          <ListItemText
+                            primary={text}
+                            primaryTypographyProps={{ fontSize: 14.5, fontWeight: active ? 600 : 400, letterSpacing: 0.3 }}
+                          />
+                          <Box
+                            component="span"
+                            sx={{ display: "flex", color: "rgba(255,255,255,0.55)", "& svg": { fontSize: 18 } }}
+                          >
+                            {groupOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                          </Box>
+                        </>
                       )}
                     </ListItemButton>
-                  </Tooltip>
+
+                    {!collapsedView && (
+                      <Collapse in={groupOpen} timeout={260} unmountOnExit>
+                        <List disablePadding sx={{ pb: 0.5 }}>
+                          {children!.map((child) => (
+                            <SubItem
+                              key={child.to}
+                              item={child}
+                              isActive={isItemActive(child.to, child.matchPaths, true)}
+                              colors={colors}
+                              isFavorite={isFavorite(child.to)}
+                              onToggleFavorite={() => toggleFavorite(child.to)}
+                              onNavigate={isMobile ? onMobileClose : undefined}
+                            />
+                          ))}
+                        </List>
+                      </Collapse>
+                    )}
+                  </React.Fragment>
                 );
-              })}
-            </List>
-          </SmartScrollContainer>
-        </Box>
+              }
+
+              return (
+                <Tooltip key={to} title={collapsedView ? text : ""} placement="right" arrow>
+                  <ListItemButton
+                    component={NavLink}
+                    to={to}
+                    onClick={isMobile ? onMobileClose : undefined}
+                    sx={baseItemSx(active, collapsedView, colors)}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: "inherit",
+                        minWidth: 42,
+                        transform: active ? "scale(1.15)" : "scale(1)",
+                        transition: "transform 0.25s ease",
+                      }}
+                    >
+                      {renderedIcon}
+                    </ListItemIcon>
+                    {!collapsedView && (
+                      <ListItemText
+                        primary={text}
+                        primaryTypographyProps={{ fontSize: 14.5, fontWeight: active ? 600 : 400, letterSpacing: 0.3 }}
+                      />
+                    )}
+                    {!collapsedView && (
+                      <FavoriteToggle active={isFavorite(to)} onToggle={() => toggleFavorite(to)} />
+                    )}
+                  </ListItemButton>
+                </Tooltip>
+              );
+            })}
+          </List>
+        </SmartScrollContainer>
+      </Box>
+    </>
+  );
+
+  const paperSx = {
+    background: `linear-gradient(180deg, ${theme.palette.primary.dark} 0%, #0b1320 100%)`,
+    color: "#fff",
+    borderRight: "none",
+    overflowX: "hidden" as const,
+    boxShadow: "2px 0 16px rgba(0,0,0,0.5)",
+    display: "flex",
+    flexDirection: "column" as const,
+  };
+
+  if (isMobile) {
+    return (
+      <Drawer
+        variant="temporary"
+        open={mobileOpen}
+        onClose={onMobileClose}
+        ModalProps={{ keepMounted: true }}
+        sx={{
+          "& .MuiDrawer-paper": {
+            width: DRAWER_WIDTH,
+            ...paperSx,
+            borderRadius: "0 18px 18px 0",
+          },
+        }}
+      >
+        {navContent(false)}
+      </Drawer>
+    );
+  }
+
+  return (
+    <>
+      <Drawer
+        variant="permanent"
+        sx={{
+          width: isCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH,
+          flexShrink: 0,
+          "& .MuiDrawer-paper": {
+            width: isCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH,
+            ...paperSx,
+            transition: "width 0.35s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease",
+            borderRadius: "0 18px 18px 0",
+          },
+        }}
+      >
+        {navContent(isCollapsed)}
       </Drawer>
 
       {flyoutItem && (

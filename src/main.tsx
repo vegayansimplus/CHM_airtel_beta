@@ -1,5 +1,12 @@
 import { createRoot } from "react-dom/client";
 import "./index.css";
+// App-wide type family (also used standalone by LoginPage, which imports
+// the same files again — CSS imports are idempotent, so that's harmless).
+import "@fontsource/ibm-plex-sans/300.css";
+import "@fontsource/ibm-plex-sans/400.css";
+import "@fontsource/ibm-plex-sans/500.css";
+import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/ibm-plex-sans/700.css";
 import App from "./App.tsx";
 import { Provider } from "react-redux";
 import { ToastContainer } from "react-toastify";

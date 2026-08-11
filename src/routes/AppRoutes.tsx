@@ -1,71 +1,112 @@
-import React, { type JSX, Suspense } from "react";
+import React, { type JSX, Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
 import DefaultRedirect from "./DefaultRedirect";
 import CommonContainer from "../components/common/CommonContainer";
-import TeamManagementPage from "../features/teamManagement/pages/TeamManagementPage";
-import { TeamManagementMain } from "../features/teamManagement/pages/TeamManagementMain";
-import DashboardViewPage from "../features/dashboard/pages/DashboardPage";
-import MonthlyRosterPageTab from "../features/roster/page/MonthlyRosterPageTab";
-import { RosterViewMain } from "../features/roster/page/RosterViewMain";
-import UserMeMainPageTab from "../features/userMe/pages/UserMeMainPageTab";
-import { UserRosterMain } from "../features/userMe/pages/UserRosterMain";
-import InboxPageTab from "../features/inbox/InboxPageTab";
-import TaskInbox from "../features/inbox/components/TaskInbox";
-import SchedulerMainTab from "../features/scheduler/page/SchedulerMainTab";
-import NotificationManagerMain from "../features/userMe/pages/NotificationManagerMain";
-import { UserLeaveSectionMain } from "../features/userMe/pages/UserLeaveSectionMain";
-// import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
-import { CrqDetailedView } from "../features/scheduler/components/plan-and-inventory/CrqDetailedView";
-// import Dashboard from "../features/dashboard/home_dashboard/Dashboard";
-import { RosterGenerationMain } from "../features/rosterGenerator/pages/RosterGenerationMain";
-// import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
-// import { CommonContainerWithoutTab } from "../components/common/ContainerWithoutTab";
-import UserManagementLayout from "../features/userManagement/layout/UserManagementLayout";
-import { UserLogs } from "../features/userManagement/pages/UserLogs";
-// import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
-// import HolidayAndNetworkScheduleManagerMain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
-import NetworkManagementTabView from "../features/settings/page/NetworkManagementTabView";
-import Holidayandnetworkschedulemanagermain from "../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain";
-import { PlanViewAndSetup } from "../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup";
-import PlanViewAndSetupTab from "../features/scheduler/page/PlanViewAndSetupTab";
-import { TaskConfigMain } from "../features/scheduler/sub-feature/taskConfig/TaskConfigMain";
-import ModernHomeDashboard from "../features/dashboard/pages/ModernHomeDashboard";
-import { AdminSettingDashboard } from "../features/settings/globalAdminSetting";
-import { OrganizationConfigPage } from "../features/settings/orgConfig";
-import TaskPlanningMain from "../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain";
-import { CrqJourneyMain } from "../features/crqJourney/CrqJourneyMain";
-import { PlanAndInventoryMain } from "../features/scheduler/page/SchedulerWorkflowMain";
+import PageLoader from "../components/loading/PageLoader";
+
+// Route-level code splitting — every feature page below is fetched on
+// first navigation instead of bundled eagerly into the initial load. The
+// <Suspense fallback={<PageLoader/>}> already wrapping <Routes> further
+// down (previously dead weight, since nothing here was lazy) is what
+// makes this work with no new boundaries needed. Named exports from a
+// feature's barrel `index.ts` resolve to the same dynamic import
+// specifier, so the bundler still only fetches one chunk per feature.
+const TeamManagementPage = lazy(() => import("../features/teamManagement/pages/TeamManagementPage"));
+const TeamManagementMain = lazy(() =>
+  import("../features/teamManagement/pages/TeamManagementMain").then((m) => ({ default: m.TeamManagementMain })),
+);
+const DashboardViewPage = lazy(() => import("../features/dashboard/pages/DashboardPage"));
+const MonthlyRosterPageTab = lazy(() => import("../features/roster/page/MonthlyRosterPageTab"));
+const RosterViewMain = lazy(() =>
+  import("../features/roster/page/RosterViewMain").then((m) => ({ default: m.RosterViewMain })),
+);
+const UserMeMainPageTab = lazy(() => import("../features/userMe/pages/UserMeMainPageTab"));
+const UserRosterMain = lazy(() =>
+  import("../features/userMe/pages/UserRosterMain").then((m) => ({ default: m.UserRosterMain })),
+);
+const InboxPageTab = lazy(() => import("../features/inbox/InboxPageTab"));
+const TaskInbox = lazy(() => import("../features/inbox/components/TaskInbox"));
+const SchedulerMainTab = lazy(() => import("../features/scheduler/page/SchedulerMainTab"));
+const NotificationManagerMain = lazy(() => import("../features/userMe/pages/NotificationManagerMain"));
+const UserLeaveSectionMain = lazy(() =>
+  import("../features/userMe/pages/UserLeaveSectionMain").then((m) => ({ default: m.UserLeaveSectionMain })),
+);
+const CrqDetailedView = lazy(() =>
+  import("../features/scheduler/components/plan-and-inventory/CrqDetailedView").then((m) => ({
+    default: m.CrqDetailedView,
+  })),
+);
+const RosterGenerationMain = lazy(() =>
+  import("../features/rosterGenerator/pages/RosterGenerationMain").then((m) => ({
+    default: m.RosterGenerationMain,
+  })),
+);
+const UserManagementLayout = lazy(() => import("../features/userManagement/layout/UserManagementLayout"));
+const UserLogs = lazy(() =>
+  import("../features/userManagement/pages/UserLogs").then((m) => ({ default: m.UserLogs })),
+);
+const NetworkManagementTabView = lazy(() => import("../features/settings/page/NetworkManagementTabView"));
+const Holidayandnetworkschedulemanagermain = lazy(
+  () => import("../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain"),
+);
+const PlanViewAndSetup = lazy(() =>
+  import("../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup").then((m) => ({
+    default: m.PlanViewAndSetup,
+  })),
+);
+const PlanViewAndSetupTab = lazy(() => import("../features/scheduler/page/PlanViewAndSetupTab"));
+const TaskConfigMain = lazy(() =>
+  import("../features/scheduler/sub-feature/taskConfig/TaskConfigMain").then((m) => ({ default: m.TaskConfigMain })),
+);
+const ModernHomeDashboard = lazy(() => import("../features/dashboard/pages/ModernHomeDashboard"));
+const AdminSettingDashboard = lazy(() =>
+  import("../features/settings/globalAdminSetting").then((m) => ({ default: m.AdminSettingDashboard })),
+);
+const OrganizationConfigPage = lazy(() =>
+  import("../features/settings/orgConfig").then((m) => ({ default: m.OrganizationConfigPage })),
+);
+const TaskPlanningMain = lazy(() => import("../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain"));
+const CrqJourneyMain = lazy(() =>
+  import("../features/crqJourney/CrqJourneyMain").then((m) => ({ default: m.CrqJourneyMain })),
+);
+const PlanAndInventoryMain = lazy(() =>
+  import("../features/scheduler/page/SchedulerWorkflowMain").then((m) => ({ default: m.PlanAndInventoryMain })),
+);
 
 // Cab Manager pages
-// import { DashboardPage as CabDashboardPage } from "../features/cabManager/pages/DashboardPage";
-// import { AllCrqsPage } from "../features/cabManager/pages/AllCrqsPage";
-
-import {
-  CabDashboardPage,
-  AllCrqsPage,
-  MyCrqsPage,
-  CabPlanningPage,
-  CabSessionsPage,
-  ImplementationPage,
-  AdminPage,
-} from "../features/cabManager";
-import CabManagerMainPageTab from "../features/cabManager/pages/CabManagerMainPageTab";
-import { CrqJourneyPage } from "../features/crqJourney";
-import UserManagement from "../features/userManagement/components/UserManagement";
-import PageLoader from "../components/loading/PageLoader";
-import {
-  AnalyticsMainPageTab,
-  AnalyticsDashboardPage,
-  CrqAnalyticsPage,
-  AnalyticsReportsPage,
-} from "../features/crqAnalytics";
-import DataAgentPage from "../features/dataAgent/pages/DataAgentPage";
-import {
-  SftpManagementMainPageTab,
-  WindowsSftpPage,
-  LinuxSftpPage,
-} from "../features/sftpManagement";
+const CabDashboardPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabDashboardPage })));
+const AllCrqsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.AllCrqsPage })));
+const MyCrqsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.MyCrqsPage })));
+const CabPlanningPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabPlanningPage })));
+const CabSessionsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabSessionsPage })));
+const ImplementationPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({ default: m.ImplementationPage })),
+);
+const AdminPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.AdminPage })));
+const CabManagerMainPageTab = lazy(() => import("../features/cabManager/pages/CabManagerMainPageTab"));
+const CrqJourneyPage = lazy(() => import("../features/crqJourney").then((m) => ({ default: m.CrqJourneyPage })));
+const UserManagement = lazy(() => import("../features/userManagement/components/UserManagement"));
+const AnalyticsMainPageTab = lazy(() =>
+  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsMainPageTab })),
+);
+const AnalyticsDashboardPage = lazy(() =>
+  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsDashboardPage })),
+);
+const CrqAnalyticsPage = lazy(() =>
+  import("../features/crqAnalytics").then((m) => ({ default: m.CrqAnalyticsPage })),
+);
+const AnalyticsReportsPage = lazy(() =>
+  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsReportsPage })),
+);
+const DataAgentPage = lazy(() => import("../features/dataAgent/pages/DataAgentPage"));
+const SftpManagementMainPageTab = lazy(() =>
+  import("../features/sftpManagement").then((m) => ({ default: m.SftpManagementMainPageTab })),
+);
+const WindowsSftpPage = lazy(() =>
+  import("../features/sftpManagement").then((m) => ({ default: m.WindowsSftpPage })),
+);
+const LinuxSftpPage = lazy(() => import("../features/sftpManagement").then((m) => ({ default: m.LinuxSftpPage })));
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
