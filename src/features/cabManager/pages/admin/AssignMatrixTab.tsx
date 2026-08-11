@@ -4,7 +4,6 @@ import {
   MenuItem,
   Paper,
   Skeleton,
-  Stack,
   Table, TableBody, TableCell, TableHead, TableRow,
   TextField,
   Typography,
@@ -111,16 +110,13 @@ export function AdminAssignMatrixTab() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2} sx={{ mb: 2 }}>
-        <Box sx={{ maxWidth: 620 }}>
-          <Typography sx={{ fontWeight: 500, fontSize: 16 }}>Approval Assignment Matrix</Typography>
-          <Typography variant="caption" sx={{ color: "text.secondary" }}>
-            Define who approves each CRQ by approval stage and domain. Exception rules below override
-            this matrix for specific circle and impact combinations.
-          </Typography>
-        </Box>
-        <Button size="small" variant="outlined">Reset to defaults</Button>
-      </Stack>
+      <Box sx={{ maxWidth: 620, mb: 2 }}>
+        <Typography sx={{ fontWeight: 500, fontSize: 16 }}>Approval Assignment Matrix</Typography>
+        <Typography variant="caption" sx={{ color: "text.secondary" }}>
+          Define who approves each CRQ by approval stage and domain. Exception rules below override
+          this matrix for specific circle and impact combinations.
+        </Typography>
+      </Box>
 
       {/* Stage × Domain matrix */}
       {/* <Paper sx={{ mb: 4, border: "1px solid", borderColor: "divider", overflow: "auto" }} elevation={0}>

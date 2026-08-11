@@ -16,30 +16,27 @@ export const isSuperAdminRole = (roleCode: string | null): boolean =>
 
 export const canIn = (
   modules: Record<string, string[]>,
-  roleCode: string | null,
+  _roleCode: string | null,
   moduleName: string,
   action: PermAction,
 ): boolean => {
-  if (isSuperAdminRole(roleCode)) return true;
   return modules[moduleName]?.includes(action) ?? false;
 };
 
 export const hasModuleIn = (
   modules: Record<string, string[]>,
-  roleCode: string | null,
+  _roleCode: string | null,
   moduleName: string,
 ): boolean => {
-  if (isSuperAdminRole(roleCode)) return true;
   return !!modules[moduleName] && modules[moduleName].length > 0;
 };
 
 export const hasSubModuleIn = (
   moduleHierarchy: ModuleHierarchy[],
-  roleCode: string | null,
+  _roleCode: string | null,
   moduleName: string,
   subModuleName: string,
 ): boolean => {
-  if (isSuperAdminRole(roleCode)) return true;
   const mod = moduleHierarchy.find((m) => m.moduleName === moduleName);
   const subModule = mod?.subModules.find(
     (sm) => sm.subModuleName === subModuleName,
