@@ -1,10 +1,10 @@
-import { Box, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
+import { Box, MenuItem, TextField, ToggleButton, ToggleButtonGroup, useTheme } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { QUICK_DATE_OPTIONS } from "../utils/dateRange";
-import type { UseAnalyticsFiltersReturn } from "../hooks/useAnalyticsFilters";
+import { CIRCLE_OPTIONS, type UseAnalyticsFiltersReturn } from "../hooks/useAnalyticsFilters";
 
 type Props = Pick<
   UseAnalyticsFiltersReturn,
@@ -12,6 +12,8 @@ type Props = Pick<
   | "orgValues"
   | "orgOptions"
   | "onOrgFilterChange"
+  | "circle"
+  | "setCircle"
   | "quickFilter"
   | "setQuickFilter"
   | "customStart"
@@ -25,6 +27,8 @@ export function AnalyticsFilterBar({
   orgValues,
   orgOptions,
   onOrgFilterChange,
+  circle,
+  setCircle,
   quickFilter,
   setQuickFilter,
   customStart,
@@ -52,6 +56,21 @@ export function AnalyticsFilterBar({
       }}
     >
       <OrgHierarchyFilters role={roleName} values={orgValues} options={orgOptions} onChange={onOrgFilterChange} />
+
+      <TextField
+        select
+        size="small"
+        label="Circle"
+        value={circle}
+        onChange={(e) => setCircle(e.target.value)}
+        sx={{ minWidth: 110 }}
+      >
+        {CIRCLE_OPTIONS.map((c) => (
+          <MenuItem key={c} value={c}>
+            {c}
+          </MenuItem>
+        ))}
+      </TextField>
 
       <ToggleButtonGroup
         size="small"

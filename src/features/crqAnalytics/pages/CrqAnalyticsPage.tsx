@@ -10,18 +10,17 @@ import {
   useGetCrqGroupBreakdownQuery,
   useGetCrqAgingHeatmapQuery,
 } from "../api/crqAnalyticsApi";
-import type { AgingHeatmapMode, GroupBreakdownDimension } from "../types/crqAnalytics.types";
+import type { AgingHeatmapMode, AnalyticsNavState, GroupBreakdownDimension, TableViewConfig } from "../types/crqAnalytics.types";
 import { AnalyticsFilterBar } from "../components/AnalyticsFilterBar";
 import { ChartCard } from "../components/ChartCard";
 import { BarChartCard } from "../components/BarChartCard";
 import { RunRateChart } from "../components/RunRateChart";
 import { AgingHeatmapGrid } from "../components/AgingHeatmapGrid";
-import { CrqListTable } from "../components/CrqListTable";
+import { CrqFullscreenTable } from "../components/CrqFullscreenTable";
 import { CrqDetailDrawer } from "../components/CrqDetailDrawer";
 import { seriesColor, categoryColor } from "../utils/chartPalette";
 
 const GROUP_BY_OPTIONS: { value: GroupBreakdownDimension; label: string }[] = [
-  { value: "domain", label: "Domain" },
   { value: "region", label: "Region" },
   { value: "circle", label: "Circle" },
 ];
@@ -32,8 +31,9 @@ export default function CrqAnalyticsPage() {
   const filterState = useAnalyticsFilters();
   const { filters } = filterState;
   const [selectedCrq, setSelectedCrq] = useState<string | null>(null);
-  const [groupBy, setGroupBy] = useState<GroupBreakdownDimension>("domain");
+  const [groupBy, setGroupBy] = useState<GroupBreakdownDimension>("circle");
   const [heatmapMode, setHeatmapMode] = useState<AgingHeatmapMode>("RECEIVED");
+  const [nav, setNav] = useState<AnalyticsNavState>({ view: "grid" });
 
   const openDomain = useGetCrqOpenDomainQuery(filters);
   const raisedVsClosed = useGetCrqRaisedVsClosedQuery(filters);
@@ -41,22 +41,45 @@ export default function CrqAnalyticsPage() {
   const groupBreakdown = useGetCrqGroupBreakdownQuery({ ...filters, groupBy });
   const agingHeatmap = useGetCrqAgingHeatmapQuery({ ...filters, heatmapMode });
 
+  const goToTable = (config: TableViewConfig) => setNav({ view: "table", tableConfig: config });
+
+  if (nav.view === "table") {
+    return (
+      <CommonContainer>
+        <CrqFullscreenTable
+          config={nav.tableConfig}
+          filters={filters}
+          onBack={() => setNav({ view: "grid" })}
+          onRowClick={setSelectedCrq}
+        />
+        <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />
+      </CommonContainer>
+    );
+  }
+
   return (
     <CommonContainer>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <AnalyticsFilterBar {...filterState} />
 
         <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", lg: "1fr 1fr" }, gap: 2 }}>
-          <ChartCard title="Open CRQ by Domain">
+          <ChartCard
+            title="Open CRQ by Domain"
+            onViewAll={() => goToTable({ title: "Open CRQ — Domain Wise", tableType: "OPEN_CRQ_DOMAIN" })}
+          >
             <BarChartCard
               labels={(openDomain.data ?? []).map((d) => d.domain)}
               series={[{ label: "Open", data: (openDomain.data ?? []).map((d) => d.openCount), color: seriesColor("openCount", isDark) }]}
               isLoading={openDomain.isFetching}
               isError={openDomain.isError}
+              onBarClick={(domain) => goToTable({ title: `CRQs in Stage: ${domain}`, tableType: "CRQ_LIST", stage: domain })}
             />
           </ChartCard>
 
-          <ChartCard title="Raised vs Closed vs Rejected">
+          <ChartCard
+            title="Raised vs Closed vs Rejected"
+            onViewAll={() => goToTable({ title: "CRQ Open vs Closed — All CRQs", tableType: "OPEN_VS_CLOSED" })}
+          >
             <BarChartCard
               labels={(raisedVsClosed.data ?? []).map((d) => d.label)}
               series={[
@@ -70,12 +93,22 @@ export default function CrqAnalyticsPage() {
           </ChartCard>
         </Box>
 
-        <ChartCard title="Run Rate: Raised → Scheduling → Closed">
+        <ChartCard
+          title="Run Rate: Raised → Scheduling → Closed"
+          onViewAll={() => goToTable({ title: "Run Rate — All CRQs", tableType: "RUN_RATE" })}
+        >
           <RunRateChart rows={runRate.data ?? []} isLoading={runRate.isFetching} isError={runRate.isError} />
         </ChartCard>
 
         <ChartCard
-          title="Breakdown"
+          title="Circle / Region Breakdown"
+          onViewAll={() =>
+            goToTable({
+              title: groupBy === "region" ? "Region Wise CRQ Analytics" : "Circle Wise CRQ Analytics",
+              tableType: "CIRCLE_REGION",
+              groupBy,
+            })
+          }
           action={
             <ToggleButtonGroup size="small" exclusive value={groupBy} onChange={(_e, v) => v && setGroupBy(v)}>
               {GROUP_BY_OPTIONS.map((opt) => (
@@ -101,6 +134,7 @@ export default function CrqAnalyticsPage() {
         <ChartCard
           title="Aging Heatmap"
           height="auto"
+          onViewAll={() => goToTable({ title: "CRQ Aging Heatmap — All CRQs", tableType: "AGING_HEATMAP", heatmapMode })}
           action={
             <ToggleButtonGroup size="small" exclusive value={heatmapMode} onChange={(_e, v) => v && setHeatmapMode(v)}>
               <ToggleButton value="RECEIVED" sx={{ textTransform: "none", px: 1.5 }}>
@@ -112,11 +146,7 @@ export default function CrqAnalyticsPage() {
             </ToggleButtonGroup>
           }
         >
-          <AgingHeatmapGrid data={agingHeatmap.data} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} />
-        </ChartCard>
-
-        <ChartCard title="All CRQs" height="auto">
-          <CrqListTable filters={filters} onRowClick={setSelectedCrq} />
+          <AgingHeatmapGrid data={agingHeatmap.data} mode={heatmapMode} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} />
         </ChartCard>
 
         <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />

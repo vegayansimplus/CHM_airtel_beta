@@ -15,10 +15,12 @@ interface Props {
   slices: Slice[];
   isLoading?: boolean;
   isError?: boolean;
+  /** Called with the clicked slice's label (folded "Other" slice is not clickable). */
+  onSliceClick?: (label: string) => void;
 }
 
 /** Doughnut chart for a category breakdown (e.g. rejection reasons) — folds past 8 categories into "Other". */
-export function PieChartCard({ slices, isLoading, isError }: Props) {
+export function PieChartCard({ slices, isLoading, isError, onSliceClick }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chrome = chartChrome(isDark);
@@ -53,6 +55,13 @@ export function PieChartCard({ slices, isLoading, isError }: Props) {
     () => ({
       responsive: true,
       maintainAspectRatio: false,
+      onClick: onSliceClick
+        ? (_evt, elements) => {
+            const idx = elements[0]?.index;
+            const label = idx != null ? folded[idx]?.label : undefined;
+            if (label && label !== "Other") onSliceClick(label);
+          }
+        : undefined,
       plugins: {
         legend: {
           position: "right",
@@ -77,7 +86,7 @@ export function PieChartCard({ slices, isLoading, isError }: Props) {
       },
       cutout: "62%",
     }),
-    [chrome, theme, total],
+    [chrome, theme, total, onSliceClick, folded],
   );
 
   if (isError) return <EmptyOrErrorState kind="error" />;

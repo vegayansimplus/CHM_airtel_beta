@@ -18,9 +18,11 @@ interface Props {
   horizontal?: boolean;
   isLoading?: boolean;
   isError?: boolean;
+  /** Called with the clicked bar's category label (e.g. a domain/stage name). */
+  onBarClick?: (label: string) => void;
 }
 
-export function BarChartCard({ labels, series, horizontal = false, isLoading, isError }: Props) {
+export function BarChartCard({ labels, series, horizontal = false, isLoading, isError, onBarClick }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chrome = chartChrome(isDark);
@@ -48,6 +50,20 @@ export function BarChartCard({ labels, series, horizontal = false, isLoading, is
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: "index", intersect: false },
+      onClick: onBarClick
+        ? (_evt, elements) => {
+            const idx = elements[0]?.index;
+            if (idx != null) onBarClick(labels[idx]);
+          }
+        : undefined,
+      onHover: onBarClick
+        ? (evt, elements) => {
+            (evt.native?.target as HTMLElement | undefined)?.style?.setProperty(
+              "cursor",
+              elements.length ? "pointer" : "default",
+            );
+          }
+        : undefined,
       plugins: {
         legend: {
           display: series.length > 1,
@@ -76,7 +92,7 @@ export function BarChartCard({ labels, series, horizontal = false, isLoading, is
         },
       },
     }),
-    [horizontal, series.length, chrome, theme],
+    [horizontal, series.length, chrome, theme, onBarClick, labels],
   );
 
   if (isError) return <EmptyOrErrorState kind="error" />;

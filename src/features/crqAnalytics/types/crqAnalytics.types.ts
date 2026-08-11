@@ -1,21 +1,25 @@
-// Mirrors com.vegayan.airtelmanagement.crqanalytic.dto (+ one crqdashboard DTO for aging heatmap).
+// Mirrors com.vegayan.airtelmanagement.crqanalytic.dto exactly (CRQAnalyticsDashboardController,
+// base path /crq-analytics-new). Field names match the real Java DTOs field-for-field.
 
 export interface CRQAnalyticsFilterParams {
-  verticalId?: number;
   teamFunctionId?: number;
   domainId?: number;
   subDomainId?: number;
-  circleId?: number;
+  circleId?: string;
   startDate: string; // ISO yyyy-MM-dd
   endDate: string; // ISO yyyy-MM-dd
 }
 
+// totalCrq..slaScore are boxed Integer/Double on the Java side, so the
+// backend's own empty-fallback object (returned when its stored procedure
+// errors or yields no row) sends these as null, not 0 — every reader must
+// treat them as optional.
 export interface CRQKpiSummaryDto {
-  totalCrq: number;
-  openCrq: number;
-  closedCrq: number;
-  rejected: number;
-  slaScore: number;
+  totalCrq: number | null;
+  openCrq: number | null;
+  closedCrq: number | null;
+  rejected: number | null;
+  slaScore: number | null;
   totalTrendPct: number | null;
   openTrendPct: number | null;
   closedTrendPct: number | null;
@@ -34,17 +38,19 @@ export interface CRQSlaDomainDto {
   score: number;
 }
 
-export interface CRQRaisedVsClosedDto {
-  label: string;
-  raised: number;
-  closed: number;
-  rejected: number;
-}
-
 export interface CRQRejectionReasonDto {
   reason: string;
   count: number;
   pct: number;
+}
+
+/** GET /crq-analytics-new/dashboard — backs the Dashboard tab's KPI + workflow + SLA + rejection panels. */
+export interface CRQAnalyticsDashboardResponse {
+  status: string;
+  kpi: CRQKpiSummaryDto;
+  workflowStages: CRQWorkflowStageDto[];
+  slaDomains: CRQSlaDomainDto[];
+  rejectionReasons: CRQRejectionReasonDto[];
 }
 
 export interface EngineerUtilizationDto {
@@ -64,24 +70,13 @@ export interface EngineerUtilizationDto {
   utilizationPct: number;
 }
 
-/** The master aggregate call — one round trip for the whole Dashboard tab. */
-export interface CRQAnalyticsDashboardResponse {
-  status: string;
-  kpi: CRQKpiSummaryDto;
-  workflowStages: CRQWorkflowStageDto[];
-  slaDomains: CRQSlaDomainDto[];
-  raisedVsClosed: CRQRaisedVsClosedDto[];
-  rejectionReasons: CRQRejectionReasonDto[];
-  engineerUtilization: EngineerUtilizationDto[];
-}
-
 export interface CRQOpenDomainDto {
   domain: string;
   openCount: number;
 }
 
-export interface CRQGroupBreakdownDto {
-  group: string;
+export interface CRQRaisedVsClosedDto {
+  label: string;
   raised: number;
   closed: number;
   rejected: number;
@@ -94,60 +89,148 @@ export interface CRQRunRateDto {
   closed: number;
 }
 
-export type GroupBreakdownDimension = "domain" | "region" | "circle";
+/** GET /crq-analytics-new/circle-region — groupBy only supports these two dimensions. */
+export type GroupBreakdownDimension = "region" | "circle";
 
-export interface CRQListRowDto {
+export interface CRQSiteGroupDto {
+  group: string;
+  raised: number;
+  closed: number;
+  rejected: number;
+}
+
+export type AgingHeatmapMode = "SCHEDULED" | "RECEIVED";
+
+export interface CRQAgingBucketDto {
+  bucket: string;
+  ccb: number;
+  se: number;
+}
+
+export interface AgingHeatmapParams extends CRQAnalyticsFilterParams {
+  heatmapMode: AgingHeatmapMode;
+}
+
+// ─── "View All" full-screen tables ───────────────────────────────────────────
+// The 5 /view-all/* endpoints all share the same generic shape: the backend
+// runs a wider stored procedure and hands back whatever columns it selected,
+// so the frontend renders them dynamically rather than with fixed DTOs.
+
+export interface ViewAllResponse {
+  headers: string[];
+  data: Record<string, string | number | null>[];
+}
+
+export interface ViewAllParams extends CRQAnalyticsFilterParams {
+  page?: number;
+  size?: number;
+}
+
+/** Which full-screen table a "View All" button / chart-element click opens. */
+export type TableViewConfig =
+  | { title: string; tableType: "CIRCLE_REGION"; groupBy: GroupBreakdownDimension }
+  | { title: string; tableType: "OPEN_CRQ_DOMAIN" }
+  | { title: string; tableType: "AGING_HEATMAP"; heatmapMode: AgingHeatmapMode }
+  | { title: string; tableType: "OPEN_VS_CLOSED" }
+  | { title: string; tableType: "RUN_RATE" }
+  | { title: string; tableType: "CRQ_LIST"; status?: string; stage?: string; rejectionReason?: string };
+
+export type AnalyticsNavState =
+  | { view: "grid" }
+  | { view: "table"; tableConfig: TableViewConfig };
+
+// ─── CRQ list (drill-down table) + detail (row click) ───────────────────────
+
+export interface CRQTableRowDto {
   crqNo: string;
   currentStage: string;
   currentStatus: string;
-  domain: string;
-  subDomain: string;
+  teamFunction: string;
+  teamSubfunction: string;
   schedulingFlag: string;
   approvalFlag: string;
-  createdAt: string;
 }
 
-export interface CRQListResponseDto {
-  status: string;
+export interface CRQListResponse {
   totalCount: number;
-  rows: CRQListRowDto[];
+  page: number;
+  size: number;
+  data: CRQTableRowDto[];
 }
 
 export interface CRQListParams extends CRQAnalyticsFilterParams {
   status?: string;
   stage?: string;
+  rejectionReason?: string;
   page?: number;
   size?: number;
 }
 
-/** From crqdashboard's /crq/agingheatmap — the only aging-data source available (crqanalytic has none). */
-export interface AgingHeatmapCellDto {
-  stage: string;
-  bucket: string;
-  count: number;
-  intensity: number;
+export interface CRQTimelineStepDto {
+  stepNo: number;
+  label: string;
+  status: "completed" | "active" | "pending" | "rejected";
 }
 
-export interface AgingHeatmapResponseDto {
+export interface CRQApprovalTrailDto {
+  role: string;
+  name: string;
+  date: string;
+  remark: string;
+  status: "approved" | "pending" | "rejected" | "delegated";
+}
+
+export interface CRQEventFeedDto {
+  color: "green" | "red" | "orange" | "blue";
+  message: string;
+  date: string;
+}
+
+/** GET /crq-analytics-new/crqs/{changeId} */
+export interface CRQDetailResponse {
+  crqNo: string;
+  title: string;
+  currentStage: string;
+  planNo: string;
+
+  impactLabel: string;
+  impactCount: number;
+  progressPct: number | null;
+
+  lastUpdated: string;
   status: string;
-  buckets: string[];
-  stages: string[];
-  cells: AgingHeatmapCellDto[];
+
+  requestor: string;
+  category: string;
+  circle: string;
+  planType: string;
+  domain: string;
+  scheduledDate: string;
+  impact: string;
+  executionWindow: string;
+  submitDate: string;
+
+  fieldEngineerName: string;
+  fieldEngineerMobile: string;
+  fieldEngineerEmail: string;
+
+  flagB2B: boolean;
+  flagSA: boolean;
+  flagCoreNode: boolean;
+  flagNSA: boolean;
+
+  impactedSystems: string[];
+
+  approvalActionStage: string;
+  approvalActionUser: string;
+  canApprove: boolean;
+
+  timeline: CRQTimelineStepDto[];
+  approvalTrail: CRQApprovalTrailDto[];
+  eventFeed: CRQEventFeedDto[];
 }
 
-export type AgingHeatmapMode = "SCHEDULED" | "RECEIVED";
-
-export interface AgingHeatmapParams {
-  verticalId?: number;
-  teamFunctionId?: number;
-  domainId?: number;
-  subDomainId?: number;
-  startDate: string;
-  endDate: string;
-  heatmapMode: AgingHeatmapMode;
-}
-
-// ─── Reports tab — com.vegayan.airtelmanagement.analyticsreport ──────────────
+// ─── Reports tab — com.vegayan.airtelmanagement.analyticsreport (unchanged) ─
 
 export type AnalyticsReportType = "daily" | "weekly" | "monthly";
 
