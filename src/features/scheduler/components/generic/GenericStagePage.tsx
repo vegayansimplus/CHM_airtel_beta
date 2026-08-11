@@ -18,7 +18,7 @@ import {
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
-
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
@@ -30,17 +30,8 @@ import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import { usePermission } from "../../../auth/hooks/usePermission";
-
-// Loaded on demand: the wizard carries its own calendar grid, step components
-// and RTK Query endpoints, none of which the stage table itself needs.
 const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
-
-/**
- * Stages whose cards expose the Reschedule action. Scheduling and Network
- * Execution (Activity Implement) are the only two where the CRQ already holds
- * an engineer reservation - which is exactly what
- * CRQ_SP_RESCHEDULE_CONFIRM_SLOT archives and replaces.
- */
+const StageReviewDialog = lazy(() => import("./dialog/StageReviewDialog"));
 const RESCHEDULABLE_STAGES = new Set<StageKey>(["scheduling", "activityimplement"]);
 
 /** RBAC module + permission the Reschedule action requires. */
@@ -74,7 +65,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const colors = useTabColorTokens(theme);
   const stageConfig = getStageConfig(stageKey);
 
-  const { toggleStartPause } = useStageWorkflow(stageKey);
+  const { toggleStartPause, submitDone } = useStageWorkflow(stageKey);
 
   const [plansOriginal, setPlansOriginal] = useState<any[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
@@ -83,6 +74,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
   const [rescheduleCrq, setRescheduleCrq] = useState<any | null>(null);
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
 
   const { hasPermission } = usePermission();
   const canReschedule =
@@ -123,6 +115,29 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         ),
       })),
     );
+  };
+
+  /**
+   * Review dialog submit ("Pass"/"Failed"/"Cancelled") - mirrors
+   * CrqDetailedView's handleSubmitDone so the exact same
+   * StageReviewDialog + useStageWorkflow.submitDone flow works whether the
+   * CRQ is actioned from this list page or from the single-CRQ cockpit.
+   * Patches the row's status locally for an immediate UI flip; the
+   * StageWorkflow tag invalidation then refetches the authoritative state.
+   */
+  const handleSubmitDone = async (values: Record<string, any>, crq: any) => {
+    const result = await submitDone(values, crq);
+    if (result.success) {
+      setPlansOriginal((prev) =>
+        prev.map((plan) => ({
+          ...plan,
+          crqs: plan.crqs.map((c: any) =>
+            c.crqNo === crq.crqNo ? { ...c, [stageConfig.statusField]: values.status } : c,
+          ),
+        })),
+      );
+    }
+    return result;
   };
 
   const toggleFullScreen = () => {
@@ -214,6 +229,13 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         }
         colors={colors}
       />
+      <CustomActionButton
+        label={`Review ${stageConfig.label}`}
+        disabled={!selectedCrq}
+        onClick={() => setReviewDialogOpen(true)}
+        startIcon={<FactCheckRoundedIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
       <Stack direction="row" spacing={0.8}>
         <Chip label={`${filteredPlans.length} plans`} size="small" sx={{ height: 24, fontSize: 11, fontWeight: 700 }} />
         <Chip
@@ -294,6 +316,23 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             crqId={rescheduleCrq.crqId ?? null}
             crqNo={rescheduleCrq.crqNo ?? null}
             colors={colors}
+          />
+        </Suspense>
+      )}
+      {/* Same review dialog the CRQ cockpit renders for this stage - lets a
+          user Pass/Fail/Cancel the selected CRQ's outcome without leaving
+          this list, exactly like the original "Impact Analysis" button on
+          the reference list page. Mounted only once opened, so its chunk is
+          fetched on demand. */}
+      {reviewDialogOpen && selectedCrq && (
+        <Suspense fallback={null}>
+          <StageReviewDialog
+            open={reviewDialogOpen}
+            onClose={() => setReviewDialogOpen(false)}
+            crq={selectedCrq}
+            colors={colors}
+            stageConfig={stageConfig}
+            onSubmitDone={handleSubmitDone}
           />
         </Suspense>
       )}

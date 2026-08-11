@@ -195,7 +195,7 @@ const Header: React.FC<HeaderProps> = ({
             />
           </IconButton>
 
-          {dynamicHeaderText && (
+          {/* {dynamicHeaderText && (
             <>
               <Box
                 sx={{
@@ -237,7 +237,7 @@ const Header: React.FC<HeaderProps> = ({
                 </Typography>
               </Stack>
             </>
-          )}
+          )} */}
         </Box>
 
         {/* Center — global search trigger */}

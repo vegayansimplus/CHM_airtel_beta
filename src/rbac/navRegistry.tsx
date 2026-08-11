@@ -1,16 +1,10 @@
 import { type ReactNode } from "react";
-// Every nav icon below is the "Outlined" (thin-line) variant of its MUI
-// icon — previously a mix of filled/Rounded/Outlined imports depending on
-// who added each entry. One consistent family reads as more deliberate
-// and matches the app's overall enterprise-line-icon direction; which
-// icon maps to which module is unchanged, only the visual variant is.
 import DashboardIcon from "@mui/icons-material/DashboardOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2Outlined";
 import AltRouteIcon from "@mui/icons-material/AltRouteOutlined";
 import BusinessCenterIcon from "@mui/icons-material/BusinessCenterOutlined";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
-
 import CalendarMonth from "@mui/icons-material/CalendarMonthOutlined";
 import SupervisedUserCircle from "@mui/icons-material/SupervisedUserCircleOutlined";
 import ScheduleIcon from "@mui/icons-material/ScheduleOutlined";
@@ -19,14 +13,6 @@ import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
-// import MailIcon from "@mui/icons-material/Mail";
-// import SettingsIcon from "@mui/icons-material/Settings";
-// import TuneIcon from "@mui/icons-material/Tune";
-// import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-// import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
-// import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-// import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
-// import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
 import MailIcon from "@mui/icons-material/MailOutlined";
 import SettingsIcon from "@mui/icons-material/SettingsOutlined";
 import TuneIcon from "@mui/icons-material/TuneOutlined";
@@ -35,21 +21,11 @@ import InsightsRoundedIcon from "@mui/icons-material/InsightsOutlined";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardOutlined";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsOutlined";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeOutlined";
-// import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeOutlined";
-
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
 import SchemaIcon from "@mui/icons-material/SchemaOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
-
-/**
- * Single source of truth for "what pages exist, what route they live at, and
- * what module/sub-module permission they require". Both the sidebar
- * (useSidebarNav) and route protection (routeAccess/PrivateRoute) read from
- * this same list so they can never drift apart the way the old, now-dead
- * routeConfig.tsx/moduleRouteMap.ts did.
- */
 export interface NavItem {
   to: string;
   text: string;

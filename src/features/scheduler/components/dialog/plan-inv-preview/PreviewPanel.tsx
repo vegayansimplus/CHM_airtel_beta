@@ -4,8 +4,6 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import type { ThemeColors } from "../../../types/crq.types";
 import { CheckPointSummaryPreview } from "./CheckPointSummaryPreview/CheckPointSummaryPreview";
-// import { CheckPointSummaryPreview } from "./CheckPointSummaryPreview";
-// import { ThemeColors } from "../../types/crq.types";
 
 interface Props {
   crqNo: string | null;
