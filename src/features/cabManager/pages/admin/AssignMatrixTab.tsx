@@ -17,7 +17,7 @@ import {
   type MRT_ColumnDef,
 } from "material-react-table";
 import AddIcon from "@mui/icons-material/Add";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   useGetAssignMatrixQuery,
   useGetAssignRulesQuery,
@@ -32,6 +32,7 @@ import {
   SERVICE_TYPES,
 } from "../../data/cabManager.mock";
 import type { ServiceApprovalRule } from "../../types/types";
+import { AddServiceRuleModal } from "../../components/modals/AddServiceRuleModal";
 
 export function AdminAssignMatrixTab() {
   const theme = useTheme();
@@ -39,6 +40,7 @@ export function AdminAssignMatrixTab() {
   const matrix      = useGetAssignMatrixQuery();
   const rules       = useGetAssignRulesQuery();
   const serviceRules = useGetServiceRulesQuery();
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
 
   const matrixByStage = useMemo(() => {
     const map: Record<string, Record<string, string>> = {};
@@ -200,11 +202,21 @@ export function AdminAssignMatrixTab() {
             <Typography sx={{ fontWeight: 500 }}>Impacted Party Approval Flow <Typography component="span" variant="caption" sx={{ color: "text.secondary", ml: 1 }}>— {serviceRules.data?.filter((r) => r.active).length ?? 0} active</Typography></Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>L1 is the primary impacted-party approver; L2/L3 are escalation tiers.</Typography>
           </Box>
-          <Button size="small" variant="contained" startIcon={<AddIcon />}>Add service</Button>
+          <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddServiceOpen(true)}>
+            Add service
+          </Button>
         </Box>
         <MaterialReactTable table={serviceRuleTable} />
       </Paper>
 
+      <AddServiceRuleModal
+        open={addServiceOpen}
+        onClose={() => setAddServiceOpen(false)}
+        onSuccess={() => {
+          setAddServiceOpen(false);
+          serviceRules.refetch();
+        }}
+      />
     </Box>
   );
 }

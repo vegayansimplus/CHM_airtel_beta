@@ -297,6 +297,16 @@ export interface ApproveCrqPayload { serviceApprovalId: number; comment?: string
 export interface RejectCrqPayload  { serviceApprovalId: number; reasonId: number; comment: string; }
 export interface ReschedulePayload { serviceApprovalId: number; newDate: string; newWindow: string; reason: string; }
 
+export interface AddServiceRulePayload {
+  id?: number;
+  service: string;
+  circle: string;
+  l1: string;
+  l2?: string;
+  l3?: string;
+  active: boolean;
+}
+
 // ── Workflow action result (approve / reject / reschedule) ─────────────────
 export interface CrqActionResult { status: string; message: string; }
 

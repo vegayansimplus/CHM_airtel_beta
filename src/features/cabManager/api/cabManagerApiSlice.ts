@@ -602,6 +602,7 @@ import {
   mockDelay,
 } from "../data/cabManager.mock";
 import type {
+  AddServiceRulePayload,
   AdminAnalytics,
   AdminUser,
   ApproveCrqPayload,
@@ -914,6 +915,20 @@ getImplementation: builder.query<ImplementationDetail, void>({
           async () => await mockDelay(MOCK_SERVICE_RULES)
         ),
       providesTags: ["CabAdmin"],
+    }),
+
+    addServiceRule: builder.mutation<CrqActionResult, AddServiceRulePayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: "/cab/admin/add/service-rules",
+            method: "POST",
+            body,
+          },
+          baseQuery,
+          async () => await mockDelay({ status: "Success", message: `Service escalation added for ${body.service} / ${body.circle}.` })
+        ),
+      invalidatesTags: ["CabAdmin"],
     }),
 
     getRejectionReasons: builder.query<RejectionReason[], string | void>({
@@ -1236,6 +1251,7 @@ export const {
   useRescheduleCrqMutation,
   useAssignSpocMutation,
   useAssignFeMutation,
+  useAddServiceRuleMutation,
   useAddCabRejectReasonMutation,
   useUpdateCabRejectReasonMutation,
   useDeleteCabRejectReasonMutation,
