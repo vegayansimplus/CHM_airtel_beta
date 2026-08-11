@@ -16,7 +16,7 @@ import { useOrgConfigController } from "../hooks/useOrgConfigController";
 import { RailItem } from "../components/RailItem";
 import { SearchAndStatusFilterBar } from "../components/SearchAndStatusFilterBar";
 import { CreateEditEntityDrawer } from "../components/CreateEditEntityDrawer";
-import { ConfirmDialog } from "../components/ConfirmDialog";
+import { ConfirmDialog } from "../../../../components/common/ConfirmDialog";
 import { OrgConfigBreadcrumb } from "../components/OrgConfigBreadcrumb";
 import type { OrgLevel } from "../types/orgConfigTypes";
 

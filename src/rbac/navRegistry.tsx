@@ -1,36 +1,39 @@
 import { type ReactNode } from "react";
-import DashboardIcon from "@mui/icons-material/Dashboard";
-import PersonIcon from "@mui/icons-material/Person";
-import Groups2Icon from "@mui/icons-material/Groups2";
-import AltRouteIcon from "@mui/icons-material/AltRoute";
-import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
+// Every nav icon below is the "Outlined" (thin-line) variant of its MUI
+// icon — previously a mix of filled/Rounded/Outlined imports depending on
+// who added each entry. One consistent family reads as more deliberate
+// and matches the app's overall enterprise-line-icon direction; which
+// icon maps to which module is unchanged, only the visual variant is.
+import DashboardIcon from "@mui/icons-material/DashboardOutlined";
+import PersonIcon from "@mui/icons-material/PersonOutlined";
+import Groups2Icon from "@mui/icons-material/Groups2Outlined";
+import AltRouteIcon from "@mui/icons-material/AltRouteOutlined";
+import BusinessCenterIcon from "@mui/icons-material/BusinessCenterOutlined";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
 
-import {
-  CalendarMonth,
-  SupervisedUserCircle,
-} from "@mui/icons-material";
-import ScheduleIcon from "@mui/icons-material/Schedule";
-import AssignmentIcon from "@mui/icons-material/Assignment";
+import CalendarMonth from "@mui/icons-material/CalendarMonthOutlined";
+import SupervisedUserCircle from "@mui/icons-material/SupervisedUserCircleOutlined";
+import ScheduleIcon from "@mui/icons-material/ScheduleOutlined";
+import AssignmentIcon from "@mui/icons-material/AssignmentOutlined";
 import ListAltOutlinedIcon from "@mui/icons-material/ListAltOutlined";
-import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
+import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutlined";
 import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
-import MailIcon from "@mui/icons-material/Mail";
-import SettingsIcon from "@mui/icons-material/Settings";
-import TuneIcon from "@mui/icons-material/Tune";
-import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
-import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
-import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
-import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
-import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeRounded";
+import MailIcon from "@mui/icons-material/MailOutlined";
+import SettingsIcon from "@mui/icons-material/SettingsOutlined";
+import TuneIcon from "@mui/icons-material/TuneOutlined";
+import NotificationsNoneIcon from "@mui/icons-material/NotificationsOutlined";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsOutlined";
+import DashboardRoundedIcon from "@mui/icons-material/DashboardOutlined";
+import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsOutlined";
+import SummarizeRoundedIcon from "@mui/icons-material/SummarizeOutlined";
+import AutoAwesomeRoundedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
-import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
-import SchemaIcon from "@mui/icons-material/Schema";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonthOutlined";
+import SchemaIcon from "@mui/icons-material/SchemaOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
-import TerminalIcon from "@mui/icons-material/Terminal";
+import TerminalIcon from "@mui/icons-material/TerminalOutlined";
 
 /**
  * Single source of truth for "what pages exist, what route they live at, and

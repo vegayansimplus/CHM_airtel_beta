@@ -204,9 +204,12 @@ export const themeSettings = (
     },
 
     typography: {
-      // System-first stack: renders instantly using each OS's native UI
-      // font — no network font file and no local font package required.
+      // IBM Plex Sans (already installed via @fontsource, already used on
+      // LoginPage) with the previous system stack kept as the fallback
+      // chain — no added network dependency, just a shared identity
+      // between the login screen and the authenticated app shell.
       fontFamily: [
+        '"IBM Plex Sans"',
         "-apple-system",
         "BlinkMacSystemFont",
         '"Segoe UI"',
@@ -735,6 +738,21 @@ export function useTabColorTokens(theme: Theme) {
     radius: `${theme.shape.borderRadius}px`, // 8px
     radiusL: `${(theme.shape.borderRadius as number) + 4}px`, // 12px
     radiusXL: `${(theme.shape.borderRadius as number) + 8}px`, // 16px
+    radiusPill: "999px",
+
+    // ── Elevation ─────────────────────────────────────────────────────────
+    // A shared shadow scale for new shell surfaces (header, sidebar
+    // flyouts, the global search palette) — existing per-component ad hoc
+    // shadows elsewhere are untouched, this is additive only.
+    shadowCard: isDark
+      ? "0 4px 20px rgba(0,0,0,0.3)"
+      : "0 4px 20px rgba(13,27,42,0.06)",
+    shadowElevated: isDark
+      ? "0 8px 32px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)"
+      : "0 8px 32px rgba(30,30,80,0.16), 0 2px 8px rgba(13,27,42,0.06)",
+    shadowOverlay: isDark
+      ? "0 20px 60px rgba(0,0,0,0.55)"
+      : "0 20px 60px rgba(13,27,42,0.22)",
 
     // ── Toggle track ──────────────────────────────────────────────────────
     trackOff: isDark ? "rgba(255,255,255,0.08)" : "rgba(13,27,42,0.09)",
