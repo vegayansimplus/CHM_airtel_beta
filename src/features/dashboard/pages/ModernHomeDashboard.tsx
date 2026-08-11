@@ -65,7 +65,7 @@ export default function ModernHomeDashboard() {
     <Box
       sx={{
         p: { xs: "12px 4px 28px", md: "16px 8px 32px" },
-        fontFamily: "'Plus Jakarta Sans','DM Sans','Segoe UI',sans-serif",
+        fontFamily: (theme) => theme.typography.fontFamily,
       }}
     >
       {/* ══ Main grid — fixed left rail + fluid right column ══ */}

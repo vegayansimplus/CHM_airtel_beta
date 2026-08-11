@@ -6,6 +6,8 @@ import {
   IconButton,
   Menu,
   MenuItem,
+  ListItemIcon,
+  ListItemText,
   Stack,
   Switch,
   Tooltip,
@@ -23,6 +25,9 @@ import LightModeIcon from "@mui/icons-material/LightMode";
 import BadgeIcon from "@mui/icons-material/Badge";
 import CheckIcon from "@mui/icons-material/Check";
 import PaletteIcon from "@mui/icons-material/Palette";
+import MenuIcon from "@mui/icons-material/Menu";
+import SearchOutlined from "@mui/icons-material/SearchOutlined";
+import BoltOutlined from "@mui/icons-material/BoltOutlined";
 
 import {
   BRAND_COLOR_OPTIONS,
@@ -39,6 +44,10 @@ import { logout } from "../../features/auth/slices/auth.slice";
 import { authStorage } from "../../app/store/auth.storage";
 import { api } from "../../service/api";
 import ChangePasswordDialog from "../common/ChangePasswordDialog";
+import { DRAWER_WIDTH, COLLAPSED_WIDTH, MOBILE_HEADER_INSET } from "./layoutConstants";
+import GlobalSearchModal from "../../features/globalSearch/GlobalSearchModal";
+import { useGlobalSearchShortcut } from "../../features/globalSearch/useGlobalSearchShortcut";
+import { useQuickActionsIndex } from "../../features/globalSearch/useSearchIndex";
 
 // ── Import the notification bell ──────────────────────────────────────────────
 import NotificationBell from "../common/NotificationBell";
@@ -51,6 +60,8 @@ interface HeaderProps {
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   loading: boolean;
   isSidebarCollapsed: boolean;
+  /** Mobile-only: opens the off-canvas sidebar drawer. */
+  onMobileNavToggle?: () => void;
 }
 
 const Header: React.FC<HeaderProps> = ({
@@ -59,6 +70,7 @@ const Header: React.FC<HeaderProps> = ({
   setLoading,
   loading,
   isSidebarCollapsed,
+  onMobileNavToggle,
 }) => {
   const navigate = useNavigate();
   const dispatch = useAppDispatch();
@@ -67,12 +79,17 @@ const Header: React.FC<HeaderProps> = ({
   const { toggleColorMode, primaryColor, setPrimaryColor } = useContext(ColorModeContext);
   const isDark = theme.palette.mode === "dark";
 
-  // Below "sm" the sidebar always renders as an icon-only rail (see SideBar),
-  // so the header's reserved left space must follow the same rule —
-  // otherwise the two drift out of sync and content overlaps the rail.
+  // Below "sm" the sidebar is an off-canvas overlay (see SideBar) rather
+  // than a permanent rail, so it reserves no layout width at all — the
+  // header only needs to leave room for its own hamburger button there.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
-  const sidebarCollapsed = isMobile || isSidebarCollapsed;
-  const headerOffset = sidebarCollapsed ? 86 : 256;
+  const headerOffset = isMobile ? MOBILE_HEADER_INSET : isSidebarCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
+
+  const [searchOpen, setSearchOpen] = useState(false);
+  useGlobalSearchShortcut(() => setSearchOpen(true));
+
+  const [quickActionsAnchor, setQuickActionsAnchor] = useState<null | HTMLElement>(null);
+  const quickActions = useQuickActionsIndex();
 
   const user = useAppSelector((s) => s.auth.user);
 
@@ -143,7 +160,8 @@ const Header: React.FC<HeaderProps> = ({
     <>
       <Box
         display="flex"
-        justifyContent="space-between"
+        alignItems="center"
+        gap={{ xs: 1, sm: 1.5 }}
         p={0.8}
         sx={{
           position: "fixed",
@@ -157,9 +175,17 @@ const Header: React.FC<HeaderProps> = ({
           transition: "background 0.3s ease, padding-left 0.3s ease",
         }}
       >
-        {/* Left — Airtel logo + current page context */}
-        <Box display="flex" alignItems="center" gap={{ xs: "8px", sm: "14px" }} minWidth={0}>
-          <IconButton sx={{ p: 0, flexShrink: 0 }}>
+        {/* Mobile hamburger — opens the off-canvas sidebar drawer */}
+        <IconButton
+          onClick={onMobileNavToggle}
+          sx={{ display: { xs: "inline-flex", sm: "none" }, color: "#fff", flexShrink: 0 }}
+        >
+          <MenuIcon />
+        </IconButton>
+
+        {/* Left — Airtel logo + current page breadcrumb */}
+        <Box display="flex" alignItems="center" gap={{ xs: "8px", sm: "14px" }} minWidth={0} flexShrink={0}>
+          <IconButton sx={{ p: 0, flexShrink: 0, display: { xs: "none", sm: "inline-flex" } }}>
             <img
               src={AirtelLog}
               alt="Airtel Logo"
@@ -169,11 +195,11 @@ const Header: React.FC<HeaderProps> = ({
             />
           </IconButton>
 
-          {/* {dynamicHeaderText && (
+          {dynamicHeaderText && (
             <>
               <Box
                 sx={{
-                  display: { xs: "none", sm: "block" },
+                  display: { xs: "none", md: "block" },
                   width: "1px",
                   height: 22,
                   bgcolor: "rgba(255,255,255,0.25)",
@@ -184,7 +210,7 @@ const Header: React.FC<HeaderProps> = ({
                 direction="row"
                 alignItems="center"
                 spacing={0.9}
-                sx={{ display: { xs: "none", sm: "flex" }, minWidth: 0 }}
+                sx={{ display: { xs: "none", md: "flex" }, minWidth: 0 }}
               >
                 {dynamicHeaderIcon && (
                   <Box
@@ -211,11 +237,98 @@ const Header: React.FC<HeaderProps> = ({
                 </Typography>
               </Stack>
             </>
-          )} */}
+          )}
         </Box>
 
-        {/* Right — Bell + user menu */}
+        {/* Center — global search trigger */}
+        <Box
+          onClick={() => setSearchOpen(true)}
+          role="button"
+          aria-label="Open global search"
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            flex: 1,
+            maxWidth: 420,
+            mx: "auto",
+            px: 1.5,
+            py: 0.7,
+            borderRadius: colors.radiusPill,
+            bgcolor: "rgba(255,255,255,0.12)",
+            border: "1px solid rgba(255,255,255,0.16)",
+            cursor: "pointer",
+            transition: "background 0.15s, border-color 0.15s",
+            "&:hover": { bgcolor: "rgba(255,255,255,0.18)", borderColor: "rgba(255,255,255,0.3)" },
+          }}
+        >
+          <SearchOutlined sx={{ fontSize: 18, color: "rgba(255,255,255,0.85)" }} />
+          <Typography noWrap sx={{ fontSize: 13, color: "rgba(255,255,255,0.75)", flex: 1, display: { xs: "none", sm: "block" } }}>
+            Search modules, pages, actions…
+          </Typography>
+          <Box
+            sx={{
+              display: { xs: "none", sm: "block" },
+              fontSize: 10.5,
+              fontWeight: 700,
+              color: "rgba(255,255,255,0.75)",
+              bgcolor: "rgba(255,255,255,0.14)",
+              borderRadius: "6px",
+              px: 0.75,
+              py: 0.25,
+              flexShrink: 0,
+            }}
+          >
+            {typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac") ? "⌘K" : "Ctrl K"}
+          </Box>
+        </Box>
+
+        {/* Right — Quick actions + Bell + user menu */}
         <Box display="flex" alignItems="center" gap="8px" flexShrink={0}>
+          <Tooltip title="Quick actions" arrow>
+            <IconButton
+              onClick={(e) => setQuickActionsAnchor(e.currentTarget)}
+              sx={{ color: "#fff", display: { xs: "none", sm: "inline-flex" } }}
+            >
+              <BoltOutlined />
+            </IconButton>
+          </Tooltip>
+          <Menu
+            anchorEl={quickActionsAnchor}
+            open={Boolean(quickActionsAnchor)}
+            onClose={() => setQuickActionsAnchor(null)}
+            slotProps={{
+              paper: {
+                sx: {
+                  mt: 1,
+                  width: 240,
+                  borderRadius: "14px",
+                  bgcolor: colors.surface,
+                  color: colors.textPrimary,
+                  border: `1px solid ${colors.border}`,
+                  boxShadow: colors.shadowElevated,
+                  p: 0.5,
+                },
+              },
+            }}
+          >
+            {quickActions.length === 0 && (
+              <MenuItem disabled>No quick actions available</MenuItem>
+            )}
+            {quickActions.map((qa) => (
+              <MenuItem
+                key={qa.id}
+                onClick={() => {
+                  setQuickActionsAnchor(null);
+                  navigate(qa.path);
+                }}
+              >
+                <ListItemIcon sx={{ color: colors.textSecondary, minWidth: 32 }}>{qa.icon}</ListItemIcon>
+                <ListItemText primaryTypographyProps={{ fontSize: 13 }}>{qa.label}</ListItemText>
+              </MenuItem>
+            ))}
+          </Menu>
+
           <Box
             component="img"
             src={VegayanLogo}
@@ -393,6 +506,8 @@ const Header: React.FC<HeaderProps> = ({
         }
         onSubmit={handleChangePassword}
       />
+
+      <GlobalSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
     </>
   );
 };

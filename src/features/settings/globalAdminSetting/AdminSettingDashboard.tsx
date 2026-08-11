@@ -37,7 +37,7 @@ import { RailItem } from "./components/RailItem";
 import { SubModuleCard } from "./components/SubModuleCard";
 import { PermissionsErrorState } from "./components/PermissionsErrorState";
 import { CreateEntityDrawer } from "./components/CreateEntityDrawer";
-import { ConfirmDialog } from "./components/ConfirmDialog";
+import { ConfirmDialog } from "../../../components/common/ConfirmDialog";
 import { AddModulePopover } from "./components/AddModulePopover";
 
 export const AdminSettingDashboard: React.FC = () => {

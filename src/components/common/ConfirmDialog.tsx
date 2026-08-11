@@ -1,10 +1,21 @@
 import React from "react";
 import { Box, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle } from "@mui/material";
-import type { useTabColorTokens } from "../../../../style/theme";
-import type { OrgConfirmDialogState } from "../types/orgConfigTypes";
+import type { useTabColorTokens } from "../../style/theme";
+
+/** Structural shape shared by every feature-local confirm-dialog state
+ * (e.g. orgConfig's `OrgConfirmDialogState`, globalAdminSetting's
+ * `ConfirmDialogState`) — any object matching this satisfies the prop,
+ * so each feature keeps its own state type. */
+export interface ConfirmDialogState {
+  open: boolean;
+  title: string;
+  body: string;
+  onConfirm: () => void;
+  confirmLabel?: string;
+}
 
 interface ConfirmDialogProps {
-  state: OrgConfirmDialogState;
+  state: ConfirmDialogState;
   onClose: () => void;
   c: ReturnType<typeof useTabColorTokens>;
 }
@@ -47,3 +58,5 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({ state, onClose, c 
     </Dialog>
   );
 };
+
+export default ConfirmDialog;
