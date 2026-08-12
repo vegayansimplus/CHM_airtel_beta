@@ -21,7 +21,7 @@ import { useNavigate } from "react-router";
 import { useGetAllCrqsQuery ,useGetCabServicesQuery} from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
-import { SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
+import { SlaBar, StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
 import type {
@@ -35,7 +35,7 @@ const DOMAINS: Domain[] = ["IP Core", "Optics", "Packet", "Embedded", "Mobility"
 
 const STAGE_FILTERS: { label: string; value: CrqStage | "All Stages" }[] = [
   { label: "All Stages", value: "All Stages" },
-  ...STAGES.map((s) => ({ label: s, value: s as CrqStage })),
+  ...STAGES.map((s) => ({ label: getStageLabel(s), value: s as CrqStage })),
 ];
 
 const DEFAULT_FILTERS: CrqFilters = {
@@ -114,7 +114,7 @@ export function AllCrqsPage() {
         size: 150,
         Cell: ({ row }) => (
           <Typography variant="body2">
-             {row.original.currentStage}
+             {getStageLabel(row.original.currentStage)}
           </Typography>
         ),
       },

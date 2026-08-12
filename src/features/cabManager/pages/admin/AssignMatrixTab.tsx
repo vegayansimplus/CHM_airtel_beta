@@ -199,7 +199,7 @@ export function AdminAssignMatrixTab() {
             <Typography variant="caption" sx={{ color: "text.secondary" }}>L1 is the primary impacted-party approver; L2/L3 are escalation tiers.</Typography>
           </Box>
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddServiceOpen(true)}>
-            Add service
+            Add service Approval
           </Button>
         </Box>
         <MaterialReactTable table={serviceRuleTable} />

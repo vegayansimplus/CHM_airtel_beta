@@ -11,6 +11,17 @@ export const STAGE_COLOR: Record<CrqStage, { bg: string; fg: string }> = {
   CLOSURE:              { bg: "#ECEFF1", fg: "#37474F" },
 };
 
+// Display-only relabeling — the "VALIDATE" stage reads as "Plan & Inventory"
+// in the UI, but the underlying CrqStage value ("VALIDATE") is unchanged and
+// still what's sent to/filtered against the backend.
+const STAGE_DISPLAY_LABEL: Partial<Record<CrqStage, string>> = {
+  VALIDATE: "Plan & Inventory",
+};
+
+export function getStageLabel(stage: CrqStage | string): string {
+  return STAGE_DISPLAY_LABEL[stage as CrqStage] ?? stage;
+}
+
 // Keyed uppercase — covers the live Service_Approval_Status values
 // (PENDING/ON_HOLD/APPROVED/REJECTED/DELEGATED) as well as the lowercase
 // values still used by the mock-only Journey/Implementation pages.
@@ -29,7 +40,7 @@ export function StageChip({ stage }: { stage: CrqStage }) {
   return (
     <Chip
       size="small"
-      label={stage ?? "Unknown"}
+      label={stage ? getStageLabel(stage) : "Unknown"}
       sx={{ bgcolor: c.bg, color: c.fg, fontWeight: 500, height: 22, fontSize: 12 }}
     />
   );

@@ -1007,6 +1007,18 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAdmin"],
     }),
 
+    // ── Admin "Add Service Approval" modal — Service Type dropdown
+    //    (sp_get_services_dropdown, same { serviceCode } shape as CabService) ──
+    getServicesDropdown: builder.query<CabService[], void>({
+      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/admin/servicesdropdown", method: "GET" },
+          baseQuery,
+          async () => await mockDelay(MOCK_CAB_SERVICES)
+        ),
+      providesTags: ["CabAdmin"],
+    }),
+
     getAdminUsers: builder.query<AdminUser[], void>({
       queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock({ url: "/cab/admin/users", method: "GET" }, baseQuery, async () =>
@@ -1237,6 +1249,7 @@ export const {
   useGetRejectionReasonsQuery,
   useGetCabRejectReasonsQuery,
   useGetCabServicesQuery,
+  useGetServicesDropdownQuery,
   useGetEscalationMatrixQuery,
   useGetAdminUsersQuery,
   useGetAuditLogQuery,

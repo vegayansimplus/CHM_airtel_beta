@@ -10,8 +10,8 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { useAddServiceRuleMutation } from "../../api/cabManagerApiSlice";
-import { SERVICE_CIRCLES, SERVICE_TYPES } from "../../data/cabManager.mock";
+import { useAddServiceRuleMutation, useGetServicesDropdownQuery } from "../../api/cabManagerApiSlice";
+import { SERVICE_CIRCLES } from "../../data/cabManager.mock";
 
 type AddServiceRuleModalProps = {
   open: boolean;
@@ -24,6 +24,9 @@ const EMPTY_FORM = { service: "", circle: "", l1: "", l2: "", l3: "", active: tr
 export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRuleModalProps) {
   const [form, setForm] = useState(EMPTY_FORM);
   const [addServiceRule, { isLoading }] = useAddServiceRuleMutation();
+  const { data: services = [], isFetching: isLoadingServices } = useGetServicesDropdownQuery(undefined, {
+    skip: !open,
+  });
 
   const canSubmit = !!form.service && !!form.circle && !!form.l1;
 
@@ -58,7 +61,7 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Add Service</DialogTitle>
+      <DialogTitle>Add Service Approval</DialogTitle>
       <DialogContent>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
           Configure the impacted-party approval chain for a service and circle. L1 is the primary
@@ -68,16 +71,19 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
           <TextField
             select fullWidth required
             label="Service Type"
+            InputLabelProps={{ shrink: true }}
             value={form.service}
             onChange={(e) => setForm((f) => ({ ...f, service: e.target.value }))}
+            disabled={isLoadingServices}
           >
-            {SERVICE_TYPES.map((s) => (
-              <MenuItem key={s} value={s}>{s}</MenuItem>
+            {services.map((s) => (
+              <MenuItem key={s.serviceCode} value={s.serviceCode}>{s.serviceCode}</MenuItem>
             ))}
           </TextField>
           <TextField
             select fullWidth required
             label="Circle"
+            InputLabelProps={{ shrink: true }}
             value={form.circle}
             onChange={(e) => setForm((f) => ({ ...f, circle: e.target.value }))}
           >

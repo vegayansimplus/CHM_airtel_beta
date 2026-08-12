@@ -1,17 +1,28 @@
 import { useEffect, useMemo, useState } from "react";
+import { useParams } from "react-router";
 import { authStorage } from "../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
-import { useGetCrqsBySubDomainQuery, useGetCrqJourneyStagesQuery } from "../api/crqJourneyExplorer.api";
+import {
+  useGetCrqsBySubDomainQuery,
+  useGetCrqJourneyStagesQuery,
+  useGetCrqDetailsQuery,
+} from "../api/crqJourneyExplorer.api";
 import { groupJourneyStages } from "../utils/crqJourney.utils";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
-/** Drives /cabmanager/journey: sub-domain scoped CRQ search → dynamic-length journey flow. */
+/**
+ * Drives /cabmanager/journey[/:id]: sub-domain scoped CRQ search → dynamic-length
+ * journey flow. When a crqNo arrives in the URL (e.g. the All CRQs drawer's
+ * "View full CRQ journey" link), it's auto-selected instead of making the user
+ * re-pick org scope + CRQ from the dropdown.
+ */
 export const useCrqJourney = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
+  const { id: crqNoFromRoute } = useParams<{ id: string }>();
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);
@@ -29,6 +40,43 @@ export const useCrqJourney = () => {
     setSelectedCrq(null);
   }, [subDomainId]);
 
+  // Deep-link: /cabmanager/journey/:id lands here with a crqNo already known,
+  // so fetch just enough (info card fields) to select it automatically. Once
+  // consumed (or the user picks a CRQ themselves), it never overrides the
+  // selection again — otherwise a background refetch of these details could
+  // silently snap the user's later manual pick back to the route's crqNo.
+  const [routeCrqConsumed, setRouteCrqConsumed] = useState(false);
+
+  const {
+    data: routeCrqDetails,
+    isFetching: isLoadingRouteCrq,
+    isError: isRouteCrqError,
+  } = useGetCrqDetailsQuery(crqNoFromRoute ?? "", {
+    skip: !crqNoFromRoute || routeCrqConsumed,
+  });
+
+  useEffect(() => {
+    if (!routeCrqConsumed && routeCrqDetails?.info && routeCrqDetails.info.crqNo === crqNoFromRoute) {
+      setSelectedCrq({
+        crqNo: routeCrqDetails.info.crqNo,
+        currentStage: routeCrqDetails.info.currentStage,
+        currentStatus: routeCrqDetails.info.currentStatus,
+        enteredCurrentStageAt: routeCrqDetails.info.createdDate,
+      });
+      setRouteCrqConsumed(true);
+    }
+  }, [routeCrqDetails, crqNoFromRoute, routeCrqConsumed]);
+
+  const handleSelectCrq = (crq: CrqJourneySearchRow | null) => {
+    setRouteCrqConsumed(true);
+    setSelectedCrq(crq);
+  };
+
+  const handleChange = (key: Parameters<typeof handleOrgFilterChange>[0], value?: number) => {
+    setRouteCrqConsumed(true);
+    handleOrgFilterChange(key, value);
+  };
+
   const {
     data: stageRows,
     isFetching: isLoadingJourney,
@@ -45,11 +93,16 @@ export const useCrqJourney = () => {
     crqOptions,
     isLoadingCrqs,
     selectedCrq,
-    handleSelectCrq: setSelectedCrq,
+    handleSelectCrq,
     showLegend,
     handleToggleLegend: () => setShowLegend((v) => !v),
-    isLoading: isLoadingJourney,
-    error: isJourneyError ? "Failed to load CRQ journey." : null,
+    isLoading: isLoadingJourney || (!!crqNoFromRoute && !selectedCrq && isLoadingRouteCrq),
+    error:
+      isJourneyError
+        ? "Failed to load CRQ journey."
+        : isRouteCrqError
+          ? "Failed to load CRQ."
+          : null,
     flow,
   };
 };
