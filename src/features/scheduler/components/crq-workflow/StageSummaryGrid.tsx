@@ -29,6 +29,10 @@ import {
 interface StageSummaryGridProps {
   fields: StageSummaryField[];
   colors: Colors;
+  /** Render every section except these (e.g. hide "activity" from the main cockpit view). */
+  excludeSectionIds?: SummarySectionId[];
+  /** Render only these sections (e.g. just "activity" inside the CRQ Status dialog). Takes precedence over excludeSectionIds. */
+  onlySectionIds?: SummarySectionId[];
 }
 
 const SECTION_ICONS: Record<SummarySectionId, React.ElementType> = {
@@ -136,7 +140,12 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
  * Grouping is presentational only (categorizeStageField), driven off each
  * field's raw API key - no data is added, removed or renamed.
  */
-export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({ fields, colors }) => {
+export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({
+  fields,
+  colors,
+  excludeSectionIds,
+  onlySectionIds,
+}) => {
   const [expanded, setExpanded] = useState<Partial<Record<SummarySectionId, boolean>>>(DEFAULT_OPEN);
 
   const sections = useMemo(() => {
@@ -149,10 +158,16 @@ export const StageSummaryGrid: React.FC<StageSummaryGridProps> = ({ fields, colo
       remarks: [],
     };
     fields.forEach((f) => groups[categorizeStageField(f.key)].push(f));
-    return SECTION_DEFS.map((def) => ({ def, fields: groups[def.id] })).filter((s) => s.fields.length > 0);
-  }, [fields]);
+    return SECTION_DEFS.filter((def) => {
+      if (onlySectionIds) return onlySectionIds.includes(def.id);
+      if (excludeSectionIds) return !excludeSectionIds.includes(def.id);
+      return true;
+    })
+      .map((def) => ({ def, fields: groups[def.id] }))
+      .filter((s) => s.fields.length > 0);
+  }, [fields, excludeSectionIds, onlySectionIds]);
 
-  if (!fields.length) {
+  if (!fields.length || !sections.length) {
     return (
       <Box
         sx={{

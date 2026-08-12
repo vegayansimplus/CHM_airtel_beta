@@ -1,5 +1,15 @@
 import { api } from "../../../service/api";
-import type { CrqReviewResponse } from "../types/crqWorkflow.types";
+import type { CrqReviewResponse, Plan } from "../types/crqWorkflow.types";
+
+/** Mirrors backend common/dto/PageResponseDto.java. */
+export interface CrqWorkflowOverviewPage {
+  content: Plan[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
 
 export const rosterApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
@@ -39,6 +49,61 @@ export const rosterApiSlice = api.injectEndpoints({
         },
       }),
       providesTags: ["CrqReview"],
+    }),
+
+    // GET /crqworkflow/overview/paged - paginated/searchable sibling of
+    // /overview, used by CrqWorkflowSidebar's CRQ list so a scope with
+    // 1000+ CRQs is never fetched all at once. Plan grouping is preserved
+    // within each page (content = this page's plans, containing only the
+    // CRQs that fell in the LIMIT/OFFSET window).
+    getCrqWorkflowOverviewPaged: builder.query<
+      CrqWorkflowOverviewPage,
+      {
+        domainId: number;
+        subDomainId: number;
+        search?: string;
+        page: number;
+        size: number;
+      }
+    >({
+      query: ({ domainId, subDomainId, search, page, size }) => ({
+        url: "/crqworkflow/overview/paged",
+        method: "GET",
+        params: { domainId, subDomainId, search: search ?? "", page, size },
+      }),
+      providesTags: ["CrqReview"],
+    }),
+
+    // GET /crqworkflow/overview/{crqNo} - hydrates the cockpit's main panel
+    // (header/rail/summary/history) for exactly one CRQ, independent of
+    // whichever page of the paged list is currently showing. RTK Query
+    // caches per crqNo, so re-selecting an already-fetched CRQ is free.
+    getCrqWorkflowOverviewByCrqNo: builder.query<
+      CrqReviewResponse,
+      {
+        domainId: number;
+        subDomainId: number;
+        crqNo: string;
+      }
+    >({
+      query: ({ domainId, subDomainId, crqNo }) => ({
+        url: `/crqworkflow/overview/${crqNo}`,
+        method: "GET",
+        params: { domainId, subDomainId },
+      }),
+      providesTags: ["CrqReview"],
+    }),
+
+    // GET /crqworkflow/{crqNo}/plan-pdf - "Preview CRQ". Backend calls the
+    // existing Get_Change_PlanPDF stored procedure and streams back a real
+    // application/pdf response (404 JSON if no document is stored).
+    getCrqPlanPdf: builder.query<Blob, string>({
+      query: (crqNo) => ({
+        url: `/crqworkflow/${crqNo}/plan-pdf`,
+        method: "GET",
+        responseHandler: (response) => response.blob(),
+        cache: "no-cache",
+      }),
     }),
 
     // POST /crqworkflow/updatecrqreview/start|pause?crqNo=&crqId=
@@ -123,6 +188,9 @@ export const rosterApiSlice = api.injectEndpoints({
 export const {
   useGetCrqReviewQuery,
   useGetCrqWorkflowOverviewQuery,
+  useGetCrqWorkflowOverviewPagedQuery,
+  useGetCrqWorkflowOverviewByCrqNoQuery,
+  useLazyGetCrqPlanPdfQuery,
   useUpdateCrqReviewStatusMutation,
   useSubmitCrqReviewDoneMutation,
 } = rosterApiSlice;

@@ -1,4 +1,4 @@
-import React, { useContext, useState, type JSX } from "react";
+import React, { useContext, useRef, useState, type JSX } from "react";
 import {
   Box,
   CircularProgress,
@@ -86,6 +86,7 @@ const Header: React.FC<HeaderProps> = ({
   const headerOffset = isMobile ? MOBILE_HEADER_INSET : isSidebarCollapsed ? COLLAPSED_WIDTH : DRAWER_WIDTH;
 
   const [searchOpen, setSearchOpen] = useState(false);
+  const searchTriggerRef = useRef<HTMLDivElement>(null);
   useGlobalSearchShortcut(() => setSearchOpen(true));
 
   const [quickActionsAnchor, setQuickActionsAnchor] = useState<null | HTMLElement>(null);
@@ -242,6 +243,7 @@ const Header: React.FC<HeaderProps> = ({
 
         {/* Center — global search trigger */}
         <Box
+          ref={searchTriggerRef}
           onClick={() => setSearchOpen(true)}
           role="button"
           aria-label="Open global search"
@@ -507,7 +509,7 @@ const Header: React.FC<HeaderProps> = ({
         onSubmit={handleChangePassword}
       />
 
-      <GlobalSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <GlobalSearchModal open={searchOpen} onClose={() => setSearchOpen(false)} anchorRef={searchTriggerRef} />
     </>
   );
 };

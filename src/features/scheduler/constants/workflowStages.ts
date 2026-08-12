@@ -125,6 +125,22 @@ export function resolveCurrentStageIndex(crq: Crq | null | undefined): number {
   return WORKFLOW_STAGES.length - 1;
 }
 
+/**
+ * Classifies a raw status display string (e.g. crq.crqStatus, or any
+ * per-stage status field) into a StageRunState, using the same value sets
+ * resolveStageState uses. Exported for callers that only have a status
+ * string and no per-stage history[] to consult - e.g. the CRQ workflow
+ * cockpit's paginated list rows, which omit history[] to keep list pages
+ * cheap (see CrqWorkflowService.getWorkflowOverviewPaged).
+ */
+export function classifyStatusValue(status: string | null | undefined): StageRunState {
+  if (status && COMPLETED_VALUES.has(status)) return "completed";
+  if (status && CANCELED_VALUES.has(status)) return "canceled";
+  if (status && FAILED_VALUES.has(status)) return "failed";
+  if (status && IN_PROGRESS_VALUES.has(status)) return "in_progress";
+  return "not_started";
+}
+
 /** Run-state of a single stage, given the CRQ's current stage index. */
 export function resolveStageState(
   crq: Crq | null | undefined,
@@ -274,7 +290,7 @@ export function categorizeStageField(key: string): SummarySectionId {
 
 /** Fields rendered elsewhere (sidebar/header) or structural - never shown
  * again in the generic per-stage field grid. */
-const SUMMARY_EXCLUDED_KEYS = new Set(["tasks", "history", "actionable"]);
+const SUMMARY_EXCLUDED_KEYS = new Set(["tasks", "history", "actionable", "crqId"]);
 
 /** Short tokens that should render as an acronym instead of Title-Case. */
 const ACRONYM_WORDS = new Set([
@@ -294,19 +310,27 @@ const ACRONYM_WORDS = new Set([
  * Review", "neLabel" -> "NE Label". Works the same regardless of which of
  * the 7 stages' differently-named fields it's given.
  */
+/** Overrides applied to the auto-generated label itself (not the raw key,
+ * which varies per stage endpoint and isn't statically known) - e.g. the
+ * generic "Plan Window" reads better as "Execution Window". */
+const LABEL_OVERRIDES: Record<string, string> = {
+  "Plan Window": "Execution Window",
+};
+
 function humanizeKey(key: string): string {
   const words = key
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
     .split(/[\s_]+/)
     .filter(Boolean);
-  return words
+  const label = words
     .map((w) => {
       const lower = w.toLowerCase();
       if (ACRONYM_WORDS.has(lower)) return lower.toUpperCase();
       return lower.charAt(0).toUpperCase() + lower.slice(1);
     })
     .join(" ");
+  return LABEL_OVERRIDES[label] ?? label;
 }
 
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}([ T]\d{2}:\d{2}(:\d{2})?)?/;

@@ -152,6 +152,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskconfig", "/scheduler/planviewandsetup"],
       },
+      /* Hidden from tab + route (task planning page disabled)
       {
         to: "/scheduler/taskplanning",
         text: "Task Planning",
@@ -159,6 +160,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         requiredModule: "Role-Based Access Control",
         matchPaths: ["/scheduler/taskplanning"],
       },
+      */
       {
         to: "/scheduler/crqjourney",
         text: "CRQ Journey",

@@ -12,7 +12,10 @@ interface Props {
   onClose: () => void;
 }
 
-export const DialogHeader: React.FC<Props> = ({ crqNo, crqId, isCancelled, colors, onClose }) => {
+// crqId stays part of the Props contract (internal plumbing callers still
+// pass) but is intentionally not displayed - see "remove visible crqId" work.
+export const DialogHeader: React.FC<Props> = (props) => {
+  const { crqNo, isCancelled, colors, onClose } = props;
   const theme = useTheme();
 
   return (
@@ -37,9 +40,6 @@ export const DialogHeader: React.FC<Props> = ({ crqNo, crqId, isCancelled, color
             <Chip label={crqNo} size="small" sx={{
               height: 22, fontWeight: 600, fontSize: 10.5, bgcolor: alpha(colors.accent, 0.1), color: colors.accent, border: `1px solid ${alpha(colors.accent, 0.2)}`
             }} />
-          )}
-          {crqId && (
-            <Chip label={`ID: ${crqId}`} size="small" variant="outlined" sx={{ height: 22, fontSize: 10.5, color: colors.textSecondary, borderColor: colors.border }} />
           )}
           {isCancelled && (
             <Chip label="Cancelled" size="small" sx={{

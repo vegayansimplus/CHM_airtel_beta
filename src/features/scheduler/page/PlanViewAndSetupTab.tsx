@@ -38,10 +38,10 @@ const PlanViewAndSetupTab: React.FC = (
     if (path.includes("taskconfig")) {
       return "taskconfig";
     }
-    // taskplanning
-    if (path.includes("taskplanning")) {
-      return "taskplanning";
-    }
+    // taskplanning - hidden from tab + route (task planning page disabled)
+    // if (path.includes("taskplanning")) {
+    //   return "taskplanning";
+    // }
      if (path.includes("crqjourney")) {
       return "crqjourney";
     }
@@ -147,13 +147,14 @@ const PlanViewAndSetupTab: React.FC = (
             to="taskconfig"
             component={Link}
           />
-          {/*  TAB 3 */}
+          {/*  TAB 3 - hidden from tab + route (task planning page disabled)
           <Tab
             label="Task Planning"
             value="taskplanning"
             to="taskplanning"
             component={Link}
           />
+          */}
             {/*  TAB 4 */}
           <Tab
             label="CRQ Journey"

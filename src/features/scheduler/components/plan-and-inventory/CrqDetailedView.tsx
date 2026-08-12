@@ -2,7 +2,7 @@ import React, { Suspense, lazy, useCallback, useEffect, useMemo, useState } from
 import { toast } from "react-toastify";
 import { useSelector } from "react-redux";
 import { useNavigate, useParams, useSearchParams } from "react-router";
-import { Box, GlobalStyles, IconButton, Skeleton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
+import { Box, Button, GlobalStyles, IconButton, Skeleton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
@@ -12,19 +12,20 @@ import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import FindInPageRoundedIcon from "@mui/icons-material/FindInPageRounded";
 import TouchAppRoundedIcon from "@mui/icons-material/TouchAppRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
 import { useTabColorTokens } from "../../../../style/theme";
 import { usePermission } from "../../../auth/hooks/usePermission";
 
 import {
-  useGetCrqWorkflowOverviewQuery,
+  useGetCrqWorkflowOverviewPagedQuery,
+  useGetCrqWorkflowOverviewByCrqNoQuery,
   useSubmitCrqReviewDoneMutation,
   useUpdateCrqReviewStatusMutation,
 } from "../../api/crqreviewApiSlice";
 import { getStageConfig, taskNumbersOf } from "../../constants/stageConfig";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
-import { filterPlansBySearch } from "../../util/filterPlansBySearch";
-import type { Crq, Plan } from "../../types/crqWorkflow.types";
+import type { Crq } from "../../types/crqWorkflow.types";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import type { RootState } from "../../../../app/store";
 import {
@@ -44,6 +45,7 @@ import { CrqHistoryTable } from "../crq-workflow/CrqHistoryTable";
 import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
 import { PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
+import { PreviewCrqPdfDialog } from "../dialog/crq-preview/PreviewCrqPdfDialog";
 // Both imported by direct file path, deliberately bypassing the sub-feature's
 // barrel (index.ts): the barrel statically re-exports every component in the
 // sub-feature (including the Dialog itself), so importing anything through
@@ -99,9 +101,9 @@ const GlobalStyleBlock = (
   />
 );
 
-/** Placeholder shown while the overview query is in flight - mirrors the
- * real layout's shape (header strip, stage rail, a couple of field cards)
- * instead of a bare loading string. */
+/** Placeholder shown while the selected CRQ's detail query is in flight -
+ * mirrors the real layout's shape (header strip, stage rail, a couple of
+ * field cards) instead of a bare loading string. */
 const CockpitSkeleton: React.FC<{ colors: ReturnType<typeof useTabColorTokens> }> = ({ colors }) => (
   <Box sx={{ flex: 1, p: 2 }}>
     <Skeleton variant="rounded" height={52} sx={{ borderRadius: colors.radius, mb: 1 }} />
@@ -124,6 +126,13 @@ const CockpitSkeleton: React.FC<{ colors: ReturnType<typeof useTabColorTokens> }
  * stage, useStageWorkflow + STAGE_CONFIG_MAP for the other six) and the
  * exact same dialogs (PlanInvDialog, StageReviewDialog, PrevCrqStatusDialog)
  * - only the surrounding navigation (sidebar tree + stage rail) is new.
+ *
+ * The CRQ list (sidebar) and the selected CRQ's detail (header/rail/summary/
+ * history) are two independent RTK Query calls: a paginated/searchable
+ * overview feeds the sidebar, and a dedicated by-crq-no lookup hydrates the
+ * main panel - so selecting a CRQ never re-fetches or re-renders the list,
+ * and the list never needs to contain every CRQ just so the current one can
+ * be found in it.
  */
 export const CrqDetailedView: React.FC = () => {
   const theme = useTheme();
@@ -141,7 +150,6 @@ export const CrqDetailedView: React.FC = () => {
   const domainId = Number(searchParams.get("domainId")) || 1;
   const subDomainId = Number(searchParams.get("subDomainId")) || 1;
 
-  const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [expPlans, setExpPlans] = useState<Record<string, boolean>>({});
   const [expCrqs, setExpCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrqNo, setSelectedCrqNo] = useState<string | null>(crqNo ?? null);
@@ -150,25 +158,49 @@ export const CrqDetailedView: React.FC = () => {
 
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
-  // Purely presentational - hides the plan/CRQ tree so tablet-width viewports
-  // aren't cramped; doesn't affect selection state or any data fetch.
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [page, setPage] = useState(0);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Independent of selectedCrqNo by design - selecting a CRQ must never
+  // change whether the list is shown. Purely presentational.
+  const [crqListVisible, setCrqListVisible] = useState(false);
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
   const [prevCrqData, setPrevCrqData] = useState<any | null>(null);
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [validateOpen, setValidateOpen] = useState(false);
+  const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
+  const [previewPdfCrqNo, setPreviewPdfCrqNo] = useState<string | null>(null);
   const openAttributeUpdate = useOpenAttributeUpdate();
 
   const { hasPermission } = usePermission();
   const canReschedule = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
   const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
-  // Overview endpoint: every CRQ of the scope regardless of current stage,
-  // each carrying its full per-stage history - so a CRQ stays visible here
-  // after leaving Plan & Inventory (the old /crqreview feed dropped it).
-  const { data, isError, error } = useGetCrqWorkflowOverviewQuery({ domainId, subDomainId });
+  // Paginated/searchable list feeding the sidebar - never loads more than
+  // one page of CRQs at a time, however large the domain/sub-domain scope is.
+  const {
+    data: pagedData,
+    isLoading: isPagedLoading,
+    isFetching: isPagedFetching,
+    isError: isPagedError,
+    error: pagedError,
+  } = useGetCrqWorkflowOverviewPagedQuery({ domainId, subDomainId, search: globalSearch, page, size: pageSize });
+
+  // Dedicated single-CRQ lookup hydrating the main panel - independent of
+  // whichever page of the list is currently showing, and cached per crqNo
+  // so re-selecting an already-fetched CRQ costs no network call.
+  const {
+    data: selectedCrqData,
+    isFetching: isSelectedCrqFetching,
+    isError: isSelectedCrqError,
+    refetch: refetchSelectedCrq,
+  } = useGetCrqWorkflowOverviewByCrqNoQuery(
+    { domainId, subDomainId, crqNo: selectedCrqNo ?? "" },
+    { skip: !selectedCrqNo },
+  );
+
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
   const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
 
@@ -191,26 +223,21 @@ export const CrqDetailedView: React.FC = () => {
   };
 
   useEffect(() => {
-    if (data?.plans) setPlansOriginal(data.plans);
-  }, [data]);
-
-  useEffect(() => {
     const t = setTimeout(() => setGlobalSearch(globalSearchInput), 300);
     return () => clearTimeout(t);
   }, [globalSearchInput]);
+
+  // A new search term invalidates whatever page the user was on.
+  useEffect(() => {
+    setPage(0);
+  }, [globalSearch]);
 
   useEffect(() => {
     setSelectedCrqNo(crqNo ?? null);
   }, [crqNo]);
 
-  const selectedPlan = useMemo(
-    () => plansOriginal.find((p) => (p.crqs ?? []).some((c) => c.crqNo === selectedCrqNo)) ?? null,
-    [plansOriginal, selectedCrqNo],
-  );
-  const selectedCrq = useMemo(
-    () => selectedPlan?.crqs.find((c) => c.crqNo === selectedCrqNo) ?? null,
-    [selectedPlan, selectedCrqNo],
-  );
+  const selectedPlan = selectedCrqData?.plans?.[0] ?? null;
+  const selectedCrq = selectedPlan?.crqs?.[0] ?? null;
   const currentStageIndex = useMemo(() => resolveCurrentStageIndex(selectedCrq), [selectedCrq]);
   const selectedStageIndex = useMemo(
     () => Math.max(0, WORKFLOW_STAGES.findIndex((s) => s.id === selectedStageId)),
@@ -231,20 +258,16 @@ export const CrqDetailedView: React.FC = () => {
   const isRunning = selectedStageStatus === "In Progress";
 
   // Seed the sidebar's expansion state and the selected stage from the
-  // route's crqNo the first time the CRQ's plan is found, mirroring the
-  // reference's initial expPlans/expCrqs/selStage.
+  // route's crqNo the first time its detail loads - independent of the
+  // sidebar's paginated list, which may not even contain this CRQ on its
+  // current page/search.
   useEffect(() => {
-    if (hasInitializedSelection || !plansOriginal.length || !selectedCrqNo) return;
-    const plan = plansOriginal.find((p) => (p.crqs ?? []).some((c) => c.crqNo === selectedCrqNo));
-    if (!plan) return;
-    const crq = plan.crqs.find((c) => c.crqNo === selectedCrqNo) ?? null;
-    setExpPlans((prev) => ({ ...prev, [plan.planNumber]: true }));
+    if (hasInitializedSelection || !selectedCrqNo || !selectedCrq || !selectedPlan) return;
+    setExpPlans((prev) => ({ ...prev, [selectedPlan.planNumber]: true }));
     setExpCrqs((prev) => ({ ...prev, [selectedCrqNo]: true }));
-    setSelectedStageId(WORKFLOW_STAGES[resolveCurrentStageIndex(crq)].id);
+    setSelectedStageId(WORKFLOW_STAGES[resolveCurrentStageIndex(selectedCrq)].id);
     setHasInitializedSelection(true);
-  }, [plansOriginal, selectedCrqNo, hasInitializedSelection]);
-
-  const filteredPlans = useMemo(() => filterPlansBySearch(plansOriginal, globalSearch), [plansOriginal, globalSearch]);
+  }, [hasInitializedSelection, selectedCrqNo, selectedCrq, selectedPlan]);
 
   const handleTogglePlan = useCallback(
     (planNumber: string) => setExpPlans((prev) => ({ ...prev, [planNumber]: !prev[planNumber] })),
@@ -265,32 +288,10 @@ export const CrqDetailedView: React.FC = () => {
   );
   const handleSelectStage = useCallback((stageId: WorkflowStageId) => setSelectedStageId(stageId), []);
 
-  /**
-   * Optimistic local update: patches both the legacy per-stage status field
-   * and the matching history entry so the action bar/rail flip immediately;
-   * the CrqReview tag invalidation then refetches the authoritative state.
-   */
-  const applyLocalStageStatus = useCallback(
-    (crqNo: string, stageId: WorkflowStageId, statusField: string, nextStatus: string) => {
-      setPlansOriginal((prev) =>
-        prev.map((plan) => ({
-          ...plan,
-          crqs: plan.crqs.map((c) =>
-            c.crqNo === crqNo
-              ? {
-                  ...c,
-                  [statusField]: nextStatus,
-                  history: c.history?.map((h) =>
-                    h.stageKey === stageId ? { ...h, status: nextStatus } : h,
-                  ),
-                }
-              : c,
-          ),
-        })),
-      );
-    },
-    [],
-  );
+  const openPreviewPdf = useCallback((targetCrqNo: string) => {
+    setPreviewPdfCrqNo(targetCrqNo);
+    setPreviewPdfOpen(true);
+  }, []);
 
   const handleStartPause = useCallback(async () => {
     if (!selectedCrq) return;
@@ -309,7 +310,7 @@ export const CrqDetailedView: React.FC = () => {
           action,
         }).unwrap();
         toast.success(response?.message || "Updated successfully.");
-        applyLocalStageStatus(selectedCrq.crqNo, "review", "crqReviewStatus", isRunningNow ? "Paused" : "In Progress");
+        // CrqReview tag invalidation refetches selectedCrqData/pagedData.
       } catch (err) {
         toast.error((err as any)?.data?.message || "Failed to update status. Please try again.");
       }
@@ -317,23 +318,15 @@ export const CrqDetailedView: React.FC = () => {
     }
 
     if (!activeStageWorkflow) return;
-    const result = await activeStageWorkflow.toggleStartPause(selectedCrq);
-    if (!result.success) return;
-    const statusField = getStageConfig(selectedStageId as StageKey).statusField;
-    applyLocalStageStatus(selectedCrq.crqNo, selectedStageId, statusField, result.nextStatus as string);
-  }, [selectedCrq, isReviewStage, activeStageWorkflow, selectedStageId, updateCrqReviewStatus, applyLocalStageStatus]);
+    await activeStageWorkflow.toggleStartPause(selectedCrq);
+  }, [selectedCrq, isReviewStage, activeStageWorkflow, updateCrqReviewStatus]);
 
   const handleSubmitDone = useCallback(
     async (values: Record<string, any>, crq: Crq) => {
       if (isReviewStage || !activeStageWorkflow) return { success: false };
-      const result = await activeStageWorkflow.submitDone(values, crq);
-      if (result.success) {
-        const statusField = getStageConfig(selectedStageId as StageKey).statusField;
-        applyLocalStageStatus(crq.crqNo, selectedStageId, statusField, values.status);
-      }
-      return result;
+      return activeStageWorkflow.submitDone(values, crq);
     },
-    [isReviewStage, activeStageWorkflow, selectedStageId, applyLocalStageStatus],
+    [isReviewStage, activeStageWorkflow],
   );
 
   /**
@@ -422,7 +415,7 @@ export const CrqDetailedView: React.FC = () => {
       },
       {
         key: "show-prev-crq-status",
-        label: "Show Prev CRQ Status",
+        label: "CRQ Details",
         icon: <VisibilityIcon sx={{ fontSize: 16 }} />,
         disabled: !selectedCrq,
         onClick: handleShowPrevCrqStatus,
@@ -454,7 +447,7 @@ export const CrqDetailedView: React.FC = () => {
     ],
   );
 
-  if (isError) {
+  if (isPagedError) {
     return (
       <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
         <Stack
@@ -471,10 +464,10 @@ export const CrqDetailedView: React.FC = () => {
         >
           <ErrorOutlineRoundedIcon sx={{ fontSize: 28, color: colors.danger }} />
           <Typography sx={{ fontWeight: 700, fontSize: 14, color: colors.textPrimary }}>
-            Failed to load CRQ details
+            Unable to load the CRQ list
           </Typography>
           <Typography sx={{ fontSize: 12.5, color: colors.textSecondary }}>
-            {(error as any)?.error || "Please refresh."}
+            {(pagedError as any)?.error || "Please refresh."}
           </Typography>
         </Stack>
       </Box>
@@ -484,7 +477,7 @@ export const CrqDetailedView: React.FC = () => {
   return (
     <Box
       sx={{
-        height: "calc(100vh - 160px)",
+        height: "calc(100vh - 130px)",
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -494,10 +487,74 @@ export const CrqDetailedView: React.FC = () => {
       }}
     >
       {GlobalStyleBlock}
+
+      {/* Toggle lives in its own strip above the split panes so it never
+          sits on top of sidebar or header content in either state. */}
+      <Box
+        sx={{
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          height: 34,
+          pl: { xs: "8px", md: crqListVisible ? "302px" : "8px" },
+          borderBottom: `1px solid ${colors.border}`,
+          bgcolor: colors.surface,
+          transition: "padding-left 0.2s cubic-bezier(.4,0,.2,1)",
+        }}
+      >
+        <Tooltip title={crqListVisible ? "Hide CRQ List" : "Show CRQ List"} placement="right">
+          <IconButton
+            size="small"
+            aria-label={crqListVisible ? "Hide CRQ List" : "Show CRQ List"}
+            onClick={() => setCrqListVisible((v) => !v)}
+            sx={{
+              width: 26,
+              height: 26,
+              bgcolor: colors.surface,
+              border: `1px solid ${colors.border}`,
+              boxShadow: "0 2px 6px rgba(20,30,50,0.12)",
+              "&:hover": { bgcolor: colors.surface2 },
+            }}
+          >
+            {crqListVisible ? (
+              <ChevronLeftRoundedIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <ChevronRightRoundedIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </Tooltip>
+      </Box>
+
       <Box sx={{ flex: 1, display: "flex", minHeight: 0, position: "relative" }}>
-        {!sidebarCollapsed && (
+        {/* Mobile/tablet backdrop - tapping outside the list closes it, same
+            crqListVisible state the desktop inline collapse uses. */}
+        {crqListVisible && (
+          <Box
+            onClick={() => setCrqListVisible(false)}
+            sx={{
+              display: { xs: "block", md: "none" },
+              position: "absolute",
+              inset: 0,
+              bgcolor: "rgba(15,23,42,0.4)",
+              zIndex: 2,
+            }}
+          />
+        )}
+
+        <Box
+          sx={{
+            position: { xs: "absolute", md: "relative" },
+            top: 0,
+            left: 0,
+            bottom: 0,
+            zIndex: 3,
+            height: "100%",
+            boxShadow: { xs: crqListVisible ? "0 8px 24px rgba(15,23,42,0.25)" : "none", md: "none" },
+          }}
+        >
           <CrqWorkflowSidebar
-            plans={filteredPlans}
+            crqListVisible={crqListVisible}
+            plans={pagedData?.content ?? []}
             expPlans={expPlans}
             expCrqs={expCrqs}
             selectedCrqNo={selectedCrqNo}
@@ -506,39 +563,41 @@ export const CrqDetailedView: React.FC = () => {
             onSelectCrq={handleSelectCrq}
             searchValue={globalSearchInput}
             onSearchChange={setGlobalSearchInput}
+            page={page}
+            pageSize={pageSize}
+            totalElements={pagedData?.totalElements ?? 0}
+            onPageChange={setPage}
+            onPageSizeChange={(size) => {
+              setPageSize(size);
+              setPage(0);
+            }}
+            isLoading={isPagedLoading || isPagedFetching}
             colors={colors}
           />
-        )}
-
-        <Tooltip title={sidebarCollapsed ? "Show CRQ list" : "Hide CRQ list"} placement="right">
-          <IconButton
-            size="small"
-            onClick={() => setSidebarCollapsed((v) => !v)}
-            sx={{
-              position: "absolute",
-              top: 10,
-              left: sidebarCollapsed ? 8 : 314,
-              zIndex: 3,
-              width: 26,
-              height: 26,
-              bgcolor: colors.surface,
-              border: `1px solid ${colors.border}`,
-              boxShadow: "0 2px 6px rgba(20,30,50,0.12)",
-              transition: "left 0.15s ease",
-              "&:hover": { bgcolor: colors.surface2 },
-            }}
-          >
-            {sidebarCollapsed ? (
-              <ChevronRightRoundedIcon sx={{ fontSize: 16 }} />
-            ) : (
-              <ChevronLeftRoundedIcon sx={{ fontSize: 16 }} />
-            )}
-          </IconButton>
-        </Tooltip>
+        </Box>
 
         <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", overflow: "hidden" }}>
-          {!selectedCrq ? (
-            !plansOriginal.length ? (
+          {isSelectedCrqError ? (
+            <Stack alignItems="center" justifyContent="center" spacing={1.2} sx={{ flex: 1, p: 4, textAlign: "center" }}>
+              <ErrorOutlineRoundedIcon sx={{ fontSize: 32, color: colors.danger }} />
+              <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
+                Unable to load this CRQ
+              </Typography>
+              <Typography sx={{ fontSize: 12.5, color: colors.textDim, maxWidth: 320 }}>
+                Please try again.
+              </Typography>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => refetchSelectedCrq()}
+                startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
+                sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px" }}
+              >
+                Retry
+              </Button>
+            </Stack>
+          ) : !selectedCrq ? (
+            isSelectedCrqFetching && selectedCrqNo ? (
               <CockpitSkeleton colors={colors} />
             ) : (
               <Stack
@@ -570,6 +629,7 @@ export const CrqDetailedView: React.FC = () => {
                 currentStageIndex={currentStageIndex}
                 selectedStageId={selectedStageId}
                 onSelectStage={handleSelectStage}
+                onPreviewCrq={() => openPreviewPdf(selectedCrq.crqNo)}
                 colors={colors}
               />
 
@@ -587,7 +647,11 @@ export const CrqDetailedView: React.FC = () => {
               />
 
               <Box sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: 2 }}>
-                <StageSummaryGrid fields={getStageSummaryFields(selectedStageId, selectedCrq)} colors={colors} />
+                <StageSummaryGrid
+                  fields={getStageSummaryFields(selectedStageId, selectedCrq)}
+                  colors={colors}
+                  excludeSectionIds={["activity"]}
+                />
 
                 {/* Completed previous stages - read-only, no actions. */}
                 <Box sx={{ mt: 1.5 }}>
@@ -622,6 +686,14 @@ export const CrqDetailedView: React.FC = () => {
         open={prevCrqStatusOpen}
         onClose={() => setPrevCrqStatusOpen(false)}
         crqData={prevCrqData}
+        colors={colors}
+        onPreviewCrq={prevCrqData ? () => openPreviewPdf(prevCrqData.crqNo) : undefined}
+      />
+
+      <PreviewCrqPdfDialog
+        open={previewPdfOpen}
+        onClose={() => setPreviewPdfOpen(false)}
+        crqNo={previewPdfCrqNo}
         colors={colors}
       />
 

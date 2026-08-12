@@ -155,7 +155,7 @@ const SchedulerMainTab: React.FC = () => {
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
+      <Box sx={{ p: 2, bgcolor: "transparent" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
           <AnimatedOutlet />
         </Suspense>
