@@ -78,6 +78,7 @@ export const InfoTile: React.FC<{
       </Typography>
     </Stack>
     <Typography
+      component="div"
       sx={{
         fontSize: 13,
         fontWeight: 700,

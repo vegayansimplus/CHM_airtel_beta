@@ -38,3 +38,14 @@ export const IMPACT_FILE_PREFIXES = ["IP", "BTP", "MSAN", "PACKET", "OTN"] as co
 export function buildImpactBatchFileNames(crqNo: string, batchNo: number): string[] {
   return IMPACT_FILE_PREFIXES.map((prefix) => `${prefix}_${crqNo}_${batchNo}.csv`);
 }
+
+/**
+ * getImpactAnalysisSummaryQuery/runImpactAnalysisScriptMutation (impactBatchApiSlice.ts)
+ * both define transformErrorResponse, which extracts the backend's
+ * {status, message} error body into a plain string and, via RTK Query's
+ * rejectWithValue, *becomes* the error itself - not `error.data`. So the
+ * `error` these hooks/`.unwrap()` surface is already the final message.
+ */
+export function errorMessage(error: unknown, fallback: string): string {
+  return typeof error === "string" && error ? error : fallback;
+}

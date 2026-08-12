@@ -23,7 +23,7 @@ import FolderOpenTwoToneIcon from "@mui/icons-material/FolderOpenTwoTone";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
 import type { Colors } from "../../../../types/colorTypes";
-import { BATCH_SLOTS, buildImpactBatchFileNames } from "../../../../types/impactBatch.types";
+import { BATCH_SLOTS, buildImpactBatchFileNames, errorMessage } from "../../../../types/impactBatch.types";
 import {
   useGetImpactAnalysisSummaryQuery,
   useRunImpactAnalysisScriptMutation,
@@ -43,11 +43,6 @@ interface ImpactBatchExplorerProps {
 
 function buildExcelFileName(crqNo: string, batchNo: number): string {
   return `Impact_Data_${crqNo}_Batch_${batchNo}.xlsx`;
-}
-
-function errorMessage(error: unknown, fallback: string): string {
-  const data = (error as { data?: unknown } | undefined)?.data;
-  return typeof data === "string" && data ? data : fallback;
 }
 
 // ─────────────────────────────────────────────

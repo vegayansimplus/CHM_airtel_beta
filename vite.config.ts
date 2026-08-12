@@ -24,5 +24,27 @@ export default defineConfig(({ mode }) => {
       port: 5174,           // The port Vite will run on
       open: true,           // Optional: opens the browser automatically
     },
+    build: {
+      rollupOptions: {
+        output: {
+          // Without this, Rollup's default splitting gives every icon/helper
+          // that's shared across 2+ lazy-loaded routes (see React.lazy() call
+          // sites and the ~800 individual @mui/icons-material imports across
+          // the app) its own tiny chunk file - 146 JS files in a prod build,
+          // many under 300 bytes. Opening one page can then fire dozens of
+          // near-simultaneous asset requests, which is what was tripping the
+          // 429s: real payload is ~5.7MB total, so the problem is request
+          // *count*, not size. Grouping vendor code into a handful of larger,
+          // long-lived-cache chunks collapses that burst.
+          manualChunks(id) {
+            if (!id.includes('node_modules')) return undefined
+            if (id.includes('@mui/icons-material')) return 'mui-icons'
+            if (id.includes('@mui/') || id.includes('@emotion/')) return 'mui'
+            if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-router')) return 'react-vendor'
+            return 'vendor'
+          },
+        },
+      },
+    },
   }
 })

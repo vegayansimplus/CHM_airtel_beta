@@ -31,7 +31,7 @@ import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { Colors } from "../../../../types/colorTypes";
-import { BATCH_SLOTS } from "../../../../types/impactBatch.types";
+import { BATCH_SLOTS, errorMessage } from "../../../../types/impactBatch.types";
 import { useGetImpactAnalysisSummaryQuery } from "../../../../api/impactBatchApiSlice";
 
 // Batch B needs its own fixed accent (distinct from the theme's primary,
@@ -266,16 +266,17 @@ export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onCl
   const [batchA, setBatchA] = useState<number | null>(null);
   const [batchB, setBatchB] = useState<number | null>(null);
 
-  const { data: dataA, isFetching: loadingA } = useGetImpactAnalysisSummaryQuery(
+  const { data: dataA, isFetching: loadingA, error: errorA } = useGetImpactAnalysisSummaryQuery(
     { crqNo: crqNo as string, batchNo: batchA as number, modifiedDate, flag: "Main" },
     { skip: !crqNo || !batchA },
   );
-  const { data: dataB, isFetching: loadingB } = useGetImpactAnalysisSummaryQuery(
+  const { data: dataB, isFetching: loadingB, error: errorB } = useGetImpactAnalysisSummaryQuery(
     { crqNo: crqNo as string, batchNo: batchB as number, modifiedDate, flag: "Main" },
     { skip: !crqNo || !batchB },
   );
 
   const isLoading = loadingA || loadingB;
+  const loadError = errorA || errorB;
 
   const handleSelect = (batchNo: number) => {
     if (batchA === batchNo) return setBatchA(null);
@@ -310,7 +311,7 @@ export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onCl
     return { increased, decreased, unchanged, totalA, totalB, totalDelta: totalB - totalA };
   }, [comparisonRows, dataA, dataB]);
 
-  const canCompare = !!batchA && !!batchB && !isLoading;
+  const canCompare = !!batchA && !!batchB && !isLoading && !loadError;
   const dateLabel = format(modifiedDate, "dd-MMM-yyyy");
 
   const handleClose = () => {
@@ -510,6 +511,15 @@ export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onCl
             <Box sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2 }}>
               <CircularProgress size={32} sx={{ color: colors.accent }} />
               <Typography sx={{ fontSize: "0.8rem", color: colors.textDim, fontWeight: 500 }}>Loading batch data for comparison…</Typography>
+            </Box>
+          )}
+
+          {batchA && batchB && !isLoading && loadError && (
+            <Box sx={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 2 }}>
+              <StorageRoundedIcon sx={{ fontSize: 40, color: colors.danger }} />
+              <Typography sx={{ fontSize: "0.85rem", color: colors.textSecondary, fontWeight: 600, textAlign: "center" }}>
+                {errorMessage(errorA, errorMessage(errorB, "Failed to load one of the selected batches."))}
+              </Typography>
             </Box>
           )}
 

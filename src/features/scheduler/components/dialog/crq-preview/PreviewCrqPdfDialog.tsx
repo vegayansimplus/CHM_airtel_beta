@@ -48,27 +48,52 @@ export const PreviewCrqPdfDialog: React.FC<PreviewCrqPdfDialogProps> = ({
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const [trigger, { data: blob, isFetching, isError }] = useLazyGetCrqPlanPdfQuery();
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [isMalformed, setIsMalformed] = useState(false);
   const objectUrlRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (open && crqNo) trigger(crqNo);
+    if (open && crqNo) {
+      setIsMalformed(false);
+      trigger(crqNo);
+    }
   }, [open, crqNo, trigger]);
 
   // Builds/revokes the blob: URL the iframe and download button use - never
-  // leaks the previous URL across re-fetches (retry, switching CRQ).
+  // leaks the previous URL across re-fetches (retry, switching CRQ). Checks
+  // the "%PDF-" magic header first: the backend is expected to reject
+  // corrupt/non-PDF documents itself, but if bad bytes ever slip through
+  // this stops the browser's own PDF viewer from showing its opaque
+  // "Failed to load PDF document" error in place of our error state.
   useEffect(() => {
     if (objectUrlRef.current) {
       URL.revokeObjectURL(objectUrlRef.current);
       objectUrlRef.current = null;
     }
-    if (blob) {
-      const url = URL.createObjectURL(blob);
-      objectUrlRef.current = url;
-      setPdfUrl(url);
-    } else {
-      setPdfUrl(null);
-    }
+    setPdfUrl(null);
+    setIsMalformed(false);
+    if (!blob) return;
+
+    let cancelled = false;
+    blob
+      .slice(0, 5)
+      .arrayBuffer()
+      .then((buf) => {
+        if (cancelled) return;
+        const header = new TextDecoder("ascii").decode(buf);
+        if (header !== "%PDF-") {
+          setIsMalformed(true);
+          return;
+        }
+        const url = URL.createObjectURL(blob);
+        objectUrlRef.current = url;
+        setPdfUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setIsMalformed(true);
+      });
+
     return () => {
+      cancelled = true;
       if (objectUrlRef.current) {
         URL.revokeObjectURL(objectUrlRef.current);
         objectUrlRef.current = null;
@@ -145,14 +170,16 @@ export const PreviewCrqPdfDialog: React.FC<PreviewCrqPdfDialogProps> = ({
           </Stack>
         )}
 
-        {!isFetching && isError && (
+        {!isFetching && (isError || isMalformed) && (
           <Stack alignItems="center" justifyContent="center" spacing={1.5} sx={{ flex: 1, p: 4, textAlign: "center" }}>
             <ErrorOutlineRoundedIcon sx={{ fontSize: 32, color: colors.danger }} />
             <Typography sx={{ fontSize: 13.5, fontWeight: 700, color: colors.textPrimary }}>
               Unable to load the CRQ preview.
             </Typography>
             <Typography sx={{ fontSize: 12, color: colors.textDim, maxWidth: 340 }}>
-              Please try again. If the problem continues, no plan document may have been uploaded for this CRQ yet.
+              {isMalformed
+                ? "The stored plan document for this CRQ is corrupted or not a valid PDF. Please re-upload it."
+                : "Please try again. If the problem continues, no plan document may have been uploaded for this CRQ yet."}
             </Typography>
             <Button
               size="small"
@@ -166,7 +193,7 @@ export const PreviewCrqPdfDialog: React.FC<PreviewCrqPdfDialogProps> = ({
           </Stack>
         )}
 
-        {!isFetching && !isError && pdfUrl && (
+        {!isFetching && !isError && !isMalformed && pdfUrl && (
           <Box sx={{ flex: 1, minHeight: 0 }}>
             <iframe
               title={`Preview CRQ ${crqNo ?? ""}`}

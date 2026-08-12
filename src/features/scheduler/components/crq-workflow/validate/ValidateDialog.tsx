@@ -33,8 +33,15 @@ import {
   NAME_INTERFACE_PAIR_MAX,
   NODE_NAME_MAX,
 } from "../../../types/crqValidation.types";
-import { InfoTile, StepSection, StepSkeleton, formatDateTime } from "../reschedule/RescheduleAtoms";
+import {
+  InfoTile,
+  StatusChip,
+  StepSection,
+  StepSkeleton,
+  formatDateTime,
+} from "../reschedule/RescheduleAtoms";
 import { stageLabel } from "../reschedule/stageLabel";
+import { crqStatusPalette } from "../../../constants/workflowStages";
 import { useValidateForm } from "./useValidateForm";
 
 export interface ValidateDialogProps {
@@ -141,6 +148,8 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
       );
     }
 
+    const statusPalette = crqStatusPalette(details.validationStatus, colors);
+
     return (
       <Fade in timeout={220}>
         <Box>
@@ -185,7 +194,18 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               />
               <InfoTile
                 label="Validation Status"
-                value={details.validationStatus ?? "—"}
+                value={
+                  details.validationStatus ? (
+                    <StatusChip
+                      label={statusPalette.label}
+                      fg={statusPalette.fg}
+                      bg={statusPalette.bg}
+                      border={statusPalette.border}
+                    />
+                  ) : (
+                    "—"
+                  )
+                }
                 colors={colors}
               />
             </Stack>
@@ -328,21 +348,33 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             Cancel
           </Button>
           <Box sx={{ flex: 1 }} />
-          <Button
-            variant="contained"
-            onClick={handleSave}
-            disabled={!canSave}
-            startIcon={
-              isSaving ? (
-                <CircularProgress size={15} color="inherit" />
-              ) : (
-                <SaveRoundedIcon sx={{ fontSize: 17 }} />
-              )
+          <Tooltip
+            title={
+              !canSave && !isSaving && !isFetching
+                ? isDirty
+                  ? "Fix the highlighted fields to save."
+                  : "No changes to save yet."
+                : ""
             }
-            sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px", px: 2.2 }}
           >
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
+            <span>
+              <Button
+                variant="contained"
+                onClick={handleSave}
+                disabled={!canSave}
+                startIcon={
+                  isSaving ? (
+                    <CircularProgress size={15} color="inherit" />
+                  ) : (
+                    <SaveRoundedIcon sx={{ fontSize: 17 }} />
+                  )
+                }
+                sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px", px: 2.2 }}
+              >
+                {isSaving ? "Saving…" : "Save"}
+              </Button>
+            </span>
+          </Tooltip>
         </DialogActions>
       </Dialog>
 

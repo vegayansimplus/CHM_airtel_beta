@@ -206,6 +206,77 @@ export function stageStatePalette(
   }
 }
 
+/**
+ * CRQ_MASTER_TBL.current_status enum -> the same human labels
+ * Get_CRQ_Stage_History's CASE already renders elsewhere in the cockpit
+ * (2026-07-08_crq_stage_history_and_overview.sql). Endpoints that select
+ * current_status directly (e.g. get_crq_validation_details) return the raw
+ * enum instead of going through that CASE, so this keeps their display in
+ * sync without a second database round-trip.
+ */
+const CURRENT_STATUS_LABELS: Record<string, string> = {
+  IN_PROGRESS: "In Progress",
+  ON_HOLD: "Paused",
+  PENDING_APPROVAL: "Pending Approval",
+  DONE: "Done",
+  COMPLETE: "Done",
+  FAILED: "Failed",
+  CANCELLED: "Canceled",
+  RESCHEDULED: "Rescheduled",
+};
+
+export interface CrqStatusColorSource {
+  success: string;
+  successDim: string;
+  successBorder: string;
+  danger: string;
+  dangerDim: string;
+  dangerBorder: string;
+  warning: string;
+  warningDim: string;
+  warningBorder: string;
+  info: string;
+  infoDim: string;
+  infoBorder: string;
+  textSecondary: string;
+  trackOff: string;
+  border: string;
+}
+
+export interface CrqStatusPalette {
+  label: string;
+  fg: string;
+  bg: string;
+  border: string;
+}
+
+/** Raw current_status enum -> {label, fg, bg, border}, for rendering as a
+ * colored chip anywhere the value comes straight off CRQ_MASTER_TBL. */
+export function crqStatusPalette(
+  status: string | null | undefined,
+  colors: CrqStatusColorSource,
+): CrqStatusPalette {
+  const key = (status ?? "").toUpperCase();
+  const label = CURRENT_STATUS_LABELS[key] ?? (status || "Not Started");
+
+  switch (key) {
+    case "DONE":
+    case "COMPLETE":
+      return { label, fg: colors.success, bg: colors.successDim, border: colors.successBorder };
+    case "FAILED":
+    case "CANCELLED":
+      return { label, fg: colors.danger, bg: colors.dangerDim, border: colors.dangerBorder };
+    case "ON_HOLD":
+    case "PENDING_APPROVAL":
+      return { label, fg: colors.warning, bg: colors.warningDim, border: colors.warningBorder };
+    case "IN_PROGRESS":
+    case "RESCHEDULED":
+      return { label, fg: colors.info, bg: colors.infoDim, border: colors.infoBorder };
+    default:
+      return { label, fg: colors.textSecondary, bg: colors.trackOff, border: colors.border };
+  }
+}
+
 export interface StageSummaryField {
   /** Raw API field name (e.g. "olmidReview") - used for presentational grouping only. */
   key: string;
