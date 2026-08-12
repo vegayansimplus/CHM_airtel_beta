@@ -137,7 +137,7 @@ const SchedulerMainTab: React.FC = () => {
         >
           {/*  TAB 1 */}
           <Tab
-            label="Shift Scheduler"
+            label="CRQ Workflow"
             value="crqWorkflow"
             to="crqWorkflow"
             component={Link}

@@ -139,7 +139,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
       {
         // Default child — matches /scheduler AND /scheduler/crqWorkflow (and detail pages)
         to: "/scheduler/crqWorkflow",
-        text: "Shift Scheduler",
+        text: "CRQ Workflow",
         icon: <CalendarMonthIcon />,
         requiredModule: "Role-Based Access Control",
         // Also highlight when drilling into a CRQ detail: /scheduler/crqWorkflow/ABC123
