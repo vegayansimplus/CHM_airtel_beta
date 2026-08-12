@@ -66,7 +66,8 @@ const AdminSettingDashboard = lazy(() =>
 const OrganizationConfigPage = lazy(() =>
   import("../features/settings/orgConfig").then((m) => ({ default: m.OrganizationConfigPage })),
 );
-const TaskPlanningMain = lazy(() => import("../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain"));
+// Hidden from tab + route (task planning page disabled)
+// const TaskPlanningMain = lazy(() => import("../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain"));
 const CrqJourneyMain = lazy(() =>
   import("../features/crqJourney/CrqJourneyMain").then((m) => ({ default: m.CrqJourneyMain })),
 );
@@ -292,7 +293,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
         >
           <Route path="planviewandsetup" element={<PlanViewAndSetup />} />
           <Route path="taskconfig" element={<TaskConfigMain />} />
-          <Route path="taskplanning" element={<TaskPlanningMain />} />
+          {/* <Route path="taskplanning" element={<TaskPlanningMain />} /> */}
           <Route path="crqjourney" element={<CrqJourneyMain />} />
         </Route>
 

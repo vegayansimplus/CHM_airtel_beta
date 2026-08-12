@@ -13,6 +13,10 @@ import { useRecentSearches } from "./useRecentSearches";
 interface GlobalSearchModalProps {
   open: boolean;
   onClose: () => void;
+  /** The header search trigger the palette should anchor itself under -
+   * centered on its horizontal midpoint, opening just below it, instead of
+   * floating in the middle of the viewport. */
+  anchorRef?: React.RefObject<HTMLElement | null>;
 }
 
 type CategoryFilter = "all" | "module" | "action";
@@ -23,7 +27,7 @@ const CATEGORY_LABEL: Record<CategoryFilter, string> = {
   action: "Quick Actions",
 };
 
-const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onClose }) => {
+const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onClose, anchorRef }) => {
   const theme = useTheme();
   const c = useTabColorTokens(theme);
   const navigate = useNavigate();
@@ -32,6 +36,7 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onClose }) 
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<CategoryFilter>("all");
   const [activeIndex, setActiveIndex] = useState(0);
+  const [anchorRect, setAnchorRect] = useState<{ top: number; centerX: number } | null>(null);
 
   const navEntries = useNavSearchIndex();
   const actionEntries = useQuickActionsIndex();
@@ -63,6 +68,25 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onClose }) 
   useEffect(() => {
     setActiveIndex(0);
   }, [query, category]);
+
+  // Anchor the palette under the header search trigger - measured on open
+  // and re-measured on resize so it stays aligned if the trigger's position
+  // shifts (e.g. sidebar collapse/expand changing its width).
+  useEffect(() => {
+    if (!open) return;
+    const measure = () => {
+      const el = anchorRef?.current;
+      if (!el) {
+        setAnchorRect(null);
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      setAnchorRect({ top: r.bottom + 8, centerX: r.left + r.width / 2 });
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, [open, anchorRef]);
 
   // Lock body scroll while the palette is open.
   useEffect(() => {
@@ -133,14 +157,25 @@ const GlobalSearchModal: React.FC<GlobalSearchModalProps> = ({ open, onClose }) 
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -12, scale: 0.98 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
-            style={{
-              position: "fixed",
-              top: "12%",
-              left: "50%",
-              transform: "translateX(-50%)",
-              width: "min(600px, 92vw)",
-              zIndex: 1401,
-            }}
+            style={
+              anchorRect
+                ? {
+                    position: "fixed",
+                    top: anchorRect.top,
+                    left: anchorRect.centerX,
+                    transform: "translateX(-50%)",
+                    width: "min(600px, 92vw)",
+                    zIndex: 1401,
+                  }
+                : {
+                    position: "fixed",
+                    top: "50%",
+                    left: "50%",
+                    transform: "translate(-50%, -50%)",
+                    width: "min(600px, 92vw)",
+                    zIndex: 1401,
+                  }
+            }
             onKeyDown={handleKeyDown}
           >
             <Box

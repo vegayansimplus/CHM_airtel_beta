@@ -124,5 +124,6 @@ export const api = createApi({
     "SftpWindowsFiles",
     "SftpLinuxFiles",
     "DataAgentHistory",
+    "ImpactBatch",
   ],
 });

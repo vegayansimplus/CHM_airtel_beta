@@ -231,7 +231,7 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
           </Typography>
         </Field>
 
-        <Field label="Plan Window">
+        <Field label="Execution Window">
           <Typography sx={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>
             {formatDate(c.activityPlanStartDate) ?? "—"} → {formatDate(c.activityPlanEndDate) ?? "—"}
           </Typography>

@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Dialog, Fade, IconButton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
+import { Box, Dialog, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 import { GenericFormPanel } from "./GenericFormPanel";
@@ -95,18 +94,6 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
           onClose={onClose}
           onSubmitDone={onSubmitDone}
         />
-
-        <Fade in={!panelOpen && !isSmall}>
-          <Tooltip title="Show validation form" placement="right" arrow>
-            <IconButton
-              onClick={() => setPanelOpen(true)}
-              size="small"
-              sx={{ position: "absolute", left: 10, top: 20, zIndex: 40, bgcolor: colors.surface }}
-            >
-              <ChevronRightIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        </Fade>
 
         <StagePreviewPanel
           crqNo={crqNo}

@@ -208,19 +208,20 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
             </Stack>
           </DialogContent>
 
-          <DialogActions sx={{ px: 2, py: 1.25, borderTop: `1px solid ${colors.border}` }}>
-            <Button
-              size="small"
-              onClick={() => setPanelOpen(false)}
-              startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
-              sx={{ color: colors.textSecondary, textTransform: "none" }}
-            >
-              Hide Panel
-            </Button>
-            <Box sx={{ flex: 1 }} />
+          <DialogActions
+            sx={{
+              px: 2,
+              py: 1.5,
+              borderTop: `1px solid ${colors.border}`,
+              flexDirection: "column",
+              alignItems: "stretch",
+              gap: 1,
+            }}
+          >
             <Button
               type="submit"
               variant="contained"
+              fullWidth
               disabled={isSubmitting || !isDirty || isCancelled}
               startIcon={
                 isSubmitting ? (
@@ -229,9 +230,34 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                   <CheckCircleOutlineIcon sx={{ fontSize: "17px !important" }} />
                 )
               }
-              sx={{ textTransform: "none", bgcolor: colors.accent }}
+              sx={{
+                textTransform: "none",
+                bgcolor: colors.accent,
+                fontSize: 13,
+                fontWeight: 600,
+                borderRadius: 2,
+                py: 1,
+                whiteSpace: "nowrap",
+                boxShadow: `0 2px 10px ${alpha(colors.accent, 0.35)}`,
+                "&:hover": { bgcolor: colors.accent, filter: "brightness(1.08)" },
+              }}
             >
               {isSubmitting ? "Submitting…" : `Submit ${stageConfig.label}`}
+            </Button>
+            <Button
+              size="small"
+              onClick={() => setPanelOpen(false)}
+              startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
+              sx={{
+                color: colors.textSecondary,
+                textTransform: "none",
+                alignSelf: "flex-start",
+                fontSize: 12.5,
+                px: 1,
+                "&:hover": { bgcolor: alpha(colors.textSecondary, 0.07) },
+              }}
+            >
+              Hide Panel
             </Button>
           </DialogActions>
         </Box>

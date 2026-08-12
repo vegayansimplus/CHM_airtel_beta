@@ -72,7 +72,6 @@ export const StageCard: React.FC<StageCardProps> = ({
   const isFailed = ["canceled", "cancel", "Canceled", "Failed"].includes(status);
 
   const infoItems = [
-    { label: "CRQ No", value: crq.crqNo || "-" },
     { label: "Start Date", value: formatDate(crq.activityPlanStartDate) },
     { label: "End Date", value: formatDate(crq.activityPlanEndDate) },
     { label: "CRQ Status", value: crq.crqStatus || "-" },

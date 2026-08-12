@@ -1,5 +1,6 @@
 import React from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import type { Colors } from "../../types/colorTypes";
 import type { Crq } from "../../types/crqWorkflow.types";
 import {
@@ -14,6 +15,10 @@ interface StageRailProps {
   currentStageIndex: number;
   selectedStageId: WorkflowStageId;
   onSelectStage: (stageId: WorkflowStageId) => void;
+  /** Opens the Preview CRQ PDF dialog for the current CRQ. The stored plan
+   * PDF is per-CRQ (Get_Change_PlanPDF takes only the CRQ number, no stage
+   * param), so every stage card's button opens the same document. */
+  onPreviewCrq: () => void;
   colors: Colors;
 }
 
@@ -23,6 +28,7 @@ export const StageRail: React.FC<StageRailProps> = ({
   currentStageIndex,
   selectedStageId,
   onSelectStage,
+  onPreviewCrq,
   colors,
 }) => (
   <Box sx={{ bgcolor: colors.trackOff, borderBottom: `1px solid ${colors.border}`, px: 2, py: 0.85 }}>
@@ -76,17 +82,44 @@ export const StageRail: React.FC<StageRailProps> = ({
                 {chipLabel}
               </Box>
             </Stack>
-            <Typography
-              sx={{
-                fontSize: 12,
-                fontWeight: 700,
-                color: state === "locked" ? colors.textDim : colors.textPrimary,
-                mt: 0.6,
-                lineHeight: 1.15,
-              }}
-            >
-              {stage.shortLabel}
-            </Typography>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 0.6 }}>
+              <Typography
+                sx={{
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: state === "locked" ? colors.textDim : colors.textPrimary,
+                  lineHeight: 1.15,
+                  minWidth: 0,
+                }}
+                noWrap
+              >
+                {stage.shortLabel}
+              </Typography>
+              <Tooltip title={state === "locked" ? "Locked" : "Preview CRQ"}>
+                <span>
+                  <IconButton
+                    size="small"
+                    aria-label="Preview CRQ"
+                    disabled={state === "locked"}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewCrq();
+                    }}
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      ml: 0.5,
+                      flexShrink: 0,
+                      color: colors.textDim,
+                      "&:hover": { color: colors.accent, bgcolor: colors.accentDim },
+                      "&.Mui-disabled": { color: colors.textDim, opacity: 0.4 },
+                    }}
+                  >
+                    <PictureAsPdfOutlinedIcon sx={{ fontSize: 13 }} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Stack>
           </Box>
         );
       })}
