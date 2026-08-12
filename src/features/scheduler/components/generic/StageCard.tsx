@@ -71,12 +71,22 @@ export const StageCard: React.FC<StageCardProps> = ({
   const isRunning = status === "In Progress";
   const isFailed = ["canceled", "cancel", "Canceled", "Failed"].includes(status);
 
+  // Mirrors the Plan & Inventory reference card (CrqCard.tsx) field-for-field:
+  // CRQ No, Start/End Date, CRQ Status, then the stage's own status/actual
+  // start-end/OLM id - just driven off stageConfig instead of hardcoded
+  // "Review" names. startDateField/endDateField map to the exact columns
+  // each stage's Get_*_Details proc actually returns (CRQ_STAGE_ASSIGN_TBL's
+  // actual_start_time/actual_end_time) - verified live per stage, since each
+  // proc aliases them under a different stage-specific name.
   const infoItems = [
+    { label: "CRQ No", value: crq.crqNo || "-" },
     { label: "Start Date", value: formatDate(crq.activityPlanStartDate) },
     { label: "End Date", value: formatDate(crq.activityPlanEndDate) },
     { label: "CRQ Status", value: crq.crqStatus || "-" },
-    { label: `${stageConfig.label} Status`, value: crq?.[stageConfig.statusField] || "-" },
-    { label: `${stageConfig.label} OLM ID`, value: crq?.[stageConfig.olmIdField] || "-" },
+    { label: `CRQ ${stageConfig.label} Status`, value: crq?.[stageConfig.statusField] || "-" },
+    { label: `${stageConfig.label} Start`, value: formatDate(crq?.[stageConfig.startDateField]) },
+    { label: `${stageConfig.label} End`, value: formatDate(crq?.[stageConfig.endDateField]) },
+    { label: `OLM ID ${stageConfig.label}`, value: crq?.[stageConfig.olmIdField] || "-" },
   ];
 
   return (

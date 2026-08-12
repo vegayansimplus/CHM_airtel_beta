@@ -16,6 +16,8 @@ function buildStageConfig(
     | "buildDonePayload"
     | "stageEnum"
     | "olmIdField"
+    | "startDateField"
+    | "endDateField"
   > &
     Partial<Pick<StageConfig, "statusField" | "statusOptions" | "fields">>,
 ): StageConfig {
@@ -102,6 +104,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "IMPACT_ANALYSIS",
     statusField: "impactAnalysisStatus",
     olmIdField: "olmidImpactAnalysis",
+    startDateField: "impactAnalysisStartDate",
+    endDateField: "impactAnalysisEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),
@@ -116,6 +120,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "MOP_CREATION",
     statusField: "mopCreateStatus",
     olmIdField: "olmidMopCreation",
+    startDateField: "mopCreationStartDate",
+    endDateField: "mopCreationEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),
@@ -130,6 +136,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "MOP_VALIDATION",
     statusField: "mopValidateStatus",
     olmIdField: "olmidMopValidation",
+    startDateField: "mopValidationStartDate",
+    endDateField: "mopValidationEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),
@@ -144,6 +152,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "SCHEDULING_APPROVAL",
     statusField: "schedulingStatus",
     olmIdField: "olmidSchedulingApproval",
+    startDateField: "schedulingApprovalStartDate",
+    endDateField: "schedulingApprovalEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),
@@ -158,6 +168,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "EXECUTION",
     statusField: "activityImplementStatus",
     olmIdField: "olmidExecution",
+    startDateField: "executionStartDate",
+    endDateField: "executionEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),
@@ -172,6 +184,8 @@ export const STAGE_CONFIG_MAP: Record<StageKey, StageConfig> = {
     stageEnum: "CLOSURE",
     statusField: "crqCloserStatus",
     olmIdField: "olmidClosure",
+    startDateField: "closureStartDate",
+    endDateField: "closureEndDate",
     buildDonePayload: (values, crq, context) =>
       buildCommonDonePayload(values, crq, context, {
         taskNumber: taskNumbersOf(crq),

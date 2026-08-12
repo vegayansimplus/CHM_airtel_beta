@@ -47,20 +47,14 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="xl"
-      fullWidth
-      fullScreen={isSmall}
+      fullScreen
       keepMounted={false}
       PaperProps={{
         elevation: 0,
         sx: {
-          height: isSmall ? "100%" : "88vh",
-          maxHeight: 780,
           display: "flex",
           flexDirection: "column",
           bgcolor: colors.isDark ? "#131419" : "#F4F5F7",
-          borderRadius: isSmall ? 0 : "16px",
-          border: `1px solid ${colors.border}`,
         },
       }}
     >

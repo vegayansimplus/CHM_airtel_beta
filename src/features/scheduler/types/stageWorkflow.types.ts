@@ -88,6 +88,16 @@ export interface StageConfig {
   olmIdField: string;
   /** Field on the CRQ object that represents this stage's running status */
   statusField: string;
+  /**
+   * CRQ field holding this stage's actual start timestamp
+   * (CRQ_STAGE_ASSIGN_TBL.actual_start_time, via the stage's Get_*_Details
+   * proc), e.g. "executionStartDate". Each stage's proc aliases this
+   * differently - see CrqWorkflowService/the schedular DTOs - so it must be
+   * named explicitly per stage rather than derived from statusField/olmIdField.
+   */
+  startDateField: string;
+  /** CRQ field holding this stage's actual end timestamp, e.g. "executionEndDate" */
+  endDateField: string;
   /** Outcome options shown in the review/validate dialog */
   statusOptions: StageStatusOption[];
   /** Config-driven extra fields (cancellation block, remarks, etc) */

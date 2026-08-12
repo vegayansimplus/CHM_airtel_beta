@@ -19,6 +19,7 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { useTabColorTokens } from "../../../../style/theme";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
@@ -32,6 +33,7 @@ import type { StageKey } from "../../types/stageWorkflow.types";
 import { usePermission } from "../../../auth/hooks/usePermission";
 const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
 const StageReviewDialog = lazy(() => import("./dialog/StageReviewDialog"));
+const PreviewCrqPdfDialog = lazy(() => import("../dialog/crq-preview/PreviewCrqPdfDialog"));
 const RESCHEDULABLE_STAGES = new Set<StageKey>(["scheduling", "activityimplement"]);
 
 /** RBAC module + permission the Reschedule action requires. */
@@ -75,6 +77,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [globalSearch, setGlobalSearch] = useState("");
   const [rescheduleCrq, setRescheduleCrq] = useState<any | null>(null);
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
 
   const { hasPermission } = usePermission();
   const canReschedule =
@@ -236,6 +239,13 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         startIcon={<FactCheckRoundedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
+      <CustomActionButton
+        label="Preview Plan"
+        disabled={!selectedCrq}
+        onClick={() => setPreviewPdfOpen(true)}
+        startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
       <Stack direction="row" spacing={0.8}>
         <Chip label={`${filteredPlans.length} plans`} size="small" sx={{ height: 24, fontSize: 11, fontWeight: 700 }} />
         <Chip
@@ -333,6 +343,19 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             colors={colors}
             stageConfig={stageConfig}
             onSubmitDone={handleSubmitDone}
+          />
+        </Suspense>
+      )}
+      {/* Same "Preview CRQ" plan PDF the single-CRQ cockpit renders, opened
+          for whichever CRQ is checked in this list - matches the reference
+          list page's "Preview Plan" action. Mounted only once opened. */}
+      {previewPdfOpen && selectedCrq && (
+        <Suspense fallback={null}>
+          <PreviewCrqPdfDialog
+            open={previewPdfOpen}
+            onClose={() => setPreviewPdfOpen(false)}
+            crqNo={selectedCrq.crqNo ?? null}
+            colors={colors}
           />
         </Suspense>
       )}
