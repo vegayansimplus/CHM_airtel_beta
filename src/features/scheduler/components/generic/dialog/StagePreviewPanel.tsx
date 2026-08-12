@@ -4,6 +4,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
+import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 
 interface StagePreviewPanelProps {
@@ -69,29 +70,33 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
     </Box>
 
     <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          minHeight: 220,
-          border: "1.5px dashed",
-          borderColor: "divider",
-          borderRadius: 3,
-          p: 4,
-          gap: 1.5,
-          bgcolor: "background.paper",
-        }}
-      >
-        <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 26, color: "text.disabled" }} />
-        <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-          {stageConfig.label} Summary Preview
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          CRQ: <strong>{crqNo || "N/A"}</strong> &nbsp;•&nbsp; Status: <strong>{crqStatus || "N/A"}</strong>
-        </Typography>
-      </Box>
+      {stageConfig.key === "impactanalysis" ? (
+        <ImpactBatchExplorer crqNo={crqNo} colors={colors} />
+      ) : (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: 220,
+            border: "1.5px dashed",
+            borderColor: "divider",
+            borderRadius: 3,
+            p: 4,
+            gap: 1.5,
+            bgcolor: "background.paper",
+          }}
+        >
+          <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 26, color: "text.disabled" }} />
+          <Typography variant="subtitle2" fontWeight={600} color="text.primary">
+            {stageConfig.label} Summary Preview
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            CRQ: <strong>{crqNo || "N/A"}</strong> &nbsp;•&nbsp; Status: <strong>{crqStatus || "N/A"}</strong>
+          </Typography>
+        </Box>
+      )}
     </Box>
   </Box>
 );
