@@ -93,6 +93,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     isFetching,
     isError,
     error,
+    refetch: refetchStageData,
   } = useGetStageDataQuery(
     { stageKey, domainId: domainId ?? 1, subDomainId: subDomainId ?? 1 },
     { skip: !domainId || !subDomainId },
@@ -326,6 +327,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             crqId={rescheduleCrq.crqId ?? null}
             crqNo={rescheduleCrq.crqNo ?? null}
             colors={colors}
+            onCompleted={refetchStageData}
           />
         </Suspense>
       )}

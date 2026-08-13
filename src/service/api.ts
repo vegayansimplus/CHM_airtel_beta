@@ -125,5 +125,6 @@ export const api = createApi({
     "SftpLinuxFiles",
     "DataAgentHistory",
     "ImpactBatch",
+    "Checkpoints",
   ],
 });

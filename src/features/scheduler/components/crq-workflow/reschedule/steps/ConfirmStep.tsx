@@ -26,15 +26,10 @@ export const ConfirmStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
   wizard,
   colors,
 }) => {
-  const { context, selectedSlot, toStage, reason } = wizard;
+  const { context, selectedSlot, toStage, selectedReason, reasonNote } = wizard;
   if (!context || !selectedSlot) return null;
 
-  const newEngineer = selectedSlot.engineerName
-    ? `${selectedSlot.engineerName}${selectedSlot.engineerOlmId ? ` (${selectedSlot.engineerOlmId})` : ""}`
-    : "—";
-  const currentEngineer = context.engineerName
-    ? `${context.engineerName}${context.engineerOlmId ? ` (${context.engineerOlmId})` : ""}`
-    : "Not assigned";
+  const shiftLabel = (letter: string | null | undefined) => (letter ? `${letter} Shift` : "—");
 
   return (
     <Box>
@@ -58,13 +53,6 @@ export const ConfirmStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             colors={colors}
           />
           <TransitionRow
-            label="Engineer"
-            from={currentEngineer}
-            to={newEngineer}
-            colors={colors}
-            changed={context.engineerOlmId !== selectedSlot.engineerOlmId}
-          />
-          <TransitionRow
             label="Date"
             from={formatDateOnly(context.scheduledStart)}
             to={formatDateOnly(selectedSlot.startDateTime)}
@@ -82,10 +70,10 @@ export const ConfirmStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
           />
           <TransitionRow
             label="Shift"
-            from={context.shiftLetter ?? "—"}
-            to={selectedSlot.shiftLetter ?? "—"}
+            from={shiftLabel(context.shiftLetter)}
+            to={shiftLabel(selectedSlot.shiftLetter ?? context.shiftLetter)}
             colors={colors}
-            changed={context.shiftLetter !== selectedSlot.shiftLetter}
+            changed={!!selectedSlot.shiftLetter && context.shiftLetter !== selectedSlot.shiftLetter}
           />
         </Stack>
       </StepSection>
@@ -100,9 +88,16 @@ export const ConfirmStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             bgcolor: colors.surface,
           }}
         >
-          <Typography sx={{ fontSize: 12.5, color: colors.textSecondary, whiteSpace: "pre-wrap" }}>
-            {reason.trim() || "—"}
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>
+            {selectedReason ?? "—"}
           </Typography>
+          {reasonNote.trim() && (
+            <Typography
+              sx={{ fontSize: 12.5, color: colors.textSecondary, whiteSpace: "pre-wrap", mt: 0.5 }}
+            >
+              {reasonNote.trim()}
+            </Typography>
+          )}
         </Box>
       </StepSection>
     </Box>

@@ -1,5 +1,13 @@
 import React from "react";
-import { Alert, Box, LinearProgress, Stack, TextField, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  LinearProgress,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from "@mui/material";
 import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
 import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import EventRoundedIcon from "@mui/icons-material/EventRounded";
@@ -29,7 +37,17 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
   wizard,
   colors,
 }) => {
-  const { context, isContextLoading, contextError, reason, setReason } = wizard;
+  const {
+    context,
+    isContextLoading,
+    contextError,
+    reasonOptions,
+    isReasonOptionsLoading,
+    selectedReason,
+    setSelectedReason,
+    reasonNote,
+    setReasonNote,
+  } = wizard;
 
   if (isContextLoading) return <StepSkeleton rows={4} />;
   if (contextError) return <Alert severity="error">{contextError}</Alert>;
@@ -153,17 +171,39 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
       </StepSection>
 
       <TextField
+        select
         label="Reason for reschedule (optional)"
         fullWidth
-        multiline
-        minRows={2}
-        maxRows={4}
-        value={reason}
-        onChange={(e) => setReason(e.target.value.slice(0, 500))}
-        disabled={!context.canReschedule}
-        helperText={`${reason.length}/500`}
+        value={selectedReason ?? ""}
+        onChange={(e) => setSelectedReason(e.target.value || null)}
+        disabled={!context.canReschedule || isReasonOptionsLoading}
         size="small"
-      />
+        sx={{ mb: selectedReason ? 1.5 : 0 }}
+      >
+        <MenuItem value="">
+          <em>None</em>
+        </MenuItem>
+        {reasonOptions.map((option) => (
+          <MenuItem key={option.reason} value={option.reason}>
+            {option.reason}
+          </MenuItem>
+        ))}
+      </TextField>
+
+      {selectedReason && (
+        <TextField
+          label="Additional details (optional)"
+          fullWidth
+          multiline
+          minRows={2}
+          maxRows={4}
+          value={reasonNote}
+          onChange={(e) => setReasonNote(e.target.value.slice(0, 500))}
+          disabled={!context.canReschedule}
+          helperText={`${reasonNote.length}/500`}
+          size="small"
+        />
+      )}
     </Box>
   );
 };

@@ -118,6 +118,11 @@ export interface RescheduleStatusResponse {
   message: string | null;
 }
 
+/** GET /reason-options - sp_reschedule_reason_drop_down. */
+export interface RescheduleReasonOption {
+  reason: string;
+}
+
 /** One offered slot from CRQ_SP_RESCHEDULE_GET_SLOTS. */
 export interface RescheduleSlot {
   /** Primary key of the offer - passed back verbatim to confirm-slot. */
