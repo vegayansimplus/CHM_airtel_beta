@@ -22,6 +22,7 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import CloudDownloadIcon from "@mui/icons-material/CloudDownload";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import RefreshIcon from "@mui/icons-material/Refresh";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import InsertDriveFileOutlinedIcon from "@mui/icons-material/InsertDriveFileOutlined";
@@ -30,8 +31,9 @@ import {
   useListLinuxRemoteFilesMutation,
   useUploadFileToLinuxRemoteMutation,
   useLazyDownloadLinuxRemoteFileQuery,
+  useDeleteLinuxRemoteFileMutation,
 } from "../api/sftpApiSlice";
-import type { SftpConnectionDetails } from "../types/sftp.types";
+import type { RemoteFileEntry, SftpConnectionDetails } from "../types/sftp.types";
 
 const EMPTY_CONNECTION: SftpConnectionDetails = { host: "", port: 22, username: "", password: "" };
 
@@ -51,22 +53,22 @@ export default function RemoteTmpBrowserPanel() {
   const [conn, setConn] = useState<SftpConnectionDetails>(EMPTY_CONNECTION);
   const [showPassword, setShowPassword] = useState(false);
   const [hasListed, setHasListed] = useState(false);
+  const [remoteFiles, setRemoteFiles] = useState<RemoteFileEntry[] | null>(null);
   const [downloadingFile, setDownloadingFile] = useState<string | null>(null);
+  const [deletingFile, setDeletingFile] = useState<string | null>(null);
 
-  const [listRemote, { data: listedFiles, isLoading: isListing }] = useListLinuxRemoteFilesMutation();
-  const [uploadRemote, { data: uploadedFiles, isLoading: isUploading }] = useUploadFileToLinuxRemoteMutation();
+  const [listRemote, { isLoading: isListing }] = useListLinuxRemoteFilesMutation();
+  const [uploadRemote, { isLoading: isUploading }] = useUploadFileToLinuxRemoteMutation();
+  const [deleteRemote] = useDeleteLinuxRemoteFileMutation();
   const [triggerDownload] = useLazyDownloadLinuxRemoteFileQuery();
-
-  // Uploading returns the freshly-updated /tmp listing, same as listing does —
-  // whichever ran most recently is what the table should reflect.
-  const remoteFiles = uploadedFiles ?? listedFiles;
 
   const canConnect = Boolean(conn.host.trim() && conn.username.trim() && conn.password.trim());
 
   const handleList = async () => {
     if (!canConnect) return;
     try {
-      await listRemote(conn).unwrap();
+      const result = await listRemote(conn).unwrap();
+      setRemoteFiles(result);
       setHasListed(true);
     } catch (err) {
       toast.error(getErrorMessage(err, "Failed to list the remote /tmp directory."));
@@ -82,7 +84,8 @@ export default function RemoteTmpBrowserPanel() {
       return;
     }
     try {
-      await uploadRemote({ ...conn, file }).unwrap();
+      const result = await uploadRemote({ ...conn, file }).unwrap();
+      setRemoteFiles(result);
       setHasListed(true);
       toast.success(`${file.name} uploaded to ${conn.host}:/tmp`);
     } catch (err) {
@@ -112,6 +115,20 @@ export default function RemoteTmpBrowserPanel() {
     }
   };
 
+  const handleDelete = async (fileName: string) => {
+    if (!window.confirm(`Delete "${fileName}" from ${conn.host}:/tmp? This cannot be undone.`)) return;
+    setDeletingFile(fileName);
+    try {
+      const result = await deleteRemote({ ...conn, fileName }).unwrap();
+      setRemoteFiles(result);
+      toast.success(`${fileName} deleted from ${conn.host}:/tmp`);
+    } catch (err) {
+      toast.error(getErrorMessage(err, `Failed to delete ${fileName} from the remote server.`));
+    } finally {
+      setDeletingFile(null);
+    }
+  };
+
   const visibleFiles = (remoteFiles ?? []).filter((f) => !f.directory);
 
   return (
@@ -130,8 +147,8 @@ export default function RemoteTmpBrowserPanel() {
         </Typography>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-        Connect to a remote Linux server to view, download, or upload files directly into its <code>/tmp</code> directory —
-        no local staging required. These credentials are used for this connection only and are never stored.
+        Connect to a remote Linux server to view, download, upload, or delete files directly in its <code>/tmp</code>{" "}
+        directory — no local staging required. These credentials are used for this connection only and are never stored.
       </Typography>
 
       <Grid container spacing={2} alignItems="center">
@@ -246,21 +263,39 @@ export default function RemoteTmpBrowserPanel() {
                       <TableCell>{f.fileSize}</TableCell>
                       <TableCell>{f.fileDate}</TableCell>
                       <TableCell align="right">
-                        <Tooltip title="Download">
-                          <span>
-                            <IconButton
-                              size="small"
-                              onClick={() => handleDownload(f.fileName)}
-                              disabled={downloadingFile === f.fileName}
-                            >
-                              {downloadingFile === f.fileName ? (
-                                <CircularProgress size={18} />
-                              ) : (
-                                <CloudDownloadIcon fontSize="small" />
-                              )}
-                            </IconButton>
-                          </span>
-                        </Tooltip>
+                        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 0.5 }}>
+                          <Tooltip title="Download">
+                            <span>
+                              <IconButton
+                                size="small"
+                                onClick={() => handleDownload(f.fileName)}
+                                disabled={downloadingFile === f.fileName}
+                              >
+                                {downloadingFile === f.fileName ? (
+                                  <CircularProgress size={18} />
+                                ) : (
+                                  <CloudDownloadIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDelete(f.fileName)}
+                                disabled={deletingFile === f.fileName}
+                              >
+                                {deletingFile === f.fileName ? (
+                                  <CircularProgress size={18} />
+                                ) : (
+                                  <DeleteOutlineIcon fontSize="small" />
+                                )}
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </Box>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -88,6 +88,13 @@ export const sftpApi = api.injectEndpoints({
         cache: "no-cache",
       }),
     }),
+    deleteLinuxRemoteFile: builder.mutation<RemoteFileEntry[], SendToLinuxRequest>({
+      query: (body) => ({
+        url: "/api/sftp/linux/remote/delete",
+        method: "POST",
+        body,
+      }),
+    }),
   }),
   overrideExisting: false,
 });
@@ -101,4 +108,5 @@ export const {
   useListLinuxRemoteFilesMutation,
   useUploadFileToLinuxRemoteMutation,
   useLazyDownloadLinuxRemoteFileQuery,
+  useDeleteLinuxRemoteFileMutation,
 } = sftpApi;
