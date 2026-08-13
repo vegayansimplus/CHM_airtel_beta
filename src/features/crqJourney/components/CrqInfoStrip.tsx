@@ -1,6 +1,5 @@
-import React, { useCallback, useState } from "react";
-import { Box, Typography, Divider, IconButton, Tooltip, Snackbar, useTheme } from "@mui/material";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import React from "react";
+import { Box, Typography, Divider, useTheme } from "@mui/material";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 import { formatDateTime, formatStatusLabel, statusChipColor } from "../utils/crqJourney.utils";
@@ -21,12 +20,7 @@ const MetaItem = ({ label, children }: { label: string; children: React.ReactNod
 export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({ info }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const [copied, setCopied] = useState(false);
   const chip = statusChipColor(info.currentStatus, isDark);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(info.crqNo).then(() => setCopied(true));
-  }, [info.crqNo]);
 
   const dividerSx = { mx: 0.25, my: 0.25, alignSelf: "stretch" };
 
@@ -44,16 +38,9 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({ info }) => {
       }}
     >
       <MetaItem label="CRQ ID">
-        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-          <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 700, color: theme.palette.primary.main, whiteSpace: "nowrap" }}>
-            {info.crqNo}
-          </Typography>
-          <Tooltip title="Copy ID" placement="top" arrow>
-            <IconButton size="small" onClick={handleCopy} sx={{ p: "2px", color: "text.disabled", "&:hover": { color: theme.palette.primary.main } }} aria-label="Copy CRQ ID">
-              <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
-            </IconButton>
-          </Tooltip>
-        </Box>
+        <Typography sx={{ fontFamily: "Roboto Mono, monospace", fontSize: 12.5, fontWeight: 700, color: theme.palette.primary.main, whiteSpace: "nowrap" }}>
+          {info.crqNo}
+        </Typography>
       </MetaItem>
 
       <Divider orientation="vertical" flexItem sx={dividerSx} />
@@ -98,15 +85,6 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({ info }) => {
           </Typography>
         </Box>
       </MetaItem>
-
-      <Snackbar
-        open={copied}
-        autoHideDuration={1600}
-        onClose={() => setCopied(false)}
-        message="CRQ ID copied"
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        ContentProps={{ sx: { fontSize: 12.5, minWidth: "unset", py: 0.5 } }}
-      />
     </Box>
   );
 };

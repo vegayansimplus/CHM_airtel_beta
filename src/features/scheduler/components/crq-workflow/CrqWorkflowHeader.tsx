@@ -1,15 +1,21 @@
-import React, { useState } from "react";
-import { Box, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import React from "react";
+import { Avatar, Box, Stack, Tooltip, Typography } from "@mui/material";
 import { format } from "date-fns";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import PersonOutlineRoundedIcon from "@mui/icons-material/PersonOutlineRounded";
+import AssignmentRoundedIcon from "@mui/icons-material/AssignmentRounded";
+import ArrowForwardRoundedIcon from "@mui/icons-material/ArrowForwardRounded";
+// import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
 import CalendarTodayRoundedIcon from "@mui/icons-material/CalendarTodayRounded";
 import UpdateRoundedIcon from "@mui/icons-material/UpdateRounded";
 import ApartmentRoundedIcon from "@mui/icons-material/ApartmentRounded";
+import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import type { Colors } from "../../types/colorTypes";
 import type { Crq } from "../../types/crqWorkflow.types";
-import { WORKFLOW_STAGES } from "../../constants/workflowStages";
+import {
+  WORKFLOW_STAGES,
+  classifyStatusValue,
+  resolveStageState,
+  stageStatePalette,
+} from "../../constants/workflowStages";
 
 interface CrqWorkflowHeaderProps {
   crq: Crq;
@@ -29,64 +35,82 @@ const parseDate = (value?: string | null): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
-/** Palette for a value rendered as a chip, keyed off simple keyword heuristics. */
-const statusPalette = (value: string, colors: Colors) => {
-  const v = value.toLowerCase();
-  if (v.includes("done") || v.includes("complete") || v.includes("closed"))
-    return { bg: colors.successDim, fg: colors.success };
-  if (v.includes("progress") || v.includes("active"))
-    return { bg: colors.infoDim, fg: colors.info };
-  if (v.includes("fail") || v.includes("cancel") || v.includes("reject"))
-    return { bg: colors.dangerDim, fg: colors.danger };
-  return { bg: colors.accentDim, fg: colors.accent };
+/** First letter of the first two whitespace-separated tokens (e.g. "Jane
+ * Doe" -> "JD"); falls back to the first two characters for single-token
+ * values such as an OLM ID. */
+const getInitials = (value: string) => {
+  const parts = value.trim().split(/\s+/).filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return parts[0].slice(0, 2).toUpperCase();
 };
 
-const StatusChip: React.FC<{ label: string; colors: Colors }> = ({ label, colors }) => {
-  const p = statusPalette(label, colors);
-  return (
+/** Small colored pill with a status dot, driven by the same StageRunState
+ * palette StageRail uses below it - keeps status color-coding consistent
+ * across the cockpit instead of a component-local heuristic. */
+const StatusPill: React.FC<{
+  label: string;
+  bg: string;
+  fg: string;
+  dot: string;
+  pulse?: boolean;
+}> = ({ label, bg, fg, dot, pulse }) => (
+  <Stack
+    direction="row"
+    alignItems="center"
+    spacing={0.6}
+    sx={{
+      display: "inline-flex",
+      px: 1.1,
+      py: "4px",
+      borderRadius: "999px",
+      bgcolor: bg,
+      lineHeight: 1,
+      transition: "transform 0.14s ease",
+      "&:hover": { transform: "scale(1.03)" },
+    }}
+  >
     <Box
-      component="span"
-      sx={{
-        display: "inline-block",
-        px: 1,
-        py: "3px",
-        borderRadius: "6px",
-        fontSize: 11.5,
-        fontWeight: 700,
-        whiteSpace: "nowrap",
-        bgcolor: p.bg,
-        color: p.fg,
-      }}
-    >
+      className={pulse ? "status-pulse-dot" : undefined}
+      sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: dot, flexShrink: 0 }}
+    />
+    <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: fg, whiteSpace: "nowrap" }}>
       {label}
-    </Box>
-  );
-};
+    </Typography>
+  </Stack>
+);
 
-/** One label/value field in the summary strip, with an optional leading icon. */
+/** One label/value field in the summary strip, with an optional leading icon.
+ * `dense` shrinks the caption for the secondary (meta/timestamps) row so it
+ * reads as subordinate to the primary identity/status row above it. */
 const Field: React.FC<{
   label: string;
   icon?: React.ReactNode;
+  dense?: boolean;
   children: React.ReactNode;
-}> = ({ label, icon, children }) => (
+}> = ({ label, icon, dense, children }) => (
   <Box>
-    <Stack direction="row" alignItems="center" spacing={0.4}>
+    <Stack direction="row" alignItems="center" spacing={0.35}>
       {icon}
       <Typography
         sx={{
-          fontSize: 9,
+          fontSize: dense ? 8 : 9,
           textTransform: "uppercase",
           letterSpacing: 0.5,
           fontWeight: 800,
           color: "inherit",
-          opacity: 0.6,
+          opacity: dense ? 0.5 : 0.6,
         }}
       >
         {label}
       </Typography>
     </Stack>
-    <Box sx={{ mt: 0.25 }}>{children}</Box>
+    <Box sx={{ mt: dense ? 0.15 : 0.35 }}>{children}</Box>
   </Box>
+);
+
+const Divider: React.FC<{ colors: Colors; height?: number }> = ({ colors, height = 26 }) => (
+  <Box sx={{ width: "1px", height, bgcolor: colors.border, flexShrink: 0 }} />
 );
 
 /** Extra CRQ-provided fields (department/support group/category) shown under
@@ -95,7 +119,6 @@ const Field: React.FC<{
 const EXTRA_FIELD_LABELS: Array<[key: string, label: string]> = [
   ["assignedDepartment", "Assigned Department"],
   ["supportGroupName", "Support Group"],
-  ["assignedGroup", "Assigned Group"],
   ["categorizationTier_1", "Category"],
 ];
 
@@ -107,7 +130,6 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
   colors,
 }) => {
   const c = crq as any;
-  const [copied, setCopied] = useState(false);
   const currentStage = WORKFLOW_STAGES[currentStageIndex];
 
   const currentHistoryEntry = crq.history?.find((h) => h.current) ?? null;
@@ -146,96 +168,150 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
 
   const extraField = EXTRA_FIELD_LABELS.find(([key]) => typeof c[key] === "string" && c[key].trim());
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(crq.crqNo);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // Clipboard API unavailable - no-op.
-    }
-  };
+  const crqStatusState = classifyStatusValue(c.crqStatus);
+  const crqStatusPill = stageStatePalette(crqStatusState, colors);
+
+  const currentStageState = resolveStageState(crq, currentStageIndex, currentStageIndex);
+  const currentStagePill = stageStatePalette(currentStageState, colors);
 
   return (
-    <Box sx={{ bgcolor: colors.surface, borderBottom: `1px solid ${colors.border}`, px: 2, py: 1 }}>
+    <Box
+      sx={{
+        bgcolor: colors.surface,
+        borderBottom: `1px solid ${colors.border}`,
+        boxShadow: colors.shadowCard,
+        px: 2.25,
+        py: 0.85,
+        position: "relative",
+        zIndex: 1,
+        "&::before": {
+          content: '""',
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          height: 2,
+          background: `linear-gradient(90deg, ${colors.accent}, transparent 65%)`,
+        },
+      }}
+    >
+      {/* Single row - identity, live status/stage, ownership and timestamps
+          all in one line. Overflows horizontally (rather than wrapping) so
+          it never grows into a second row. */}
       <Stack
         direction="row"
         alignItems="center"
-        spacing={1.75}
-        flexWrap="wrap"
-        useFlexGap
-        sx={{ rowGap: 0.75, color: colors.textPrimary }}
+        spacing={1.35}
+        flexWrap="nowrap"
+        sx={{
+          color: colors.textPrimary,
+          overflowX: "auto",
+          overflowY: "hidden",
+          scrollbarWidth: "thin",
+          "&::-webkit-scrollbar": { height: 4 },
+          "& > *": { flexShrink: 0 },
+        }}
       >
-        <Box>
-          <Typography
-            sx={{
-              fontSize: 9,
-              textTransform: "uppercase",
-              letterSpacing: 0.6,
-              color: colors.textDim,
-              fontWeight: 800,
-            }}
-          >
-            Change Request
-          </Typography>
-          <Stack direction="row" alignItems="center" spacing={0.4}>
-            <Typography sx={{ fontFamily: "monospace", fontSize: 15, fontWeight: 700 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            gap: 0.7,
+            pl: 0.8,
+            pr: 0.8,
+            py: 0.35,
+            borderRadius: colors.radiusL,
+            bgcolor: colors.accentDim,
+            border: `1px solid ${colors.accentBorder}`,
+          }}
+        >
+          <Avatar sx={{ width: 25, height: 25, bgcolor: colors.accent, color: colors.surface }}>
+            <AssignmentRoundedIcon sx={{ fontSize: 13.5 }} />
+          </Avatar>
+          <Box>
+            <Typography
+              sx={{
+                fontSize: 8,
+                textTransform: "uppercase",
+                letterSpacing: 0.6,
+                color: colors.accent,
+                fontWeight: 800,
+                opacity: 0.85,
+                lineHeight: 1.25,
+              }}
+            >
+              Change Request
+            </Typography>
+            <Typography sx={{ fontFamily: "monospace", fontSize: 14, fontWeight: 800, letterSpacing: 0.2, lineHeight: 1.2 }}>
               {crq.crqNo}
             </Typography>
-            <Tooltip title={copied ? "Copied!" : "Copy CRQ number"} arrow>
-              <IconButton
-                size="small"
-                onClick={handleCopy}
-                sx={{ p: "2px", color: colors.textDim, "&:hover": { color: colors.accent } }}
-                aria-label="Copy CRQ number"
-              >
-                {copied ? (
-                  <CheckRoundedIcon sx={{ fontSize: 13, color: colors.success }} />
-                ) : (
-                  <ContentCopyRoundedIcon sx={{ fontSize: 12 }} />
-                )}
-              </IconButton>
-            </Tooltip>
-          </Stack>
+          </Box>
         </Box>
 
-        <Box sx={{ width: "1px", height: 26, bgcolor: colors.border }} />
+        <Divider colors={colors} />
 
-        <Field label="CRQ Status">
-          <StatusChip label={c.crqStatus ?? "—"} colors={colors} />
-        </Field>
+        <Tooltip title={`CRQ Status: ${c.crqStatus || "—"}`} arrow>
+          <span>
+            <StatusPill
+              label={c.crqStatus || "—"}
+              bg={crqStatusPill.bg}
+              fg={crqStatusPill.fg}
+              dot={crqStatusPill.dot}
+              pulse={crqStatusState === "in_progress"}
+            />
+          </span>
+        </Tooltip>
 
-        <Field label="Current Stage">
-          <StatusChip label={currentStage.label} colors={colors} />
-        </Field>
+        <ArrowForwardRoundedIcon sx={{ fontSize: 13, color: colors.textDim, opacity: 0.4 }} />
 
-        <Field label="Assigned Engineer" icon={<PersonOutlineRoundedIcon sx={{ fontSize: 12, color: colors.textDim }} />}>
-          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{engineer ?? "—"}</Typography>
-        </Field>
+        <Tooltip title={`Current Stage: ${currentStage.label} (Stage ${currentStageIndex + 1} of ${WORKFLOW_STAGES.length})`} arrow>
+          <span>
+            <StatusPill
+              label={currentStage.label}
+              bg={currentStagePill.bg}
+              fg={currentStagePill.fg}
+              dot={currentStagePill.dot}
+              pulse={currentStageState === "in_progress"}
+            />
+          </span>
+        </Tooltip>
+
+        <Divider colors={colors} />
 
         {extraField && (
-          <Field label={extraField[1]} icon={<ApartmentRoundedIcon sx={{ fontSize: 12, color: colors.textDim }} />}>
-            <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>{c[extraField[0]]}</Typography>
-          </Field>
+          <>
+            <Box sx={{ flexShrink: 0 }}>
+              <Field label={extraField[1]} icon={<ApartmentRoundedIcon sx={{ fontSize: 11, color: colors.textDim }} />}>
+                <Tooltip title={c[extraField[0]]} arrow>
+                  <Typography noWrap sx={{ fontSize: 12, fontWeight: 700, maxWidth: 140 }}>
+                    {c[extraField[0]]}
+                  </Typography>
+                </Tooltip>
+              </Field>
+            </Box>
+            <Divider colors={colors} />
+          </>
         )}
 
-        <Field label="Raised" icon={<CalendarTodayRoundedIcon sx={{ fontSize: 11, color: colors.textDim }} />}>
-          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>
-            {formatDate(crq.crqRaisedDate) ?? "—"}
-          </Typography>
-        </Field>
+        <Box sx={{ flexShrink: 0 }}>
+          <Field dense label="Raised Date" icon={<CalendarTodayRoundedIcon sx={{ fontSize: 10, color: colors.textDim }} />}>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+              {formatDate(crq.crqRaisedDate) ?? "—"}
+            </Typography>
+          </Field>
+        </Box>
 
-        <Field label="Last Updated" icon={<UpdateRoundedIcon sx={{ fontSize: 11, color: colors.textDim }} />}>
-          <Typography sx={{ fontSize: 12.5, fontWeight: 700 }}>
-            {lastUpdatedDate ? format(lastUpdatedDate, "dd-MMM-yyyy HH:mm") : "—"}
-          </Typography>
-        </Field>
+       
 
-        <Field label="Execution Window">
-          <Typography sx={{ fontSize: 12.5, fontWeight: 700, whiteSpace: "nowrap" }}>
-            {formatDate(c.activityPlanStartDate) ?? "—"} → {formatDate(c.activityPlanEndDate) ?? "—"}
-          </Typography>
-        </Field>
+        <Divider colors={colors} height={18} />
+
+        <Box sx={{ flexShrink: 0 }}>
+          <Field dense label="Execution Window" icon={<ScheduleRoundedIcon sx={{ fontSize: 10, color: colors.textDim }} />}>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>
+              {formatDate(c.activityPlanStartDate) ?? "—"} → {formatDate(c.activityPlanEndDate) ?? "—"}
+            </Typography>
+          </Field>
+        </Box>
       </Stack>
     </Box>
   );

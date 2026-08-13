@@ -8,6 +8,7 @@ import { RosterDayHeaderCell } from "../components/table/RosterDayHeaderCell";
 import { RosterEmployeeHeaderCell } from "../components/table/RosterEmployeeHeaderCell";
 import {
   RosterEmptyRow,
+  RosterNotGeneratedPlaceholder,
   SelectFilterPlaceholder,
 } from "../components/table/RosterTableStates";
 import { ShiftLegend } from "../components/ShiftLegend";
@@ -133,9 +134,7 @@ export const MonthlyRosterMain = ({
   /* ── Guards ─────────────────────────────────────────────────────────── */
   if (shouldSkip) return <SelectFilterPlaceholder />;
   if (isError || data?.success === false)
-    return (
-      <Alert severity="error">Roster not generated for selected range</Alert>
-    );
+    return <RosterNotGeneratedPlaceholder />;
   if (!users.length)
     return (
       <Alert severity="info">No roster available for selected range</Alert>

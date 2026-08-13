@@ -12,102 +12,193 @@ import PageLoader from "../components/loading/PageLoader";
 // makes this work with no new boundaries needed. Named exports from a
 // feature's barrel `index.ts` resolve to the same dynamic import
 // specifier, so the bundler still only fetches one chunk per feature.
-const TeamManagementPage = lazy(() => import("../features/teamManagement/pages/TeamManagementPage"));
+const TeamManagementPage = lazy(
+  () => import("../features/teamManagement/pages/TeamManagementPage"),
+);
 const TeamManagementMain = lazy(() =>
-  import("../features/teamManagement/pages/TeamManagementMain").then((m) => ({ default: m.TeamManagementMain })),
+  import("../features/teamManagement/pages/TeamManagementMain").then((m) => ({
+    default: m.TeamManagementMain,
+  })),
 );
-const DashboardViewPage = lazy(() => import("../features/dashboard/pages/DashboardPage"));
-const MonthlyRosterPageTab = lazy(() => import("../features/roster/page/MonthlyRosterPageTab"));
+const DashboardViewPage = lazy(
+  () => import("../features/dashboard/pages/DashboardPage"),
+);
+const MonthlyRosterPageTab = lazy(
+  () => import("../features/roster/page/MonthlyRosterPageTab"),
+);
 const RosterViewMain = lazy(() =>
-  import("../features/roster/page/RosterViewMain").then((m) => ({ default: m.RosterViewMain })),
+  import("../features/roster/page/RosterViewMain").then((m) => ({
+    default: m.RosterViewMain,
+  })),
 );
-const UserMeMainPageTab = lazy(() => import("../features/userMe/pages/UserMeMainPageTab"));
+const UserMeMainPageTab = lazy(
+  () => import("../features/userMe/pages/UserMeMainPageTab"),
+);
 const UserRosterMain = lazy(() =>
-  import("../features/userMe/pages/UserRosterMain").then((m) => ({ default: m.UserRosterMain })),
+  import("../features/userMe/pages/UserRosterMain").then((m) => ({
+    default: m.UserRosterMain,
+  })),
 );
 const InboxPageTab = lazy(() => import("../features/inbox/InboxPageTab"));
 const TaskInbox = lazy(() => import("../features/inbox/components/TaskInbox"));
-const SchedulerMainTab = lazy(() => import("../features/scheduler/page/SchedulerMainTab"));
-const NotificationManagerMain = lazy(() => import("../features/userMe/pages/NotificationManagerMain"));
+const SchedulerMainTab = lazy(
+  () => import("../features/scheduler/page/SchedulerMainTab"),
+);
+const NotificationManagerMain = lazy(
+  () => import("../features/userMe/pages/NotificationManagerMain"),
+);
 const UserLeaveSectionMain = lazy(() =>
-  import("../features/userMe/pages/UserLeaveSectionMain").then((m) => ({ default: m.UserLeaveSectionMain })),
+  import("../features/userMe/pages/UserLeaveSectionMain").then((m) => ({
+    default: m.UserLeaveSectionMain,
+  })),
 );
 const CrqDetailedView = lazy(() =>
-  import("../features/scheduler/components/plan-and-inventory/CrqDetailedView").then((m) => ({
-    default: m.CrqDetailedView,
-  })),
+  import("../features/scheduler/components/plan-and-inventory/CrqDetailedView").then(
+    (m) => ({
+      default: m.CrqDetailedView,
+    }),
+  ),
 );
 const RosterGenerationMain = lazy(() =>
-  import("../features/rosterGenerator/pages/RosterGenerationMain").then((m) => ({
-    default: m.RosterGenerationMain,
+  import("../features/rosterGenerator/pages/RosterGenerationMain").then(
+    (m) => ({
+      default: m.RosterGenerationMain,
+    }),
+  ),
+);
+const UserManagementLayout = lazy(
+  () => import("../features/userManagement/layout/UserManagementLayout"),
+);
+const UserLogs = lazy(() =>
+  import("../features/userManagement/pages/UserLogs").then((m) => ({
+    default: m.UserLogs,
   })),
 );
-const UserManagementLayout = lazy(() => import("../features/userManagement/layout/UserManagementLayout"));
-const UserLogs = lazy(() =>
-  import("../features/userManagement/pages/UserLogs").then((m) => ({ default: m.UserLogs })),
+const NetworkManagementTabView = lazy(
+  () => import("../features/settings/page/NetworkManagementTabView"),
 );
-const NetworkManagementTabView = lazy(() => import("../features/settings/page/NetworkManagementTabView"));
 const Holidayandnetworkschedulemanagermain = lazy(
-  () => import("../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain"),
+  () =>
+    import("../features/settings/holiday/pages/Holidayandnetworkschedulemanagermain"),
 );
 const PlanViewAndSetup = lazy(() =>
-  import("../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup").then((m) => ({
-    default: m.PlanViewAndSetup,
+  import("../features/scheduler/sub-feature/planViewAndSetup/PlanViewAndSetup").then(
+    (m) => ({
+      default: m.PlanViewAndSetup,
+    }),
+  ),
+);
+const PlanViewAndSetupTab = lazy(
+  () => import("../features/scheduler/page/PlanViewAndSetupTab"),
+);
+const TaskConfigMain = lazy(() =>
+  import("../features/scheduler/sub-feature/taskConfig/TaskConfigMain").then(
+    (m) => ({ default: m.TaskConfigMain }),
+  ),
+);
+const ModernHomeDashboard = lazy(
+  () => import("../features/dashboard/pages/ModernHomeDashboard"),
+);
+const AdminSettingDashboard = lazy(() =>
+  import("../features/settings/globalAdminSetting").then((m) => ({
+    default: m.AdminSettingDashboard,
   })),
 );
-const PlanViewAndSetupTab = lazy(() => import("../features/scheduler/page/PlanViewAndSetupTab"));
-const TaskConfigMain = lazy(() =>
-  import("../features/scheduler/sub-feature/taskConfig/TaskConfigMain").then((m) => ({ default: m.TaskConfigMain })),
-);
-const ModernHomeDashboard = lazy(() => import("../features/dashboard/pages/ModernHomeDashboard"));
-const AdminSettingDashboard = lazy(() =>
-  import("../features/settings/globalAdminSetting").then((m) => ({ default: m.AdminSettingDashboard })),
-);
 const OrganizationConfigPage = lazy(() =>
-  import("../features/settings/orgConfig").then((m) => ({ default: m.OrganizationConfigPage })),
+  import("../features/settings/orgConfig").then((m) => ({
+    default: m.OrganizationConfigPage,
+  })),
 );
 // Hidden from tab + route (task planning page disabled)
 // const TaskPlanningMain = lazy(() => import("../features/scheduler/sub-feature/taskPlanning/TaskPlanningMain"));
 const CrqJourneyMain = lazy(() =>
-  import("../features/crqJourney/CrqJourneyMain").then((m) => ({ default: m.CrqJourneyMain })),
+  import("../features/crqJourney/CrqJourneyMain").then((m) => ({
+    default: m.CrqJourneyMain,
+  })),
 );
 const PlanAndInventoryMain = lazy(() =>
-  import("../features/scheduler/page/SchedulerWorkflowMain").then((m) => ({ default: m.PlanAndInventoryMain })),
+  import("../features/scheduler/page/SchedulerWorkflowMain").then((m) => ({
+    default: m.PlanAndInventoryMain,
+  })),
 );
 
 // Cab Manager pages
-const CabDashboardPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabDashboardPage })));
-const AllCrqsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.AllCrqsPage })));
-const MyCrqsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.MyCrqsPage })));
-const CabPlanningPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabPlanningPage })));
-const CabSessionsPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.CabSessionsPage })));
-const ImplementationPage = lazy(() =>
-  import("../features/cabManager").then((m) => ({ default: m.ImplementationPage })),
+const CabDashboardPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({
+    default: m.CabDashboardPage,
+  })),
 );
-const AdminPage = lazy(() => import("../features/cabManager").then((m) => ({ default: m.AdminPage })));
-const CabManagerMainPageTab = lazy(() => import("../features/cabManager/pages/CabManagerMainPageTab"));
-const CrqJourneyPage = lazy(() => import("../features/crqJourney").then((m) => ({ default: m.CrqJourneyPage })));
-const UserManagement = lazy(() => import("../features/userManagement/components/UserManagement"));
+const AllCrqsPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({ default: m.AllCrqsPage })),
+);
+const MyCrqsPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({ default: m.MyCrqsPage })),
+);
+const CabPlanningPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({
+    default: m.CabPlanningPage,
+  })),
+);
+const CabSessionsPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({
+    default: m.CabSessionsPage,
+  })),
+);
+const ImplementationPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({
+    default: m.ImplementationPage,
+  })),
+);
+const AdminPage = lazy(() =>
+  import("../features/cabManager").then((m) => ({ default: m.AdminPage })),
+);
+const CabManagerMainPageTab = lazy(
+  () => import("../features/cabManager/pages/CabManagerMainPageTab"),
+);
+const CrqJourneyPage = lazy(() =>
+  import("../features/crqJourney").then((m) => ({ default: m.CrqJourneyPage })),
+);
+const UserManagement = lazy(
+  () => import("../features/userManagement/components/UserManagement"),
+);
 const AnalyticsMainPageTab = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsMainPageTab })),
+  import("../features/crqAnalytics").then((m) => ({
+    default: m.AnalyticsMainPageTab,
+  })),
 );
 const AnalyticsDashboardPage = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsDashboardPage })),
+  import("../features/crqAnalytics").then((m) => ({
+    default: m.AnalyticsDashboardPage,
+  })),
 );
 const CrqAnalyticsPage = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({ default: m.CrqAnalyticsPage })),
+  import("../features/crqAnalytics").then((m) => ({
+    default: m.CrqAnalyticsPage,
+  })),
 );
 const AnalyticsReportsPage = lazy(() =>
-  import("../features/crqAnalytics").then((m) => ({ default: m.AnalyticsReportsPage })),
+  import("../features/crqAnalytics").then((m) => ({
+    default: m.AnalyticsReportsPage,
+  })),
 );
-const DataAgentPage = lazy(() => import("../features/dataAgent/pages/DataAgentPage"));
+const DataAgentPage = lazy(
+  () => import("../features/dataAgent/pages/DataAgentPage"),
+);
 const SftpManagementMainPageTab = lazy(() =>
-  import("../features/sftpManagement").then((m) => ({ default: m.SftpManagementMainPageTab })),
+  import("../features/sftpManagement").then((m) => ({
+    default: m.SftpManagementMainPageTab,
+  })),
 );
 const WindowsSftpPage = lazy(() =>
-  import("../features/sftpManagement").then((m) => ({ default: m.WindowsSftpPage })),
+  import("../features/sftpManagement").then((m) => ({
+    default: m.WindowsSftpPage,
+  })),
 );
-const LinuxSftpPage = lazy(() => import("../features/sftpManagement").then((m) => ({ default: m.LinuxSftpPage })));
+const LinuxSftpPage = lazy(() =>
+  import("../features/sftpManagement").then((m) => ({
+    default: m.LinuxSftpPage,
+  })),
+);
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
