@@ -39,6 +39,10 @@ interface Props {
   crqNo: string | null;
   crqId: string | null;
   isCancelled: boolean;
+  /** Review outcome for this CRQ is already recorded (Done) - Pass/Failed/
+   * Cancelled and Submit are disabled, same as isCancelled, but this gets
+   * its own alert copy since the CRQ itself isn't cancelled. */
+  isDone: boolean;
   panelOpen: boolean;
   colors: ThemeColors;
   setPanelOpen: (v: boolean) => void;
@@ -52,6 +56,7 @@ export const FormPanel: React.FC<Props> = ({
   crqNo,
   crqId,
   isCancelled,
+  isDone,
   panelOpen,
   colors,
   setPanelOpen,
@@ -61,6 +66,7 @@ export const FormPanel: React.FC<Props> = ({
   const theme = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
+  const isLocked = isCancelled || isDone;
 
   const {
     control,
@@ -222,6 +228,18 @@ export const FormPanel: React.FC<Props> = ({
                 </Alert>
               </Collapse>
 
+              {/* Already-reviewed CRQ alert */}
+              <Collapse in={isDone && !isCancelled} unmountOnExit>
+                <Alert
+                  severity="success"
+                  icon={<CheckCircleOutlineIcon fontSize="small" />}
+                  sx={{ borderRadius: 2, fontSize: 13 }}
+                >
+                  This CRQ's review is already <strong>Completed</strong>. The
+                  recorded outcome is shown below, read-only.
+                </Alert>
+              </Collapse>
+
               {/* Submission error */}
               <Collapse in={Boolean(submissionError)} unmountOnExit>
                 <Alert severity="error" sx={{ borderRadius: 2, fontSize: 13 }}>
@@ -275,18 +293,18 @@ export const FormPanel: React.FC<Props> = ({
                             key={opt.value}
                             selected={selected}
                             accent={color}
-                            isDisabled={isCancelled}
+                            isDisabled={isLocked}
                             onClick={() =>
-                              !isCancelled && field.onChange(opt.value)
+                              !isLocked && field.onChange(opt.value)
                             }
                             role="radio"
                             aria-checked={selected}
-                            aria-disabled={isCancelled}
-                            tabIndex={isCancelled ? -1 : 0}
+                            aria-disabled={isLocked}
+                            tabIndex={isLocked ? -1 : 0}
                             onKeyDown={(e) => {
                               if (
                                 (e.key === "Enter" || e.key === " ") &&
-                                !isCancelled
+                                !isLocked
                               ) {
                                 e.preventDefault();
                                 field.onChange(opt.value);
@@ -463,7 +481,7 @@ export const FormPanel: React.FC<Props> = ({
                                 selected={field.value === opt.value}
                                 accent={colors.accent}
                                 onClick={() =>
-                                  !isCancelled && field.onChange(opt.value)
+                                  !isLocked && field.onChange(opt.value)
                                 }
                                 role="radio"
                                 aria-checked={field.value === opt.value}
@@ -471,7 +489,7 @@ export const FormPanel: React.FC<Props> = ({
                                 onKeyDown={(e) => {
                                   if (e.key === "Enter" || e.key === " ") {
                                     e.preventDefault();
-                                    !isCancelled && field.onChange(opt.value);
+                                    !isLocked && field.onChange(opt.value);
                                   }
                                 }}
                               >
@@ -492,7 +510,7 @@ export const FormPanel: React.FC<Props> = ({
                         <FormControl
                           size="small"
                           fullWidth
-                          disabled={isCancelled}
+                          disabled={isLocked}
                           error={Boolean(errors.field1)}
                         >
                           <InputLabel
@@ -524,7 +542,7 @@ export const FormPanel: React.FC<Props> = ({
                         <FormControl
                           size="small"
                           fullWidth
-                          disabled={isCancelled}
+                          disabled={isLocked}
                           error={Boolean(errors.cancellationReason)}
                         >
                           <InputLabel
@@ -559,7 +577,7 @@ export const FormPanel: React.FC<Props> = ({
                       size="small"
                       fullWidth
                       value={rollbackOwner}
-                      disabled={isCancelled}
+                      disabled={isLocked}
                       helperText="Auto-populated from selected reason"
                       InputProps={{
                         readOnly: true,
@@ -592,7 +610,7 @@ export const FormPanel: React.FC<Props> = ({
                       render={({ field }) => (
                         <TextField
                           {...field}
-                          disabled={isCancelled}
+                          disabled={isLocked}
                           size="small"
                           fullWidth
                           label="Remedy Remark *"
@@ -650,7 +668,7 @@ export const FormPanel: React.FC<Props> = ({
             <Button
               type="submit"
               variant="contained"
-              disabled={isSubmitting || !isDirty || isCancelled}
+              disabled={isSubmitting || !isDirty || isLocked}
               aria-label={
                 isSubmitting ? "Submitting validation" : "Submit validation"
               }

@@ -30,6 +30,7 @@ import type { StageKey } from "../../types/stageWorkflow.types";
 import type { RootState } from "../../../../app/store";
 import {
   WORKFLOW_STAGES,
+  classifyStatusValue,
   getStageSummaryFields,
   resolveCurrentStageIndex,
   type WorkflowStageId,
@@ -246,6 +247,14 @@ export const CrqDetailedView: React.FC = () => {
   const stageMode: StageMode =
     selectedStageIndex === currentStageIndex ? "editable" : selectedStageIndex < currentStageIndex ? "view" : "locked";
 
+  // Whole CRQ (not just the selected stage) already closed out - record-level
+  // actions that mutate or re-open the CRQ (Attribute Update, CRQ Details) no
+  // longer make sense once there's nothing left to act on. The Review action
+  // stays enabled so the recorded outcome can still be inspected; the dialog
+  // it opens locks its own fields via the same check (see PlanInvDialog /
+  // StageReviewDialog's isDone).
+  const isCrqDone = classifyStatusValue(selectedCrq?.crqStatus) === "completed";
+
   const isReviewStage = selectedStageId === "review";
   const activeStageWorkflow = !isReviewStage ? stageWorkflows[selectedStageId as StageKey] : null;
   // Live status of the selected stage: the history entry (authoritative,
@@ -401,7 +410,7 @@ export const CrqDetailedView: React.FC = () => {
               key: "validate",
               label: "Validate",
               icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} />,
-              disabled: !selectedCrq || stageMode !== "editable",
+              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
               onClick: () => setValidateOpen(true),
             } satisfies CRQAction,
           ]
@@ -410,14 +419,14 @@ export const CrqDetailedView: React.FC = () => {
         key: "attribute-update",
         label: "Attribute Update",
         icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
-        disabled: !selectedCrq,
+        disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
         onClick: () => selectedCrq && openAttributeUpdate(selectedCrq),
       },
       {
         key: "show-prev-crq-status",
         label: "CRQ Details",
         icon: <VisibilityIcon sx={{ fontSize: 16 }} />,
-        disabled: !selectedCrq,
+        disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
         onClick: handleShowPrevCrqStatus,
       },
       // Scheduling and Network Execution only: these are the two stages where an
@@ -430,7 +439,7 @@ export const CrqDetailedView: React.FC = () => {
               key: "reschedule",
               label: "Reschedule",
               icon: <EventRepeatRoundedIcon sx={{ fontSize: 16 }} />,
-              disabled: !selectedCrq,
+              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
               onClick: () => setRescheduleOpen(true),
             } satisfies CRQAction,
           ]
@@ -441,6 +450,7 @@ export const CrqDetailedView: React.FC = () => {
       isReviewStage,
       stageMode,
       selectedStageId,
+      isCrqDone,
       canReschedule,
       openAttributeUpdate,
       handleShowPrevCrqStatus,
