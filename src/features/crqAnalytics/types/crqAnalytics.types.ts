@@ -34,8 +34,8 @@ export interface CRQWorkflowStageDto {
 }
 
 export interface CRQSlaDomainDto {
-  domain: string;
-  score: number;
+  stageName: string;
+  slaBreachCount: number;
 }
 
 export interface CRQRejectionReasonDto {

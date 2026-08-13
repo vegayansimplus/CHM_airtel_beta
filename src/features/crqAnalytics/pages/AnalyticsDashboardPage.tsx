@@ -72,7 +72,7 @@ export default function AnalyticsDashboardPage() {
             <Collapse in={activePanel !== null} unmountOnExit>
               <ChartCard
                 title={
-                  activePanel === "rejected" ? "Rejection Reasons" : activePanel === "sla" ? "SLA Score by Domain" : "Workflow Stage Breakdown"
+                  activePanel === "rejected" ? "Rejection Reasons" : activePanel === "sla" ? "SLA Breaches by Stage" : "Workflow Stage Breakdown"
                 }
                 height="auto"
               >
@@ -85,8 +85,8 @@ export default function AnalyticsDashboardPage() {
                 {activePanel === "sla" && (
                   <Box sx={{ height: 280 }}>
                     <BarChartCard
-                      labels={data.slaDomains.map((d) => d.domain)}
-                      series={[{ label: "SLA Score", data: data.slaDomains.map((d) => d.score), color: seriesColor("slaScore", isDark) }]}
+                      labels={data.slaDomains.map((d) => d.stageName)}
+                      series={[{ label: "SLA Breaches", data: data.slaDomains.map((d) => d.slaBreachCount), color: seriesColor("slaBreach", isDark) }]}
                       isLoading={isFetching}
                       onBarClick={drillToStage}
                     />
