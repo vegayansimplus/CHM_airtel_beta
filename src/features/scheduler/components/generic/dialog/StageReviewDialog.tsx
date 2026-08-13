@@ -4,6 +4,7 @@ import CloseIcon from "@mui/icons-material/Close";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 import { GenericFormPanel } from "./GenericFormPanel";
 import { StagePreviewPanel } from "./StagePreviewPanel";
+import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
 
 interface StageReviewDialogProps {
@@ -38,6 +39,17 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
   const crqNo = crq?.crqNo ?? null;
   const crqStatus = crq?.crqStatus ?? crq?.status ?? null;
   const isCancelled = CANCELLED_STATUSES.includes(crqStatus ?? "");
+  // This stage's own outcome already recorded (Done), or the CRQ itself has
+  // closed out entirely - either way, re-opening the Review dialog from a
+  // "view" mode CrqActionPanel must let the user see what was submitted
+  // without letting them resubmit it. crq.history[] (CRQ_MASTER_TBL,
+  // authoritative) is checked first - the legacy per-stage status field is
+  // only a fallback for responses that don't carry history[], and can lag
+  // behind it once a CRQ has migrated onto the new model.
+  const stageHistoryStatus = findHistoryEntry(crq, stageConfig.key)?.status;
+  const isDone =
+    classifyStatusValue(stageHistoryStatus ?? crq?.[stageConfig.statusField]) === "completed" ||
+    classifyStatusValue(crqStatus) === "completed";
 
   useEffect(() => {
     if (isSmall) setPanelOpen(false);
@@ -82,6 +94,7 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
           crq={crq}
           stageConfig={stageConfig}
           isCancelled={isCancelled}
+          isDone={isDone}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
           colors={colors}

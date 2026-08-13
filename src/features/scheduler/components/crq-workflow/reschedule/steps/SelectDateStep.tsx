@@ -21,35 +21,33 @@ export const SelectDateStep: React.FC<{ wizard: RescheduleWizard; colors: Colors
   wizard,
   colors,
 }) => {
-  const {
-    calendar,
-    isCalendarLoading,
-    calendarError,
-    refreshCalendar,
-    desiredDate,
-    setDesiredDate,
-  } = wizard;
+  const { calendar, isCalendarLoading, refreshCalendar, desiredDate, setDesiredDate } = wizard;
 
   if (isCalendarLoading && !calendar) return <StepSkeleton rows={2} height={120} />;
 
-  if (calendarError && !calendar) {
+  // Jumping here directly (or a scheduling-engine hiccup on refresh) can
+  // leave the calendar unavailable - show a neutral prompt to (re)load it
+  // rather than surfacing the backend's own error text.
+  if (!calendar) {
     return (
-      <Box>
-        <Alert
-          severity="error"
-          action={
-            <Button size="small" onClick={() => refreshCalendar()} startIcon={<RefreshRoundedIcon />}>
-              Retry
-            </Button>
-          }
+      <Box sx={{ textAlign: "center", py: 5 }}>
+        <CalendarMonthRoundedIcon sx={{ fontSize: 26, color: colors.textDim, mb: 1 }} />
+        <Typography sx={{ fontSize: 12.5, color: colors.textDim, mb: 1.5 }}>
+          The scheduling calendar isn't loaded for this step yet.
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={() => refreshCalendar()}
+          disabled={isCalendarLoading}
+          startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
+          sx={{ textTransform: "none", fontWeight: 700 }}
         >
-          {calendarError}
-        </Alert>
+          Load Calendar
+        </Button>
       </Box>
     );
   }
-
-  if (!calendar) return null;
 
   const noSelectableWindow = !calendar.startDate || calendar.startDate === calendar.endDate;
 

@@ -156,41 +156,77 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
             <UtilityActionButton key={action.key} action={action} colors={colors} />
           ))}
 
-          {mode === "editable" && (
+          {mode === "locked" && (
+            <Chip
+              label="Not reached"
+              size="small"
+              sx={{
+                height: 28,
+                fontWeight: 800,
+                fontSize: 12,
+                px: 0.5,
+                bgcolor: colors.trackOff,
+                color: colors.textDim,
+              }}
+            />
+          )}
+
+          {mode === "view" && (
+            <Chip
+              label="✓ Completed"
+              size="small"
+              sx={{
+                height: 28,
+                fontWeight: 800,
+                fontSize: 12,
+                px: 0.5,
+                bgcolor: colors.successDim,
+                color: colors.success,
+              }}
+            />
+          )}
+
+          {(mode === "editable" || mode === "view") && (
             <>
               <Divider
                 orientation="vertical"
                 flexItem
                 sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
               />
-              <Button
-                variant="contained"
-                size="small"
-                disabled={isBusy}
-                onClick={onStartPause}
-                startIcon={
-                  isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
-                }
-                sx={{
-                  height: 34,
-                  textTransform: "none",
-                  fontWeight: 700,
-                  fontSize: 13,
-                  borderRadius: "8px",
-                  px: 2.2,
-                  boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
-                  border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
-                  background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
-                  color: isRunning ? colors.danger : "#fff",
-                  "&:hover": {
-                    boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
-                    background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
-                    transform: "translateY(-1px)",
-                  },
-                }}
-              >
-                {isRunning ? "Pause" : "Start Stage"}
-              </Button>
+              {mode === "editable" && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  disabled={isBusy}
+                  onClick={onStartPause}
+                  startIcon={
+                    isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
+                  }
+                  sx={{
+                    height: 34,
+                    textTransform: "none",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    borderRadius: "8px",
+                    px: 2.2,
+                    boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
+                    border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
+                    background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
+                    color: isRunning ? colors.danger : "#fff",
+                    "&:hover": {
+                      boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
+                      background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
+                      transform: "translateY(-1px)",
+                    },
+                  }}
+                >
+                  {isRunning ? "Pause" : "Start Stage"}
+                </Button>
+              )}
+              {/* Stays clickable on a completed (view-mode) stage too, so the
+                  outcome that was already recorded can still be opened -
+                  GenericFormPanel/FormPanel disable the Pass/Failed/Cancelled
+                  actions inside once they see the stage is already Done. */}
               <Button
                 variant="outlined"
                 size="small"
@@ -213,21 +249,6 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
                 Review {stageLabel}
               </Button>
             </>
-          )}
-
-          {mode !== "editable" && (
-            <Chip
-              label={mode === "view" ? "✓ Completed" : "Not reached"}
-              size="small"
-              sx={{
-                height: 28,
-                fontWeight: 800,
-                fontSize: 12,
-                px: 0.5,
-                bgcolor: mode === "view" ? colors.successDim : colors.trackOff,
-                color: mode === "view" ? colors.success : colors.textDim,
-              }}
-            />
           )}
         </Stack>
       </Stack>

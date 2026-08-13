@@ -24,6 +24,10 @@ interface GenericFormPanelProps {
   crq: any;
   stageConfig: StageConfig;
   isCancelled: boolean;
+  /** This stage's outcome is already recorded (Done) - Pass/Failed/Cancelled
+   * and Submit are disabled, same as isCancelled, but the CRQ itself is not
+   * cancelled so it gets its own alert copy below. */
+  isDone: boolean;
   panelOpen: boolean;
   colors: any;
   setPanelOpen: (v: boolean) => void;
@@ -41,6 +45,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   crq,
   stageConfig,
   isCancelled,
+  isDone,
   panelOpen,
   colors,
   setPanelOpen,
@@ -48,6 +53,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   onSubmitDone,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isLocked = isCancelled || isDone;
 
   const {
     control,
@@ -142,6 +148,12 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                 </Alert>
               </Collapse>
 
+              <Collapse in={isDone && !isCancelled} unmountOnExit>
+                <Alert severity="success" icon={<CheckCircleOutlineIcon fontSize="small" />}>
+                  This stage is already <strong>Completed</strong>. The recorded outcome is shown below, read-only.
+                </Alert>
+              </Collapse>
+
               {/* Outcome selector, built from stageConfig.statusOptions */}
               <Box>
                 <Typography
@@ -160,7 +172,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                         key={opt.value}
                         role="radio"
                         aria-checked={selected}
-                        onClick={() => !isCancelled && setValue("status", opt.value, { shouldDirty: true, shouldValidate: true })}
+                        onClick={() => !isLocked && setValue("status", opt.value, { shouldDirty: true, shouldValidate: true })}
                         sx={{
                           display: "flex",
                           alignItems: "flex-start",
@@ -170,8 +182,8 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                           border: "1.5px solid",
                           borderColor: selected ? color : colors.border,
                           bgcolor: selected ? alpha(color, 0.06) : colors.surface,
-                          cursor: isCancelled ? "not-allowed" : "pointer",
-                          opacity: isCancelled ? 0.5 : 1,
+                          cursor: isLocked ? "not-allowed" : "pointer",
+                          opacity: isLocked ? 0.5 : 1,
                         }}
                       >
                         <Icon sx={{ fontSize: 18, color: selected ? color : colors.textSecondary }} />
@@ -202,7 +214,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                   control={control}
                   errors={errors}
                   values={values}
-                  disabled={isCancelled}
+                  disabled={isLocked}
                 />
               ))}
             </Stack>
@@ -222,7 +234,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
               type="submit"
               variant="contained"
               fullWidth
-              disabled={isSubmitting || !isDirty || isCancelled}
+              disabled={isSubmitting || !isDirty || isLocked}
               startIcon={
                 isSubmitting ? (
                   <CircularProgress size={14} color="inherit" />

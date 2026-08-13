@@ -17,6 +17,7 @@ import { FormPanel } from "./FormPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import type { PlanInvDialogProps, ThemeColors } from "../../../types/crq.types";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
+import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
 
 export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   open,
@@ -36,6 +37,17 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   const isCancelled = ["canceled", "Cancel", "Canceled"].includes(
     crqStatus ?? "",
   );
+  // Plan & Inventory review already recorded (Done), or the CRQ itself has
+  // closed out entirely - either way, re-opening this dialog from a "view"
+  // mode CrqActionPanel must let the user see what was submitted without
+  // letting them resubmit it. crq.history[] (CRQ_MASTER_TBL, authoritative)
+  // is checked first - the legacy crqReviewStatus field is only a fallback
+  // for responses that don't carry history[], and can lag behind it once a
+  // CRQ has migrated onto the new model.
+  const reviewHistoryStatus = findHistoryEntry(crq, "review")?.status;
+  const isDone =
+    classifyStatusValue(reviewHistoryStatus ?? crq?.crqReviewStatus) === "completed" ||
+    classifyStatusValue(crqStatus) === "completed";
 
   // Safe color defaults mapping to theme
   const dialogColors: ThemeColors = {
@@ -89,6 +101,7 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           crqNo={crqNo}
           crqId={crqId}
           isCancelled={isCancelled}
+          isDone={isDone}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
           colors={dialogColors}

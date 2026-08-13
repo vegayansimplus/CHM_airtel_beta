@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 import {
-  useCancelRescheduleMutation,
   useConfirmRescheduleSlotMutation,
   useGetRescheduleContextQuery,
   useInitiateRescheduleMutation,
@@ -86,7 +85,6 @@ interface UseRescheduleWizardArgs {
   open: boolean;
   crqId: number | null;
   onCompleted?: () => void;
-  onClose: () => void;
 }
 
 /**
@@ -100,8 +98,12 @@ interface UseRescheduleWizardArgs {
  * the lazy calendar/slots endpoints fire only on an explicit Refresh, or when
  * an interrupted attempt is resumed and the step's data was never in memory.
  */
-export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRescheduleWizardArgs) {
+export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleWizardArgs) {
   const [step, setStep] = useState<number>(STEP_DETAILS);
+  // The furthest step reached this dialog session - the stepper only lets the
+  // user click into steps up to this point, never skip ahead of data that was
+  // never fetched.
+  const [furthestStep, setFurthestStep] = useState<number>(STEP_DETAILS);
   const [reason, setReason] = useState("");
   const [rescheduleId, setRescheduleId] = useState<number | null>(null);
   const [desiredDate, setDesiredDate] = useState<string | null>(null);
@@ -110,6 +112,10 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   const [confirmation, setConfirmation] = useState<RescheduleConfirmResponse | null>(null);
   const [stepError, setStepError] = useState<string | null>(null);
   const [resumed, setResumed] = useState(false);
+  // Where a previous session's still-open attempt should land once the user
+  // presses Continue on Details - every reopen shows Details first (never an
+  // auto skip-ahead) and only jumps once they choose to move on.
+  const [resumeTarget, setResumeTarget] = useState<number | null>(null);
   /**
    * True while the user is re-picking a date for an attempt whose stage move is
    * already committed, so submitDate re-cuts the offer window instead of
@@ -127,6 +133,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
 
   const resetAll = useCallback(() => {
     setStep(STEP_DETAILS);
+    setFurthestStep(STEP_DETAILS);
     setReason("");
     setRescheduleId(null);
     setDesiredDate(null);
@@ -135,6 +142,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     setConfirmation(null);
     setStepError(null);
     setResumed(false);
+    setResumeTarget(null);
     setReofferingDate(false);
     setCalendar(null);
     setCalendarError(null);
@@ -162,14 +170,12 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
   const [saveDate, { isLoading: isSavingDate }] = useSaveRescheduleDateMutation();
   const [moveStage, { isLoading: isMovingStage }] = useMoveRescheduleStageMutation();
   const [confirmSlot, { isLoading: isConfirming }] = useConfirmRescheduleSlotMutation();
-  const [cancelAttempt, { isLoading: isCancelling }] = useCancelRescheduleMutation();
 
   /* ── Refresh-only reads ───────────────────────────────────────────────── */
   const [fetchCalendar, { isFetching: isCalendarLoading }] = useLazyGetRescheduleCalendarQuery();
   const [fetchSlots, { isFetching: isSlotsLoading }] = useLazyGetRescheduleSlotsQuery();
 
-  const isBusy =
-    isInitiating || isSavingDate || isMovingStage || isConfirming || isCancelling;
+  const isBusy = isInitiating || isSavingDate || isMovingStage || isConfirming;
 
   /** Recompute the date window for the current attempt (no new attempt row). */
   const refreshCalendar = useCallback(
@@ -204,37 +210,50 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     [rescheduleId, fetchSlots],
   );
 
+  /** Moves the wizard forward and remembers this as the furthest point reached. */
+  const goToStep = useCallback((target: number) => {
+    setStep(target);
+    setFurthestStep((f) => Math.max(f, target));
+  }, []);
+
   // Adopt an attempt that a previous session left open instead of creating a
   // second one - CRQ_SP_RESCHEDULE_INITIATE would happily insert another row.
-  // Gated on still being on the opening step: every later write invalidates the
-  // context query, and a refetch must never yank the user back a step.
+  // Every reopen still shows Reschedule Details first; the step the attempt
+  // had actually reached is only applied once the user presses Continue.
   useEffect(() => {
     if (!open || resumed || step !== STEP_DETAILS || !context?.activeRescheduleId) return;
     const target = resumeStep(context.activeRescheduleStatus, context.activeDesiredDate);
     setRescheduleId(context.activeRescheduleId);
     setDesiredDate(context.activeDesiredDate ?? null);
     setToStage(context.activeToStage ?? null);
-    setStep(target);
+    setResumeTarget(target);
     setResumed(true);
-    // Resuming skips the call that would normally have supplied this step's
-    // data, so fetch just that one.
-    if (target === STEP_SLOT) void refreshSlots(context.activeRescheduleId);
-    else if (target === STEP_DATE) void refreshCalendar(context.activeRescheduleId);
-  }, [open, resumed, step, context, refreshCalendar, refreshSlots]);
+  }, [open, resumed, step, context]);
 
   const selectedSlot = useMemo(
     () => slots.find((s) => s.label === selectedSlotLabel) ?? null,
     [slots, selectedSlotLabel],
   );
 
-  /** Step 1 -> 2. Reuses the resumed attempt rather than opening a second one. */
+  /**
+   * Step 1 -> 2. Reuses the resumed attempt rather than opening a second one.
+   * A resumed attempt jumps straight to wherever it had actually reached
+   * (`resumeTarget`); one already advanced earlier this session just goes on
+   * to Select Date.
+   */
   const submitDetails = useCallback(async () => {
     if (!crqId) return;
     setStepError(null);
 
     if (rescheduleId) {
-      setStep(STEP_DATE);
-      if (!calendar) void refreshCalendar();
+      const target = resumeTarget ?? STEP_DATE;
+      setResumeTarget(null);
+      goToStep(target);
+      if (target === STEP_SLOT) {
+        if (slots.length === 0) void refreshSlots();
+      } else if (!calendar) {
+        void refreshCalendar();
+      }
       return;
     }
     try {
@@ -250,14 +269,14 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
       // fetch if the procedure could not compute it.
       if (res.startDate) setCalendar(toCalendarModel(res));
       else void refreshCalendar(res.rescheduleId);
-      setStep(STEP_DATE);
+      goToStep(STEP_DATE);
       if (res.status === "partial" && res.message) toast.warn(res.message);
     } catch (err) {
       const msg = errorMessage(err, "Reschedule could not be initiated.");
       setStepError(msg);
       toast.error(msg);
     }
-  }, [crqId, reason, rescheduleId, calendar, initiate, refreshCalendar]);
+  }, [crqId, reason, rescheduleId, resumeTarget, calendar, slots, initiate, refreshCalendar, refreshSlots, goToStep]);
 
   /** Step 2 -> 3. CRQ_SP_RESCHEDULE_SAVE_DATE re-validates the future date. */
   const submitDate = useCallback(async () => {
@@ -273,17 +292,17 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
         // CRQ_SP_RESCHEDULE_GET_SLOTS still accepts it.
         setReofferingDate(false);
         setSelectedSlotLabel(null);
-        setStep(STEP_SLOT);
+        goToStep(STEP_SLOT);
         await refreshSlots();
         return;
       }
-      setStep(STEP_STAGE);
+      goToStep(STEP_STAGE);
     } catch (err) {
       const msg = errorMessage(err, "The selected date could not be saved.");
       setStepError(msg);
       toast.error(msg);
     }
-  }, [rescheduleId, desiredDate, saveDate, reofferingDate, refreshSlots]);
+  }, [rescheduleId, desiredDate, saveDate, reofferingDate, refreshSlots, goToStep]);
 
   /**
    * Escape hatch from a slot step that came back empty. Sends the user back to
@@ -295,10 +314,10 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     setSlotsError(null);
     setSelectedSlotLabel(null);
     setReofferingDate(true);
-    setStep(STEP_DATE);
+    goToStep(STEP_DATE);
     // A resumed attempt reaches the slot step without ever loading a calendar.
     if (!calendar) void refreshCalendar();
-  }, [calendar, refreshCalendar]);
+  }, [calendar, refreshCalendar, goToStep]);
 
   /** Step 3 -> 4. Moves the CRQ and returns the offer window in one call. */
   const submitStage = useCallback(async () => {
@@ -309,7 +328,7 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
       setSlots(res.slots ?? []);
       setSlotsMessage(res.message ?? null);
       setSlotsError(null);
-      setStep(STEP_SLOT);
+      goToStep(STEP_SLOT);
       // The stage move committed even when the slot computation behind it did
       // not; the Slot step's own Refresh retries just that half.
       if (res.status === "partial" && res.message) toast.warn(res.message);
@@ -318,14 +337,14 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
       setStepError(msg);
       toast.error(msg);
     }
-  }, [rescheduleId, toStage, crqId, moveStage]);
+  }, [rescheduleId, toStage, crqId, moveStage, goToStep]);
 
   /** Step 4 -> 5. Purely local: nothing is reserved until Confirm. */
   const submitSlot = useCallback(() => {
     if (!selectedSlotLabel) return;
     setStepError(null);
-    setStep(STEP_CONFIRM);
-  }, [selectedSlotLabel]);
+    goToStep(STEP_CONFIRM);
+  }, [selectedSlotLabel, goToStep]);
 
   /** Step 5 -> Success. CRQ_SP_RESCHEDULE_CONFIRM_SLOT does all the writes. */
   const submitConfirm = useCallback(async () => {
@@ -334,40 +353,31 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     try {
       const res = await confirmSlot({ rescheduleId, slotLabel: selectedSlotLabel, crqId }).unwrap();
       setConfirmation(res);
-      setStep(STEP_SUCCESS);
+      goToStep(STEP_SUCCESS);
       onCompleted?.();
     } catch (err) {
       const msg = errorMessage(err, "The reschedule could not be confirmed.");
       setStepError(msg);
       toast.error(msg);
     }
-  }, [rescheduleId, selectedSlotLabel, crqId, confirmSlot, onCompleted]);
+  }, [rescheduleId, selectedSlotLabel, crqId, confirmSlot, onCompleted, goToStep]);
 
   /**
-   * Abandons the attempt. Only calls the procedure when an attempt row exists -
-   * backing out of Step 1 has written nothing yet.
+   * Lets the user jump directly to any of the 5 phases via the stepper,
+   * in any order - full stage access, no forced step-by-step Continue.
+   * A phase visited before its data exists (e.g. Engineer Slot before the
+   * stage move ran) just renders its own empty state rather than an error;
+   * `furthestStep` still tracks the high-water mark for the checkmark UI.
    */
-  const abandon = useCallback(async () => {
-    if (!rescheduleId || !crqId) {
-      onClose();
-      return;
-    }
-    try {
-      await cancelAttempt({ rescheduleId, reason: reason.trim() || undefined, crqId }).unwrap();
-      toast.info("Reschedule cancelled.");
-    } catch (err) {
-      toast.error(errorMessage(err, "The reschedule could not be cancelled."));
-    } finally {
-      onClose();
-    }
-  }, [rescheduleId, crqId, reason, cancelAttempt, onClose]);
-
-  const goBack = useCallback(() => {
-    setStepError(null);
-    // Steps 1-3 each committed a procedure call, so the only backwards move
-    // that cannot contradict the database is within the read-only tail.
-    setStep((s) => (s > STEP_SLOT ? s - 1 : s));
-  }, []);
+  const jumpToStep = useCallback(
+    (target: number) => {
+      if (target === step) return;
+      setStepError(null);
+      setStep(target);
+      setFurthestStep((f) => Math.max(f, target));
+    },
+    [step],
+  );
 
   return {
     // step state
@@ -409,8 +419,9 @@ export function useRescheduleWizard({ open, crqId, onCompleted, onClose }: UseRe
     submitStage,
     submitSlot,
     submitConfirm,
-    abandon,
-    goBack,
+    // navigation
+    furthestStep,
+    jumpToStep,
     rescheduleId,
   };
 }
