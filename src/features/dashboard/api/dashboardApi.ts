@@ -16,10 +16,13 @@ export const dashboardApi = api.injectEndpoints({
     getEmployeesOnLeave: builder.query<EmployeeOnLeaveRow[], void>({
       query: () => "/dashboard/employeesonleave",
     }),
-    getDailyAssignments: builder.query<EngineerDailyAssignmentRow[], { date: string }>({
-      query: ({ date }) => ({
+    getDailyAssignments: builder.query<
+      EngineerDailyAssignmentRow[],
+      { date: string; userId?: number | string }
+    >({
+      query: ({ date, userId }) => ({
         url: `/dashboard/dailyassignments`,
-        params: { date },
+        params: userId != null ? { date, userId } : { date },
       }),
     }),
     getWorkLocation: builder.query<EmpWorkLocationRow[], { date: string }>({

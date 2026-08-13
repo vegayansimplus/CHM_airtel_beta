@@ -5,13 +5,10 @@ import {
   AccordionSummary,
   Box,
   Chip,
-  Fade,
   Stack,
   Typography,
 } from "@mui/material";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import EventRoundedIcon from "@mui/icons-material/EventRounded";
@@ -52,38 +49,14 @@ const DEFAULT_OPEN: Partial<Record<SummarySectionId, boolean>> = {
 };
 
 const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ field, colors }) => {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(field.value);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1200);
-    } catch {
-      // Clipboard API unavailable (insecure context, permissions) - no-op.
-    }
-  };
-
   return (
     <Box
-      onClick={handleCopy}
-      role="button"
-      title="Click to copy"
       sx={{
-        position: "relative",
         border: `1px solid ${colors.border}`,
-        borderLeft: `3px solid ${copied ? colors.success : colors.accentBorder}`,
+        borderLeft: `3px solid ${colors.accentBorder}`,
         borderRadius: colors.radius,
         p: "7px 10px",
         bgcolor: colors.surface,
-        cursor: "pointer",
-        transition: "border-color .15s ease, box-shadow .15s ease, transform .15s ease",
-        "&:hover": {
-          borderColor: colors.accent,
-          boxShadow: `0 4px 12px ${colors.accentBorder}`,
-          transform: "translateY(-1px)",
-        },
-        "&:hover .copy-affordance": { opacity: 1 },
       }}
     >
       <Typography
@@ -103,32 +76,11 @@ const SummaryCard: React.FC<{ field: StageSummaryField; colors: Colors }> = ({ f
           fontWeight: 700,
           color: colors.textPrimary,
           mt: 0.3,
-          pr: 2,
           wordBreak: "break-word",
         }}
       >
         {field.value}
       </Typography>
-
-      <Box
-        className="copy-affordance"
-        sx={{
-          position: "absolute",
-          top: 7,
-          right: 7,
-          opacity: 0,
-          transition: "opacity .15s ease",
-          color: colors.textDim,
-          display: "flex",
-        }}
-      >
-        <Fade in={copied}>
-          <CheckRoundedIcon sx={{ fontSize: 14, color: colors.success, position: "absolute" }} />
-        </Fade>
-        <Fade in={!copied}>
-          <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
-        </Fade>
-      </Box>
     </Box>
   );
 };

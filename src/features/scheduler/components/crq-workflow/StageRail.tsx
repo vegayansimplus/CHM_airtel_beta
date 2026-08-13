@@ -57,6 +57,8 @@ export const StageRail: React.FC<StageRailProps> = ({
               "&:hover": clickable && !isSelected ? { borderColor: colors.borderHover, transform: "translateY(-2px)" } : undefined,
             }}
           >
+
+          
             <Stack direction="row" alignItems="center" justifyContent="space-between">
               <Stack direction="row" alignItems="center" spacing={0.8}>
                 <Box
@@ -95,11 +97,11 @@ export const StageRail: React.FC<StageRailProps> = ({
               >
                 {stage.shortLabel}
               </Typography>
-              <Tooltip title={state === "locked" ? "Locked" : "Preview CRQ"}>
+              <Tooltip title={state === "locked" ? "Locked" : "Plan Pdf"}>
                 <span>
                   <IconButton
                     size="small"
-                    aria-label="Preview CRQ"
+                    aria-label="Plan Pdf"
                     disabled={state === "locked"}
                     onClick={(e) => {
                       e.stopPropagation();

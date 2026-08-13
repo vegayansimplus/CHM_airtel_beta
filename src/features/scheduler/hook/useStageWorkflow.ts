@@ -18,10 +18,11 @@ const TOAST_OPTS = {
   draggable: true,
 };
 
-
 export const useStageWorkflow = (stageKey: StageKey) => {
   const stageConfig = getStageConfig(stageKey);
-  const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
+  const currentUserOlmId = useSelector(
+    (state: RootState) => state.auth.user?.olmId,
+  );
   const [updateStageStatus, { isLoading: isTogglingStatus }] =
     useUpdateStageStatusMutation();
   const [submitStageDone, { isLoading: isSubmittingDone }] =
@@ -45,7 +46,10 @@ export const useStageWorkflow = (stageKey: StageKey) => {
           TOAST_OPTS,
         );
 
-        return { success: true, nextStatus: isRunning ? "Paused" : "In Progress" };
+        return {
+          success: true,
+          nextStatus: isRunning ? "Paused" : "In Progress",
+        };
       } catch (error: any) {
         toast.error(
           error?.data?.message ||
@@ -69,7 +73,8 @@ export const useStageWorkflow = (stageKey: StageKey) => {
         } as any).unwrap();
 
         toast.success(
-          response?.message || `${stageConfig.label} submitted for ${crq?.crqNo}.`,
+          response?.message ||
+            `${stageConfig.label} submitted for ${crq?.crqNo}.`,
         );
         return { success: true };
       } catch (error: any) {

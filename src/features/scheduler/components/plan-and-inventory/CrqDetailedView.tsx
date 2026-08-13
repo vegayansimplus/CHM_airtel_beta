@@ -650,7 +650,7 @@ export const CrqDetailedView: React.FC = () => {
                 <StageSummaryGrid
                   fields={getStageSummaryFields(selectedStageId, selectedCrq)}
                   colors={colors}
-                  excludeSectionIds={["activity"]}
+                  excludeSectionIds={["activity", "workflow", "engineer"]}
                 />
 
                 {/* Completed previous stages - read-only, no actions. */}

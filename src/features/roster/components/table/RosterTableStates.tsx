@@ -1,6 +1,6 @@
 import { Box, Stack, TableCell, TableRow, Typography } from "@mui/material";
-import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import FilterSvg from "../../../../assets/svg/RosterEmpty.svg";
+import RosterNotGeneratedSvg from "../../../../assets/svg/RosterNotGenerated.svg";
 
 /** Full-width error row shown when the roster query fails. */
 export const RosterErrorRow = ({
@@ -11,10 +11,10 @@ export const RosterErrorRow = ({
   message: string;
 }) => (
   <TableRow>
-    <TableCell colSpan={colSpan} align="center" sx={{ py: 8 }}>
+    <TableCell colSpan={colSpan} align="center" sx={{ py: 5, border: "none" }}>
       <Stack alignItems="center" spacing={1}>
-        <ErrorOutlineIcon color="error" sx={{ fontSize: 40 }} />
-        <Typography variant="h6" color="error">
+        <img src={RosterNotGeneratedSvg} alt="Roster not generated" width={220} />
+        <Typography variant="subtitle1" color="text.secondary" fontWeight={600}>
           {message}
         </Typography>
       </Stack>
@@ -50,5 +50,29 @@ export const SelectFilterPlaceholder = () => (
     }}
   >
     <img src={FilterSvg} alt="Select Filter" width={650} />
+  </Box>
+);
+
+/** Full-page placeholder shown when the roster hasn't been generated for the selected range. */
+export const RosterNotGeneratedPlaceholder = ({
+  message = "Roster not generated for selected range",
+}: {
+  message?: string;
+}) => (
+  <Box
+    sx={{
+      width: "100%",
+      minHeight: "calc(100vh - 220px)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      flexDirection: "column",
+      gap: 1.5,
+    }}
+  >
+    <img src={RosterNotGeneratedSvg} alt="Roster not generated" width={340} />
+    <Typography variant="h6" color="text.secondary" fontWeight={600}>
+      {message}
+    </Typography>
   </Box>
 );

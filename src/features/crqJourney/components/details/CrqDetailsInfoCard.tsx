@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { Box, IconButton, Snackbar, Tooltip, Typography, useTheme } from "@mui/material";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
+import React, { useMemo } from "react";
+import { Box, Typography, useTheme } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
@@ -56,11 +55,6 @@ const Field = ({
 export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, stages }) => {
   const theme = useTheme();
   const chip = statusChipColor(info.currentStatus, theme.palette.mode === "dark");
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(info.crqNo).then(() => setCopied(true));
-  }, [info.crqNo]);
 
   const progress = useMemo(() => {
     if (!stages || stages.length === 0) return null;
@@ -101,16 +95,6 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, st
         >
           {info.crqNo}
         </Typography>
-        <Tooltip title={copied ? "Copied!" : "Copy CRQ number"} placement="top" arrow>
-          <IconButton
-            size="small"
-            onClick={handleCopy}
-            sx={{ p: "3px", color: "text.disabled", "&:hover": { color: theme.palette.primary.main } }}
-            aria-label="Copy CRQ number"
-          >
-            <ContentCopyRoundedIcon sx={{ fontSize: 13 }} />
-          </IconButton>
-        </Tooltip>
 
         <Box
           sx={{
@@ -179,15 +163,6 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, st
         <Field icon={CalendarMonthRoundedIcon} label="Created On" value={formatDateTime(info.createdDate)} />
         <Field icon={ChatBubbleOutlineRoundedIcon} label="Remark" value={info.remark?.trim() ? info.remark : "—"} />
       </Box>
-
-      <Snackbar
-        open={copied}
-        autoHideDuration={1600}
-        onClose={() => setCopied(false)}
-        message="CRQ number copied"
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-        ContentProps={{ sx: { fontSize: 12.5, minWidth: "unset", py: 0.5 } }}
-      />
     </Box>
   );
 };
