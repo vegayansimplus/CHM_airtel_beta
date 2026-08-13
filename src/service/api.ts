@@ -122,7 +122,6 @@ export const api = createApi({
     "AttributeUpdate",
     "CrqAnalytics",
     "SftpWindowsFiles",
-    "SftpLinuxFiles",
     "DataAgentHistory",
     "ImpactBatch",
   ],

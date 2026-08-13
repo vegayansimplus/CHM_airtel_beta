@@ -5,6 +5,7 @@ import type {
   SftpConnectionDetails,
   SftpFileEntry,
   UploadFileArgs,
+  UploadToLinuxRemoteRequest,
 } from "../types/sftp.types";
 
 const buildUploadFormData = ({ file, replace }: UploadFileArgs) => {
@@ -50,57 +51,33 @@ export const sftpApi = api.injectEndpoints({
       }),
     }),
 
-    // ───────────────────────── Linux module (local staging folder) ─────────────────────────
-    getLinuxFiles: builder.query<SftpFileEntry[], void>({
-      query: () => "/api/sftp/linux/list",
-      providesTags: ["SftpLinuxFiles"],
-    }),
-    uploadLinuxFile: builder.mutation<string, UploadFileArgs>({
-      query: (args) => {
-        const { formData, replace } = buildUploadFormData(args);
-        return {
-          url: `/api/sftp/linux/upload?replace=${replace}`,
-          method: "POST",
-          body: formData,
-          responseHandler: "text",
-        };
-      },
-      invalidatesTags: ["SftpLinuxFiles"],
-    }),
-    deleteLinuxFile: builder.mutation<string, string>({
-      query: (fileName) => ({
-        url: `/api/sftp/linux/delete/${encodeURIComponent(fileName)}`,
-        method: "DELETE",
-        responseHandler: "text",
-      }),
-      invalidatesTags: ["SftpLinuxFiles"],
-    }),
-    downloadLinuxFile: builder.query<Blob, string>({
-      query: (fileName) => ({
-        url: `/api/sftp/linux/download/${encodeURIComponent(fileName)}`,
-        method: "GET",
-        responseHandler: (response: Response) => response.blob(),
-        cache: "no-cache",
-      }),
-    }),
-
     // ───────────────────────── Linux module (remote server over SFTP) ─────────────────────────
     // Every call carries the target host's connection details in the body (never a query
     // string) and the backend opens a fresh SFTP session per call — nothing is cached
     // server-side, so these are plain mutations rather than cacheable queries.
-    sendFileToLinuxServer: builder.mutation<RemoteFileEntry[], SendToLinuxRequest>({
-      query: (body) => ({
-        url: "/api/sftp/linux/remote/send",
-        method: "POST",
-        body,
-      }),
-    }),
     listLinuxRemoteFiles: builder.mutation<RemoteFileEntry[], SftpConnectionDetails>({
       query: (body) => ({
         url: "/api/sftp/linux/remote/list",
         method: "POST",
         body,
       }),
+    }),
+    // Multipart (not JSON) because it carries the file's bytes — connection
+    // details ride along as form fields alongside the file part.
+    uploadFileToLinuxRemote: builder.mutation<RemoteFileEntry[], UploadToLinuxRemoteRequest>({
+      query: ({ file, host, port, username, password }) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("host", host);
+        formData.append("port", String(port ?? 22));
+        formData.append("username", username);
+        formData.append("password", password);
+        return {
+          url: "/api/sftp/linux/remote/upload",
+          method: "POST",
+          body: formData,
+        };
+      },
     }),
     downloadLinuxRemoteFile: builder.query<Blob, SendToLinuxRequest>({
       query: (body) => ({
@@ -121,12 +98,7 @@ export const {
   useDeleteWindowsFileMutation,
   useLazyDownloadWindowsFileQuery,
 
-  useGetLinuxFilesQuery,
-  useUploadLinuxFileMutation,
-  useDeleteLinuxFileMutation,
-  useLazyDownloadLinuxFileQuery,
-
-  useSendFileToLinuxServerMutation,
   useListLinuxRemoteFilesMutation,
+  useUploadFileToLinuxRemoteMutation,
   useLazyDownloadLinuxRemoteFileQuery,
 } = sftpApi;

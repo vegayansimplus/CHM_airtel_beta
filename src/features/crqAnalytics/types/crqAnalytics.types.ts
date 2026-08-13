@@ -72,7 +72,8 @@ export interface EngineerUtilizationDto {
 
 export interface CRQOpenDomainDto {
   domain: string;
-  openCount: number;
+  ccb: number;
+  se: number;
 }
 
 export interface CRQRaisedVsClosedDto {
@@ -84,9 +85,9 @@ export interface CRQRaisedVsClosedDto {
 
 export interface CRQRunRateDto {
   date: string;
-  raised: number;
-  movedToScheduling: number;
-  closed: number;
+  receivedInCcb: number;
+  movedToSe: number;
+  seToClosed: number;
 }
 
 /** GET /crq-analytics-new/circle-region — groupBy only supports these two dimensions. */

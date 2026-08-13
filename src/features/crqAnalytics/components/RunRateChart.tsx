@@ -13,7 +13,7 @@ interface Props {
   isError?: boolean;
 }
 
-/** Raised (bar) vs Moved-to-Scheduling / Closed (lines) — all one count-scale axis, never dual-axis. */
+/** Received in CCB (bar) vs Moved-to-SE / SE-to-Closed (lines) — all one count-scale axis, never dual-axis. */
 export function RunRateChart({ rows, isLoading, isError }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -23,9 +23,9 @@ export function RunRateChart({ rows, isLoading, isError }: Props) {
     const datasets: ChartDataset<"bar" | "line">[] = [
       {
         type: "bar" as const,
-        label: "Raised",
-        data: rows.map((r) => r.raised),
-        backgroundColor: seriesColor("raised", isDark),
+        label: "Received in CCB",
+        data: rows.map((r) => r.receivedInCcb),
+        backgroundColor: seriesColor("receivedInCcb", isDark),
         borderRadius: 4,
         borderSkipped: "bottom",
         maxBarThickness: 20,
@@ -35,10 +35,10 @@ export function RunRateChart({ rows, isLoading, isError }: Props) {
       },
       {
         type: "line" as const,
-        label: "Moved to Scheduling",
-        data: rows.map((r) => r.movedToScheduling),
-        borderColor: seriesColor("movedToScheduling", isDark),
-        backgroundColor: seriesColor("movedToScheduling", isDark),
+        label: "Moved to SE",
+        data: rows.map((r) => r.movedToSe),
+        borderColor: seriesColor("movedToSe", isDark),
+        backgroundColor: seriesColor("movedToSe", isDark),
         borderWidth: 2,
         pointRadius: 4,
         pointBorderColor: theme.palette.background.paper,
@@ -48,10 +48,10 @@ export function RunRateChart({ rows, isLoading, isError }: Props) {
       },
       {
         type: "line" as const,
-        label: "Closed",
-        data: rows.map((r) => r.closed),
-        borderColor: seriesColor("closed", isDark),
-        backgroundColor: seriesColor("closed", isDark),
+        label: "SE to Closed",
+        data: rows.map((r) => r.seToClosed),
+        borderColor: seriesColor("seToClosed", isDark),
+        backgroundColor: seriesColor("seToClosed", isDark),
         borderWidth: 2,
         pointRadius: 4,
         pointBorderColor: theme.palette.background.paper,

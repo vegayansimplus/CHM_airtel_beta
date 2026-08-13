@@ -16,13 +16,15 @@ interface Props {
   labels: string[];
   series: BarSeries[];
   horizontal?: boolean;
+  /** Stack all series into a single bar per category (e.g. CCB + SE) instead of grouping them side by side. */
+  stacked?: boolean;
   isLoading?: boolean;
   isError?: boolean;
   /** Called with the clicked bar's category label (e.g. a domain/stage name). */
   onBarClick?: (label: string) => void;
 }
 
-export function BarChartCard({ labels, series, horizontal = false, isLoading, isError, onBarClick }: Props) {
+export function BarChartCard({ labels, series, horizontal = false, stacked = false, isLoading, isError, onBarClick }: Props) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chrome = chartChrome(isDark);
@@ -30,18 +32,19 @@ export function BarChartCard({ labels, series, horizontal = false, isLoading, is
   const data = useMemo(
     () => ({
       labels,
-      datasets: series.map((s) => ({
+      datasets: series.map((s, i) => ({
         label: s.label,
         data: s.data,
         backgroundColor: s.color,
-        borderRadius: 4,
+        // When stacked, only the top-most segment gets rounded corners.
+        borderRadius: !stacked || i === series.length - 1 ? 4 : 0,
         borderSkipped: "bottom" as const,
         maxBarThickness: 24,
         barPercentage: 0.6,
         categoryPercentage: 0.7,
       })),
     }),
-    [labels, series],
+    [labels, series, stacked],
   );
 
   const options = useMemo<ChartOptions<"bar">>(
@@ -82,17 +85,19 @@ export function BarChartCard({ labels, series, horizontal = false, isLoading, is
       },
       scales: {
         x: {
+          stacked,
           grid: { display: horizontal, color: chrome.gridline },
           ticks: { color: chrome.muted, font: { size: 11 } },
         },
         y: {
+          stacked,
           beginAtZero: true,
           grid: { display: !horizontal, color: chrome.gridline },
           ticks: { color: chrome.muted, font: { size: 11 }, precision: 0 },
         },
       },
     }),
-    [horizontal, series.length, chrome, theme, onBarClick, labels],
+    [horizontal, stacked, series.length, chrome, theme, onBarClick, labels],
   );
 
   if (isError) return <EmptyOrErrorState kind="error" />;

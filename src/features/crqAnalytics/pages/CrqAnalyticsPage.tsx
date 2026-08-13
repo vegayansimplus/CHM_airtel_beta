@@ -69,7 +69,11 @@ export default function CrqAnalyticsPage() {
           >
             <BarChartCard
               labels={(openDomain.data ?? []).map((d) => d.domain)}
-              series={[{ label: "Open", data: (openDomain.data ?? []).map((d) => d.openCount), color: seriesColor("openCount", isDark) }]}
+              series={[
+                { label: "CCB", data: (openDomain.data ?? []).map((d) => d.ccb), color: seriesColor("ccb", isDark) },
+                { label: "SE", data: (openDomain.data ?? []).map((d) => d.se), color: seriesColor("se", isDark) },
+              ]}
+              stacked
               isLoading={openDomain.isFetching}
               isError={openDomain.isError}
               onBarClick={(domain) => goToTable({ title: `CRQs in Stage: ${domain}`, tableType: "CRQ_LIST", stage: domain })}

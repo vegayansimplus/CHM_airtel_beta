@@ -29,3 +29,8 @@ export interface UploadFileArgs {
   file: File;
   replace?: boolean;
 }
+
+/** "Upload direct to remote /tmp" request — skips local staging entirely. */
+export interface UploadToLinuxRemoteRequest extends SftpConnectionDetails {
+  file: File;
+}

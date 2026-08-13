@@ -32,9 +32,12 @@ export function categoricalPalette(isDark: boolean): readonly string[] {
 const SERIES_SLOT: Record<string, number> = {
   raised: 0,
   totalCount: 0,
-  movedToScheduling: 1,
+  receivedInCcb: 0,
+  movedToSe: 1,
   closed: 2,
-  openCount: 3,
+  seToClosed: 2,
+  ccb: 3,
+  se: 4,
   rejected: 7,
 };
 

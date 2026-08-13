@@ -9,7 +9,7 @@ export { default as LinuxSftpPage } from "./pages/LinuxSftpPage";
 
 // Components
 export { default as FileManagerPanel } from "./components/FileManagerPanel";
-export { default as SendToLinuxDialog } from "./components/SendToLinuxDialog";
+export { default as RemoteTmpBrowserPanel } from "./components/RemoteTmpBrowserPanel";
 
 // API hooks + slice
 export * from "./api/sftpApiSlice";
