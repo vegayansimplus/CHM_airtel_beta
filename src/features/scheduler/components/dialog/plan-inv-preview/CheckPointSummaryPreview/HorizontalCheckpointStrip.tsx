@@ -6,6 +6,7 @@ import {
   Stack,
   Chip,
   Button,
+  Tooltip,
   useTheme,
   alpha,
   Divider,
@@ -84,10 +85,10 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
       <Box
         sx={{
           display: "flex",
-          gap: 2,
+          gap: 1.1,
           overflowX: "auto",
-          py: 1,
-          px: 0.5,
+          py: 0.75,
+          px: 0.25,
           scrollSnapType: "x mandatory",
           "&::-webkit-scrollbar": { height: 6 },
           "&::-webkit-scrollbar-thumb": {
@@ -99,6 +100,8 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
         {checkpoints.map((cp) => {
           const cfg = statusConfig(cp.status ?? "NA");
           const isSelected = cp.id === selectedId;
+          const match = cp.title.match(/\(([^)]+)\)/);
+          const displayTitle = match ? match[1] : cp.title;
 
           return (
             <Paper
@@ -108,47 +111,56 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
               elevation={0}
               variant="outlined"
               sx={{
-                p: 1.5,
-                width: 230,
+                p: 1.1,
+                width: 208,
                 flexShrink: 0,
-                borderRadius: 2.5,
+                borderRadius: 2,
                 scrollSnapAlign: "center",
                 cursor: "pointer",
-                borderWidth: isSelected ? 2 : 1,
+                borderWidth: isSelected ? 1.5 : 1,
                 borderColor: isSelected ? cfg.color : "divider",
                 bgcolor: isSelected ? alpha(cfg.color, 0.06) : "background.paper",
                 transition: "transform .2s ease, box-shadow .25s ease, border-color .25s ease",
                 "&:hover": {
-                  transform: "translateY(-3px)",
-                  boxShadow: 3,
+                  transform: "translateY(-2px)",
+                  boxShadow: 2,
                 },
               }}
             >
-              <Stack direction="row" justifyContent="space-between" alignItems="center">
-                <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={0.75}>
+                <Stack direction="row" spacing={0.85} alignItems="flex-start" sx={{ minWidth: 0 }}>
                   <Box
                     sx={{
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
                       bgcolor: alpha(cfg.color, 0.14),
-                      width: 30,
-                      height: 30,
+                      width: 24,
+                      height: 24,
                       borderRadius: "50%",
                       flexShrink: 0,
                       color: cfg.color,
+                      mt: "1px",
                     }}
                   >
                     {cfg.icon}
                   </Box>
 
-                  <Typography fontWeight={700} noWrap sx={{ fontSize: 13.5 }}>
-                    {(() => {
-                      const match = cp.title.match(/\(([^)]+)\)/);
-                      const display = match ? match[1] : cp.title;
-                      return display.length > 24 ? display.slice(0, 24) + "…" : display;
-                    })()}
-                  </Typography>
+                  <Tooltip title={displayTitle} arrow disableInteractive>
+                    <Typography
+                      fontWeight={700}
+                      sx={{
+                        fontSize: 12.5,
+                        lineHeight: 1.3,
+                        display: "-webkit-box",
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: "vertical",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {displayTitle}
+                    </Typography>
+                  </Tooltip>
                 </Stack>
 
                 <Chip
@@ -158,13 +170,14 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
                     bgcolor: alpha(cfg.color, 0.14),
                     color: cfg.color,
                     fontWeight: 700,
-                    fontSize: 10,
-                    height: 20,
+                    fontSize: 9.5,
+                    height: 18,
+                    flexShrink: 0,
                   }}
                 />
               </Stack>
 
-              <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.6, fontSize: 10.5, display: "block" }}>
                 {cp.items?.length ?? 0} items
               </Typography>
             </Paper>
@@ -173,30 +186,31 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
       </Box>
 
       {/* Selected checkpoint detail */}
-      <Box sx={{ mt: 2 }}>
+      <Box sx={{ mt: 1.5 }}>
         {(() => {
           const sel = checkpoints.find((c) => c.id === selectedId);
           if (!sel) return null;
 
           return (
-            <Paper variant="outlined" sx={{ p: 2, borderRadius: 2.5 }}>
+            <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={1}>
                 <Stack>
-                  <Typography variant="subtitle1" fontWeight={700}>
+                  <Typography variant="subtitle2" fontWeight={700} sx={{ fontSize: 14 }}>
                     {sel.title}
                   </Typography>
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" sx={{ fontSize: 11 }}>
                     {sel.items.length} items • Status: {sel.status ?? "NA"}
                   </Typography>
                 </Stack>
 
-                <Stack direction="row" spacing={1}>
+                <Stack direction="row" spacing={0.75}>
                   <Button
                     size="small"
                     variant="contained"
                     color="success"
                     disabled={disableActions}
                     onClick={() => onStatusChange?.(sel.id, "Pass")}
+                    sx={{ fontSize: 11.5, textTransform: "none", borderRadius: 1.5, px: 1.5 }}
                   >
                     Mark PASS
                   </Button>
@@ -206,23 +220,24 @@ const HorizontalCheckpointStrip: React.FC<Props> = ({
                     color="error"
                     disabled={disableActions}
                     onClick={() => onStatusChange?.(sel.id, "Fail")}
+                    sx={{ fontSize: 11.5, textTransform: "none", borderRadius: 1.5, px: 1.5 }}
                   >
                     Mark FAIL
                   </Button>
                 </Stack>
               </Stack>
 
-              <Divider sx={{ my: 2 }} />
+              <Divider sx={{ my: 1.5 }} />
 
               <Box sx={{ maxHeight: "50vh", overflow: "auto", pr: 0.5 }}>
                 {sel.items.length > 0 ? (
-                  <Stack spacing={2}>
+                  <Stack spacing={1.25}>
                     {sel.items.map((it: CheckpointItem, idx: number) => (
                       <CheckpointItemCard key={`${sel.id}_${idx}`} item={it} />
                     ))}
                   </Stack>
                 ) : (
-                  <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ py: 2, fontSize: 12.5 }}>
                     No items available for this checkpoint.
                   </Typography>
                 )}

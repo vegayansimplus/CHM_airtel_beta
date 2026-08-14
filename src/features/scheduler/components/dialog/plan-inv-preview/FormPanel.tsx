@@ -175,12 +175,12 @@ export const FormPanel: React.FC<Props> = ({
           {/* Panel header strip */}
           <Box
             sx={{
-              px: 2.5,
-              py: 1.25,
+              px: 1.75,
+              py: 1,
               borderBottom: `1px solid ${colors.border}`,
               display: "flex",
               alignItems: "center",
-              gap: 1,
+              gap: 0.85,
               flexShrink: 0,
               bgcolor: colors.isDark
                 ? alpha("#fff", 0.02)
@@ -210,10 +210,10 @@ export const FormPanel: React.FC<Props> = ({
           >
             <Box
               sx={{
-                p: 2.5,
+                p: 1.75,
                 display: "flex",
                 flexDirection: "column",
-                gap: 2.5,
+                gap: 1.75,
               }}
             >
               {/* Cancelled CRQ alert */}
@@ -313,9 +313,9 @@ export const FormPanel: React.FC<Props> = ({
                           >
                             <Box
                               sx={{
-                                width: 32,
-                                height: 32,
-                                borderRadius: 1.5,
+                                width: 27,
+                                height: 27,
+                                borderRadius: 1.25,
                                 bgcolor: selected
                                   ? alpha(color, 0.14)
                                   : alpha(colors.textSecondary, 0.06),
@@ -328,7 +328,7 @@ export const FormPanel: React.FC<Props> = ({
                             >
                               <IconComp
                                 sx={{
-                                  fontSize: 17,
+                                  fontSize: 15,
                                   color: selected
                                     ? color
                                     : colors.textSecondary,
@@ -427,7 +427,7 @@ export const FormPanel: React.FC<Props> = ({
                     </SectionLabel>
                   </Stack>
 
-                  <Stack spacing={2} sx={{ p: 2 }}>
+                  <Stack spacing={1.5} sx={{ p: 1.5 }}>
                     {/* Send back to */}
                     <Box>
                       <Stack

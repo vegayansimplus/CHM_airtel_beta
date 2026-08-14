@@ -115,14 +115,15 @@ export const CheckPointSummaryPreview: React.FC<{
     <Box>
       {/* Always available once a CRQ is selected - this is exactly the
           action needed when the file below isn't found yet. */}
-      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 2 }}>
+      <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.25 }}>
         <Button
           size="small"
           variant="outlined"
           color="inherit"
-          startIcon={<RefreshRoundedIcon sx={{ fontSize: 16 }} />}
+          startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
           disabled={busy}
           onClick={handleDataRefresh}
+          sx={{ fontSize: 12, textTransform: "none", borderRadius: 1.5 }}
         >
           {busy ? "Refreshing…" : "Data Refresh"}
         </Button>
@@ -131,7 +132,7 @@ export const CheckPointSummaryPreview: React.FC<{
       <Collapse in={Boolean(refreshStatus)} unmountOnExit>
         <Alert
           severity={refreshStatus?.ok ? "success" : "error"}
-          sx={{ borderRadius: 2, mb: 2 }}
+          sx={{ borderRadius: 1.5, mb: 1.25, fontSize: 12.5, py: 0.5 }}
           onClose={() => setRefreshStatus(null)}
         >
           {refreshStatus?.message}

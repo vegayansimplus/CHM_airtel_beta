@@ -1,8 +1,5 @@
 import React from "react";
 import {
-  Accordion,
-  AccordionDetails,
-  AccordionSummary,
   Dialog,
   DialogTitle,
   DialogContent,
@@ -23,20 +20,13 @@ import AssignmentIcon from "@mui/icons-material/Assignment";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import SettingsIcon from "@mui/icons-material/Settings";
-import PersonIcon from "@mui/icons-material/Person";
 import TaskAltIcon from "@mui/icons-material/TaskAlt";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import RouteIcon from "@mui/icons-material/Route";
 import MemoryIcon from "@mui/icons-material/Memory";
-import WorkspacesIcon from "@mui/icons-material/Workspaces";
 import HistoryRoundedIcon from "@mui/icons-material/HistoryRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
-import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { StageHistoryPanel } from "../../generic/StageHistoryPanel";
-import { StageSummaryGrid } from "../../crq-workflow/StageSummaryGrid";
-import { getStageSummaryFields } from "../../../constants/workflowStages";
 
 /* ───────────────────── types ───────────────────── */
 interface PrevCrqStatusDialogProps {
@@ -277,22 +267,6 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
   const crqMeta = statusMeta(crqData.crqStatus, colors);
   const reviewMeta = statusMeta(currentStageStatus, colors);
 
-  // Same field list/categorization StageSummaryGrid already uses for the
-  // cockpit's main view - scoped here to just the "activity" bucket, since
-  // Activity Details now lives inside this dialog instead of the main view.
-  // The CRQ-level activity fields (neLabel, taskActivity, locationCodeM6, ...)
-  // only ever reflect whichever task row the backend happened to flatten
-  // onto the CRQ first - accurate for a single-task CRQ, but silently wrong
-  // (shows just one of several tasks with no indication which) once a CRQ
-  // has more than one task. When that's the case, categorize per task
-  // instead, using each task's own fields, so nothing gets conflated.
-  const activityFields = getStageSummaryFields("review", crqData);
-  const perTaskActivityFields = (crqData.tasks ?? []).map((t: any) => ({
-    task: t,
-    fields: getStageSummaryFields("review", t).filter((f) => f.key !== "taskId"),
-  }));
-  const hasMultipleTasks = perTaskActivityFields.length > 1;
-
   return (
     <Dialog
       open={open}
@@ -480,54 +454,6 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
               />
             </GlassCard>
           </Stack>
-
-          {/* Quick‑info chips row */}
-          <Stack direction="row" spacing={0.8} flexWrap="wrap" useFlexGap>
-            {crqData.workflow && (
-              <Chip
-                icon={<WorkspacesIcon sx={{ fontSize: 13 }} />}
-                label={`Workflow: ${crqData.workflow}`}
-                size="small"
-                sx={{
-                  height: 24,
-                  fontSize: 11,
-                  fontWeight: 700,
-                  bgcolor: colors.trackOff,
-                  color: colors.textSecondary,
-                  border: `1px solid ${colors.border}`,
-                  "& .MuiChip-icon": { color: colors.textDim },
-                }}
-              />
-            )}
-            <Chip
-              icon={<PersonIcon sx={{ fontSize: 13 }} />}
-              label={`Manager: ${crqData.managerChange ?? "N/A"}`}
-              size="small"
-              sx={{
-                height: 24,
-                fontSize: 11,
-                fontWeight: 700,
-                bgcolor: colors.trackOff,
-                color: colors.textSecondary,
-                border: `1px solid ${colors.border}`,
-                "& .MuiChip-icon": { color: colors.textDim },
-              }}
-            />
-            <Chip
-              icon={<SettingsIcon sx={{ fontSize: 13 }} />}
-              label={`OLMID: ${crqData.olmidReview ?? "N/A"}`}
-              size="small"
-              sx={{
-                height: 24,
-                fontSize: 11,
-                fontWeight: 700,
-                bgcolor: colors.trackOff,
-                color: colors.textSecondary,
-                border: `1px solid ${colors.border}`,
-                "& .MuiChip-icon": { color: colors.textDim },
-              }}
-            />
-          </Stack>
         </Box>
 
         <Divider sx={{ borderColor: colors.border }} />
@@ -543,82 +469,6 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
                 badge={crqData.history.filter((h: any) => !h.current).length}
               />
               <StageHistoryPanel history={crqData.history} colors={colors} dense title="Completed Stages" />
-            </Box>
-            <Divider sx={{ borderColor: colors.border }} />
-          </>
-        )}
-
-        {/* ──────── ACTIVITY DETAILS (collapsible) ──────── */}
-        {(hasMultipleTasks ? perTaskActivityFields.some((g) => g.fields.length > 0) : activityFields.length > 0) && (
-          <>
-            <Box sx={{ px: 2.5, py: 2 }}>
-              <Accordion
-                disableGutters
-                elevation={0}
-                sx={{
-                  bgcolor: colors.isDark ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.6)",
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: `${colors.radiusL ?? "12px"} !important`,
-                  overflow: "hidden",
-                  "&:before": { display: "none" },
-                }}
-              >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreRoundedIcon sx={{ color: colors.textSecondary, fontSize: 19 }} />}
-                  sx={{
-                    px: 1.75,
-                    minHeight: 44,
-                    "& .MuiAccordionSummary-content": { alignItems: "center", my: 0.75, gap: 1 },
-                  }}
-                >
-                  <Avatar sx={{ width: 26, height: 26, bgcolor: colors.accentDim, color: colors.accent }}>
-                    <BoltRoundedIcon sx={{ fontSize: 15 }} />
-                  </Avatar>
-                  <Typography
-                    sx={{
-                      fontSize: 12,
-                      fontWeight: 800,
-                      letterSpacing: 0.6,
-                      color: colors.textSecondary,
-                      textTransform: "uppercase",
-                    }}
-                  >
-                    Activity Details
-                  </Typography>
-                  {hasMultipleTasks && (
-                    <Chip
-                      label={`${perTaskActivityFields.length} tasks`}
-                      size="small"
-                      sx={{ height: 18, fontSize: 10, fontWeight: 700, bgcolor: colors.trackOff, color: colors.textDim }}
-                    />
-                  )}
-                </AccordionSummary>
-                <AccordionDetails sx={{ px: 1.75, py: 1.5, pt: 0 }}>
-                  {hasMultipleTasks ? (
-                    <Stack spacing={1.5} divider={<Divider sx={{ borderColor: colors.border }} />}>
-                      {perTaskActivityFields.map(({ task, fields }, idx) =>
-                        fields.length > 0 ? (
-                          <Box key={task.taskId ?? idx}>
-                            <Stack direction="row" alignItems="center" spacing={0.8} sx={{ mb: 0.75 }}>
-                              <Avatar sx={{ width: 18, height: 18, fontSize: 10, fontWeight: 800, bgcolor: colors.accentDim, color: colors.accent }}>
-                                {idx + 1}
-                              </Avatar>
-                              <Typography
-                                sx={{ fontSize: 10.5, fontWeight: 700, fontFamily: "monospace", color: colors.textSecondary, wordBreak: "break-all" }}
-                              >
-                                {task.taskId ?? `Task ${idx + 1}`}
-                              </Typography>
-                            </Stack>
-                            <StageSummaryGrid fields={fields} colors={colors} onlySectionIds={["activity"]} />
-                          </Box>
-                        ) : null,
-                      )}
-                    </Stack>
-                  ) : (
-                    <StageSummaryGrid fields={activityFields} colors={colors} onlySectionIds={["activity"]} />
-                  )}
-                </AccordionDetails>
-              </Accordion>
             </Box>
             <Divider sx={{ borderColor: colors.border }} />
           </>
@@ -952,7 +802,7 @@ export const PrevCrqStatusDialog: React.FC<PrevCrqStatusDialogProps> = ({
               },
             }}
           >
-            Preview CRQ
+            Pdf View
           </Button>
         )}
         <Box sx={{ flex: 1 }} />

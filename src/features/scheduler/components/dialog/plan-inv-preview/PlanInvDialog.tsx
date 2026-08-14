@@ -1,16 +1,5 @@
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  Dialog,
-  Fade,
-  IconButton,
-  Tooltip,
-  alpha,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-
+import { Box, Dialog, useMediaQuery, useTheme } from "@mui/material";
 
 import { DialogHeader } from "./DialogHeader";
 import { FormPanel } from "./FormPanel";
@@ -67,21 +56,18 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
     <Dialog
       open={open}
       onClose={onClose}
-      maxWidth="xl"
-      fullWidth
-      fullScreen={isSmall}
+      fullScreen
       TransitionComponent={SlideUpTransition}
       keepMounted={false}
       PaperProps={{
         elevation: 0,
         sx: {
-          height: isSmall ? "100%" : "88vh",
-          maxHeight: 780,
+          height: "100%",
+          width: "100%",
           display: "flex",
           flexDirection: "column",
           bgcolor: dialogColors.isDark ? "#131419" : "#F4F5F7",
-          borderRadius: isSmall ? 0 : "16px",
-          border: `1px solid ${dialogColors.isDark ? "rgba(255,255,255,0.08)" : "rgba(0,0,0,0.07)"}`,
+          borderRadius: 0,
         },
       }}
     >
@@ -108,25 +94,6 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           onClose={onClose}
           onExternalSubmit={onSubmit}
         />
-
-        {/* Float Open Button */}
-        <Fade in={!panelOpen && !isSmall}>
-          <Tooltip title="Show validation form" placement="right" arrow>
-            <IconButton
-              onClick={() => setPanelOpen(true)}
-              size="small"
-              sx={{
-                position: "absolute",
-                left: 10,
-                top: 20,
-                zIndex: 40,
-                bgcolor: dialogColors.surface,
-              }}
-            >
-              <ChevronRightIcon sx={{ fontSize: 16 }} />
-            </IconButton>
-          </Tooltip>
-        </Fade>
 
         <PreviewPanel
           crqNo={crqNo}

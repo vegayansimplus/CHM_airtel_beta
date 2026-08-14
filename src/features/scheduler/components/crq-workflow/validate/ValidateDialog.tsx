@@ -166,7 +166,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               icon={<InfoOutlinedIcon sx={{ fontSize: 18 }} />}
               sx={{ mb: 2, fontSize: 12.5, py: 0.4 }}
             >
-              This CRQ has not been validated yet — fill in both fields below to record its
+              This CRQ has not been validated yet — fill in the fields below to record its
               validation details.
             </Alert>
           )}
@@ -179,12 +179,6 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
           >
             <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
               <InfoTile label="CRQ Number" value={details.crqNo} colors={colors} mono />
-              <InfoTile
-                label="Plan ID"
-                value={details.planId ?? "—"}
-                colors={colors}
-                mono
-              />
               <InfoTile
                 label="Current Stage"
                 value={stageLabel(details.currentStage)}
@@ -232,7 +226,6 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             >
               <TextField
                 label="Node Name"
-                required
                 fullWidth
                 size="small"
                 value={values.nodeName}
@@ -247,7 +240,6 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               />
               <TextField
                 label="Name Interface Pair"
-                required
                 fullWidth
                 size="small"
                 multiline

@@ -163,8 +163,9 @@ export const CrqDetailedView: React.FC = () => {
   const [pageSize, setPageSize] = useState(25);
 
   // Independent of selectedCrqNo by design - selecting a CRQ must never
-  // change whether the list is shown. Purely presentational.
-  const [crqListVisible, setCrqListVisible] = useState(false);
+  // change whether the list is shown. Purely presentational. Starts visible
+  // on initial page load; the user's own toggle is what hides it afterwards.
+  const [crqListVisible, setCrqListVisible] = useState(true);
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);

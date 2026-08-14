@@ -97,11 +97,11 @@ export const StageRail: React.FC<StageRailProps> = ({
               >
                 {stage.shortLabel}
               </Typography>
-              <Tooltip title={state === "locked" ? "Locked" : "Plan Pdf"}>
+              <Tooltip title={state === "locked" ? "Locked" : "Preview CRQ"}>
                 <span>
                   <IconButton
                     size="small"
-                    aria-label="Plan Pdf"
+                    aria-label="Preview CRQ"
                     disabled={state === "locked"}
                     onClick={(e) => {
                       e.stopPropagation();

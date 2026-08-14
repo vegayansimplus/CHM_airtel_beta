@@ -32,8 +32,8 @@ const renderDynamicSection = (key: string, value: unknown) => {
       headers.map((h) => (row as Record<string, unknown>)[h] as string | number | null),
     );
     return (
-      <Box sx={{ mt: 2 }} key={key}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: "text.secondary" }}>
+      <Box sx={{ mt: 1.25 }} key={key}>
+        <Typography variant="subtitle2" sx={{ mb: 0.6, fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
           {formatTitle(key)}
         </Typography>
         <DataTable headers={headers} rows={rows} />
@@ -55,8 +55,8 @@ const renderDynamicSection = (key: string, value: unknown) => {
     const headers = Object.keys(flatEntries);
     const rows = [Object.values(flatEntries) as (string | number | null)[]];
     return (
-      <Box sx={{ mt: 2 }} key={key}>
-        <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 600, color: "text.secondary" }}>
+      <Box sx={{ mt: 1.25 }} key={key}>
+        <Typography variant="subtitle2" sx={{ mb: 0.6, fontSize: 12, fontWeight: 600, color: "text.secondary" }}>
           {formatTitle(key)}
         </Typography>
         <DataTable headers={headers} rows={rows} />
@@ -79,26 +79,26 @@ const CheckpointItemCard: React.FC<Props> = ({ item }) => {
     <Paper
       variant="outlined"
       sx={{
-        borderLeft: 5,
+        borderLeft: 4,
         borderLeftColor: borderColor,
-        p: 2.5,
-        borderRadius: 2,
+        p: 1.5,
+        borderRadius: 1.5,
         overflow: "auto",
         transition: "box-shadow .2s ease",
         "&:hover": { boxShadow: 2 },
       }}
     >
-      <Stack spacing={1}>
-        <Stack direction="row" alignItems="center" spacing={1}>
+      <Stack spacing={0.75}>
+        <Stack direction="row" alignItems="center" spacing={0.75}>
           <RouterIcon color="primary" fontSize="small" />
-          <Typography fontWeight={700}>
+          <Typography fontWeight={700} sx={{ fontSize: 13 }}>
             {item.node} — <LanIcon fontSize="small" sx={{ verticalAlign: "middle" }} /> {item.interface}
           </Typography>
         </Stack>
 
-        <Divider sx={{ my: 1 }} />
+        <Divider sx={{ my: 0.5 }} />
 
-        <Typography variant="body2" color="text.secondary">
+        <Typography variant="body2" color="text.secondary" sx={{ fontSize: 11.5 }}>
           Node Data
         </Typography>
 

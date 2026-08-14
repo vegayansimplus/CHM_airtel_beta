@@ -38,17 +38,17 @@ export const PreviewPanel: React.FC<Props> = ({
     >
       <Box
         sx={{
-          px: 2.5,
-          py: 1.2,
+          px: 2,
+          py: 0.9,
           borderBottom: `1px solid ${colors.border}`,
           display: "flex",
           alignItems: "center",
-          gap: 1.5,
+          gap: 1.1,
         }}
       >
         <Typography
           variant="body2"
-          sx={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary }}
+          sx={{ fontWeight: 700, fontSize: 12.5, color: colors.textPrimary }}
         >
           CheckPoint Summary Preview
         </Typography>
@@ -56,8 +56,8 @@ export const PreviewPanel: React.FC<Props> = ({
           label="Live"
           size="small"
           sx={{
-            height: 20,
-            fontSize: 10,
+            height: 18,
+            fontSize: 9.5,
             fontWeight: 700,
             bgcolor: alpha(colors.accent, 0.1),
             color: colors.accent,
@@ -65,23 +65,29 @@ export const PreviewPanel: React.FC<Props> = ({
         />
         <Box sx={{ flex: 1 }} />
 
-        <Tooltip title={panelOpen ? "Collapse" : "Expand"} arrow>
+        <Tooltip title={panelOpen ? "Hide the validation form panel" : "Show the validation form panel"} arrow>
           <Button
             size="small"
             onClick={() => setPanelOpen((v) => !v)}
-            startIcon={panelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            aria-label={panelOpen ? "Hide validation panel" : "Show validation panel"}
+            startIcon={panelOpen ? <ChevronLeftIcon sx={{ fontSize: "16px !important" }} /> : <ChevronRightIcon sx={{ fontSize: "16px !important" }} />}
             disabled={isCancelled}
             sx={{
               color: colors.accent,
               border: `1px solid ${alpha(colors.accent, 0.28)}`,
+              fontSize: 12,
+              fontWeight: 600,
+              textTransform: "none",
+              borderRadius: 1.5,
+              py: 0.35,
             }}
           >
-            {panelOpen ? "Hide Validation" : "Show Validation"}
+            {panelOpen ? "Hide Panel" : "Show Panel"}
           </Button>
         </Tooltip>
       </Box>
 
-      <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
+      <Box sx={{ flex: 1, overflowY: "auto", p: 2 }}>
         <CheckPointSummaryPreview
           crqNo={crqNo}
           crqStatus={crqStatus}

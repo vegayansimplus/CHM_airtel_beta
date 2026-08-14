@@ -30,13 +30,11 @@ const FIELD_MAX: Record<keyof ValidateFormValues, number> = {
 };
 
 /**
- * Same rules update_validation_details enforces server-side: mandatory once
- * trimmed, and within the column's width. Validating on the trimmed value is
- * what makes a whitespace-only entry fail rather than silently save as blank.
+ * Both fields are optional - the only rule left to enforce client-side is the
+ * column width, same as update_validation_details enforces server-side.
  */
 const validateField = (field: keyof ValidateFormValues, raw: string): string | undefined => {
   const value = raw.trim();
-  if (!value) return `${FIELD_LABEL[field]} is required.`;
   if (value.length > FIELD_MAX[field]) {
     return `${FIELD_LABEL[field]} must not exceed ${FIELD_MAX[field]} characters.`;
   }
