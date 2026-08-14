@@ -241,7 +241,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         colors={colors}
       />
       <CustomActionButton
-        label="Preview Plan"
+        label="PDF View"
         disabled={!selectedCrq}
         onClick={() => setPreviewPdfOpen(true)}
         startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
