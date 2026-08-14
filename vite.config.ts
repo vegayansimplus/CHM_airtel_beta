@@ -36,18 +36,23 @@ export default defineConfig(({ mode }) => {
           // 429s: real payload is ~5.7MB total, so the problem is request
           // *count*, not size. Grouping vendor code into a handful of larger,
           // long-lived-cache chunks collapses that burst.
-          manualChunks(id) {
+          manualChunks(id: string) {
             if (!id.includes('node_modules')) return undefined
-            if (id.includes('@mui/icons-material')) return 'mui-icons'
             // MUI/Emotion, React, React-DOM and React-Router have circular
             // internal references (react-is, prop-types, etc). Splitting them
             // into separate chunk *files* forces the browser to execute one
             // chunk before another has finished initializing its exports,
-            // which throws "Cannot access 'X' before initialization" at
-            // runtime (a cross-chunk temporal-dead-zone bug, not a server or
-            // deployment issue). Keeping them in one chunk avoids that boundary
-            // while still cutting request count via a single large 'vendor'
-            // file; icons have no such circular deps so they stay split out.
+            // which throws "Cannot access 'X' before initialization" (or, for
+            // @mui/icons-material specifically, "Cannot read properties of
+            // undefined (reading 'jsx')") at runtime - a cross-chunk
+            // temporal-dead-zone bug, not a server or deployment issue.
+            // @mui/icons-material's createSvgIcon re-exports from
+            // @mui/material/utils, so every icon module pulls in
+            // @mui/material (and transitively React/Emotion) - it has the
+            // same circular dependency as the rest and must stay in the same
+            // chunk. Keeping everything in one 'vendor' file avoids that
+            // boundary while still cutting request count vs. Rollup's
+            // default per-module splitting.
             return 'vendor'
           },
         },
