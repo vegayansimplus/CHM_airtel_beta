@@ -17,6 +17,7 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
+import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { FieldRenderer } from "./FieldRenderer";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
 
@@ -31,6 +32,11 @@ interface GenericFormPanelProps {
   panelOpen: boolean;
   colors: any;
   setPanelOpen: (v: boolean) => void;
+  /** Whether `StageReviewDialog` also renders a `StagePreviewPanel` next to
+   * this one - only true for Impact Analysis. When false there is nothing
+   * for the "Hide Panel" toggle to reveal, so it's omitted and this stays
+   * the dialog's only content. */
+  hasPreviewPanel: boolean;
   onClose: () => void;
   onSubmitDone: (values: Record<string, any>, crq: any) => Promise<{ success: boolean }>;
 }
@@ -49,6 +55,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   panelOpen,
   colors,
   setPanelOpen,
+  hasPreviewPanel,
   onClose,
   onSubmitDone,
 }) => {
@@ -106,15 +113,21 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
     <Box
       component="aside"
       sx={{
-        width: panelOpen ? { xs: "100%", md: "360px" } : "0px",
-        minWidth: panelOpen ? { xs: "100%", md: "360px" } : "0px",
+        width: !panelOpen ? "0px" : hasPreviewPanel ? { xs: "100%", md: "360px" } : "100%",
+        minWidth: !panelOpen ? "0px" : hasPreviewPanel ? { xs: "100%", md: "360px" } : "100%",
         transition: "width 280ms ease, min-width 280ms ease, opacity 200ms ease",
         opacity: panelOpen ? 1 : 0,
-        borderRight: panelOpen ? `1px solid ${colors.border}` : "none",
+        borderRight: panelOpen && hasPreviewPanel ? `1px solid ${colors.border}` : "none",
         display: "flex",
         flexDirection: "column",
         bgcolor: colors.surface,
         flexShrink: 0,
+        // Alongside StagePreviewPanel this sits in a row, where the default
+        // cross-axis stretch already gives it the row's full height. Alone
+        // in the Drawer it's the sole child of a column flex container, so
+        // it needs its own flex-grow to fill that column's height instead.
+        flexGrow: hasPreviewPanel ? 0 : 1,
+        minHeight: hasPreviewPanel ? undefined : 0,
         overflow: "hidden",
       }}
     >
@@ -140,84 +153,86 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
             {stageConfig.label} Action
           </Box>
 
-          <DialogContent sx={{ p: 2.5, flex: 1, overflowY: "auto" }}>
-            <Stack spacing={2.5}>
-              <Collapse in={isCancelled} unmountOnExit>
-                <Alert severity="error" icon={<WarningAmberRoundedIcon fontSize="small" />}>
-                  This CRQ is <strong>Cancelled</strong>. All actions are disabled.
-                </Alert>
-              </Collapse>
-
-              <Collapse in={isDone && !isCancelled} unmountOnExit>
-                <Alert severity="success" icon={<CheckCircleOutlineIcon fontSize="small" />}>
-                  This stage is already <strong>Completed</strong>. The recorded outcome is shown below, read-only.
-                </Alert>
-              </Collapse>
-
-              {/* Outcome selector, built from stageConfig.statusOptions */}
-              <Box>
-                <Typography
-                  variant="caption"
-                  sx={{ fontWeight: 600, color: colors.textSecondary, fontSize: 12, mb: 1, display: "block" }}
-                >
-                  Select outcome *
-                </Typography>
-                <Stack spacing={1} role="radiogroup">
-                  {stageConfig.statusOptions.map((opt) => {
-                    const color = paletteColor[opt.palette];
-                    const Icon = opt.icon;
-                    const selected = values.status === opt.value;
-                    return (
-                      <Box
-                        key={opt.value}
-                        role="radio"
-                        aria-checked={selected}
-                        onClick={() => !isLocked && setValue("status", opt.value, { shouldDirty: true, shouldValidate: true })}
-                        sx={{
-                          display: "flex",
-                          alignItems: "flex-start",
-                          gap: 1.5,
-                          p: 1.5,
-                          borderRadius: 2,
-                          border: "1.5px solid",
-                          borderColor: selected ? color : colors.border,
-                          bgcolor: selected ? alpha(color, 0.06) : colors.surface,
-                          cursor: isLocked ? "not-allowed" : "pointer",
-                          opacity: isLocked ? 0.5 : 1,
-                        }}
-                      >
-                        <Icon sx={{ fontSize: 18, color: selected ? color : colors.textSecondary }} />
-                        <Box>
-                          <Typography sx={{ fontSize: 13.5, fontWeight: selected ? 700 : 500, color: selected ? color : colors.textPrimary }}>
-                            {opt.label}
-                          </Typography>
-                          <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
-                            {opt.description}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-                {errors.status && (
-                  <Alert severity="warning" sx={{ mt: 1.5, py: 0.5, fontSize: 12 }}>
-                    {(errors.status as any)?.message}
+          <DialogContent sx={{ p: 0, flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+            <SmartScrollContainer fill>
+              <Stack spacing={2.5} sx={{ p: 2.5 }}>
+                <Collapse in={isCancelled} unmountOnExit>
+                  <Alert severity="error" icon={<WarningAmberRoundedIcon fontSize="small" />}>
+                    This CRQ is <strong>Cancelled</strong>. All actions are disabled.
                   </Alert>
-                )}
-              </Box>
+                </Collapse>
 
-              {/* Remaining config-driven fields (cancellation block, remarks, etc) */}
-              {stageConfig.fields.map((field) => (
-                <FieldRenderer
-                  key={field.name}
-                  field={field}
-                  control={control}
-                  errors={errors}
-                  values={values}
-                  disabled={isLocked}
-                />
-              ))}
-            </Stack>
+                <Collapse in={isDone && !isCancelled} unmountOnExit>
+                  <Alert severity="success" icon={<CheckCircleOutlineIcon fontSize="small" />}>
+                    This stage is already <strong>Completed</strong>. The recorded outcome is shown below, read-only.
+                  </Alert>
+                </Collapse>
+
+                {/* Outcome selector, built from stageConfig.statusOptions */}
+                <Box>
+                  <Typography
+                    variant="caption"
+                    sx={{ fontWeight: 600, color: colors.textSecondary, fontSize: 12, mb: 1, display: "block" }}
+                  >
+                    Select outcome *
+                  </Typography>
+                  <Stack spacing={1} role="radiogroup">
+                    {stageConfig.statusOptions.map((opt) => {
+                      const color = paletteColor[opt.palette];
+                      const Icon = opt.icon;
+                      const selected = values.status === opt.value;
+                      return (
+                        <Box
+                          key={opt.value}
+                          role="radio"
+                          aria-checked={selected}
+                          onClick={() => !isLocked && setValue("status", opt.value, { shouldDirty: true, shouldValidate: true })}
+                          sx={{
+                            display: "flex",
+                            alignItems: "flex-start",
+                            gap: 1.5,
+                            p: 1.5,
+                            borderRadius: 2,
+                            border: "1.5px solid",
+                            borderColor: selected ? color : colors.border,
+                            bgcolor: selected ? alpha(color, 0.06) : colors.surface,
+                            cursor: isLocked ? "not-allowed" : "pointer",
+                            opacity: isLocked ? 0.5 : 1,
+                          }}
+                        >
+                          <Icon sx={{ fontSize: 18, color: selected ? color : colors.textSecondary }} />
+                          <Box>
+                            <Typography sx={{ fontSize: 13.5, fontWeight: selected ? 700 : 500, color: selected ? color : colors.textPrimary }}>
+                              {opt.label}
+                            </Typography>
+                            <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
+                              {opt.description}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Stack>
+                  {errors.status && (
+                    <Alert severity="warning" sx={{ mt: 1.5, py: 0.5, fontSize: 12 }}>
+                      {(errors.status as any)?.message}
+                    </Alert>
+                  )}
+                </Box>
+
+                {/* Remaining config-driven fields (cancellation block, remarks, etc) */}
+                {stageConfig.fields.map((field) => (
+                  <FieldRenderer
+                    key={field.name}
+                    field={field}
+                    control={control}
+                    errors={errors}
+                    values={values}
+                    disabled={isLocked}
+                  />
+                ))}
+              </Stack>
+            </SmartScrollContainer>
           </DialogContent>
 
           <DialogActions
@@ -256,21 +271,23 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
             >
               {isSubmitting ? "Submitting…" : `Submit ${stageConfig.label}`}
             </Button>
-            <Button
-              size="small"
-              onClick={() => setPanelOpen(false)}
-              startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
-              sx={{
-                color: colors.textSecondary,
-                textTransform: "none",
-                alignSelf: "flex-start",
-                fontSize: 12.5,
-                px: 1,
-                "&:hover": { bgcolor: alpha(colors.textSecondary, 0.07) },
-              }}
-            >
-              Hide Panel
-            </Button>
+            {hasPreviewPanel && (
+              <Button
+                size="small"
+                onClick={() => setPanelOpen(false)}
+                startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
+                sx={{
+                  color: colors.textSecondary,
+                  textTransform: "none",
+                  alignSelf: "flex-start",
+                  fontSize: 12.5,
+                  px: 1,
+                  "&:hover": { bgcolor: alpha(colors.textSecondary, 0.07) },
+                }}
+              >
+                Hide Panel
+              </Button>
+            )}
           </DialogActions>
         </Box>
       )}

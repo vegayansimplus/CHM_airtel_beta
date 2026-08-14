@@ -8,12 +8,18 @@ import { useRef, useState, useEffect, useCallback } from "react";
 
 interface Props {
   height?: number | string;
+  /** Fill the parent flex container's remaining space instead of capping at
+   * a fixed `height` - for panels whose available height varies (a drawer,
+   * a dialog) rather than ones with a known pixel/viewport size. The parent
+   * must itself be a flex column with a definite height for this to work. */
+  fill?: boolean;
   enableHorizontal?: boolean;
   children: React.ReactNode;
 }
 
 const SmartScrollContainer = ({
   height = 300,
+  fill = false,
   enableHorizontal = false,
   children,
 }: Props) => {
@@ -88,12 +94,15 @@ const SmartScrollContainer = ({
   };
 
   return (
-    <Box position="relative">
+    <Box
+      position="relative"
+      sx={fill ? { flex: 1, minHeight: 0, display: "flex", flexDirection: "column" } : undefined}
+    >
       <Box
         ref={scrollRef}
         onScroll={checkScroll}
         sx={{
-          maxHeight: height,
+          ...(fill ? { flex: 1, minHeight: 0 } : { maxHeight: height }),
           overflowY: "auto",
           overflowX: enableHorizontal ? "auto" : "hidden",
           pr: 0.5,

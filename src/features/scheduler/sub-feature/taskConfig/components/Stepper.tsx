@@ -13,6 +13,13 @@ import {
   styled,
 } from "@mui/material";
 import { CheckCircle, PlayCircleFilled, Schedule, ChevronRight, ArrowDropDown } from "@mui/icons-material";
+// Locally bundled via @fontsource (already installed app-wide) instead of the
+// Google Fonts CDN - this app runs on a server with no internet access.
+import "@fontsource/space-grotesk/400.css";
+import "@fontsource/space-grotesk/600.css";
+import "@fontsource/space-grotesk/700.css";
+import "@fontsource/ibm-plex-mono/400.css";
+import "@fontsource/ibm-plex-mono/600.css";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -156,7 +163,7 @@ const StatusChip: React.FC<{ status: SubTaskStatus; size?: "small" | "medium" }>
         background: cfg.bg,
         border: `1px solid ${cfg.border}`,
         color: cfg.color,
-        fontFamily: "'JetBrains Mono', monospace",
+        fontFamily: "'IBM Plex Mono', monospace",
         fontSize: 11,
         fontWeight: 600,
         letterSpacing: "0.04em",
@@ -201,7 +208,7 @@ const SubTaskRow: React.FC<{ subtask: SubTask; highlighted: boolean }> = ({
     <Box sx={{ flex: 1, minWidth: 0 }}>
       <Typography
         sx={{
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'IBM Plex Mono', monospace",
           fontSize: 11,
           color: "#475569",
           mb: 0.2,
@@ -212,7 +219,7 @@ const SubTaskRow: React.FC<{ subtask: SubTask; highlighted: boolean }> = ({
       </Typography>
       <Typography
         sx={{
-          fontFamily: "'DM Sans', sans-serif",
+          fontFamily: "'Space Grotesk', sans-serif",
           fontSize: 13.5,
           fontWeight: 600,
           color: highlighted ? "#fbbf24" : "#cbd5e1",
@@ -226,7 +233,7 @@ const SubTaskRow: React.FC<{ subtask: SubTask; highlighted: boolean }> = ({
     {subtask.date && (
       <Typography
         sx={{
-          fontFamily: "'JetBrains Mono', monospace",
+          fontFamily: "'IBM Plex Mono', monospace",
           fontSize: 11,
           color: "#475569",
           whiteSpace: "nowrap",
@@ -293,7 +300,7 @@ const TaskCard: React.FC<{ task: Task; isLast: boolean }> = ({ task, isLast }) =
           <Box sx={{ flex: 1 }}>
             <Typography
               sx={{
-                fontFamily: "'JetBrains Mono', monospace",
+                fontFamily: "'IBM Plex Mono', monospace",
                 fontSize: 10.5,
                 color: "#475569",
                 letterSpacing: "0.08em",
@@ -304,7 +311,7 @@ const TaskCard: React.FC<{ task: Task; isLast: boolean }> = ({ task, isLast }) =
             </Typography>
             <Typography
               sx={{
-                fontFamily: "'DM Sans', sans-serif",
+                fontFamily: "'Space Grotesk', sans-serif",
                 fontSize: 15,
                 fontWeight: 700,
                 color: "#e2e8f0",
@@ -431,16 +438,13 @@ const StepperCard: React.FC = () => {
         alignItems: "flex-start",
         justifyContent: "center",
         p: 4,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: "'Space Grotesk', sans-serif",
       }}
     >
-      {/* Google Fonts import via style tag */}
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap');`}</style>
-
       <Box sx={{ width: "100%", maxWidth: 680 }}>
         <Typography
           sx={{
-            fontFamily: "'DM Sans', sans-serif",
+            fontFamily: "'Space Grotesk', sans-serif",
             fontSize: 22,
             fontWeight: 700,
             color: "#e2e8f0",

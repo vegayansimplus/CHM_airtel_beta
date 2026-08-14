@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Box, Dialog, IconButton, useMediaQuery, useTheme } from "@mui/material";
+import { Box, Dialog, Drawer, IconButton, useMediaQuery, useTheme } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 import { GenericFormPanel } from "./GenericFormPanel";
@@ -51,9 +51,79 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
     classifyStatusValue(stageHistoryStatus ?? crq?.[stageConfig.statusField]) === "completed" ||
     classifyStatusValue(crqStatus) === "completed";
 
+  // Only Impact Analysis has a right panel (the live ImpactBatchExplorer) to
+  // pair the form with - every other stage renders GenericFormPanel alone,
+  // so its collapse toggle and this small-screen auto-collapse would have
+  // nothing to reveal.
+  const hasPreviewPanel = stageConfig.key === "impactanalysis";
+
   useEffect(() => {
-    if (isSmall) setPanelOpen(false);
-  }, [isSmall]);
+    if (isSmall && hasPreviewPanel) setPanelOpen(false);
+  }, [isSmall, hasPreviewPanel]);
+
+  const header = (
+    <Box
+      sx={{
+        px: 2.5,
+        py: 1.5,
+        display: "flex",
+        alignItems: "center",
+        gap: 1,
+        borderBottom: `1px solid ${colors.border}`,
+        flexShrink: 0,
+      }}
+    >
+      <Box sx={{ fontWeight: 800, fontSize: 14 }}>
+        {stageConfig.label} — {crqNo ?? "N/A"}
+      </Box>
+      <Box sx={{ flex: 1 }} />
+      <IconButton size="small" onClick={onClose}>
+        <CloseIcon sx={{ fontSize: 18 }} />
+      </IconButton>
+    </Box>
+  );
+
+  const formPanel = (
+    <GenericFormPanel
+      crq={crq}
+      stageConfig={stageConfig}
+      isCancelled={isCancelled}
+      isDone={isDone}
+      panelOpen={panelOpen}
+      setPanelOpen={setPanelOpen}
+      hasPreviewPanel={hasPreviewPanel}
+      colors={colors}
+      onClose={onClose}
+      onSubmitDone={onSubmitDone}
+    />
+  );
+
+  // No preview content to pair the form with -> a full-height, form-width
+  // sidebar anchored to the left edge instead of a fullscreen two-pane
+  // dialog, so there's no empty canvas to the right of the form.
+  if (!hasPreviewPanel) {
+    return (
+      <Drawer
+        anchor="left"
+        open={open}
+        onClose={onClose}
+        keepMounted={false}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            width: { xs: "100%", sm: 400 },
+            maxWidth: "100%",
+            display: "flex",
+            flexDirection: "column",
+            bgcolor: colors.isDark ? "#131419" : "#F4F5F7",
+          },
+        }}
+      >
+        {header}
+        {formPanel}
+      </Drawer>
+    );
+  }
 
   return (
     <Dialog
@@ -70,41 +140,13 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
         },
       }}
     >
-      <Box
-        sx={{
-          px: 2.5,
-          py: 1.5,
-          display: "flex",
-          alignItems: "center",
-          gap: 1,
-          borderBottom: `1px solid ${colors.border}`,
-        }}
-      >
-        <Box sx={{ fontWeight: 800, fontSize: 14 }}>
-          {stageConfig.label} — {crqNo ?? "N/A"}
-        </Box>
-        <Box sx={{ flex: 1 }} />
-        <IconButton size="small" onClick={onClose}>
-          <CloseIcon sx={{ fontSize: 18 }} />
-        </IconButton>
-      </Box>
+      {header}
 
       <Box sx={{ display: "flex", flex: 1, minHeight: 0, position: "relative" }}>
-        <GenericFormPanel
-          crq={crq}
-          stageConfig={stageConfig}
-          isCancelled={isCancelled}
-          isDone={isDone}
-          panelOpen={panelOpen}
-          setPanelOpen={setPanelOpen}
-          colors={colors}
-          onClose={onClose}
-          onSubmitDone={onSubmitDone}
-        />
+        {formPanel}
 
         <StagePreviewPanel
           crqNo={crqNo}
-          crqStatus={crqStatus}
           stageConfig={stageConfig}
           isCancelled={isCancelled}
           panelOpen={panelOpen}

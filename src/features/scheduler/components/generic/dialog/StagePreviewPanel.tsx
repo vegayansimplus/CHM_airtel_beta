@@ -2,14 +2,13 @@ import React from "react";
 import { Box, Button, Chip, Tooltip, Typography, alpha } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
+import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 
 interface StagePreviewPanelProps {
   crqNo: string | null;
-  crqStatus: string | null;
   stageConfig: StageConfig;
   isCancelled: boolean;
   panelOpen: boolean;
@@ -17,10 +16,15 @@ interface StagePreviewPanelProps {
   setPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
-/** Stage-agnostic summary preview, reused across every stage's dialog. */
+/**
+ * Right panel for the Impact Analysis stage's `StageReviewDialog` - the only
+ * stage with a real live view (`ImpactBatchExplorer`) to show here. Every
+ * other stage (MOP Create, MOP Validate, Scheduling, Activity Implement,
+ * Closer) has no summary data to preview, so `StageReviewDialog` skips this
+ * panel entirely for them instead of mounting it empty.
+ */
 export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   crqNo,
-  crqStatus,
   stageConfig,
   isCancelled,
   panelOpen,
@@ -69,34 +73,12 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
       </Tooltip>
     </Box>
 
-    <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-      {stageConfig.key === "impactanalysis" ? (
-        <ImpactBatchExplorer crqNo={crqNo} colors={colors} />
-      ) : (
-        <Box
-          sx={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            minHeight: 220,
-            border: "1.5px dashed",
-            borderColor: "divider",
-            borderRadius: 3,
-            p: 4,
-            gap: 1.5,
-            bgcolor: "background.paper",
-          }}
-        >
-          <AssignmentTurnedInOutlinedIcon sx={{ fontSize: 26, color: "text.disabled" }} />
-          <Typography variant="subtitle2" fontWeight={600} color="text.primary">
-            {stageConfig.label} Summary Preview
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            CRQ: <strong>{crqNo || "N/A"}</strong> &nbsp;•&nbsp; Status: <strong>{crqStatus || "N/A"}</strong>
-          </Typography>
+    <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+      <SmartScrollContainer fill>
+        <Box sx={{ p: 2.5 }}>
+          <ImpactBatchExplorer crqNo={crqNo} colors={colors} />
         </Box>
-      )}
+      </SmartScrollContainer>
     </Box>
   </Box>
 );
