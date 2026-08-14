@@ -39,8 +39,15 @@ export default defineConfig(({ mode }) => {
           manualChunks(id) {
             if (!id.includes('node_modules')) return undefined
             if (id.includes('@mui/icons-material')) return 'mui-icons'
-            if (id.includes('@mui/') || id.includes('@emotion/')) return 'mui'
-            if (id.includes('react-dom') || id.includes('/react/') || id.includes('react-router')) return 'react-vendor'
+            // MUI/Emotion, React, React-DOM and React-Router have circular
+            // internal references (react-is, prop-types, etc). Splitting them
+            // into separate chunk *files* forces the browser to execute one
+            // chunk before another has finished initializing its exports,
+            // which throws "Cannot access 'X' before initialization" at
+            // runtime (a cross-chunk temporal-dead-zone bug, not a server or
+            // deployment issue). Keeping them in one chunk avoids that boundary
+            // while still cutting request count via a single large 'vendor'
+            // file; icons have no such circular deps so they stay split out.
             return 'vendor'
           },
         },
