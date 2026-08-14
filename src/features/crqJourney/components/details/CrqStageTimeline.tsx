@@ -1,11 +1,11 @@
 import React, { useMemo, useRef, useState } from "react";
 import { Box, Tooltip, Typography, useTheme } from "@mui/material";
-import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
-import EngineeringRoundedIcon from "@mui/icons-material/EngineeringRounded";
-import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
-import TimerRoundedIcon from "@mui/icons-material/TimerRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
-import ViewListRoundedIcon from "@mui/icons-material/ViewListRounded";
+import PersonIcon from "@mui/icons-material/Person";
+import EngineeringIcon from "@mui/icons-material/Engineering";
+import ScheduleIcon from "@mui/icons-material/Schedule";
+import TimerIcon from "@mui/icons-material/Timer";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import ViewListIcon from "@mui/icons-material/ViewList";
 import type { CrqDetailsStage } from "../../types/crqJourney.types";
 import { formatDateTime, formatStageCode, formatStatusLabel, normalizeStepStatus, getStepStatusConfig } from "../../utils/crqJourney.utils";
 import { getStageIcon } from "../../utils/stageIcons";
@@ -86,8 +86,8 @@ export const CrqStageTimeline: React.FC<CrqStageTimelineProps> = ({ stages }) =>
         >
           {(
             [
-              { key: "visual", label: "Visual", icon: AccountTreeRoundedIcon },
-              { key: "list", label: "List", icon: ViewListRoundedIcon },
+              { key: "visual", label: "Visual", icon: AccountTreeIcon },
+              { key: "list", label: "List", icon: ViewListIcon },
             ] as const
           ).map(({ key, label, icon: ModeIcon }) => {
             const active = viewMode === key;
@@ -336,7 +336,7 @@ export const CrqStageTimeline: React.FC<CrqStageTimelineProps> = ({ stages }) =>
                   )}
                   {duration && (
                     <Box sx={{ display: "flex", alignItems: "center", gap: "3px", color: "text.disabled" }}>
-                      <TimerRoundedIcon sx={{ fontSize: 12.5 }} />
+                      <TimerIcon sx={{ fontSize: 12.5 }} />
                       <Typography sx={{ fontSize: 10.5, fontWeight: 600 }}>{duration}</Typography>
                     </Box>
                   )}
@@ -344,15 +344,15 @@ export const CrqStageTimeline: React.FC<CrqStageTimelineProps> = ({ stages }) =>
 
                 {hasActivity ? (
                   <Box sx={{ mt: 1, display: "flex", flexWrap: "wrap", gap: "6px 20px" }}>
-                    {stage.assignedTo && <MetaRow icon={PersonRoundedIcon}>Assigned to {stage.assignedTo}</MetaRow>}
-                    {stage.performedBy && <MetaRow icon={EngineeringRoundedIcon}>Performed by {stage.performedBy}</MetaRow>}
+                    {stage.assignedTo && <MetaRow icon={PersonIcon}>Assigned to {stage.assignedTo}</MetaRow>}
+                    {stage.performedBy && <MetaRow icon={EngineeringIcon}>Performed by {stage.performedBy}</MetaRow>}
                     {(stage.assignStart || stage.assignEnd) && (
-                      <MetaRow icon={ScheduleRoundedIcon}>
+                      <MetaRow icon={ScheduleIcon}>
                         Assigned {formatDateTime(stage.assignStart)} → {formatDateTime(stage.assignEnd)}
                       </MetaRow>
                     )}
                     {(stage.stageStartDate || stage.stageEndDate) && (
-                      <MetaRow icon={ScheduleRoundedIcon}>
+                      <MetaRow icon={ScheduleIcon}>
                         Active {formatDateTime(stage.stageStartDate)} → {formatDateTime(stage.stageEndDate)}
                       </MetaRow>
                     )}

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
+import CheckIcon from "@mui/icons-material/Check";
 import type { StepStatus } from "../types/crqJourney.types";
 import { getStepStatusConfig } from "../utils/crqJourney.utils";
 
@@ -103,7 +103,7 @@ export const StatusIcon: React.FC<StatusIconProps> = ({
           flexShrink: 0,
         }}
       >
-        <CheckRoundedIcon sx={{ fontSize: size * 0.65, color: "#fff", strokeWidth: 3 }} />
+        <CheckIcon sx={{ fontSize: size * 0.65, color: "#fff", strokeWidth: 3 }} />
       </Box>
     );
   }

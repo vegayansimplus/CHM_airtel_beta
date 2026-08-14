@@ -1,6 +1,6 @@
 import React from "react";
 import { Autocomplete, Box, CircularProgress, TextField, Typography, useTheme } from "@mui/material";
-import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
+import SearchIcon from "@mui/icons-material/Search";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterKey, OrgFilterOption, OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 import type { CrqJourneySearchRow } from "../../types/crqJourney.types";
@@ -94,7 +94,7 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
             }}
             InputProps={{
               ...params.InputProps,
-              startAdornment: <SearchRoundedIcon sx={{ fontSize: 18, color: "text.disabled", ml: "6px" }} />,
+              startAdornment: <SearchIcon sx={{ fontSize: 18, color: "text.disabled", ml: "6px" }} />,
               endAdornment: (
                 <>
                   {isLoadingCrqs && <CircularProgress color="inherit" size={14} />}

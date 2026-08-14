@@ -2,7 +2,6 @@ import React from "react";
 import {
   Alert,
   Box,
-  LinearProgress,
   MenuItem,
   Stack,
   TextField,
@@ -28,10 +27,10 @@ import { stageLabel } from "../stageLabel";
 /**
  * Step 1 - what is being rescheduled, whether it may be, and why.
  *
- * The three gates CRQ_SP_RESCHEDULE_INITIATE enforces (closed CRQ / manual
- * hold / three attempts used) are already evaluated by
- * CRQ_SP_RESCHEDULE_CONTEXT, so a blocked CRQ says so here instead of after a
- * failed write.
+ * The gates CRQ_SP_RESCHEDULE_INITIATE enforces (closed CRQ / manual hold)
+ * are already evaluated by CRQ_SP_RESCHEDULE_CONTEXT, so a blocked CRQ says
+ * so here instead of after a failed write. There is no cap on how many times
+ * a CRQ may be rescheduled.
  */
 export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }> = ({
   wizard,
@@ -54,8 +53,6 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
   if (!context) return null;
 
   const used = context.rescheduleCount ?? 0;
-  const max = context.maxReschedules ?? 3;
-  const usedPct = Math.min(100, (used / Math.max(1, max)) * 100);
 
   return (
     <Box>
@@ -118,7 +115,7 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             colors={colors}
           />
           <InfoTile
-            label="Scheduled Start"
+            label="Execution start"
             value={formatDateTime(context.scheduledStart)}
             colors={colors}
             icon={<EventRoundedIcon sx={{ fontSize: 12 }} />}
@@ -146,27 +143,14 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             bgcolor: colors.surface,
           }}
         >
-          <Stack direction="row" alignItems="baseline" spacing={0.6} sx={{ mb: 0.8 }}>
+          <Stack direction="row" alignItems="baseline" spacing={0.6}>
             <Typography sx={{ fontSize: 20, fontWeight: 800, color: colors.textPrimary }}>
               {used}
             </Typography>
             <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textDim }}>
-              of {max} used
+              {used === 1 ? "reschedule so far" : "reschedules so far"}
             </Typography>
           </Stack>
-          <LinearProgress
-            variant="determinate"
-            value={usedPct}
-            sx={{
-              height: 6,
-              borderRadius: 3,
-              bgcolor: colors.trackOff,
-              "& .MuiLinearProgress-bar": {
-                borderRadius: 3,
-                bgcolor: used >= max ? colors.danger : used === max - 1 ? colors.warning : colors.success,
-              },
-            }}
-          />
         </Box>
       </StepSection>
 

@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Alert, Fade, Skeleton, Typography, useTheme } from "@mui/material";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import { useCrqDetails } from "../hooks/useCrqDetails";
 import { CrqDetailsSearchBar } from "../components/details/CrqDetailsSearchBar";
 import { CrqDetailsInfoCard } from "../components/details/CrqDetailsInfoCard";
@@ -76,7 +76,7 @@ export const CrqDetailsPage: React.FC = () => {
               theme.palette.mode === "dark" ? `${theme.palette.primary.main}22` : `${theme.palette.primary.main}14`,
           }}
         >
-          <AccountTreeRoundedIcon sx={{ fontSize: 20, color: "primary.main" }} />
+          <AccountTreeIcon sx={{ fontSize: 20, color: "primary.main" }} />
         </Box>
         <Box>
           <Typography sx={{ fontSize: 16.5, fontWeight: 700, color: "text.primary", lineHeight: 1.25 }}>

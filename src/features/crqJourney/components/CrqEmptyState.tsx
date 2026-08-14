@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 
 interface CrqEmptyStateProps {
   title?: string;
@@ -72,7 +72,7 @@ export const CrqEmptyState: React.FC<CrqEmptyStateProps> = ({
             justifyContent: "center",
           }}
         >
-          <AccountTreeRoundedIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />
+          <AccountTreeIcon sx={{ fontSize: 32, color: theme.palette.primary.main }} />
         </Box>
       </Box>
       <Box sx={{ textAlign: "center" }}>

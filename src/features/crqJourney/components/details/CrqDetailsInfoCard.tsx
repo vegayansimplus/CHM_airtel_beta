@@ -1,10 +1,10 @@
 import React, { useMemo } from "react";
 import { Box, Typography, useTheme } from "@mui/material";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
-import BusinessCenterRoundedIcon from "@mui/icons-material/BusinessCenterRounded";
-import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
-import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
-import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
+import CheckIcon from "@mui/icons-material/Check";
+import BusinessCenterIcon from "@mui/icons-material/BusinessCenter";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
+import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
+import ChatBubbleOutlineIcon from "@mui/icons-material/ChatBubbleOutline";
 import type { CrqDetailsInfo, CrqDetailsStage } from "../../types/crqJourney.types";
 import { formatDateTime, formatStatusLabel, normalizeStepStatus, statusChipColor } from "../../utils/crqJourney.utils";
 
@@ -143,7 +143,7 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, st
                 }}
               />
             </Box>
-            {progress.pct === 100 && <CheckRoundedIcon sx={{ fontSize: 15, color: theme.palette.success.main }} />}
+            {progress.pct === 100 && <CheckIcon sx={{ fontSize: 15, color: theme.palette.success.main }} />}
           </Box>
         )}
       </Box>
@@ -158,10 +158,10 @@ export const CrqDetailsInfoCard: React.FC<CrqDetailsInfoCardProps> = ({ info, st
           gap: 2.5,
         }}
       >
-        <Field icon={BusinessCenterRoundedIcon} label="Team Function" value={info.teamFunction ?? "—"} />
-        <Field icon={AccountTreeRoundedIcon} label="Team Sub-Function" value={info.teamSubFunction ?? "—"} />
-        <Field icon={CalendarMonthRoundedIcon} label="Created On" value={formatDateTime(info.createdDate)} />
-        <Field icon={ChatBubbleOutlineRoundedIcon} label="Remark" value={info.remark?.trim() ? info.remark : "—"} />
+        <Field icon={BusinessCenterIcon} label="Team Function" value={info.teamFunction ?? "—"} />
+        <Field icon={AccountTreeIcon} label="Team Sub-Function" value={info.teamSubFunction ?? "—"} />
+        <Field icon={CalendarMonthIcon} label="Created On" value={formatDateTime(info.createdDate)} />
+        <Field icon={ChatBubbleOutlineIcon} label="Remark" value={info.remark?.trim() ? info.remark : "—"} />
       </Box>
     </Box>
   );

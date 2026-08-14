@@ -408,7 +408,7 @@ export const CrqDetailedView: React.FC = () => {
         ? [
             {
               key: "validate",
-              label: "Validate",
+              label: "Sync Plan Data",
               icon: <FactCheckRoundedIcon sx={{ fontSize: 16 }} />,
               disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
               onClick: () => setValidateOpen(true),

@@ -1,21 +1,21 @@
 import type { ElementType } from "react";
-import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
-import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
-import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
-import VerifiedRoundedIcon from "@mui/icons-material/VerifiedRounded";
-import EventAvailableRoundedIcon from "@mui/icons-material/EventAvailableRounded";
-import RocketLaunchRoundedIcon from "@mui/icons-material/RocketLaunchRounded";
-import FlagRoundedIcon from "@mui/icons-material/FlagRounded";
+import FactCheckIcon from "@mui/icons-material/FactCheck";
+import InsightsIcon from "@mui/icons-material/Insights";
+import DescriptionIcon from "@mui/icons-material/Description";
+import VerifiedIcon from "@mui/icons-material/Verified";
+import EventAvailableIcon from "@mui/icons-material/EventAvailable";
+import RocketLaunchIcon from "@mui/icons-material/RocketLaunch";
+import FlagIcon from "@mui/icons-material/Flag";
 
 /** get_crq_details stage codes → representative icon. Shared by the list and visual-flow views. */
 export const STAGE_ICONS: Record<string, ElementType> = {
-  VALIDATE: FactCheckRoundedIcon,
-  IMPACT_ANALYSIS: InsightsRoundedIcon,
-  MOP_CREATION: DescriptionRoundedIcon,
-  MOP_VALIDATION: VerifiedRoundedIcon,
-  SCHEDULING_APPROVAL: EventAvailableRoundedIcon,
-  EXECUTION: RocketLaunchRoundedIcon,
-  CLOSURE: FlagRoundedIcon,
+  VALIDATE: FactCheckIcon,
+  IMPACT_ANALYSIS: InsightsIcon,
+  MOP_CREATION: DescriptionIcon,
+  MOP_VALIDATION: VerifiedIcon,
+  SCHEDULING_APPROVAL: EventAvailableIcon,
+  EXECUTION: RocketLaunchIcon,
+  CLOSURE: FlagIcon,
 };
 
-export const getStageIcon = (code: string): ElementType => STAGE_ICONS[code.trim().toUpperCase()] ?? FactCheckRoundedIcon;
+export const getStageIcon = (code: string): ElementType => STAGE_ICONS[code.trim().toUpperCase()] ?? FactCheckIcon;
