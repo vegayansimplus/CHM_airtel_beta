@@ -93,6 +93,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     isFetching,
     isError,
     error,
+    refetch: refetchStageData,
   } = useGetStageDataQuery(
     { stageKey, domainId: domainId ?? 1, subDomainId: subDomainId ?? 1 },
     { skip: !domainId || !subDomainId },
@@ -240,7 +241,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         colors={colors}
       />
       <CustomActionButton
-        label="Preview Plan"
+        label="PDF View"
         disabled={!selectedCrq}
         onClick={() => setPreviewPdfOpen(true)}
         startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
@@ -326,6 +327,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             crqId={rescheduleCrq.crqId ?? null}
             crqNo={rescheduleCrq.crqNo ?? null}
             colors={colors}
+            onCompleted={refetchStageData}
           />
         </Suspense>
       )}

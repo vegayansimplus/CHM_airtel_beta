@@ -5,6 +5,7 @@ import type {
   RescheduleContext,
   RescheduleInitiateResponse,
   RescheduleMoveStageResponse,
+  RescheduleReasonOption,
   RescheduleSlotsResponse,
   RescheduleStatusResponse,
 } from "../types/reschedule.types";
@@ -32,10 +33,19 @@ export const rescheduleApiSlice = api.injectEndpoints({
       providesTags: (_r, _e, arg) => [{ type: "CrqReschedule", id: `ctx-${arg.crqId}` }],
     }),
 
+    // GET /crq/reschedule/reason-options - the fixed reason list, sp_reschedule_reason_drop_down
+    getRescheduleReasonOptions: builder.query<RescheduleReasonOption[], void>({
+      query: () => ({
+        url: "/crq/reschedule/reason-options",
+        method: "GET",
+      }),
+      providesTags: ["CrqReschedule"],
+    }),
+
     // POST /crq/reschedule/initiate -> attempt + calendar in one round trip
     initiateReschedule: builder.mutation<
       RescheduleInitiateResponse,
-      { crqId: number; reason: string }
+      { crqId: number; reason: string; remark: string }
     >({
       query: (body) => ({
         url: "/crq/reschedule/initiate",
@@ -135,6 +145,7 @@ export const rescheduleApiSlice = api.injectEndpoints({
 
 export const {
   useGetRescheduleContextQuery,
+  useGetRescheduleReasonOptionsQuery,
   useInitiateRescheduleMutation,
   useLazyGetRescheduleCalendarQuery,
   useSaveRescheduleDateMutation,

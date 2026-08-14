@@ -2,6 +2,7 @@ import React from "react";
 import {
   Box,
   Button,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -10,7 +11,7 @@ import {
   LinearProgress,
   Stack,
   Step,
-  StepButton,
+  StepLabel,
   Stepper,
   Typography,
   useMediaQuery,
@@ -58,11 +59,13 @@ export interface RescheduleDialogProps {
  * Step 4 Slot     -> CRQ_SP_RESCHEDULE_GET_SLOTS
  * Step 5 Confirm  -> CRQ_SP_RESCHEDULE_CONFIRM_SLOT
  *
- * All 5 phases stay reachable from the stepper for the life of the dialog -
- * clicking a phase jumps straight to it (never ahead of what has actually
- * been reached, since later phases depend on data only fetched once their
- * own procedure has run). Closing the dialog mid-flow does not cancel the
- * attempt; reopening it always starts again from Reschedule Details.
+ * The stepper is a progress indicator only - stages are never clickable, so
+ * the five procedures always run in order via Continue. Closing the dialog
+ * (the X icon, the backdrop, or Escape) before Confirm abandons whatever
+ * attempt is in flight through CRQ_SP_RESCHEDULE_CANCEL, which restores the
+ * parked reservation and reverts any stage move already committed - so an
+ * interrupted reschedule never leaves a half-applied change behind. Once the
+ * slot is confirmed there is nothing left to cancel; closing just closes.
  *
  * The workflow itself is untouched: this dialog never writes to CRQ_MASTER_TBL
  * or the stage tables directly, it only calls the procedures above.
@@ -79,9 +82,29 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
 
   const wizard = useRescheduleWizard({ open, crqId, onCompleted });
-  const { step, isBusy, context, furthestStep } = wizard;
+  const { step, isBusy, context, furthestStep, isCancelling } = wizard;
 
   const isSuccess = step === STEP_SUCCESS;
+
+  /**
+   * Closing before Confirm abandons an in-flight attempt, so it is confirmed
+   * and then rolled back via CRQ_SP_RESCHEDULE_CANCEL before the dialog
+   * actually closes. Nothing to cancel once an attempt was never created or
+   * the slot is already confirmed - those cases close straight away.
+   */
+  const handleClose = async () => {
+    if (isBusy || isCancelling) return;
+    if (!wizard.rescheduleId || isSuccess) {
+      onClose();
+      return;
+    }
+    const confirmed = window.confirm(
+      "This reschedule is not finished. Closing now will cancel it and restore the current schedule. Continue?",
+    );
+    if (!confirmed) return;
+    const ok = await wizard.cancelAttempt();
+    if (ok) onClose();
+  };
 
   /** Continue is only enabled once the current step has what its call needs. */
   const canContinue = (() => {
@@ -142,7 +165,7 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       fullScreen={isSmall}
@@ -176,8 +199,12 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
             </Typography>
           </Box>
           <Box sx={{ flex: 1 }} />
-          <IconButton size="small" onClick={onClose} disabled={isBusy}>
-            <CloseIcon sx={{ fontSize: 18 }} />
+          <IconButton size="small" onClick={handleClose} disabled={isBusy || isCancelling}>
+            {isCancelling ? (
+              <CircularProgress size={16} />
+            ) : (
+              <CloseIcon sx={{ fontSize: 18 }} />
+            )}
           </IconButton>
         </Stack>
       </DialogTitle>
@@ -187,24 +214,18 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
           activeStep={isSuccess ? RESCHEDULE_STEPS.length : step}
           alternativeLabel={!isSmall}
           orientation={isSmall ? "vertical" : "horizontal"}
-          nonLinear
         >
           {RESCHEDULE_STEPS.map((label, index) => {
-            // Full stage access: every phase is clickable at any time, in
-            // any order - no forced step-by-step Continue.
-            const canJump = !isSuccess && !isBusy && index !== step;
             return (
               <Step key={label} completed={!isSuccess && index < furthestStep}>
-                <StepButton
-                  onClick={canJump ? () => wizard.jumpToStep(index) : undefined}
-                  disabled={!canJump}
+                <StepLabel
                   sx={{
                     "& .MuiStepLabel-label": { fontSize: 11.5, fontWeight: 700 },
                     "& .MuiStepLabel-label.Mui-active": { color: colors.accent },
                   }}
                 >
                   {label}
-                </StepButton>
+                </StepLabel>
               </Step>
             );
           })}

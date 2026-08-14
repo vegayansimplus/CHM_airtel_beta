@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "react-toastify";
 
 import {
+  useCancelRescheduleMutation,
   useConfirmRescheduleSlotMutation,
   useGetRescheduleContextQuery,
+  useGetRescheduleReasonOptionsQuery,
   useInitiateRescheduleMutation,
   useLazyGetRescheduleCalendarQuery,
   useLazyGetRescheduleSlotsQuery,
@@ -100,11 +102,14 @@ interface UseRescheduleWizardArgs {
  */
 export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleWizardArgs) {
   const [step, setStep] = useState<number>(STEP_DETAILS);
-  // The furthest step reached this dialog session - the stepper only lets the
-  // user click into steps up to this point, never skip ahead of data that was
-  // never fetched.
+  // The furthest step reached this dialog session - the stepper's own
+  // indicator uses this for its checkmarks; navigation itself is strictly
+  // sequential (Continue only), the stages are never clickable.
   const [furthestStep, setFurthestStep] = useState<number>(STEP_DETAILS);
-  const [reason, setReason] = useState("");
+  // Reason for reschedule: a fixed option from sp_reschedule_reason_drop_down,
+  // plus optional free text the user can add alongside it.
+  const [selectedReason, setSelectedReason] = useState<string | null>(null);
+  const [reasonNote, setReasonNote] = useState("");
   const [rescheduleId, setRescheduleId] = useState<number | null>(null);
   const [desiredDate, setDesiredDate] = useState<string | null>(null);
   const [toStage, setToStage] = useState<CrqStageEnum | null>(null);
@@ -134,7 +139,8 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
   const resetAll = useCallback(() => {
     setStep(STEP_DETAILS);
     setFurthestStep(STEP_DETAILS);
-    setReason("");
+    setSelectedReason(null);
+    setReasonNote("");
     setRescheduleId(null);
     setDesiredDate(null);
     setToStage(null);
@@ -165,11 +171,16 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
     error: contextError,
   } = useGetRescheduleContextQuery({ crqId: crqId as number }, { skip: !open || !crqId });
 
+  /* ── Step 1 (read): sp_reschedule_reason_drop_down ────────────────────── */
+  const { data: reasonOptions, isFetching: isReasonOptionsLoading } =
+    useGetRescheduleReasonOptionsQuery(undefined, { skip: !open });
+
   /* ── Writes ───────────────────────────────────────────────────────────── */
   const [initiate, { isLoading: isInitiating }] = useInitiateRescheduleMutation();
   const [saveDate, { isLoading: isSavingDate }] = useSaveRescheduleDateMutation();
   const [moveStage, { isLoading: isMovingStage }] = useMoveRescheduleStageMutation();
   const [confirmSlot, { isLoading: isConfirming }] = useConfirmRescheduleSlotMutation();
+  const [cancelRescheduleAttempt, { isLoading: isCancelling }] = useCancelRescheduleMutation();
 
   /* ── Refresh-only reads ───────────────────────────────────────────────── */
   const [fetchCalendar, { isFetching: isCalendarLoading }] = useLazyGetRescheduleCalendarQuery();
@@ -257,7 +268,11 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
       return;
     }
     try {
-      const res = await initiate({ crqId, reason: reason.trim() }).unwrap();
+      const res = await initiate({
+        crqId,
+        reason: selectedReason ?? "",
+        remark: reasonNote.trim(),
+      }).unwrap();
       if (!res.rescheduleId) {
         // "blocked" never reaches here (the backend raises it), so a missing id
         // means the procedure answered without creating an attempt.
@@ -276,7 +291,19 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
       setStepError(msg);
       toast.error(msg);
     }
-  }, [crqId, reason, rescheduleId, resumeTarget, calendar, slots, initiate, refreshCalendar, refreshSlots, goToStep]);
+  }, [
+    crqId,
+    selectedReason,
+    reasonNote,
+    rescheduleId,
+    resumeTarget,
+    calendar,
+    slots,
+    initiate,
+    refreshCalendar,
+    refreshSlots,
+    goToStep,
+  ]);
 
   /** Step 2 -> 3. CRQ_SP_RESCHEDULE_SAVE_DATE re-validates the future date. */
   const submitDate = useCallback(async () => {
@@ -363,21 +390,23 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
   }, [rescheduleId, selectedSlotLabel, crqId, confirmSlot, onCompleted, goToStep]);
 
   /**
-   * Lets the user jump directly to any of the 5 phases via the stepper,
-   * in any order - full stage access, no forced step-by-step Continue.
-   * A phase visited before its data exists (e.g. Engineer Slot before the
-   * stage move ran) just renders its own empty state rather than an error;
-   * `furthestStep` still tracks the high-water mark for the checkmark UI.
+   * Abandons an in-flight attempt via CRQ_SP_RESCHEDULE_CANCEL: restores the
+   * reservation MOVE_STAGE parked and reverts the stage move, so closing the
+   * dialog mid-flow never leaves a half-applied reschedule behind - the
+   * attempt is either carried through to Confirm, or fully rolled back.
+   * A no-op once the slot is already confirmed (nothing left to undo) or no
+   * attempt was ever created.
    */
-  const jumpToStep = useCallback(
-    (target: number) => {
-      if (target === step) return;
-      setStepError(null);
-      setStep(target);
-      setFurthestStep((f) => Math.max(f, target));
-    },
-    [step],
-  );
+  const cancelAttempt = useCallback(async () => {
+    if (!rescheduleId || !crqId || step === STEP_SUCCESS) return true;
+    try {
+      await cancelRescheduleAttempt({ rescheduleId, crqId }).unwrap();
+      return true;
+    } catch (err) {
+      toast.error(errorMessage(err, "The reschedule attempt could not be cancelled."));
+      return false;
+    }
+  }, [rescheduleId, crqId, step, cancelRescheduleAttempt]);
 
   return {
     // step state
@@ -388,8 +417,12 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
     context,
     isContextLoading,
     contextError: isContextError ? errorMessage(contextError, "Could not load CRQ details.") : null,
-    reason,
-    setReason,
+    reasonOptions: reasonOptions ?? [],
+    isReasonOptionsLoading,
+    selectedReason,
+    setSelectedReason,
+    reasonNote,
+    setReasonNote,
     // step 2
     calendar,
     isCalendarLoading,
@@ -421,8 +454,10 @@ export function useRescheduleWizard({ open, crqId, onCompleted }: UseRescheduleW
     submitConfirm,
     // navigation
     furthestStep,
-    jumpToStep,
     rescheduleId,
+    // cancel (Close icon)
+    cancelAttempt,
+    isCancelling,
   };
 }
 

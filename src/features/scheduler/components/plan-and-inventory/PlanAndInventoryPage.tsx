@@ -1,5 +1,6 @@
-import React, { useCallback, useMemo, useState, useEffect } from "react";
+import React, { Suspense, lazy, useCallback, useMemo, useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import { useSelector } from "react-redux";
 import FilterSvg from "../../../../assets/svg/Filter.svg";
 
 import {
@@ -22,17 +23,27 @@ import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import TableRowsRoundedIcon from "@mui/icons-material/TableRowsRounded";
+import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
+import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 
 import { useTabColorTokens } from "../../../../style/theme";
+import type { RootState } from "../../../../app/store";
 import type { Plan } from "../../types/crqWorkflow.types";
 import { deepSearch } from "../../util/stringUtils";
+import { taskNumbersOf } from "../../constants/stageConfig";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
 import {
   useGetCrqReviewQuery,
   useUpdateCrqReviewStatusMutation,
+  useSubmitCrqReviewDoneMutation,
 } from "../../api/crqreviewApiSlice";
+
+// Same on-demand chunks GenericStagePage uses for its "Review"/"Preview Plan"
+// actions - only fetched once the corresponding button is actually clicked.
+const PlanInvDialog = lazy(() => import("../dialog/plan-inv-preview/PlanInvDialog"));
+const PreviewCrqPdfDialog = lazy(() => import("../dialog/crq-preview/PreviewCrqPdfDialog"));
 
 interface PlanAndInventoryPageProps {
   domainId?: number;
@@ -153,12 +164,17 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
   const [updateCrqReviewStatus] = useUpdateCrqReviewStatusMutation();
+  const [submitCrqReviewDone] = useSubmitCrqReviewDoneMutation();
   const [plansOriginal, setPlansOriginal] = useState<Plan[]>([]);
   const [openCrqs, setOpenCrqs] = useState<Record<string, boolean>>({});
   const [selectedCrq, setSelectedCrq] = useState<any | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [globalSearchInput, setGlobalSearchInput] = useState("");
   const [globalSearch, setGlobalSearch] = useState("");
+  const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
+  const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
+
+  const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
   useEffect(() => {
     injectGlobalStyles();
@@ -238,6 +254,46 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       }
     },
     [updateCrqReviewStatus],
+  );
+
+  /**
+   * Plan & Inventory review submit -> /crqworkflow/updatecrqreview/done.
+   * Mirrors CrqDetailedView's handleReviewSubmit so the exact same
+   * PlanInvDialog + payload shape works whether the CRQ is actioned from
+   * this list page or from the single-CRQ cockpit.
+   */
+  const handleReviewSubmit = useCallback(
+    async (data: any) => {
+      try {
+        const isCanceled = data.status === "canceled";
+        const response = await submitCrqReviewDone({
+          crqNo: data.crqNo,
+          crqId: data.crqId,
+          olmId: currentUserOlmId ?? "",
+          localStatus: isCanceled
+            ? (data.field1 ?? "Cancelled")
+            : data.status === "Done"
+              ? "DONE"
+              : data.status,
+          remark: isCanceled ? (data.field5 ?? "") : (data.remark ?? ""),
+          planNumber: data.planNumber ?? selectedCrq?.planNumber ?? "",
+          taskNumber: taskNumbersOf(selectedCrq),
+          ...(isCanceled && {
+            cygnetStatus: data.cygnetStatus,
+            field1: data.field1,
+            field3: data.cancellationReason,
+            field4: data.field4,
+            field5: data.field5,
+          }),
+        }).unwrap();
+        toast.success(response?.message || `Review for ${data.crqNo} submitted.`);
+        return { success: true };
+      } catch (err) {
+        toast.error((err as any)?.data?.message || "Review submission failed. Please try again.");
+        return { success: false };
+      }
+    },
+    [submitCrqReviewDone, currentUserOlmId, selectedCrq],
   );
 
   const toggleFullScreen = () => {
@@ -390,6 +446,20 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
             ? `${import.meta.env.BASE_URL}scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
             : undefined
         }
+        colors={colors}
+      />
+      <CustomActionButton
+        label="Review Plan & Inventory"
+        disabled={!selectedCrq}
+        onClick={() => setReviewDialogOpen(true)}
+        startIcon={<FactCheckRoundedIcon sx={{ fontSize: 16 }} />}
+        colors={colors}
+      />
+      <CustomActionButton
+        label="PDF View"
+        disabled={!selectedCrq}
+        onClick={() => setPreviewPdfOpen(true)}
+        startIcon={<PictureAsPdfOutlinedIcon sx={{ fontSize: 16 }} />}
         colors={colors}
       />
 
@@ -550,6 +620,35 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
       sx={{ p: { xs: 1.5, sm: 2, md: 1 }, minHeight: "100%" }}
     >
       <MaterialReactTable table={table} />
+
+      {/* Same review dialog the CRQ cockpit renders for this stage - lets a
+          user Pass/Fail/Cancel the selected CRQ's review without leaving
+          this list, matching the "Review {stage}" action every other stage's
+          GenericStagePage exposes. Mounted only once opened. */}
+      {reviewDialogOpen && selectedCrq && (
+        <Suspense fallback={null}>
+          <PlanInvDialog
+            open={reviewDialogOpen}
+            onClose={() => setReviewDialogOpen(false)}
+            crq={selectedCrq}
+            colors={colors}
+            onSubmit={handleReviewSubmit}
+          />
+        </Suspense>
+      )}
+      {/* Same "Preview CRQ" plan PDF the single-CRQ cockpit renders, matching
+          the "Preview Plan" action every other stage's GenericStagePage
+          exposes. Mounted only once opened. */}
+      {previewPdfOpen && selectedCrq && (
+        <Suspense fallback={null}>
+          <PreviewCrqPdfDialog
+            open={previewPdfOpen}
+            onClose={() => setPreviewPdfOpen(false)}
+            crqNo={selectedCrq.crqNo ?? null}
+            colors={colors}
+          />
+        </Suspense>
+      )}
     </Box>
   );
 };

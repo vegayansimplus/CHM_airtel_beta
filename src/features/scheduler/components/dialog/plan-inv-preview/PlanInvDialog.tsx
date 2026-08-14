@@ -132,6 +132,7 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           crqNo={crqNo}
           crqStatus={crqStatus}
           isCancelled={isCancelled}
+          isDone={isDone}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
           colors={dialogColors}

@@ -9,6 +9,8 @@ interface Props {
   crqNo: string | null;
   crqStatus: string | null;
   isCancelled: boolean;
+  /** Review outcome already recorded - checkpoint Pass/Fail actions become read-only. */
+  isDone?: boolean;
   panelOpen: boolean;
   colors: ThemeColors;
   setPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -18,6 +20,7 @@ export const PreviewPanel: React.FC<Props> = ({
   crqNo,
   crqStatus,
   isCancelled,
+  isDone = false,
   panelOpen,
   colors,
   setPanelOpen,
@@ -79,7 +82,11 @@ export const PreviewPanel: React.FC<Props> = ({
       </Box>
 
       <Box sx={{ flex: 1, overflowY: "auto", p: 2.5 }}>
-        <CheckPointSummaryPreview crqNo={crqNo} crqStatus={crqStatus} />
+        <CheckPointSummaryPreview
+          crqNo={crqNo}
+          crqStatus={crqStatus}
+          disableActions={isCancelled || isDone}
+        />
       </Box>
     </Box>
   );
