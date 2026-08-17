@@ -28,8 +28,12 @@ export interface Task {
   taskProfileType: string;
   locationCodeM6: string;
   workAreaTerritory: string;
-  activityPlanStartDate: string;
-  activityPlanEndDate: string;
+  /** Execution window (CRQ_MASTER_TBL.execution_slot_start/end). */
+  executionSlotStart: string;
+  executionSlotEnd: string;
+  /** @deprecated legacy alias of executionSlotStart/End - same value. */
+  activityPlanStartDate?: string;
+  activityPlanEndDate?: string;
   taskActivity: string;
 }
 
@@ -70,6 +74,14 @@ export interface Crq {
   assignedDepartment?: string | null;
   nodeType?: string | null;
   vendor?: string | null;
+  /**
+   * Execution window of the CRQ (CRQ_MASTER_TBL.execution_slot_start/end) as
+   * returned by the Get_CRQ_Workflow_Overview* procedures. Reschedule-aware:
+   * this is the slot the CRQ will actually run in.
+   */
+  executionSlotStart?: string | null;
+  executionSlotEnd?: string | null;
+  /** @deprecated legacy alias of executionSlotStart/End - same value. */
   activityPlanStartDate?: string | null;
   activityPlanEndDate?: string | null;
   impactStartDate?: string | null;

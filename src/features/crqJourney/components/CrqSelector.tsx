@@ -41,16 +41,23 @@ export const CrqSelector: React.FC<CrqSelectorProps> = ({
   };
 
   return (
-    <Box sx={{ background: theme.palette.background.paper, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+    <Box
+      sx={{
+        background: theme.palette.background.paper,
+        display: "flex",
+        alignItems: "center",
+        gap: { xs: 1.5, md: 2 },
+        flexWrap: "wrap",
+        // OrgHierarchyFilters lays its selects out in a nowrap row; letting them
+        // wrap here is what keeps the toolbar usable on laptop and tablet widths.
+        "& > div:first-of-type": { flexWrap: "wrap", rowGap: 1.5 },
+      }}
+    >
       <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
-
-      {/* <Typography variant="body2" sx={{ fontWeight: 600, color: "text.secondary", whiteSpace: "nowrap" }}>
-        Select CRQ
-      </Typography> */}
 
       <Autocomplete<CrqJourneySearchRow, false, false, true>
         size="small"
-        sx={{ minWidth: 360 }}
+        sx={{ minWidth: { xs: "100%", sm: 300, lg: 360 }, flex: { xs: "1 1 100%", sm: "0 1 auto" } }}
         freeSolo
         options={crqOptions}
         value={value}

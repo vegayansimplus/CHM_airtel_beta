@@ -339,8 +339,8 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
                             Tasks · {tasks.length} {tasks.length === 1 ? "task" : "tasks"}
                           </Typography>
                           {tasks.map((t) => {
-                            const start = formatTaskDate(t.activityPlanStartDate);
-                            const end = formatTaskDate(t.activityPlanEndDate);
+                            const start = formatTaskDate(t.executionSlotStart);
+                            const end = formatTaskDate(t.executionSlotEnd);
                             return (
                               <Box
                                 key={t.taskId}

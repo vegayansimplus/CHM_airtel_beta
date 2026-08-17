@@ -35,6 +35,20 @@ const parseDate = (value?: string | null): Date | null => {
   return Number.isNaN(d.getTime()) ? null : d;
 };
 
+/** Compact span between two instants ("45m", "2h 15m", "3d 4h") - used to
+ * qualify the execution window without pushing the header onto a second row.
+ * Returns null for zero-length or inverted ranges. */
+const formatDuration = (start: Date, end: Date): string | null => {
+  const totalMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+  if (totalMinutes <= 0) return null;
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days) return hours ? `${days}d ${hours}h` : `${days}d`;
+  if (hours) return minutes ? `${hours}h ${minutes}m` : `${hours}h`;
+  return `${minutes}m`;
+};
+
 /** First letter of the first two whitespace-separated tokens (e.g. "Jane
  * Doe" -> "JD"); falls back to the first two characters for single-token
  * values such as an OLM ID. */
@@ -152,8 +166,8 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
       if (e) dates.push(e);
     });
     [
-      "activityPlanStartDate",
-      "activityPlanEndDate",
+      "executionSlotStart",
+      "executionSlotEnd",
       "impactStartDate",
       "impactEndDate",
       "reviewStartDate",
@@ -165,6 +179,25 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
     if (!dates.length) return null;
     return new Date(Math.max(...dates.map((d) => d.getTime())));
   })();
+
+  /** CRQ_MASTER_TBL.execution_slot_start/end - the reschedule-aware slot the
+   * CRQ actually runs in, published by Get_CRQ_Workflow_Overview* as
+   * executionSlotStart/executionSlotEnd. */
+  const executionWindow = (() => {
+    const startDate = parseDate(crq.executionSlotStart);
+    const endDate = parseDate(crq.executionSlotEnd);
+    return {
+      start: formatDate(crq.executionSlotStart),
+      end: formatDate(crq.executionSlotEnd),
+      duration: startDate && endDate ? formatDuration(startDate, endDate) : null,
+    };
+  })();
+
+  const executionWindowTooltip = executionWindow.start || executionWindow.end
+    ? `Execution Window: ${executionWindow.start ?? "—"} → ${executionWindow.end ?? "—"}${
+        executionWindow.duration ? ` (${executionWindow.duration})` : ""
+      }`
+    : "Execution Window: not scheduled yet";
 
   const extraField = EXTRA_FIELD_LABELS.find(([key]) => typeof c[key] === "string" && c[key].trim());
 
@@ -307,9 +340,32 @@ export const CrqWorkflowHeader: React.FC<CrqWorkflowHeaderProps> = ({
 
         <Box sx={{ flexShrink: 0 }}>
           <Field dense label="Execution Window" icon={<ScheduleRoundedIcon sx={{ fontSize: 10, color: colors.textDim }} />}>
-            <Typography sx={{ fontSize: 11.5, fontWeight: 700, whiteSpace: "nowrap" }}>
-              {formatDate(c.activityPlanStartDate) ?? "—"} → {formatDate(c.activityPlanEndDate) ?? "—"}
-            </Typography>
+            <Tooltip title={executionWindowTooltip} arrow>
+              <Typography
+                sx={{
+                  fontSize: 11.5,
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  color: executionWindow.start || executionWindow.end ? "inherit" : colors.textDim,
+                }}
+              >
+                {executionWindow.start || executionWindow.end ? (
+                  <>
+                    {executionWindow.start ?? "—"} → {executionWindow.end ?? "—"}
+                    {executionWindow.duration && (
+                      <Box
+                        component="span"
+                        sx={{ ml: 0.6, fontSize: 10, fontWeight: 700, color: colors.textDim }}
+                      >
+                        ({executionWindow.duration})
+                      </Box>
+                    )}
+                  </>
+                ) : (
+                  "Not scheduled"
+                )}
+              </Typography>
+            </Tooltip>
           </Field>
         </Box>
       </Stack>

@@ -1,6 +1,7 @@
 import React from "react";
 import { Box, Typography, useTheme } from "@mui/material";
 import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
 import type { StepStatus } from "../types/crqJourney.types";
 import { getStepStatusConfig } from "../utils/crqJourney.utils";
 
@@ -104,6 +105,25 @@ export const StatusIcon: React.FC<StatusIconProps> = ({
         }}
       >
         <CheckIcon sx={{ fontSize: size * 0.65, color: "#fff", strokeWidth: 3 }} />
+      </Box>
+    );
+  }
+
+  if (status === "cancelled") {
+    return (
+      <Box
+        sx={{
+          width: size,
+          height: size,
+          borderRadius: "50%",
+          background: cfg.color,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+        }}
+      >
+        <CloseIcon sx={{ fontSize: size * 0.65, color: "#fff" }} />
       </Box>
     );
   }

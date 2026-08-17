@@ -25,17 +25,20 @@ import {
 import { stageLabel } from "../stageLabel";
 
 /**
- * Step 1 - what is being rescheduled, whether it may be, and why.
  *
- * The gates CRQ_SP_RESCHEDULE_INITIATE enforces (closed CRQ / manual hold)
- * are already evaluated by CRQ_SP_RESCHEDULE_CONTEXT, so a blocked CRQ says
- * so here instead of after a failed write. There is no cap on how many times
- * a CRQ may be rescheduled.
- */
-export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }> = ({
-  wizard,
-  colors,
-}) => {
+ * ****************************************************************************
+ * Step   - what is being rescheduled, whether it may be, and why.            *
+ * The gates CRQ_SP_RESCHEDULE_INITIATE enforces (closed CRQ / manual hold)   *
+ * are already evaluated by CRQ_SP_RESCHEDULE_CONTEXT, so a blocked CRQ says  *
+ * so here instead of after a failed write. There is no cap on how many times *
+ * a CRQ may be rescheduled.                                                  *
+ * ****************************************************************************
+ *
+ **/
+export const DetailsStep: React.FC<{
+  wizard: RescheduleWizard;
+  colors: Colors;
+}> = ({ wizard, colors }) => {
   const {
     context,
     isContextLoading,
@@ -67,14 +70,23 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
       {context.activeRescheduleId && (
         <Alert severity="info" sx={{ mb: 2, fontSize: 12.5 }}>
           A reschedule started earlier is still open (
-          {context.activeRescheduleStatus?.toLowerCase().replace("_", " ")}). Continuing resumes
-          it instead of starting a new one.
+          {context.activeRescheduleStatus?.toLowerCase().replace("_", " ")}).
+          Continuing resumes it instead of starting a new one.
         </Alert>
       )}
 
-      <StepSection icon={<AssignmentRoundedIcon sx={{ fontSize: 14 }} />} title="CRQ" colors={colors}>
+      <StepSection
+        icon={<AssignmentRoundedIcon sx={{ fontSize: 14 }} />}
+        title="CRQ"
+        colors={colors}
+      >
         <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
-          <InfoTile label="CRQ Number" value={context.crqNo} colors={colors} mono />
+          <InfoTile
+            label="CRQ Number"
+            value={context.crqNo}
+            colors={colors}
+            mono
+          />
           <InfoTile
             label="Current Stage"
             value={stageLabel(context.currentStage)}
@@ -93,8 +105,8 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             moves as a unit - worth saying, since only one schedule exists. */}
         {(context.taskCount ?? 0) > 1 && (
           <Typography sx={{ fontSize: 11.5, color: colors.textDim, mt: 1 }}>
-            This CRQ has {context.taskCount} tasks. Rescheduling moves the CRQ's execution window,
-            so all of them move together.
+            This CRQ has {context.taskCount} tasks. Rescheduling moves the CRQ's
+            execution window, so all of them move together.
           </Typography>
         )}
       </StepSection>
@@ -121,7 +133,7 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
             icon={<EventRoundedIcon sx={{ fontSize: 12 }} />}
           />
           <InfoTile
-            label="Scheduled End"
+            label="Execution End"
             value={formatDateTime(context.scheduledEnd)}
             colors={colors}
             icon={<EventRoundedIcon sx={{ fontSize: 12 }} />}
@@ -144,10 +156,14 @@ export const DetailsStep: React.FC<{ wizard: RescheduleWizard; colors: Colors }>
           }}
         >
           <Stack direction="row" alignItems="baseline" spacing={0.6}>
-            <Typography sx={{ fontSize: 20, fontWeight: 800, color: colors.textPrimary }}>
+            <Typography
+              sx={{ fontSize: 20, fontWeight: 800, color: colors.textPrimary }}
+            >
               {used}
             </Typography>
-            <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textDim }}>
+            <Typography
+              sx={{ fontSize: 12, fontWeight: 700, color: colors.textDim }}
+            >
               {used === 1 ? "reschedule so far" : "reschedules so far"}
             </Typography>
           </Stack>

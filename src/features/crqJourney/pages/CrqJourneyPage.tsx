@@ -1,13 +1,14 @@
 import React from "react";
-import { Box, CircularProgress, Alert, Typography, useTheme } from "@mui/material";
+import { Alert, Box, Button } from "@mui/material";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useCrqJourney } from "../hooks/useCrqJourney";
 import { CrqSelector } from "../components/CrqSelector";
 import { CrqInfoStrip } from "../components/CrqInfoStrip";
 import { CrqFlowCanvas } from "../components/CrqFlowCanvas";
+import { CrqFlowSkeleton } from "../components/CrqFlowSkeleton";
 import { CrqEmptyState } from "../components/CrqEmptyState";
 
 export const CrqJourneyPage: React.FC = () => {
-  const theme = useTheme();
   const {
     roleName,
     values,
@@ -18,14 +19,20 @@ export const CrqJourneyPage: React.FC = () => {
     selectedCrq,
     handleSelectCrq,
     showLegend,
+    handleToggleLegend,
     isLoading,
     error,
     flow,
+    progress,
+    details,
+    isLoadingDetails,
+    refetch,
+    isRefreshing,
   } = useCrqJourney();
 
   return (
-    <Box>
-      {/* ── Org scope + CRQ Selector ── */}
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, pb: 2 }}>
+      {/* ── Org scope + CRQ selector ── */}
       <CrqSelector
         role={roleName}
         values={values}
@@ -37,53 +44,52 @@ export const CrqJourneyPage: React.FC = () => {
         onChange={handleSelectCrq}
       />
 
-      {/* ── Journey section ── */}
-      <Box sx={{ py: 0.1, display: "flex", flexDirection: "column", gap: 2 }}>
-        {selectedCrq && !isLoading && (
-          <Box
-            sx={{
-              background: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: "12px",
-              overflow: "hidden",
-            }}
-          >
-            <CrqInfoStrip info={selectedCrq} />
-          </Box>
-        )}
+      {/* ── Loading ── */}
+      {isLoading && <CrqFlowSkeleton />}
 
-        {isLoading && (
-          <Box
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              minHeight: 300,
-              background: theme.palette.background.paper,
-              border: `1px solid ${theme.palette.divider}`,
-              borderRadius: "14px",
-              gap: 2,
-            }}
-          >
-            <CircularProgress size={28} sx={{ color: theme.palette.primary.main }} />
-            <Typography sx={{ fontSize: 14, color: "text.secondary" }}>Loading CRQ journey…</Typography>
-          </Box>
-        )}
+      {/* ── Error ── */}
+      {error && !isLoading && (
+        <Alert
+          severity="error"
+          sx={{ borderRadius: 2 }}
+          action={
+            <Button color="inherit" size="small" startIcon={<RefreshRoundedIcon />} onClick={refetch}>
+              Retry
+            </Button>
+          }
+        >
+          {error}
+        </Alert>
+      )}
 
-        {error && !isLoading && (
-          <Alert severity="error" sx={{ borderRadius: 2 }}>
-            {error}
-          </Alert>
-        )}
+      {/* ── Empty ── */}
+      {!selectedCrq && !isLoading && (
+        <CrqEmptyState
+          subtitle={
+            values.subDomain == null
+              ? "Pick a Sub Domain to browse its Change Requests, or type a CRQ number directly."
+              : "Choose a Change Request above to view its journey flow."
+          }
+        />
+      )}
 
-        {!selectedCrq && !isLoading && <CrqEmptyState />}
+      {/* ── Journey ── */}
+      {selectedCrq && !isLoading && !error && (
+        <>
+          <CrqInfoStrip
+            info={selectedCrq}
+            details={details}
+            isLoadingDetails={isLoadingDetails}
+            progress={progress}
+            onRefresh={refetch}
+            isRefreshing={isRefreshing}
+          />
 
-        {flow && !isLoading && !error && (
-          <Box>
-            <CrqFlowCanvas flow={flow} showLegend={showLegend} />
-          </Box>
-        )}
-      </Box>
+          {flow && (
+            <CrqFlowCanvas flow={flow} showLegend={showLegend} onToggleLegend={handleToggleLegend} />
+          )}
+        </>
+      )}
     </Box>
   );
 };
