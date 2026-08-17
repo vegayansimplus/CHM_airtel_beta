@@ -3,11 +3,11 @@ import { Routes, Route, Navigate } from "react-router";
 import { PrivateRoute } from "./PrivateRoute";
 import DefaultRedirect from "./DefaultRedirect";
 import CommonContainer from "../components/common/CommonContainer";
-import PageLoader from "../components/loading/PageLoader";
+import { RouteFallback } from "../components/loading/PageLoader";
 
 // Route-level code splitting — every feature page below is fetched on
 // first navigation instead of bundled eagerly into the initial load. The
-// <Suspense fallback={<PageLoader/>}> already wrapping <Routes> further
+// <Suspense fallback={<RouteFallback/>}> already wrapping <Routes> further
 // down (previously dead weight, since nothing here was lazy) is what
 // makes this work with no new boundaries needed. Named exports from a
 // feature's barrel `index.ts` resolve to the same dynamic import
@@ -76,6 +76,11 @@ const UserLogs = lazy(() =>
 );
 const NetworkManagementTabView = lazy(
   () => import("../features/settings/page/NetworkManagementTabView"),
+);
+const GlobalSettingsIndexRedirect = lazy(() =>
+  import("../features/settings/page/NetworkManagementTabView").then((m) => ({
+    default: m.GlobalSettingsIndexRedirect,
+  })),
 );
 const Holidayandnetworkschedulemanagermain = lazy(
   () =>
@@ -211,7 +216,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   setDynamicHeaderIcon,
 }) => {
   return (
-    <Suspense fallback={<PageLoader height="70vh" />}>
+    <Suspense fallback={<RouteFallback />}>
       <Routes>
         <Route
           path="/"
@@ -427,13 +432,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route
             element={<PrivateRoute element={<NetworkManagementTabView />} />}
           >
-            {/* default tab */}
-            <Route
-              index
-              element={<Navigate to="networkfreezsetting" replace />}
-            />
+            {/* default tab — first one this role is actually allowed to open */}
+            <Route index element={<GlobalSettingsIndexRedirect />} />
 
-            {/* tab routes */}
+            {/* tab routes — direct-URL access is already gated by the
+                PrivateRoute on the parent, which checks the full pathname */}
             <Route
               path="networkfreezsetting"
               element={<Holidayandnetworkschedulemanagermain />}

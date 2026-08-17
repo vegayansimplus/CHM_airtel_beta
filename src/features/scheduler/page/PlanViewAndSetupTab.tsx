@@ -4,8 +4,9 @@ import { useLocation, Link } from "react-router";
 // import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 import { useSchedulerAccess } from "../hook/useSchedulerAccess";
 
 // interface PlanViewAndSetupTabProps {
@@ -68,7 +69,9 @@ const PlanViewAndSetupTab: React.FC = (
           ? bg.accentDim
           : theme.palette.background.paper,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -157,11 +160,21 @@ const PlanViewAndSetupTab: React.FC = (
 
       {/* ================= CONTENT ================= */}
 
-      {/* Minus the 45px tab offset, the tab bar and this box's own padding —
-          a flat 100vh here made every tab overflow the viewport by ~110px
+      {/* Takes whatever the shell has left after the 45px header offset and
+          the tab bar — the old hand-computed `calc(100vh - 160px)` had to
+          guess at those, and a flat 100vh overflowed the viewport by ~110px
           before a single row of content was drawn. */}
-      <Box sx={{ p: 2, minHeight: "calc(100vh - 160px)", bgcolor: "transparent" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box
+        sx={{
+          p: 2,
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          bgcolor: "transparent",
+        }}
+      >
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

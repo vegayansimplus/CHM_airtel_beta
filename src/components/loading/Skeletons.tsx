@@ -1,7 +1,8 @@
 import { Box, Skeleton, Stack, useTheme } from "@mui/material";
 import { useLoadingVisibility } from "./LoadingProvider";
 
-function useShimmerSx() {
+/** Shared shimmer palette so every skeleton in the app pulses identically. */
+export function useShimmerSx() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   return {

@@ -20,14 +20,18 @@ const nextStageKey = (stageKey: StageKey): StageKey | null => {
 
 export const stageWorkflowApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
+    // `domainId: null` means the caller's role has no domain scope
+    // (TEAM_MEMBER/TEAM_LEAD) - the param is then left off the request
+    // entirely, and the backend's stage procedures scope such a caller by
+    // their own assignments + sub-domain instead. See util/orgScope.ts.
     getStageData: builder.query<
       CrqReviewResponse,
-      { stageKey: StageKey; domainId: number; subDomainId: number }
+      { stageKey: StageKey; domainId?: number | null; subDomainId: number }
     >({
       query: ({ stageKey, domainId, subDomainId }) => ({
         url: STAGE_CONFIG_MAP[stageKey].reviewQueryUrl,
         method: "GET",
-        params: { domainId, subDomainId },
+        params: { domainId: domainId ?? undefined, subDomainId },
       }),
       providesTags: (_result, _error, arg) => [
         { type: "StageWorkflow", id: arg.stageKey },

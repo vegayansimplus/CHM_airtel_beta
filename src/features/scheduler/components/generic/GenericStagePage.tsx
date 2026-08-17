@@ -29,6 +29,7 @@ import { StageDetailPanel } from "./StageDetailPanel";
 import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import { filterPlansBySearch } from "../../util/filterPlansBySearch";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
+import { buildScopeQuery, isOrgScopeReady } from "../../util/orgScope";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import { usePermission } from "../../../auth/hooks/usePermission";
 const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
@@ -42,7 +43,12 @@ const UPDATE_PERMISSION = "UPDATE";
 
 interface GenericStagePageProps {
   stageKey: StageKey;
-  domainId?: number;
+  /**
+   * `null` = the caller's role has no domain scope (TEAM_MEMBER/TEAM_LEAD),
+   * so the stage is queried with no domainId at all. `undefined` = the role
+   * does have a Domain picker but hasn't used it yet. See util/orgScope.ts.
+   */
+  domainId?: number | null;
   subDomainId?: number;
 }
 
@@ -86,6 +92,11 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const canEdit = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
   const canReschedule = RESCHEDULABLE_STAGES.has(stageKey) && canEdit;
 
+  // A domain-less role (TEAM_MEMBER) is ready as soon as a sub-domain is
+  // known - waiting on a Domain it is never offered is what used to leave it
+  // stuck on the "select a filter" screen.
+  const scopeReady = isOrgScopeReady(domainId, subDomainId);
+
   useEffect(() => {
     injectGlobalStyles();
   }, []);
@@ -98,8 +109,8 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     error,
     refetch: refetchStageData,
   } = useGetStageDataQuery(
-    { stageKey, domainId: domainId ?? 1, subDomainId: subDomainId ?? 1 },
-    { skip: !domainId || !subDomainId },
+    { stageKey, domainId, subDomainId: subDomainId ?? 1 },
+    { skip: !scopeReady },
   );
 
   useEffect(() => {
@@ -231,7 +242,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         disabled={!selectedCrq}
         url={
           selectedCrq
-            ? `${import.meta.env.BASE_URL}scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
+            ? `${import.meta.env.BASE_URL}scheduler/crqWorkflow/${selectedCrq.crqNo}?${buildScopeQuery(domainId, subDomainId)}`
             : undefined
         }
         colors={colors}
@@ -290,7 +301,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 350px)" } },
   });
 
-  if (!domainId || !subDomainId) {
+  if (!scopeReady) {
     return (
       <Box sx={{ width: "100%", minHeight: "calc(100vh - 220px)", display: "flex", alignItems: "center", justifyContent: "center" }}>
         <img src={FilterSvg} alt="Select Filter" width={850} />

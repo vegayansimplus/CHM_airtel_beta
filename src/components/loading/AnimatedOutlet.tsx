@@ -20,6 +20,10 @@ const AnimatedOutlet = () => {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -8 }}
         transition={{ duration: 0.18, ease: "easeInOut" }}
+        // Stretches inside the shell's flex content region so a routed page
+        // (or its loader/skeleton) can fill the height instead of collapsing
+        // to its own content and leaving a short, floating box.
+        style={{ flex: "1 1 auto", display: "flex", flexDirection: "column", minWidth: 0 }}
       >
         {element}
       </motion.div>

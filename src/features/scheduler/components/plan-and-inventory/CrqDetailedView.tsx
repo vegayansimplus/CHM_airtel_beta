@@ -28,6 +28,8 @@ import { useStageWorkflow } from "../../hook/useStageWorkflow";
 import type { Crq } from "../../types/crqWorkflow.types";
 import type { StageKey } from "../../types/stageWorkflow.types";
 import type { RootState } from "../../../../app/store";
+import { authStorage } from "../../../../app/store/auth.storage";
+import { resolveDomainScope } from "../../util/orgScope";
 import {
   WORKFLOW_STAGES,
   classifyStatusValue,
@@ -148,7 +150,17 @@ export const CrqDetailedView: React.FC = () => {
   // reached directly (deep link / new tab), not nested under those pages.
   // Falls back to 1/1 to preserve the previous hardcoded default when a
   // link doesn't carry them (e.g. an old bookmark).
-  const domainId = Number(searchParams.get("domainId")) || 1;
+  //
+  // For a role with no domain scope (TEAM_MEMBER/TEAM_LEAD) the scope is
+  // resolved to null instead: no Domain is ever picked for them upstream, so
+  // there is no domainId in the link and none to send. The role decides this
+  // rather than the link's contents, so an old bookmark carrying a stale
+  // domainId can't smuggle a scope such a user was never given.
+  const roleCode = useMemo(() => authStorage.getUser()?.roleCode, []);
+  const domainId = resolveDomainScope(
+    roleCode,
+    Number(searchParams.get("domainId")) || 1,
+  );
   const subDomainId = Number(searchParams.get("subDomainId")) || 1;
 
   const [expPlans, setExpPlans] = useState<Record<string, boolean>>({});

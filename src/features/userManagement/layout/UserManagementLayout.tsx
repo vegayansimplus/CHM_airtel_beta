@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router";
 import { Box, Tabs, Tab, Typography, useTheme } from "@mui/material";
 import { useTabColorTokens } from "../../../style/theme";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 const TAB_ROUTES = ["usermang", "userlogs"] as const;
 type TabRoute = (typeof TAB_ROUTES)[number];
@@ -32,7 +33,9 @@ const UserManagementLayout: React.FC = () => {
         // backgroundColor: theme.palette.background.paper,
         backgroundColor: bg.accentDim,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -129,7 +132,7 @@ const UserManagementLayout: React.FC = () => {
       <Box sx={{ borderBottom: 1, borderColor: "divider" }} />
 
       {/* Routed child renders here */}
-      <Box sx={{ p: 3 }}>
+      <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <AnimatedOutlet />
       </Box>
     </Box>

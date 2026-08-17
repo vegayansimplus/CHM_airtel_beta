@@ -5,8 +5,9 @@ import {
 } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
-import PageLoader from "../loading/PageLoader";
+import { RouteFallback } from "../loading/PageLoader";
 import AnimatedOutlet from "../loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../layout/layoutConstants";
 
 export interface TabConfig {
   label: string;
@@ -57,6 +58,9 @@ const ReusableTabLayout: React.FC<ReusableTabLayoutProps> = ({
       sx={{
         backgroundColor: "transparent",
         maxWidth: "100%",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
         "&::-webkit-scrollbar": {
@@ -104,8 +108,8 @@ const ReusableTabLayout: React.FC<ReusableTabLayoutProps> = ({
       </Box>
 
       {/* ---------- Content ---------- */}
-      <Box sx={{ p: 3, minHeight: "60vh" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

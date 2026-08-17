@@ -2,7 +2,8 @@ import React from "react";
 import { GenericStagePage } from "../components/generic/GenericStagePage";
 
 interface Props {
-  domainId?: number;
+  /** null = role has no domain scope (see util/orgScope.ts). */
+  domainId?: number | null;
   subDomainId?: number;
 }
 

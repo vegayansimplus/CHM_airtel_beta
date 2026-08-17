@@ -16,7 +16,11 @@ const CommonContainer = ({ children }: { children: React.ReactNode }) => {
           lg: "auto",
           xl: "calc(100vh - 100px)",
         },
-        minHeight: "500px", 
+        minHeight: "500px",
+        // Column flex so a routed page — or the loader standing in for one —
+        // fills this container instead of collapsing to its own content.
+        display: "flex",
+        flexDirection: "column",
         p: {
           xs: "0px 8px",
           sm: "4px 12px",

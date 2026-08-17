@@ -11,12 +11,19 @@ export interface CrqWorkflowOverviewPage {
   last: boolean;
 }
 
+/**
+ * Every endpoint here takes `domainId?: number | null`. `null` means the
+ * caller's role has no domain scope (TEAM_MEMBER/TEAM_LEAD): the param is
+ * then omitted from the request rather than sent as a made-up value, and the
+ * backend scopes the caller by their own assignments instead. See
+ * util/orgScope.ts for how a screen arrives at that null.
+ */
 export const rosterApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     getCrqReview: builder.query<
       CrqReviewResponse,
       {
-        domainId: number;
+        domainId?: number | null;
         subDomainId: number;
       }
     >({
@@ -24,7 +31,7 @@ export const rosterApiSlice = api.injectEndpoints({
         url: "/crqworkflow/crqreview",
         method: "GET",
         params: {
-          domainId,
+          domainId: domainId ?? undefined,
           subDomainId,
         },
       }),
@@ -36,7 +43,7 @@ export const rosterApiSlice = api.injectEndpoints({
     getCrqWorkflowOverview: builder.query<
       CrqReviewResponse,
       {
-        domainId: number;
+        domainId?: number | null;
         subDomainId: number;
       }
     >({
@@ -44,7 +51,7 @@ export const rosterApiSlice = api.injectEndpoints({
         url: "/crqworkflow/overview",
         method: "GET",
         params: {
-          domainId,
+          domainId: domainId ?? undefined,
           subDomainId,
         },
       }),
@@ -59,7 +66,7 @@ export const rosterApiSlice = api.injectEndpoints({
     getCrqWorkflowOverviewPaged: builder.query<
       CrqWorkflowOverviewPage,
       {
-        domainId: number;
+        domainId?: number | null;
         subDomainId: number;
         search?: string;
         page: number;
@@ -69,7 +76,13 @@ export const rosterApiSlice = api.injectEndpoints({
       query: ({ domainId, subDomainId, search, page, size }) => ({
         url: "/crqworkflow/overview/paged",
         method: "GET",
-        params: { domainId, subDomainId, search: search ?? "", page, size },
+        params: {
+          domainId: domainId ?? undefined,
+          subDomainId,
+          search: search ?? "",
+          page,
+          size,
+        },
       }),
       providesTags: ["CrqReview"],
     }),
@@ -81,7 +94,7 @@ export const rosterApiSlice = api.injectEndpoints({
     getCrqWorkflowOverviewByCrqNo: builder.query<
       CrqReviewResponse,
       {
-        domainId: number;
+        domainId?: number | null;
         subDomainId: number;
         crqNo: string;
       }
@@ -89,7 +102,7 @@ export const rosterApiSlice = api.injectEndpoints({
       query: ({ domainId, subDomainId, crqNo }) => ({
         url: `/crqworkflow/overview/${crqNo}`,
         method: "GET",
-        params: { domainId, subDomainId },
+        params: { domainId: domainId ?? undefined, subDomainId },
       }),
       providesTags: ["CrqReview"],
     }),

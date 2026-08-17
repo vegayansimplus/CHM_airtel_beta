@@ -1,38 +1,78 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import React, { Suspense, useMemo } from "react";
-import { useLocation, Link } from "react-router";
+import { useLocation, Link, Navigate } from "react-router";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
+import { usePermission } from "../../../rbac/usePermission";
+import { isPathAllowed } from "../../../rbac/routeAccess";
+import AccessDenied from "../../../rbac/AccessDenied";
+
+/**
+ * The three Global Settings tabs, in display order. Each one is a real route
+ * registered in navRegistry, so visibility is decided by `isPathAllowed` —
+ * the same check PrivateRoute runs on a direct URL and the sidebar runs on
+ * its children. Without this, a role holding only one sub-module (Sub-Domain
+ * Head has Network Settings but not Admin/Organization Settings) still saw
+ * all three tabs and got an "Access denied" page on click.
+ */
+const TAB_DEFS = [
+  { value: "networkfreezsetting", label: "Network Freeze Setting" },
+  { value: "adminsetting", label: "Admin Setting" },
+  { value: "orgconfig", label: "Organization Configuration" },
+] as const;
+
+const tabPath = (value: string) => `/global-settings/${value}`;
+
+const useAllowedTabs = () => {
+  const { hasModule, hasSubModule } = usePermission();
+
+  return useMemo(
+    () =>
+      TAB_DEFS.filter((t) =>
+        isPathAllowed(tabPath(t.value), hasModule, hasSubModule),
+      ),
+    [hasModule, hasSubModule],
+  );
+};
+
+/**
+ * Landing element for `/global-settings` itself. Sends the user to the first
+ * tab their role can actually open rather than a hardcoded one, and falls
+ * back to the standard denial screen when no tab is permitted.
+ */
+export const GlobalSettingsIndexRedirect: React.FC = () => {
+  const allowedTabs = useAllowedTabs();
+
+  if (allowedTabs.length === 0) return <AccessDenied reason="forbidden" />;
+
+  return <Navigate to={allowedTabs[0].value} replace />;
+};
 
 const NetworkManagementTabView: React.FC = () => {
   const location = useLocation();
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
   const bg = useTabColorTokens(theme);
-
-  if (!user) return null;
+  const allowedTabs = useAllowedTabs();
 
   /* ================= ACTIVE TAB DETECTION ================= */
 
   const activeTab = useMemo(() => {
     const path = location.pathname;
-
-    if (path.includes("networkfreezsetting")) {
-      return "networkfreezsetting";
-    }
-
-    if (path.includes("adminsetting")) {
-      return "adminsetting";
-    }
-
-    if (path.includes("orgconfig")) {
-      return "orgconfig";
-    }
-
-    return "adminsetting"; // default
+    const match = TAB_DEFS.find((t) => path.includes(t.value));
+    return match?.value ?? null;
   }, [location.pathname]);
+
+  if (!user) return null;
+
+  // MUI warns when `value` names a tab that isn't rendered — which happens on
+  // the brief pass through /global-settings before the index redirect lands.
+  const tabsValue = allowedTabs.some((t) => t.value === activeTab)
+    ? activeTab
+    : false;
 
   return (
     <Box
@@ -41,7 +81,9 @@ const NetworkManagementTabView: React.FC = () => {
           ? bg.accentDim
           : theme.palette.background.paper,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -83,7 +125,7 @@ const NetworkManagementTabView: React.FC = () => {
         }}
       >
         <Tabs
-          value={activeTab}
+          value={tabsValue}
           variant="scrollable"
           scrollButtons="auto"
           sx={{
@@ -114,36 +156,31 @@ const NetworkManagementTabView: React.FC = () => {
             },
           }}
         >
-          {/* ✅ TAB 1 */}
-          <Tab
-            label="Network Freeze Setting"
-            value="networkfreezsetting"
-            to="networkfreezsetting"
-            component={Link}
-          />
-
-          {/* ✅ TAB 2 */}
-          <Tab
-            label="Admin Setting"
-            value="adminsetting"
-            to="adminsetting"
-            component={Link}
-          />
-
-          {/* ✅ TAB 3 */}
-          <Tab
-            label="Organization Configuration"
-            value="orgconfig"
-            to="orgconfig"
-            component={Link}
-          />
+          {allowedTabs.map((tab) => (
+            <Tab
+              key={tab.value}
+              label={tab.label}
+              value={tab.value}
+              to={tab.value}
+              component={Link}
+            />
+          ))}
         </Tabs>
       </Box>
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box
+        sx={{
+          p: 2,
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          bgcolor: "transparent",
+        }}
+      >
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

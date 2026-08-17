@@ -5,8 +5,9 @@ import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 // import { alpha } from "@mui/material/styles";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -88,7 +89,9 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
         // backgroundColor: theme.palette.background.paper,
         backgroundColor:bg.accentDim,
          maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -179,11 +182,14 @@ const TeamManagementPage: React.FC<TeamManagementViewTabProps> = ({
       <Box
         sx={{
           p: 3,
-          minHeight: "60vh",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
           backgroundColor: theme.palette.background.default,
         }}
       >
-        <Suspense fallback={<PageLoader height="50vh" />}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

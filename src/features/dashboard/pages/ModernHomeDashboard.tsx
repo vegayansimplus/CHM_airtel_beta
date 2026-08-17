@@ -18,7 +18,7 @@ import { StatCardsGrid } from "../components/StatCardsGrid";
 import { WeeklyScheduleCard } from "../components/WeeklyScheduleCard";
 import { OnLeaveTodayCard } from "../components/OnLeaveTodayCard";
 import { usePageLoading } from "../../../components/loading/LoadingProvider";
-import PageLoader from "../../../components/loading/PageLoader";
+import { DashboardSkeleton } from "../components/DashboardSkeleton";
 
 export default function ModernHomeDashboard() {
   const theme = useTheme();
@@ -57,8 +57,12 @@ export default function ModernHomeDashboard() {
   const isInitialLoading = anyStillLoading && !hasLoadedOnceRef.current;
   usePageLoading(isInitialLoading, "home-dashboard");
 
+  // A layout-shaped skeleton rather than a centred spinner: the widgets fade
+  // into the exact slots their placeholders occupied, with no half-height
+  // spinner box in between. (`usePageLoading` above still holds the boot
+  // splash over this on the very first load.)
   if (isInitialLoading) {
-    return <PageLoader height="70vh" />;
+    return <DashboardSkeleton />;
   }
 
   return (

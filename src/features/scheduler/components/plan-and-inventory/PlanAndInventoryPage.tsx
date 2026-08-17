@@ -34,6 +34,7 @@ import { taskNumbersOf } from "../../constants/stageConfig";
 import { CrqCard } from "./CrqCard";
 import CustomActionButton from "../../../../components/common/CustomActionButton";
 import { injectGlobalStyles } from "../../util/injectGlobalStyles";
+import { buildScopeQuery, isOrgScopeReady } from "../../util/orgScope";
 import {
   useGetCrqReviewQuery,
   useUpdateCrqReviewStatusMutation,
@@ -46,7 +47,12 @@ const PlanInvDialog = lazy(() => import("../dialog/plan-inv-preview/PlanInvDialo
 const PreviewCrqPdfDialog = lazy(() => import("../dialog/crq-preview/PreviewCrqPdfDialog"));
 
 interface PlanAndInventoryPageProps {
-  domainId?: number;
+  /**
+   * `null` = the caller's role has no domain scope (TEAM_MEMBER/TEAM_LEAD),
+   * so the review is queried with no domainId at all. `undefined` = the role
+   * does have a Domain picker but hasn't used it yet. See util/orgScope.ts.
+   */
+  domainId?: number | null;
   subDomainId?: number;
 }
 
@@ -176,6 +182,11 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
 
   const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
+  // A domain-less role (TEAM_MEMBER) is ready as soon as a sub-domain is
+  // known - waiting on a Domain it is never offered is what used to leave it
+  // stuck on the "select a filter" screen.
+  const scopeReady = isOrgScopeReady(domainId, subDomainId);
+
   useEffect(() => {
     injectGlobalStyles();
   }, []);
@@ -188,11 +199,11 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     error,
   } = useGetCrqReviewQuery(
     {
-      domainId: domainId ?? 1,
+      domainId,
       subDomainId: subDomainId ?? 1,
     },
     {
-      skip: !domainId || !subDomainId,
+      skip: !scopeReady,
     },
   );
 
@@ -443,7 +454,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         disabled={!selectedCrq}
         url={
           selectedCrq
-            ? `${import.meta.env.BASE_URL}scheduler/crqWorkflow/${selectedCrq.crqNo}?domainId=${domainId ?? 1}&subDomainId=${subDomainId ?? 1}`
+            ? `${import.meta.env.BASE_URL}scheduler/crqWorkflow/${selectedCrq.crqNo}?${buildScopeQuery(domainId, subDomainId)}`
             : undefined
         }
         colors={colors}
@@ -583,7 +594,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     },
   });
 
-  if (!domainId || !subDomainId) {
+  if (!scopeReady) {
     return (
       <Box
         sx={{

@@ -21,6 +21,7 @@ import MopValidatePage from "./MopValidatePage";
 import SchedulingPage from "./SchedulingPage";
 import ActivityImplementPage from "./ActivityImplementPage";
 import CloserPage from "./CloserPage";
+import { resolveDomainScope } from "../util/orgScope";
 
 const WORKFLOW_STEPS: IStep[] = [
   {
@@ -62,6 +63,12 @@ export const PlanAndInventoryMain = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
+  // A TEAM_MEMBER is never shown a Domain picker (ORG_FILTER_VISIBILITY), so
+  // there is no domain to send for them - null, not a defaulted-to-1 guess.
+  // Every stage below then queries with the param omitted, which is what the
+  // role-aware stage procedures expect: they scope such a caller by their own
+  // assignments plus the sub-domain they *can* choose.
+  const domainId = resolveDomainScope(roleName, values.domain);
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   // Initialize Stepper (Setting default to 1 -> "Plan & inventory")
@@ -98,42 +105,42 @@ export const PlanAndInventoryMain = () => {
       {/* {activeStep === 0 && <h1>CRQ Assignment</h1>} */}
       {activeStep === 0 && (
         <PlanAndInventoryPage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 1 && (
         <ImpactAnalysisPage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 2 && (
         <MopCreatePage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 3 && (
         <MopValidatePage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 4 && (
         <SchedulingPage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 5 && (
         <ActivityImplementPage
-          domainId={values.domain}
+          domainId={domainId}
           subDomainId={values.subDomain}
         />
       )}
       {activeStep === 6 && (
-        <CloserPage domainId={values.domain} subDomainId={values.subDomain} />
+        <CloserPage domainId={domainId} subDomainId={values.subDomain} />
       )}
     </Box>
   );

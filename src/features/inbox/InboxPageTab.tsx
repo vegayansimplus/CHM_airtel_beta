@@ -3,8 +3,9 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../app/hooks";
-import PageLoader from "../../components/loading/PageLoader";
+import { RouteFallback } from "../../components/loading/PageLoader";
 import AnimatedOutlet from "../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../components/layout/layoutConstants";
 
 interface InboxPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -51,7 +52,9 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
       sx={{
         backgroundColor: theme.palette.background.paper,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
         "&::-webkit-scrollbar": { height: 8 },
@@ -140,8 +143,8 @@ const InboxPageTab: React.FC<InboxPageTabProps> = ({
 
       {/* ================= Content ================= */}
 
-      <Box sx={{ p: 0, minHeight: "65vh" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box sx={{ p: 0, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

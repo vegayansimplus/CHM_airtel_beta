@@ -3,8 +3,9 @@ import React, { type JSX, Suspense, useEffect, useMemo } from "react";
 import { useLocation, Link } from "react-router";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 interface MonthlyRosterPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -63,7 +64,9 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
       sx={{
         backgroundColor: theme.palette.background.paper,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -165,8 +168,8 @@ const MonthlyRosterPageTab: React.FC<MonthlyRosterPageTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "65vh" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box sx={{ p: 2, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

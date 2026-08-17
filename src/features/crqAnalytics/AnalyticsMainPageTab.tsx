@@ -5,8 +5,9 @@ import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import DashboardRoundedIcon from "@mui/icons-material/DashboardRounded";
 import QueryStatsRoundedIcon from "@mui/icons-material/QueryStatsRounded";
 import SummarizeRoundedIcon from "@mui/icons-material/SummarizeRounded";
-import PageLoader from "../../components/loading/PageLoader";
+import { RouteFallback } from "../../components/loading/PageLoader";
 import AnimatedOutlet from "../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../components/layout/layoutConstants";
 import "./utils/chartSetup";
 
 interface AnalyticsMainPageTabProps {
@@ -36,7 +37,16 @@ const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicH
   }, [activeTab, setDynamicHeaderText, setDynamicHeaderIcon]);
 
   return (
-    <Box sx={{ maxWidth: "100%", height: "auto", pl: 8, overflow: "auto" }}>
+    <Box
+      sx={{
+        maxWidth: "100%",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
+        pl: 8,
+        overflow: "auto",
+      }}
+    >
       <Box
         sx={{
           mt: "45px",
@@ -81,8 +91,8 @@ const AnalyticsMainPageTab: React.FC<AnalyticsMainPageTabProps> = ({ setDynamicH
         </Tabs>
       </Box>
 
-      <Box sx={{ p: 0, minHeight: "65vh" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box sx={{ p: 0, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

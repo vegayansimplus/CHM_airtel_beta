@@ -4,8 +4,9 @@ import { useLocation, Link } from "react-router";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/Terminal";
 import CommonContainer from "../../../components/common/CommonContainer";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 interface SftpManagementMainPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -64,7 +65,9 @@ const SftpManagementMainPageTab: React.FC<SftpManagementMainPageTabProps> = ({
     <Box
       sx={{
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
         "&::-webkit-scrollbar": { height: 8 },
@@ -132,9 +135,9 @@ const SftpManagementMainPageTab: React.FC<SftpManagementMainPageTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 0, minHeight: "65vh" }}>
+      <Box sx={{ p: 0, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <CommonContainer>
-          <Suspense fallback={<PageLoader height="50vh" />}>
+          <Suspense fallback={<RouteFallback />}>
             <AnimatedOutlet />
           </Suspense>
         </CommonContainer>

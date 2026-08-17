@@ -9,6 +9,7 @@ import {
   useTheme,
   alpha,
 } from "@mui/material";
+import { keyframes } from "@mui/material/styles";
 import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
@@ -201,10 +202,38 @@ const positioned = (r: Rect) => ({ position: "absolute" as const, left: r.x, top
 
 const BASE_LEGEND: StepStatus[] = ["completed", "in_progress", "pending", "not_started"];
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Static styling for the scaled canvas layer.
+//
+//  Both of these are module-level on purpose. The fit scale changes as the
+//  window does, and anything scale-dependent left in `sx` makes Emotion
+//  serialise a brand-new class — and re-inject these keyframes under the same
+//  name — on every single tick, which restarts the fade-in: the diagram reads
+//  as flashing rather than resizing. The varying part (transform, box size) is
+//  passed through `style` instead, where it's a plain inline mutation.
+// ─────────────────────────────────────────────────────────────────────────────
+const flowFadeIn = keyframes`
+  from { opacity: 0; }
+  to   { opacity: 1; }
+`;
+
+const CANVAS_LAYER_SX = {
+  position: "absolute",
+  top: 0,
+  left: 0,
+  transformOrigin: "top left",
+  animation: `${flowFadeIn} 0.35s ease-out`,
+} as const;
+
+const CANVAS_FRAME_SX = { position: "relative", mx: "auto" } as const;
+
 export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, onToggleLegend }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const isCompactViewport = useMediaQuery(theme.breakpoints.down("md"));
+  // noSsr: without it the first paint always answers "false" and renders the
+  // desktop canvas, which then swaps to the stacked list a frame later on a
+  // phone — a visible flash of the wrong layout on every mount.
+  const isCompactViewport = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
 
   const {
     assignment,
@@ -258,6 +287,11 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
   // view rather than trailing off below the fold.
   const { ref: fitRef, scale, isFloored } = useAutoFitScale(layout.width, {
     baseHeight: layout.height,
+    // Everything the shell draws under the measured node — card padding +
+    // border (~11px), the page column's bottom padding (8px), plus real
+    // clearance. Fitting flush to the viewport instead makes the page overflow
+    // by a hair, which flips the app scrollbar on and off.
+    bottomGutter: 44,
   });
 
   const stepCfg = getStepStatusConfig(isDark);
@@ -349,18 +383,19 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
         overflowY: "hidden",
       }}
     >
-      <Box sx={{ position: "relative", width: layout.width * scale, height: layout.height * scale, mx: "auto" }}>
+      <Box
+        sx={CANVAS_FRAME_SX}
+        style={{
+          width: Math.round(layout.width * scale),
+          height: Math.round(layout.height * scale),
+        }}
+      >
         <Box
-          sx={{
-            position: "absolute",
-            top: 0,
-            left: 0,
+          sx={CANVAS_LAYER_SX}
+          style={{
             width: layout.width,
             height: layout.height,
             transform: `scale(${scale})`,
-            transformOrigin: "top left",
-            animation: "crqFlowFadeIn 0.35s ease-out",
-            "@keyframes crqFlowFadeIn": { from: { opacity: 0 }, to: { opacity: 1 } },
           }}
         >
           <FlowConnectors layout={layout} edges={edges} />

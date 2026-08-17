@@ -43,10 +43,10 @@ export const ShiftLegend = memo(
           sx={{
             textTransform: "uppercase",
             letterSpacing: ".08em",
-            mb: "8px",
+            // mb: "8px",
           }}
         >
-          {interactive ? "Shift legend · click to highlight" : "Shift legend"}
+          {/* {interactive ? "Shift legend · click to highlight" : "Shift legend"} */}
         </Typography>
         <Stack direction="row" flexWrap="wrap" gap="5px">
           {codes.map((k) => {

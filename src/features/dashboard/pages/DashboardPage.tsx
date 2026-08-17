@@ -2,8 +2,9 @@ import { Box, useTheme } from "@mui/material";
 import React, { type JSX, useEffect, Suspense } from "react";
 import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useTabColorTokens } from "../../../style/theme";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 interface TeamManagementViewTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -36,7 +37,11 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
         backgroundColor: bg.accentDim,
 
         maxWidth: "100%",
-        height: "auto",
+        // Fills the viewport so the tinted surface never renders as a
+        // half-height box while the routed page is still loading.
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
 
@@ -55,8 +60,18 @@ const DashboardViewPage: React.FC<TeamManagementViewTabProps> = ({
       }}
     >
       {/* -------- Content Area -------- */}
-      <Box sx={{ pl: 2, pr: 2, pt: "45px", minHeight: "60vh" }}>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+      <Box
+        sx={{
+          pl: 2,
+          pr: 2,
+          pt: "45px",
+          flex: 1,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
+        <Suspense fallback={<RouteFallback label="Loading dashboard…" />}>
           <AnimatedOutlet />
         </Suspense>
       </Box>

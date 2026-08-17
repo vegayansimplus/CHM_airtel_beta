@@ -13,8 +13,9 @@ import { useNotifTokens } from "../../userMe/notification-manager/style/notifica
 import { useCabRole } from "../hooks/useCabRole";
 import { ROLE_SCREENS } from "../data/cabManager.mock";
 import CommonContainer from "../../../components/common/CommonContainer";
-import PageLoader from "../../../components/loading/PageLoader";
+import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
 
 interface CabManagerMainPageTabProps {
   setDynamicHeaderText: (text: string) => void;
@@ -121,7 +122,9 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
       sx={{
         backgroundColor: tk.accentDim,
         maxWidth: "100%",
-        height: "auto",
+        minHeight: SHELL_MIN_HEIGHT,
+        display: "flex",
+        flexDirection: "column",
         pl: 8,
         overflow: "auto",
         "&::-webkit-scrollbar": {
@@ -208,9 +211,9 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 0, minHeight: "65vh" }}>
+      <Box sx={{ p: 0, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
         <CommonContainer>
-        <Suspense fallback={<PageLoader height="50vh" />}>
+        <Suspense fallback={<RouteFallback />}>
           <AnimatedOutlet />
         </Suspense>
         </CommonContainer>
