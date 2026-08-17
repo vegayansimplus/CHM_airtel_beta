@@ -13,7 +13,8 @@ interface StageDetailPanelProps {
   colors: any;
   onToggle: (id: string) => void;
   onSelect: (crq: any) => void;
-  onStartPause: (crq: any) => void;
+  /** Passed through to StageCard; omitted when the user lacks Scheduler UPDATE. */
+  onStartPause?: (crq: any) => void;
   /** Passed through to StageCard; omitted on stages that cannot reschedule. */
   onReschedule?: (crq: any) => void;
 }
@@ -107,7 +108,7 @@ export const StageDetailPanel: React.FC<StageDetailPanelProps> = ({
                 : { ...crq, planNumber: plan.planNumber },
             )
           }
-          onStartPause={() => onStartPause(crq)}
+          onStartPause={onStartPause ? () => onStartPause(crq) : undefined}
           onReschedule={
             onReschedule
               ? () => onReschedule({ ...crq, planNumber: plan.planNumber })

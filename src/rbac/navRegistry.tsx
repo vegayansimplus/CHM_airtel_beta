@@ -135,13 +135,29 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     text: "Scheduler",
     icon: <ScheduleIcon />,
     requiredModule: "Scheduler",
+    /*
+     * These children used to declare `requiredModule: "Role-Based Access
+     * Control"` — the admin RBAC module (WEB_MODULE 21), copy-pasted rather
+     * than intended. The effect was that a Scheduler page only appeared for
+     * someone holding BOTH Scheduler and the admin RBAC module, so every role
+     * granted Scheduler alone (a team member, most notably) saw the parent
+     * item with no children under it and could never reach CRQ Workflow.
+     *
+     * They now gate on the Scheduler module the pages actually belong to.
+     * Sub-module names below are the live WEB_SUB_MODULE rows under module 5
+     * verbatim — "Plan VIew And Setup" really is spelled with that capital I
+     * in the database, and matching it exactly is what makes the grant work.
+     * CRQ Journey has no sub-module row of its own, so it stays gated at
+     * module level rather than inventing a name no grant could ever satisfy.
+     */
     children: [
       {
         // Default child — matches /scheduler AND /scheduler/crqWorkflow (and detail pages)
         to: "/scheduler/crqWorkflow",
         text: "CRQ Workflow",
         icon: <CalendarMonthIcon />,
-        requiredModule: "Role-Based Access Control",
+        requiredModule: "Scheduler",
+        requiredSubModule: "Shift Scheduler",
         // Also highlight when drilling into a CRQ detail: /scheduler/crqWorkflow/ABC123
         matchPaths: ["/scheduler/crqWorkflow"],
       },
@@ -149,7 +165,8 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         to: "/scheduler/planviewandsetup",
         text: "Plan",
         icon: <AssignmentIcon />,
-        requiredModule: "Role-Based Access Control",
+        requiredModule: "Scheduler",
+        requiredSubModule: "Plan VIew And Setup",
         matchPaths: ["/scheduler/taskconfig", "/scheduler/planviewandsetup"],
       },
       /* Hidden from tab + route (task planning page disabled)
@@ -157,7 +174,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         to: "/scheduler/taskplanning",
         text: "Task Planning",
         icon: <SchemaIcon />,
-        requiredModule: "Role-Based Access Control",
+        requiredModule: "Scheduler",
         matchPaths: ["/scheduler/taskplanning"],
       },
       */
@@ -165,7 +182,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         to: "/scheduler/crqjourney",
         text: "CRQ Journey",
         icon: <AltRouteIcon />,
-        requiredModule: "Role-Based Access Control",
+        requiredModule: "Scheduler",
         matchPaths: ["/scheduler/crqjourney"],
       },
     ],

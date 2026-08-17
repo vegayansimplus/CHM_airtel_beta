@@ -189,7 +189,11 @@ export const CrqDetailedView: React.FC = () => {
   const openAttributeUpdate = useOpenAttributeUpdate();
 
   const { hasPermission } = usePermission();
-  const canReschedule = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
+  // One gate for every mutating affordance on this screen. Reschedule already
+  // honoured it; Sync Plan Data, Attribute Update and the stage's Start/Pause
+  // did not, so a Scheduler VIEW grant used to hand over full write access.
+  const canEdit = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
+  const canReschedule = canEdit;
   const currentUserOlmId = useSelector((state: RootState) => state.auth.user?.olmId);
 
   // Paginated/searchable list feeding the sidebar - never loads more than
@@ -421,7 +425,7 @@ export const CrqDetailedView: React.FC = () => {
       // stage, so the action appears on that stage and follows the same gate the
       // panel's own Start/Pause uses - enabled while the stage is the CRQ's
       // current (editable) one, present but inert once it has moved on.
-      ...(isReviewStage
+      ...(isReviewStage && canEdit
         ? [
             {
               key: "validate",
@@ -432,13 +436,17 @@ export const CrqDetailedView: React.FC = () => {
             } satisfies CRQAction,
           ]
         : []),
-      {
-        key: "attribute-update",
-        label: "Attribute Update",
-        icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
-        disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
-        onClick: () => selectedCrq && openAttributeUpdate(selectedCrq),
-      },
+      ...(canEdit
+        ? [
+            {
+              key: "attribute-update",
+              label: "Attribute Update",
+              icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
+              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
+              onClick: () => selectedCrq && openAttributeUpdate(selectedCrq),
+            } satisfies CRQAction,
+          ]
+        : []),
       {
         key: "show-prev-crq-status",
         label: "CRQ Details",
@@ -468,6 +476,7 @@ export const CrqDetailedView: React.FC = () => {
       stageMode,
       selectedStageId,
       isCrqDone,
+      canEdit,
       canReschedule,
       openAttributeUpdate,
       handleShowPrevCrqStatus,
@@ -650,6 +659,7 @@ export const CrqDetailedView: React.FC = () => {
                 onStartPause={handleStartPause}
                 onReview={() => setReviewDialogOpen(true)}
                 isBusy={activeStageWorkflow?.isTogglingStatus}
+                readOnly={!canEdit}
                 recordActions={crqActions}
                 colors={colors}
               />

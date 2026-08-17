@@ -1,11 +1,12 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
-import React, { type JSX, Suspense, useEffect, useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { useLocation, Link } from "react-router";
 // import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import PageLoader from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { useSchedulerAccess } from "../hook/useSchedulerAccess";
 
 // interface PlanViewAndSetupTabProps {
 //   setDynamicHeaderText: (text: string) => void;
@@ -22,8 +23,22 @@ const PlanViewAndSetupTab: React.FC = (
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
   const bg = useTabColorTokens(theme);
+  const access = useSchedulerAccess();
 
-  if (!user) return null;
+  /* ================= PERMITTED TABS ================= */
+
+  // Built from the user's grants rather than hard-coded, so a tab is never
+  // offered for a page PrivateRoute would answer with AccessDenied.
+  const tabs = useMemo(
+    () =>
+      [
+        { value: "planviewandsetup", label: "Plan View & Setup", allowed: access.canViewPlan },
+        { value: "taskconfig", label: "Task Config", allowed: access.canViewTaskConfig },
+        // taskplanning - hidden from tab + route (task planning page disabled)
+        { value: "crqjourney", label: "CRQ Journey", allowed: access.canViewCrqJourney },
+      ].filter((t) => t.allowed),
+    [access.canViewPlan, access.canViewTaskConfig, access.canViewCrqJourney],
+  );
 
   /* ================= ACTIVE TAB DETECTION ================= */
 
@@ -31,23 +46,16 @@ const PlanViewAndSetupTab: React.FC = (
     const path = location.pathname;
 
     //  handle nested routes also
-    if (path.includes("planviewandsetup")) {
-      return "planviewandsetup";
-    }
+    const match = tabs.find((t) => path.includes(t.value));
+    if (match) return match.value;
 
-    if (path.includes("taskconfig")) {
-      return "taskconfig";
-    }
-    // taskplanning - hidden from tab + route (task planning page disabled)
-    // if (path.includes("taskplanning")) {
-    //   return "taskplanning";
-    // }
-     if (path.includes("crqjourney")) {
-      return "crqjourney";
-    }
+    // Fall back to the first tab the user actually holds. Defaulting to a
+    // fixed "planviewandsetup" here would hand MUI a value with no matching
+    // <Tab> for anyone lacking that grant, leaving the indicator unattached.
+    return tabs[0]?.value ?? false;
+  }, [location.pathname, tabs]);
 
-    return "planviewandsetup"; // default
-  }, [location.pathname]);
+  if (!user) return null;
 
   /* ================= HEADER CONTROL ================= */
 
@@ -133,35 +141,15 @@ const PlanViewAndSetupTab: React.FC = (
             },
           }}
         >
-          {/*  TAB 1 */}
-          <Tab
-            label="Plan View & Setup"
-            value="planviewandsetup"
-            to="planviewandsetup"
-            component={Link}
-          />
-          {/*  TAB 2 */}
-          <Tab
-            label="Task Config"
-            value="taskconfig"
-            to="taskconfig"
-            component={Link}
-          />
-          {/*  TAB 3 - hidden from tab + route (task planning page disabled)
-          <Tab
-            label="Task Planning"
-            value="taskplanning"
-            to="taskplanning"
-            component={Link}
-          />
-          */}
-            {/*  TAB 4 */}
-          <Tab
-            label="CRQ Journey"
-            value="crqjourney"
-            to="crqjourney"
-            component={Link}
-          />
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.value}
+              label={tab.label}
+              value={tab.value}
+              to={tab.value}
+              component={Link}
+            />
+          ))}
         </Tabs>
       </Box>
 

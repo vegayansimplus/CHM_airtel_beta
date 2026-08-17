@@ -43,6 +43,10 @@ interface Props {
    * Cancelled and Submit are disabled, same as isCancelled, but this gets
    * its own alert copy since the CRQ itself isn't cancelled. */
   isDone: boolean;
+  /** Viewer lacks the Scheduler module's UPDATE permission — locks the form
+   * exactly like isCancelled/isDone do, but without claiming the stage was
+   * cancelled or already reviewed. */
+  readOnly?: boolean;
   panelOpen: boolean;
   colors: ThemeColors;
   setPanelOpen: (v: boolean) => void;
@@ -57,6 +61,7 @@ export const FormPanel: React.FC<Props> = ({
   crqId,
   isCancelled,
   isDone,
+  readOnly = false,
   panelOpen,
   colors,
   setPanelOpen,
@@ -66,7 +71,7 @@ export const FormPanel: React.FC<Props> = ({
   const theme = useTheme();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
-  const isLocked = isCancelled || isDone;
+  const isLocked = isCancelled || isDone || readOnly;
 
   const {
     control,

@@ -7,6 +7,7 @@ import { PreviewPanel } from "./PreviewPanel";
 import type { PlanInvDialogProps, ThemeColors } from "../../../types/crq.types";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
+import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
 
 export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   open,
@@ -18,6 +19,9 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [panelOpen, setPanelOpen] = useState(true);
+  // Read here rather than accepted as a prop, so no call site can open this
+  // dialog in a writable state for a view-only user by forgetting to pass it.
+  const { canEdit } = useSchedulerAccess();
 
   // Derived properties
   const crqNo = crq?.crqNo ?? null;
@@ -88,6 +92,7 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           crqId={crqId}
           isCancelled={isCancelled}
           isDone={isDone}
+          readOnly={!canEdit}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
           colors={dialogColors}

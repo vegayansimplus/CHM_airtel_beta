@@ -80,8 +80,11 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
 
   const { hasPermission } = usePermission();
-  const canReschedule =
-    RESCHEDULABLE_STAGES.has(stageKey) && hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
+  // One gate for every mutating affordance on this page. Reschedule already
+  // honoured it; Start/Pause did not, so a Scheduler VIEW grant used to hand
+  // over the ability to drive a stage.
+  const canEdit = hasPermission(SCHEDULER_MODULE, UPDATE_PERMISSION);
+  const canReschedule = RESCHEDULABLE_STAGES.has(stageKey) && canEdit;
 
   useEffect(() => {
     injectGlobalStyles();
@@ -272,7 +275,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
         colors={colors}
         onToggle={toggleCrq}
         onSelect={setSelectedCrq}
-        onStartPause={handleStartPause}
+        onStartPause={canEdit ? handleStartPause : undefined}
         onReschedule={canReschedule ? setRescheduleCrq : undefined}
       />
     ),

@@ -287,7 +287,11 @@ const TeamSkillSetTable: React.FC<Props> = ({
     }
 
     return baseColumns;
-  }, [columnKeys, roleCode, columnFilterOptions]);
+    // canUpdateTeam/canDeleteTeam belong here: they decide whether the
+    // Actions column exists at all, and omitting them left this memo holding
+    // a column set built from a previous user's grants after a re-login that
+    // did not remount the table.
+  }, [columnKeys, roleCode, columnFilterOptions, canUpdateTeam, canDeleteTeam, showActionColumn]);
 
   /* ================= COLUMN VISIBILITY ================= */
 
@@ -420,7 +424,11 @@ const TeamSkillSetTable: React.FC<Props> = ({
     initialState: {
       density: "compact",
       columnPinning: {
-        right: roleCode !== "User" ? ["actions"] : [],
+        // Keyed off the column actually existing rather than off roleCode:
+        // once a team member's write grants are revoked there is no "actions"
+        // column to pin, and pinning a missing column id leaves MRT holding a
+        // phantom entry in its pinning state.
+        right: showActionColumn ? ["actions"] : [],
       },
     },
     renderTopToolbarCustomActions: () => (

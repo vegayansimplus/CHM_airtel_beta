@@ -23,6 +23,14 @@ interface CrqActionPanelProps {
   onStartPause: () => void;
   onReview: () => void;
   isBusy?: boolean;
+  /**
+   * User holds Scheduler VIEW but not UPDATE. The stage is still whatever
+   * `mode` says it is — this only removes the ability to act on it, so the
+   * badge reports the permission rather than mislabelling an active stage as
+   * "Completed". Review stays reachable; the dialog it opens locks its own
+   * fields off the same flag.
+   */
+  readOnly?: boolean;
   /** Record-level actions that apply regardless of the selected stage
    * (Attribute Update, Show Prev CRQ Status, ...). Adding a future action is
    * a one-line addition to this array - no changes needed here. */
@@ -88,12 +96,18 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
   onStartPause,
   onReview,
   isBusy,
+  readOnly = false,
   recordActions,
   colors,
 }) => {
-  const copy = MODE_COPY[mode];
+  const copy = readOnly
+    ? {
+        badge: "Read only",
+        note: "You have view access to the Scheduler — acting on this stage requires the Scheduler module's Update permission.",
+      }
+    : MODE_COPY[mode];
   const badgePalette =
-    mode === "editable"
+    mode === "editable" && !readOnly
       ? { bg: colors.successDim, fg: colors.success }
       : { bg: colors.trackOff, fg: colors.textDim };
 
@@ -171,7 +185,7 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
             />
           )}
 
-          {mode === "view" && (
+          {mode === "view" && !readOnly && (
             <Chip
               label="✓ Completed"
               size="small"
@@ -193,7 +207,7 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
                 flexItem
                 sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
               />
-              {mode === "editable" && (
+              {mode === "editable" && !readOnly && (
                 <Button
                   variant="contained"
                   size="small"

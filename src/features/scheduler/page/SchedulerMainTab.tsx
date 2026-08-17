@@ -1,11 +1,12 @@
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
-import React, { type JSX, Suspense, useEffect, useMemo } from "react";
+import React, { Suspense, useMemo } from "react";
 import { useLocation, Link } from "react-router";
 // import PeopleAltIcon from "@mui/icons-material/PeopleAlt";
 import { useAppSelector } from "../../../app/hooks";
 import { useTabColorTokens } from "../../../style/theme";
 import PageLoader from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
+import { useSchedulerAccess } from "../hook/useSchedulerAccess";
 
 
 
@@ -14,8 +15,17 @@ const SchedulerMainTab: React.FC = () => {
   const theme = useTheme();
   const user = useAppSelector((s) => s.auth.user);
   const bg = useTabColorTokens(theme);
+  const { canViewCrqWorkflow } = useSchedulerAccess();
 
-  if (!user) return null;
+  /* ================= PERMITTED TABS ================= */
+
+  const tabs = useMemo(
+    () =>
+      [{ value: "crqWorkflow", label: "CRQ Workflow", allowed: canViewCrqWorkflow }].filter(
+        (t) => t.allowed,
+      ),
+    [canViewCrqWorkflow],
+  );
 
   /* ================= ACTIVE TAB DETECTION ================= */
 
@@ -23,16 +33,14 @@ const SchedulerMainTab: React.FC = () => {
     const path = location.pathname;
 
     //  handle nested routes also
-    // if (path.includes("planviewandsetup")) {
-    //   return "planviewandsetup";
-    // }
+    const match = tabs.find((t) => path.includes(t.value));
+    // `false` rather than a hard-coded default: PrivateRoute is what renders
+    // AccessDenied for an ungranted page, and this bar must not draw an
+    // indicator for a tab it is no longer offering.
+    return match?.value ?? false;
+  }, [location.pathname, tabs]);
 
-    if (path.includes("crqWorkflow")) {
-      return "crqWorkflow";
-    }
-
-    return "crqWorkflow"; // default
-  }, [location.pathname]);
+  if (!user) return null;
 
   /* ================= HEADER CONTROL ================= */
 
@@ -135,21 +143,15 @@ const SchedulerMainTab: React.FC = () => {
             },
           }}
         >
-          {/*  TAB 1 */}
-          <Tab
-            label="CRQ Workflow"
-            value="crqWorkflow"
-            to="crqWorkflow"
-            component={Link}
-          />
-
-          {/*  TAB 2 */}
-          {/* <Tab
-            label="Plan View & Setup"
-            value="planviewandsetup"
-            to="planviewandsetup"
-            component={Link}
-          /> */}
+          {tabs.map((tab) => (
+            <Tab
+              key={tab.value}
+              label={tab.label}
+              value={tab.value}
+              to={tab.value}
+              component={Link}
+            />
+          ))}
         </Tabs>
       </Box>
 

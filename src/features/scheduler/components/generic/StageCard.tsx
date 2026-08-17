@@ -29,7 +29,12 @@ interface StageCardProps {
   isSelected: boolean;
   onToggle: () => void;
   onSelect: () => void;
-  onStartPause: () => void;
+  /**
+   * Omitted when the user holds Scheduler VIEW but not UPDATE - starting or
+   * pausing a stage is a write, so the button is absent rather than present
+   * and failing at the API.
+   */
+  onStartPause?: () => void;
   /**
    * Supplied only by the stages that can reschedule (Scheduling, Network
    * Execution) and only when the user holds the permission - the button is
@@ -188,6 +193,7 @@ export const StageCard: React.FC<StageCardProps> = ({
           />
         )}
 
+        {onStartPause && (
         <Button
           variant="outlined"
           size="small"
@@ -246,6 +252,7 @@ export const StageCard: React.FC<StageCardProps> = ({
         >
           {isFailed ? "Disabled" : isRunning ? "Pause" : "Start"}
         </Button>
+        )}
 
         {onReschedule && (
           <Button

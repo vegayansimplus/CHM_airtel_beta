@@ -6,6 +6,7 @@ import { GenericFormPanel } from "./GenericFormPanel";
 import { StagePreviewPanel } from "./StagePreviewPanel";
 import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
+import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
 
 interface StageReviewDialogProps {
   open: boolean;
@@ -35,6 +36,9 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [panelOpen, setPanelOpen] = useState(true);
+  // Read here rather than accepted as a prop, so no call site can open this
+  // dialog in a writable state for a view-only user by forgetting to pass it.
+  const { canEdit } = useSchedulerAccess();
 
   const crqNo = crq?.crqNo ?? null;
   const crqStatus = crq?.crqStatus ?? crq?.status ?? null;
@@ -89,6 +93,7 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
       stageConfig={stageConfig}
       isCancelled={isCancelled}
       isDone={isDone}
+      readOnly={!canEdit}
       panelOpen={panelOpen}
       setPanelOpen={setPanelOpen}
       hasPreviewPanel={hasPreviewPanel}

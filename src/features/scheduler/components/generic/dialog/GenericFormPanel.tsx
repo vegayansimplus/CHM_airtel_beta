@@ -29,6 +29,10 @@ interface GenericFormPanelProps {
    * and Submit are disabled, same as isCancelled, but the CRQ itself is not
    * cancelled so it gets its own alert copy below. */
   isDone: boolean;
+  /** Viewer lacks the Scheduler module's UPDATE permission — locks the form
+   * exactly like isCancelled/isDone do, but without claiming the stage was
+   * cancelled or already reviewed. */
+  readOnly?: boolean;
   panelOpen: boolean;
   colors: any;
   setPanelOpen: (v: boolean) => void;
@@ -52,6 +56,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   stageConfig,
   isCancelled,
   isDone,
+  readOnly = false,
   panelOpen,
   colors,
   setPanelOpen,
@@ -60,7 +65,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   onSubmitDone,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const isLocked = isCancelled || isDone;
+  const isLocked = isCancelled || isDone || readOnly;
 
   const {
     control,
