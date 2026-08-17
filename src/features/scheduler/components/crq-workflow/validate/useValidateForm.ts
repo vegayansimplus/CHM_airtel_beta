@@ -21,7 +21,7 @@ export type ValidateFieldErrors = Partial<Record<keyof ValidateFormValues, strin
 
 const FIELD_LABEL: Record<keyof ValidateFormValues, string> = {
   nodeName: "Node Name",
-  nameInterfacePair: "Name Interface Pair",
+  nameInterfacePair: "Node Interface Name",
 };
 
 const FIELD_MAX: Record<keyof ValidateFormValues, number> = {

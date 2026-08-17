@@ -44,6 +44,153 @@ import { stageLabel } from "../reschedule/stageLabel";
 import { crqStatusPalette } from "../../../constants/workflowStages";
 import { useValidateForm } from "./useValidateForm";
 
+/**
+ * Shown as placeholder and as a persistent hint under each field: the
+ * procedure stores both columns as free text, so the expected shape
+ * (comma-separated nodes, `node$interface` for the pairs) only exists as a
+ * convention and has to be spelled out for whoever is typing.
+ */
+const NODE_NAME_EXAMPLE = "HYD-T4-CR11.192,MUM-T5-CR11.15";
+const NAME_INTERFACE_PAIR_EXAMPLE =
+  "HYD-T4-CR11.192$TenGigE0/0/0/23,MUM-T5-CR11.15$HundGigE0/0/0/23";
+
+/** `HYD-T4-CR11.192$TenGigE0/0/0/23` -> node + interface halves. */
+const splitPair = (token: string): { node: string; iface: string } => {
+  const at = token.indexOf("$");
+  if (at < 0) return { node: token.trim(), iface: "" };
+  return { node: token.slice(0, at).trim(), iface: token.slice(at + 1).trim() };
+};
+
+/**
+ * Live node -> interfaces roll-up under the two fields. The pair column is the
+ * one people get wrong (a typo in the node half is invisible in a comma
+ * string), so orphans - interfaces whose node is not in the node list - get
+ * their own bucket instead of being left to spot by eye.
+ */
+const MappingPreview: React.FC<{
+  nodes: string[];
+  pairs: string[];
+  colors: Colors;
+}> = ({ nodes, pairs, colors }) => {
+  const byNode = new Map<string, string[]>(nodes.map((node) => [node, []]));
+  const orphans: string[] = [];
+
+  pairs.forEach((token) => {
+    const { node, iface } = splitPair(token);
+    if (!iface) return;
+    const bucket = byNode.get(node);
+    if (bucket) bucket.push(iface);
+    else orphans.push(token);
+  });
+
+  if (!nodes.length && !orphans.length) return null;
+
+  return (
+    <Box
+      sx={{
+        mt: 1.8,
+        p: 1.4,
+        borderRadius: colors.radius,
+        border: `1px dashed ${colors.border}`,
+        bgcolor: colors.isDark ? "rgba(255,255,255,0.02)" : "rgba(0,0,0,0.012)",
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={0.6} sx={{ mb: 1 }}>
+        <AccountTreeRoundedIcon sx={{ fontSize: 13, color: colors.textDim }} />
+        <Typography
+          sx={{
+            fontSize: 9.5,
+            fontWeight: 800,
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            color: colors.textDim,
+          }}
+        >
+          Mapping preview
+        </Typography>
+      </Stack>
+
+      <Stack spacing={0.9}>
+        {nodes.map((node) => {
+          const ifaces = byNode.get(node) ?? [];
+          return (
+            <Stack
+              key={node}
+              direction={{ xs: "column", sm: "row" }}
+              alignItems={{ xs: "flex-start", sm: "center" }}
+              spacing={0.8}
+            >
+              <Typography
+                sx={{
+                  fontSize: 11.5,
+                  fontWeight: 800,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  color: colors.textPrimary,
+                  width: { xs: "auto", sm: 190 },
+                  flexShrink: 0,
+                  wordBreak: "break-all",
+                }}
+              >
+                {node}
+              </Typography>
+              {ifaces.length ? (
+                <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 0.5 }}>
+                  {ifaces.map((iface) => (
+                    <Chip
+                      key={iface}
+                      size="small"
+                      label={iface}
+                      sx={{
+                        height: 19,
+                        fontSize: 10,
+                        fontWeight: 700,
+                        fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                        color: colors.success,
+                        bgcolor: colors.successDim,
+                        border: `1px solid ${colors.successBorder}`,
+                      }}
+                    />
+                  ))}
+                </Stack>
+              ) : (
+                <Typography sx={{ fontSize: 10.5, fontStyle: "italic", color: colors.textDim }}>
+                  no interface mapped yet
+                </Typography>
+              )}
+            </Stack>
+          );
+        })}
+
+        {orphans.length > 0 && (
+          <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 0.5, pt: 0.4 }}>
+            <Typography
+              sx={{ fontSize: 10.5, fontWeight: 700, color: colors.warning, mr: 0.4 }}
+            >
+              Unlisted node:
+            </Typography>
+            {orphans.map((token) => (
+              <Chip
+                key={token}
+                size="small"
+                label={token}
+                sx={{
+                  height: 19,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                  color: colors.warning,
+                  bgcolor: colors.warningDim,
+                  border: `1px solid ${colors.warningBorder}`,
+                }}
+              />
+            ))}
+          </Stack>
+        )}
+      </Stack>
+    </Box>
+  );
+};
+
 export interface ValidateDialogProps {
   open: boolean;
   onClose: () => void;
@@ -218,6 +365,13 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               ) : undefined
             }
           >
+            <Typography
+              sx={{ fontSize: 11, color: colors.textDim, mb: 1.4, lineHeight: 1.65 }}
+            >
+              Separate multiple entries with a comma, and join each node to its interface
+              with <Box component="span" sx={{ fontWeight: 800 }}>$</Box>.
+            </Typography>
+
             <Stack
               direction={{ xs: "column", md: "row" }}
               spacing={1.6}
@@ -228,31 +382,42 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 label="Node Name"
                 fullWidth
                 size="small"
+                placeholder={NODE_NAME_EXAMPLE}
                 value={values.nodeName}
                 onChange={(e) => form.setValue("nodeName", e.target.value)}
                 onBlur={() => form.touch("nodeName")}
                 disabled={isSaving}
                 error={!!errors.nodeName}
                 helperText={
-                  errors.nodeName ?? `${values.nodeName.length}/${NODE_NAME_MAX}`
+                  errors.nodeName ?? (
+                    <FieldHint
+                      example={NODE_NAME_EXAMPLE}
+                      count={`${values.nodeName.length}/${NODE_NAME_MAX}`}
+                    />
+                  )
                 }
                 sx={{ flex: 1, minWidth: 0 }}
               />
               <TextField
-                label="Name Interface Pair"
+                label="Node Interface Name"
                 fullWidth
                 size="small"
                 multiline
                 minRows={1}
                 maxRows={3}
+                placeholder={NAME_INTERFACE_PAIR_EXAMPLE}
                 value={values.nameInterfacePair}
                 onChange={(e) => form.setValue("nameInterfacePair", e.target.value)}
                 onBlur={() => form.touch("nameInterfacePair")}
                 disabled={isSaving}
                 error={!!errors.nameInterfacePair}
                 helperText={
-                  errors.nameInterfacePair ??
-                  `${values.nameInterfacePair.length}/${NAME_INTERFACE_PAIR_MAX}`
+                  errors.nameInterfacePair ?? (
+                    <FieldHint
+                      example={NAME_INTERFACE_PAIR_EXAMPLE}
+                      count={`${values.nameInterfacePair.length}/${NAME_INTERFACE_PAIR_MAX}`}
+                    />
+                  )
                 }
                 sx={{ flex: 1, minWidth: 0 }}
               />
@@ -295,7 +460,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             <FactCheckRoundedIcon sx={{ fontSize: 20, color: colors.accent }} />
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: colors.textPrimary }}>
-                Validate CRQ
+                Sync Data Plan
               </Typography>
               <Typography sx={{ fontSize: 11.5, color: colors.textDim }} noWrap>
                 {details?.crqNo ?? crqNo ?? ""}
@@ -374,7 +539,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
         <DialogTitle sx={{ fontSize: 15, fontWeight: 800 }}>Discard your changes?</DialogTitle>
         <DialogContent>
           <DialogContentText sx={{ fontSize: 13 }}>
-            Node Name and Name Interface Pair have unsaved edits. Closing now leaves the saved
+            Node Name and Node Interface Name have unsaved edits. Closing now leaves the saved
             values unchanged.
           </DialogContentText>
         </DialogContent>
