@@ -173,20 +173,6 @@ export interface CRQTimelineStepDto {
   status: "completed" | "active" | "pending" | "rejected";
 }
 
-export interface CRQApprovalTrailDto {
-  role: string;
-  name: string;
-  date: string;
-  remark: string;
-  status: "approved" | "pending" | "rejected" | "delegated";
-}
-
-export interface CRQEventFeedDto {
-  color: "green" | "red" | "orange" | "blue";
-  message: string;
-  date: string;
-}
-
 /** GET /crq-analytics-new/crqs/{changeId} */
 export interface CRQDetailResponse {
   crqNo: string;
@@ -220,15 +206,11 @@ export interface CRQDetailResponse {
   flagCoreNode: boolean;
   flagNSA: boolean;
 
-  impactedSystems: string[];
-
   approvalActionStage: string;
   approvalActionUser: string;
   canApprove: boolean;
 
   timeline: CRQTimelineStepDto[];
-  approvalTrail: CRQApprovalTrailDto[];
-  eventFeed: CRQEventFeedDto[];
 }
 
 // ─── Reports tab — com.vegayan.airtelmanagement.analyticsreport (unchanged) ─

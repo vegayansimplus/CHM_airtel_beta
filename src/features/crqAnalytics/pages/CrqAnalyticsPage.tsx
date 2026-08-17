@@ -17,7 +17,7 @@ import { BarChartCard } from "../components/BarChartCard";
 import { RunRateChart } from "../components/RunRateChart";
 import { AgingHeatmapGrid } from "../components/AgingHeatmapGrid";
 import { CrqFullscreenTable } from "../components/CrqFullscreenTable";
-import { CrqDetailDrawer } from "../components/CrqDetailDrawer";
+import { CrqJourneyDetail } from "../components/CrqJourneyDetail";
 import { seriesColor, categoryColor } from "../utils/chartPalette";
 
 const GROUP_BY_OPTIONS: { value: GroupBreakdownDimension; label: string }[] = [
@@ -43,6 +43,16 @@ export default function CrqAnalyticsPage() {
 
   const goToTable = (config: TableViewConfig) => setNav({ view: "table", tableConfig: config });
 
+  // Clicking a CRQ row opens the full-screen journey page; going back from it
+  // returns to the drill-down table that launched it.
+  if (selectedCrq) {
+    return (
+      <CommonContainer>
+        <CrqJourneyDetail crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
+      </CommonContainer>
+    );
+  }
+
   if (nav.view === "table") {
     return (
       <CommonContainer>
@@ -52,7 +62,6 @@ export default function CrqAnalyticsPage() {
           onBack={() => setNav({ view: "grid" })}
           onRowClick={setSelectedCrq}
         />
-        <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />
       </CommonContainer>
     );
   }
@@ -152,8 +161,6 @@ export default function CrqAnalyticsPage() {
         >
           <AgingHeatmapGrid data={agingHeatmap.data} mode={heatmapMode} isLoading={agingHeatmap.isFetching} isError={agingHeatmap.isError} />
         </ChartCard>
-
-        <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />
       </Box>
     </CommonContainer>
   );

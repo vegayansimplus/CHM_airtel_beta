@@ -12,7 +12,7 @@ import { ChartCard } from "../components/ChartCard";
 import { BarChartCard } from "../components/BarChartCard";
 import { EngineerUtilizationPanel } from "../components/EngineerUtilizationPanel";
 import { CrqFullscreenTable } from "../components/CrqFullscreenTable";
-import { CrqDetailDrawer } from "../components/CrqDetailDrawer";
+import { CrqJourneyDetail } from "../components/CrqJourneyDetail";
 import { EmptyOrErrorState } from "../components/EmptyOrErrorState";
 import { seriesColor } from "../utils/chartPalette";
 import type { AnalyticsNavState, TableViewConfig } from "../types/crqAnalytics.types";
@@ -36,6 +36,16 @@ export default function AnalyticsDashboardPage() {
   const drillToStage = (stage: string) => goToTable({ title: `CRQs in Stage: ${stage}`, tableType: "CRQ_LIST", stage });
   const drillToReason = (reason: string) => goToTable({ title: `Rejected CRQs — ${reason}`, tableType: "CRQ_LIST", rejectionReason: reason });
 
+  // Clicking a CRQ row opens the full-screen journey page; going back from it
+  // returns to whichever view (grid or drill-down table) launched it.
+  if (selectedCrq) {
+    return (
+      <CommonContainer>
+        <CrqJourneyDetail crqNo={selectedCrq} onBack={() => setSelectedCrq(null)} />
+      </CommonContainer>
+    );
+  }
+
   if (nav.view === "table") {
     return (
       <CommonContainer>
@@ -45,7 +55,6 @@ export default function AnalyticsDashboardPage() {
           onBack={() => setNav({ view: "grid" })}
           onRowClick={setSelectedCrq}
         />
-        <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />
       </CommonContainer>
     );
   }
@@ -104,8 +113,6 @@ export default function AnalyticsDashboardPage() {
             </ChartCard>
           </>
         )}
-
-        <CrqDetailDrawer crqNo={selectedCrq} onClose={() => setSelectedCrq(null)} />
       </Box>
     </CommonContainer>
   );
