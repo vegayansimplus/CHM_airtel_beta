@@ -6,10 +6,13 @@ export default function EmptyState({
   onAddUser,
   onResetFilters,
   showResetFilters = true,
+  showAddUser = true,
 }: {
   onAddUser: () => void;
   onResetFilters?: () => void;
   showResetFilters?: boolean;
+  /** Roles without create rights get the same empty state minus the CTA. */
+  showAddUser?: boolean;
 }) {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -20,7 +23,7 @@ export default function EmptyState({
       initial={{ opacity: 0, scale: 0.96 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: 0.3 }}
-      sx={{ py: 8, px: 3, textAlign: "center" }}
+      sx={{ py: { xs: 3, md: 6 }, px: 3, textAlign: "center" }}
     >
       <Box
         sx={{
@@ -43,10 +46,12 @@ export default function EmptyState({
         No users found
       </Typography>
       <Typography sx={{ fontSize: 13, color: "text.secondary", mt: 0.5, maxWidth: 340, mx: "auto" }}>
-        We couldn't find any users matching your current search or filters. Try
-        adjusting them, or add a new user to get started.
+        We couldn't find any users matching your current search or filters.
+        {showAddUser
+          ? " Try adjusting them, or add a new user to get started."
+          : " Try adjusting them to widen the results."}
       </Typography>
-      <Stack direction="row" justifyContent="center" gap={1.5} mt={3}>
+      <Stack direction="row" justifyContent="center" gap={1.5} mt={{ xs: 2, md: 3 }}>
         {showResetFilters && onResetFilters && (
           <Button
             variant="outlined"
@@ -57,14 +62,16 @@ export default function EmptyState({
             Reset Filters
           </Button>
         )}
-        <Button
-          variant="contained"
-          startIcon={<PersonAddAlt1 sx={{ fontSize: 16 }} />}
-          onClick={onAddUser}
-          sx={{ borderRadius: "10px", fontWeight: 700 }}
-        >
-          Add User
-        </Button>
+        {showAddUser && (
+          <Button
+            variant="contained"
+            startIcon={<PersonAddAlt1 sx={{ fontSize: 16 }} />}
+            onClick={onAddUser}
+            sx={{ borderRadius: "10px", fontWeight: 700 }}
+          >
+            Add User
+          </Button>
+        )}
       </Stack>
     </Box>
   );

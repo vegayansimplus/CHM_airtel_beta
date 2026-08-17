@@ -8,6 +8,9 @@ export interface DashboardHeaderProps {
   onExport: () => void;
   onRefresh: () => void;
   refreshing?: boolean;
+  /** When false the Add User action is hidden entirely (roles that may read
+   *  the directory but not create users). */
+  canAddUser?: boolean;
 }
 
 export default function DashboardHeader({
@@ -16,9 +19,16 @@ export default function DashboardHeader({
   onExport,
   onRefresh,
   refreshing = false,
+  canAddUser = true,
 }: DashboardHeaderProps) {
   return (
-    <Box component={motion.div} initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }} sx={{ mb: 1 }}>
+    <Box
+      component={motion.div}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      sx={{ mb: 1, flexShrink: 0 }}
+    >
       <Stack
         direction={{ xs: "column", md: "row" }}
         alignItems={{ xs: "flex-start", md: "center" }}
@@ -109,27 +119,29 @@ export default function DashboardHeader({
             </IconButton>
           </Tooltip>
 
-          <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-            <Button
-              size="small"
-              variant="contained"
-              startIcon={<PersonAddAlt1 sx={{ fontSize: 15 }} />}
-              onClick={onAddUser}
-              sx={{
-                borderRadius: "8px",
-                fontWeight: 700,
-                px: { xs: 1.5, sm: 2 },
-                py: 0.4,
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                Add User
-              </Box>
-              <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                Add
-              </Box>
-            </Button>
-          </motion.div>
+          {canAddUser && (
+            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<PersonAddAlt1 sx={{ fontSize: 15 }} />}
+                onClick={onAddUser}
+                sx={{
+                  borderRadius: "8px",
+                  fontWeight: 700,
+                  px: { xs: 1.5, sm: 2 },
+                  py: 0.4,
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Add User
+                </Box>
+                <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                  Add
+                </Box>
+              </Button>
+            </motion.div>
+          )}
         </Stack>
       </Stack>
     </Box>

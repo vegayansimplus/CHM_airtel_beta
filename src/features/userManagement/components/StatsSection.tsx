@@ -1,4 +1,4 @@
-import { Stack } from "@mui/material";
+import { Box } from "@mui/material";
 import {
   Group,
   Shield,
@@ -25,7 +25,16 @@ function seededSeries(seed: number, base: number) {
 // Stats are unfiltered aggregates across all users, returned alongside the
 // filtered/paginated grid by the same sp_get_users_paginated call - not
 // derived from the (search/filter/page-limited) rows currently on screen.
-export default function StatsSection({ stats }: { stats?: UserStats }) {
+export default function StatsSection({
+  stats,
+  dense = false,
+}: {
+  stats?: UserStats;
+  /** Short-viewport mode: one tighter, non-wrapping (horizontally scrollable)
+   *  row instead of a block that can wrap to two or three rows and eat the
+   *  height the table needs. */
+  dense?: boolean;
+}) {
   const s = stats ?? { activeCount: 0, inactiveCount: 0, adminCount: 0, headCount: 0, newThisMonth: 0 };
   const total = s.activeCount + s.inactiveCount;
 
@@ -81,7 +90,22 @@ export default function StatsSection({ stats }: { stats?: UserStats }) {
   ];
 
   return (
-    <Stack direction="row" flexWrap="wrap" gap={1} mb={2}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        flexWrap: dense ? "nowrap" : "wrap",
+        gap: 1,
+        mb: dense ? 1 : 2,
+        flexShrink: 0,
+        ...(dense && {
+          overflowX: "auto",
+          pb: 0.5,
+          scrollbarWidth: "thin",
+          "&::-webkit-scrollbar": { height: 5 },
+        }),
+      }}
+    >
       {cards.map((c, i) => (
         <StatCard
           key={c.label}
@@ -92,9 +116,10 @@ export default function StatsSection({ stats }: { stats?: UserStats }) {
           color={c.color}
           gradient={c.gradient}
           trend={c.trend}
+          dense={dense}
           sparkline={seededSeries(c.value * 17 + i * 31 + 1, Math.max(c.value, 1))}
         />
       ))}
-    </Stack>
+    </Box>
   );
 }

@@ -58,6 +58,9 @@ interface SearchToolbarProps {
   roles: string[];
   viewMode: "list" | "grid";
   onViewModeChange: (mode: "list" | "grid") => void;
+  /** Short-viewport mode: tighter padding/margins so the data region keeps
+   *  its height. */
+  dense?: boolean;
 }
 
 const fieldSx = {
@@ -73,6 +76,7 @@ export default function SearchToolbar({
   roles,
   viewMode,
   onViewModeChange,
+  dense = false,
 }: SearchToolbarProps) {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [searchInput, setSearchInput] = useState(filters.search);
@@ -111,8 +115,9 @@ export default function SearchToolbar({
   return (
     <Box
       sx={{
-        p: 1.25,
-        mb: 1.5,
+        p: dense ? 1 : 1.25,
+        mb: dense ? 1 : 1.5,
+        flexShrink: 0,
         borderRadius: "12px",
         background: isDark ? alpha(theme.palette.background.paper, 0.8) : "rgba(255,255,255,0.8)",
         backdropFilter: "blur(10px)",

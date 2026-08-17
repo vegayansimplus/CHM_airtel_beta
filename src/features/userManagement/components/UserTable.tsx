@@ -39,6 +39,8 @@ export interface UserTableProps {
   onAddUser: () => void;
   onResetFilters: () => void;
   hasActiveFilters: boolean;
+  /** Hides the empty-state Add User CTA for roles without create rights. */
+  canAddUser?: boolean;
 }
 
 export default function UserTable({
@@ -52,6 +54,7 @@ export default function UserTable({
   onAddUser,
   onResetFilters,
   hasActiveFilters,
+  canAddUser = true,
 }: UserTableProps) {
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
 
@@ -250,6 +253,12 @@ export default function UserTable({
     },
     layoutMode: "grid",
     positionToolbarAlertBanner: "top",
+    // The paper fills whatever height the page's data region hands it and
+    // becomes the scroll parent itself (toolbar pinned, rows scrolling under
+    // the sticky header). Previously it guessed with `maxHeight: 60/68/72vh`,
+    // which ignored the header, tab bar, stats and footer above/below it —
+    // too tall on short windows (page scrolled, footer off screen) and too
+    // short on tall ones (dead space under the table).
     muiTablePaperProps: {
       elevation: 0,
       sx: {
@@ -260,10 +269,14 @@ export default function UserTable({
         overflow: "hidden",
         background: theme.palette.background.paper,
         width: "100%",
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
       },
     },
     muiTableContainerProps: {
-      sx: { maxHeight: { xs: "60vh", md: "68vh", xl: "72vh" }, overflowX: "auto" },
+      sx: { flex: 1, minHeight: 0, maxHeight: "none", overflow: "auto" },
     },
     muiTableHeadCellProps: ({ column }) => ({
       sx: {
@@ -326,6 +339,7 @@ export default function UserTable({
           gap: 1,
           px: { xs: 1.25, lg: 2.25 },
           py: 1.25,
+          flexShrink: 0,
           borderBottom: "1px solid",
           borderColor: "divider",
           background: isDark
@@ -384,6 +398,7 @@ export default function UserTable({
         onAddUser={onAddUser}
         onResetFilters={onResetFilters}
         showResetFilters={hasActiveFilters}
+        showAddUser={canAddUser}
       />
     ),
   });

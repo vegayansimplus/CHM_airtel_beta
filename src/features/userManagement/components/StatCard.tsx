@@ -42,6 +42,8 @@ export interface StatCardProps {
   trend: number;
   sparkline: number[];
   index?: number;
+  /** Short-viewport variant: tighter box, smaller figure, no sparkline. */
+  dense?: boolean;
 }
 
 export default function StatCard({
@@ -53,6 +55,7 @@ export default function StatCard({
   trend,
   sparkline,
   index = 0,
+  dense = false,
 }: StatCardProps) {
   const animated = useCountUp(value);
   const isUp = trend >= 0;
@@ -66,13 +69,17 @@ export default function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
       whileHover={{ y: -2 }}
-      style={{ flex: "1 1 160px", minWidth: 148 }}
+      style={
+        dense
+          ? { flex: "1 1 124px", minWidth: 124 }
+          : { flex: "1 1 160px", minWidth: 148 }
+      }
     >
       <Box
         sx={{
           position: "relative",
           overflow: "hidden",
-          p: 1.25,
+          p: dense ? 0.9 : 1.25,
           borderRadius: "14px",
           background: isDark ? alpha(theme.palette.background.paper, 0.75) : "rgba(255,255,255,0.75)",
           backdropFilter: "blur(12px)",
@@ -102,8 +109,8 @@ export default function StatCard({
           <Stack direction="row" alignItems="center" gap={1}>
             <Box
               sx={{
-                width: 28,
-                height: 28,
+                width: dense ? 24 : 28,
+                height: dense ? 24 : 28,
                 borderRadius: "9px",
                 background: gradient,
                 display: "flex",
@@ -113,18 +120,33 @@ export default function StatCard({
                 flexShrink: 0,
               }}
             >
-              <Icon sx={{ color: "#fff", fontSize: 15 }} />
+              <Icon sx={{ color: "#fff", fontSize: dense ? 13 : 15 }} />
             </Box>
-            <Box>
-              <Typography sx={{ fontSize: 18, fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography
+                sx={{ fontSize: dense ? 15.5 : 18, fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}
+              >
                 {animated.toLocaleString()}
               </Typography>
-              <Typography sx={{ fontSize: 10.5, color: "text.secondary", fontWeight: 600, whiteSpace: "nowrap" }}>
+              <Typography
+                sx={{
+                  fontSize: dense ? 10 : 10.5,
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
                 {label}
               </Typography>
             </Box>
           </Stack>
-          <Stack alignItems="flex-end" gap={0.25} sx={{ display: { xs: "none", lg: "flex" } }}>
+          <Stack
+            alignItems="flex-end"
+            gap={0.25}
+            sx={{ display: dense ? "none" : { xs: "none", lg: "flex" } }}
+          >
             <Sparkline data={sparkline} color={color} />
             <Stack
               direction="row"

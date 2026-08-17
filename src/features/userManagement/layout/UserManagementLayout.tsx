@@ -131,8 +131,21 @@ const UserManagementLayout: React.FC = () => {
       {/* Divider */}
       <Box sx={{ borderBottom: 1, borderColor: "divider" }} />
 
-      {/* Routed child renders here */}
-      <Box sx={{ p: 3, flex: 1, display: "flex", flexDirection: "column", minWidth: 0 }}>
+      {/* Routed child renders here.
+          `minHeight: 0` is what lets this region resolve to "whatever the
+          viewport has left under the tab bar" instead of growing to its own
+          content height — routed pages can then flex-fill and scroll their own
+          data region rather than pushing the whole shell into a page scroll. */}
+      <Box
+        sx={{
+          p: { xs: 1.5, sm: 2, md: 3 },
+          flex: 1,
+          minHeight: 0,
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+        }}
+      >
         <AnimatedOutlet />
       </Box>
     </Box>
