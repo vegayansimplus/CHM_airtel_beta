@@ -162,10 +162,22 @@ export const CrqDetailedView: React.FC = () => {
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
 
-  // Independent of selectedCrqNo by design - selecting a CRQ must never
-  // change whether the list is shown. Purely presentational. Starts visible
-  // on initial page load; the user's own toggle is what hides it afterwards.
-  const [crqListVisible, setCrqListVisible] = useState(true);
+  // Collapsed on arrival whenever the route already names a CRQ - that is the
+  // "View Selected CRQ" new-tab flow, where the tab exists to show this one
+  // CRQ, so the cockpit gets the full width until the user asks for the list.
+  // Without a crqNo there is nothing to show but the list, so it starts open.
+  // After that it is purely the user's toggle: selecting a CRQ from the list
+  // must never change whether the list is shown.
+  const [crqListVisible, setCrqListVisible] = useState(() => !crqNo);
+  // The list's paged overview query is far heavier than the single-CRQ
+  // lookup, so it stays unsubscribed until the list is opened for the first
+  // time. Once requested it stays subscribed, so re-opening costs no refetch.
+  const [listRequested, setListRequested] = useState(() => !crqNo);
+
+  const handleToggleCrqList = useCallback(() => {
+    setListRequested(true);
+    setCrqListVisible((v) => !v);
+  }, []);
 
   const [reviewDialogOpen, setReviewDialogOpen] = useState(false);
   const [prevCrqStatusOpen, setPrevCrqStatusOpen] = useState(false);
@@ -182,13 +194,17 @@ export const CrqDetailedView: React.FC = () => {
 
   // Paginated/searchable list feeding the sidebar - never loads more than
   // one page of CRQs at a time, however large the domain/sub-domain scope is.
+  // Skipped until the user actually opens the list (see listRequested).
   const {
     data: pagedData,
     isLoading: isPagedLoading,
     isFetching: isPagedFetching,
     isError: isPagedError,
     error: pagedError,
-  } = useGetCrqWorkflowOverviewPagedQuery({ domainId, subDomainId, search: globalSearch, page, size: pageSize });
+  } = useGetCrqWorkflowOverviewPagedQuery(
+    { domainId, subDomainId, search: globalSearch, page, size: pageSize },
+    { skip: !listRequested },
+  );
 
   // Dedicated single-CRQ lookup hydrating the main panel - independent of
   // whichever page of the list is currently showing, and cached per crqNo
@@ -458,32 +474,12 @@ export const CrqDetailedView: React.FC = () => {
     ],
   );
 
-  if (isPagedError) {
-    return (
-      <Box sx={{ p: 3, display: "flex", justifyContent: "center" }}>
-        <Stack
-          alignItems="center"
-          spacing={1}
-          sx={{
-            p: 3,
-            maxWidth: 420,
-            textAlign: "center",
-            border: `1px solid ${colors.dangerBorder}`,
-            borderRadius: colors.radiusL,
-            bgcolor: colors.dangerDim,
-          }}
-        >
-          <ErrorOutlineRoundedIcon sx={{ fontSize: 28, color: colors.danger }} />
-          <Typography sx={{ fontWeight: 700, fontSize: 14, color: colors.textPrimary }}>
-            Unable to load the CRQ list
-          </Typography>
-          <Typography sx={{ fontSize: 12.5, color: colors.textSecondary }}>
-            {(pagedError as any)?.error || "Please refresh."}
-          </Typography>
-        </Stack>
-      </Box>
-    );
-  }
+  // Reported inside the list panel rather than as a full-page state: the list
+  // is now opened on demand, and a failure to load it must not take the
+  // selected CRQ's cockpit down with it.
+  const pagedErrorMessage = isPagedError
+    ? (pagedError as any)?.error || "Please try again."
+    : null;
 
   return (
     <Box
@@ -513,11 +509,11 @@ export const CrqDetailedView: React.FC = () => {
           transition: "padding-left 0.2s cubic-bezier(.4,0,.2,1)",
         }}
       >
-        <Tooltip title={crqListVisible ? "Hide CRQ List" : "Show CRQ List"} placement="right">
+        <Tooltip title={crqListVisible ? "Hide CRQ List" : "Show all CRQs"} placement="right">
           <IconButton
             size="small"
-            aria-label={crqListVisible ? "Hide CRQ List" : "Show CRQ List"}
-            onClick={() => setCrqListVisible((v) => !v)}
+            aria-label={crqListVisible ? "Hide CRQ List" : "Show all CRQs"}
+            onClick={handleToggleCrqList}
             sx={{
               width: 26,
               height: 26,
@@ -583,6 +579,7 @@ export const CrqDetailedView: React.FC = () => {
               setPage(0);
             }}
             isLoading={isPagedLoading || isPagedFetching}
+            errorMessage={pagedErrorMessage}
             colors={colors}
           />
         </Box>

@@ -169,7 +169,10 @@ const PlanViewAndSetupTab: React.FC = (
 
       {/* ================= CONTENT ================= */}
 
-      <Box sx={{ p: 2, minHeight: "100vh", bgcolor: "transparent" }}>
+      {/* Minus the 45px tab offset, the tab bar and this box's own padding —
+          a flat 100vh here made every tab overflow the viewport by ~110px
+          before a single row of content was drawn. */}
+      <Box sx={{ p: 2, minHeight: "calc(100vh - 160px)", bgcolor: "transparent" }}>
         <Suspense fallback={<PageLoader height="50vh" />}>
           <AnimatedOutlet />
         </Suspense>

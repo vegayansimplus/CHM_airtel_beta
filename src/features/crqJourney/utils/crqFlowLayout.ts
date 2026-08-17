@@ -25,8 +25,11 @@ export const cx = (r: Rect) => r.x + r.w / 2;
 export const cy = (r: Rect) => r.y + r.h / 2;
 
 const CANVAS_W = 1120;
-/** Y the section headers hang from — every titled region starts here. */
-const TOP = 56;
+/**
+ * Y the section headers hang from — every titled region starts here. Just clears
+ * the header block itself (label ~17px + 6px gap + 22px icon chip).
+ */
+const TOP = 48;
 
 // ── Intake / parallel activities (left) ──────────────────────────────────────
 // Tall enough for a three-line title ("Plan & Inventory Validation") plus the
@@ -35,16 +38,19 @@ const STAGE_W = 150;
 const STAGE_H = 86;
 const LEFT_X = 32;
 const LEFT_GAP_X = 20;
-const LEFT_ROW_GAP = 40;
+const LEFT_ROW_GAP = 30;
 
 // ── Approvals lane ───────────────────────────────────────────────────────────
 const APPR_X = 380;
 const APPR_W = 332;
 const APPR_PAD_X = 16;
-const APPR_PAD_TOP = 22;
-const APPR_PAD_BOTTOM = 16;
-const APPR_MIN_H = 160;
-const APPR_CARD_H = 124;
+const APPR_PAD_TOP = 16;
+const APPR_PAD_BOTTOM = 12;
+const APPR_MIN_H = 128;
+// Exactly what ApprovalCard's content stacks up to: 16 padding + 28 icon +
+// 6 + name + 4 + status + 6 + 20 badge. The card clips its overflow, so this
+// must never drop below what's inside it.
+const APPR_CARD_H = 110;
 const APPR_GAP = 10;
 // 66 is what lets four approvals sit on one row (the reference layout) at ~67px
 // each — wide enough for the shortened service names (Mobility / B2B / NOC
@@ -62,7 +68,7 @@ const TRUNK_X = 726;
 const SCHED_X = 744;
 const SCHED_W = 156;
 const SCHED_H = 58;
-const SCHED_GAP = 20;
+const SCHED_GAP = 16;
 
 // ── Execution ────────────────────────────────────────────────────────────────
 const EXEC_X = 928;
@@ -76,7 +82,7 @@ const MOP_H = 86;
 const MOP_V_X = 566;
 const MOP_V_W = 154;
 const MOP_V_H = 98;
-const MOP_CLEARANCE = 44;
+const MOP_CLEARANCE = 32;
 
 export interface SectionHeaderBox {
   x: number;
@@ -171,14 +177,13 @@ export const buildFlowLayout = ({
   const execCenterY = TOP + Math.max(schedColH, EXEC_H) / 2;
   const execution: Rect = { x: EXEC_X, y: Math.round(execCenterY - EXEC_H / 2), w: EXEC_W, h: EXEC_H };
 
-  // ── MOP row sits below whatever hangs lowest ──
+  // ── MOP row sits below whatever hangs lowest IN ITS OWN COLUMNS ──
+  // It spans x 380→720, entirely to the left of the scheduling column (744+) and
+  // execution box (928+), so it only has to clear the left block and the
+  // approvals lane. Clearing the taller right-hand columns too — as it used to —
+  // bought nothing but empty canvas and pushed the diagram below the fold.
   const mopY =
-    Math.max(
-      validate.y + validate.h,
-      approvalsBox.y + approvalsBox.h,
-      TOP + schedColH,
-      execution.y + execution.h
-    ) + MOP_CLEARANCE;
+    Math.max(validate.y + validate.h, approvalsBox.y + approvalsBox.h) + MOP_CLEARANCE;
 
   const mopCreate: Rect = { x: MOP_X, y: mopY, w: MOP_W, h: MOP_H };
   // Taller (it's usually the running stage) but centred on the same line, so the
@@ -190,9 +195,17 @@ export const buildFlowLayout = ({
     h: MOP_V_H,
   };
 
+  // The MOP row is no longer guaranteed to be the lowest thing on the canvas,
+  // so the height is the deepest of the three columns rather than just its own.
+  const contentBottom = Math.max(
+    mopValidate.y + mopValidate.h,
+    TOP + schedColH,
+    execution.y + execution.h
+  );
+
   return {
     width: CANVAS_W,
-    height: Math.round(mopValidate.y + mopValidate.h + 18),
+    height: Math.round(contentBottom + 16),
 
     assignment,
     validate,

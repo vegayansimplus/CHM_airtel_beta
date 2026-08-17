@@ -249,9 +249,9 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
         {error ??
           capError ??
           (errorCount
-            ? `${errorCount} entry${errorCount > 1 ? "s are" : " is"} not in the expected format.`
+            ? `${errorCount} ${errorCount > 1 ? "entries are" : "entry is"} not in the expected format.`
             : warnCount
-              ? `${warnCount} entry${warnCount > 1 ? "s reference" : " references"} a node that is not listed.`
+              ? `${warnCount} ${warnCount > 1 ? "entries need" : "entry needs"} a look — hover a chip for details.`
               : helper)}
       </Typography>
 

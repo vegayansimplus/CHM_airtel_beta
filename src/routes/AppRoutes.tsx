@@ -386,6 +386,7 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route path="taskconfig" element={<TaskConfigMain />} />
           {/* <Route path="taskplanning" element={<TaskPlanningMain />} /> */}
           <Route path="crqjourney" element={<CrqJourneyMain />} />
+          <Route path="crqjourney/:id" element={<CrqJourneyMain />} />
         </Route>
 
         <Route

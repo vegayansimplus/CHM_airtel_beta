@@ -1,13 +1,7 @@
 import { Box } from "@mui/material";
-import { CrqDetailsPage } from "./pages/CrqDetailsPage";
-
-// Renders at /scheduler/crqjourney. Deliberately a different visualization
-// from /cabmanager/journey's CrqJourneyPage (horizontal pipeline canvas) —
-// this is an info-card + vertical audit-trail timeline built from
-// get_crq_details, which carries assignment/performer/timestamp detail the
-// CAB pipeline view doesn't need.
+import { CrqJourneyPage } from "./pages/CrqJourneyPage";
 export const CrqJourneyMain = () => (
-  <Box>
-    <CrqDetailsPage />
+  <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+    <CrqJourneyPage />
   </Box>
 );

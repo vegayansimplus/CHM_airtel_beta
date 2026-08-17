@@ -31,7 +31,7 @@ export const CrqJourneyPage: React.FC = () => {
   } = useCrqJourney();
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, pb: 2 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pb: 1 }}>
       {/* ── Org scope + CRQ selector ── */}
       <CrqSelector
         role={roleName}

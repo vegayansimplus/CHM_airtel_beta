@@ -72,7 +72,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
           background: theme.palette.background.paper,
           border: `1.2px solid ${cfg.borderColor}`,
           borderRadius: "11px",
-          py: 1.5,
+          py: 1,
           px: 0.75,
           display: "flex",
           flexDirection: "column",
@@ -93,8 +93,8 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
       >
         <Box
           sx={{
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 28,
             borderRadius: "9px",
             background: cfg.iconBg,
             display: "flex",
@@ -104,7 +104,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
             flexShrink: 0,
           }}
         >
-          <Icon sx={{ fontSize: 17 }} />
+          <Icon sx={{ fontSize: 16 }} />
         </Box>
 
         <Typography
@@ -112,7 +112,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
             fontSize: 11.5,
             fontWeight: 600,
             color: "text.primary",
-            mt: 1,
+            mt: 0.75,
             width: "100%",
             px: "2px",
             textAlign: "center",
@@ -142,7 +142,7 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
           {formatStatusLabel(approval.status)}
         </Typography>
 
-        <Box sx={{ position: "relative", mt: 0.75, width: 22, height: 22, flexShrink: 0 }}>
+        <Box sx={{ position: "relative", mt: 0.5, width: 20, height: 20, flexShrink: 0 }}>
           {showPulse && (
             <Box
               component="span"
@@ -162,8 +162,8 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
           <Box
             sx={{
               position: "relative",
-              width: 22,
-              height: 22,
+              width: 20,
+              height: 20,
               borderRadius: "50%",
               background: cfg.color,
               display: "flex",

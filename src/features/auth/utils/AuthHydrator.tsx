@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import { useAppDispatch } from "../../../app/hooks";
 import { authStorage, TOKEN_KEY } from "../../../app/store/auth.storage";
+import {
+  currentInAppPath,
+  postLoginRedirect,
+} from "../../../app/store/postLoginRedirect";
 import { useLazyGetLoggedUserQuery } from "../api/auth.api";
 import {
   normalizeRBAC,
@@ -70,6 +74,16 @@ const AuthHydrator = () => {
     if (token) {
       void validateAndHydrate(token);
     } else {
+      // Cold start with no session at all: whatever URL is in the address bar
+      // was typed or bookmarked by the person about to sign in, so it's theirs
+      // to return to. This is the ONLY place a post-login redirect is ever
+      // recorded — in particular PrivateRoute no longer smuggles the outgoing
+      // route out through history state, which is how a logged-out user's last
+      // page used to end up being handed to the next person who signed in.
+      const requested = currentInAppPath();
+      if (requested !== "/" && !requested.startsWith("/login")) {
+        postLoginRedirect.set(requested);
+      }
       dispatch(logout());
       dispatch(finishHydration());
       setHydrating(false);
@@ -83,6 +97,10 @@ const AuthHydrator = () => {
       if (event.key !== TOKEN_KEY) return;
 
       if (!event.newValue) {
+        // Another tab signed out. Its localStorage removals are what woke us,
+        // so the shared keys are already gone; this call is here for the
+        // tab-scoped pending redirect, which that tab could not reach.
+        authStorage.clear();
         dispatch(logout());
         return;
       }

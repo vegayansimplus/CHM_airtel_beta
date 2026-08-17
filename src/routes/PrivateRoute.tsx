@@ -2,7 +2,7 @@ import type { JSX } from "react";
 import { useAppSelector } from "../app/hooks";
 import { Navigate, useLocation } from "react-router";
 import { usePermission } from "../rbac/usePermission";
-import { getRequiredAccess } from "../rbac/routeAccess";
+import { isPathAllowed } from "../rbac/routeAccess";
 import AccessDenied from "../rbac/AccessDenied";
 
 export const PrivateRoute = ({ element }: { element: JSX.Element }) => {
@@ -15,18 +15,17 @@ export const PrivateRoute = ({ element }: { element: JSX.Element }) => {
 
   }
 
+  // Deliberately carries no `state={{ from }}`: this same redirect fires for a
+  // deliberate logout and for a session torn down under the user (401, cross-
+  // tab sign-out), and it cannot tell those apart — so anything it stashed here
+  // was liable to be replayed for whoever signed in next. A pending redirect is
+  // recorded once, at cold start, by AuthHydrator instead.
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/login" replace />;
   }
 
-  // Undefined means the current path isn't in the nav registry at all — allow
-  // it through rather than silently locking out a route nobody registered.
-  const access = getRequiredAccess(location.pathname);
-  if (access && access.requiredModule !== null) {
-    const allowed = access.requiredSubModule
-      ? hasSubModule(access.requiredModule, access.requiredSubModule)
-      : hasModule(access.requiredModule);
-    if (!allowed) return <AccessDenied reason="forbidden" />;
+  if (!isPathAllowed(location.pathname, hasModule, hasSubModule)) {
+    return <AccessDenied reason="forbidden" />;
   }
 
   return element;

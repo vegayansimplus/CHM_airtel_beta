@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { toast } from "react-toastify";
 import { Box, IconButton, Typography } from "@mui/material";
 import {
@@ -16,13 +16,14 @@ import {
 import { useAppDispatch } from "../../../app/hooks";
 import { setToken, setUser } from "../slices/auth.slice";
 import { authStorage } from "../../../app/store/auth.storage";
+import { postLoginRedirect } from "../../../app/store/postLoginRedirect";
 import {
   normalizeRBAC,
   normalizeModuleHierarchy,
 } from "../utils/rbacNormalizer";
 import type { AuthUser } from "../types/auth.types";
 import { hasModuleIn, hasSubModuleIn } from "../../../rbac/permissionCore";
-import { getFirstAccessiblePath } from "../../../rbac/routeAccess";
+import { getFirstAccessiblePath, isPathAllowed } from "../../../rbac/routeAccess";
 import { useCaptcha } from "../hooks/useCaptcha";
 import AnimatedBackground from "../components/AnimatedBackground";
 import ConnectionSecurityBadge from "../components/ConnectionSecurityBadge";
@@ -232,7 +233,6 @@ const LoginPage: React.FC = () => {
   const [lockoutRemaining, setLockoutRemaining] = useState(0);
 
   const navigate = useNavigate();
-  const location = useLocation();
   const dispatch = useAppDispatch();
   const captcha = useCaptcha(!CAPTCHA_DISABLED);
 
@@ -373,14 +373,23 @@ const LoginPage: React.FC = () => {
     // is computed directly from the just-fetched user object (via the same
     // pure predicates usePermission() uses) rather than the usePermission
     // hook, which would still read the pre-login (unauthenticated) state.
-    const target =
-      getFirstAccessiblePath(
-        (moduleName) => hasModuleIn(user.modules, user.roleCode, moduleName),
-        (moduleName, subModuleName) =>
-          hasSubModuleIn(user.moduleHierarchy, user.roleCode, moduleName, subModuleName),
-      ) ?? "/";
-    const from = (location.state as { from?: string } | null)?.from;
-    navigate(from && from !== "/login" ? from : target, { replace: true });
+    const hasModuleFor = (moduleName: string) =>
+      hasModuleIn(user.modules, user.roleCode, moduleName);
+    const hasSubModuleFor = (moduleName: string, subModuleName: string) =>
+      hasSubModuleIn(user.moduleHierarchy, user.roleCode, moduleName, subModuleName);
+
+    const target = getFirstAccessiblePath(hasModuleFor, hasSubModuleFor) ?? "/";
+    // A pending redirect only exists when this tab was opened straight onto a
+    // deep link with no session at all (see AuthHydrator) — never after a
+    // logout, which clears it — so it belongs to the person who just signed in.
+    // It's still vetted against their permissions: the previous occupant of
+    // this machine may have bookmarked a module this user can't open.
+    const pending = postLoginRedirect.consume();
+    const landing =
+      pending && isPathAllowed(pending, hasModuleFor, hasSubModuleFor)
+        ? pending
+        : target;
+    navigate(landing, { replace: true });
   };
 
   const handleForceLogout = async () => {

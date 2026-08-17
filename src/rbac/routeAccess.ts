@@ -77,6 +77,30 @@ export const getRequiredAccess = (pathname: string): RequiredAccess | undefined 
 };
 
 /**
+ * Whether the given user may open the given path. Accepts a full location
+ * string (path + query + hash); only the pathname takes part in matching.
+ *
+ * Shared by PrivateRoute (guarding what's on screen) and LoginPage (vetting a
+ * pending post-login redirect before honouring it) so the two can never drift
+ * into disagreeing about the same URL.
+ */
+export const isPathAllowed = (
+  path: string,
+  hasModule: (moduleName: string) => boolean,
+  hasSubModule: (moduleName: string, subModuleName: string) => boolean,
+): boolean => {
+  const access = getRequiredAccess(path.split(/[?#]/)[0]);
+
+  // Undefined means the path isn't in the nav registry at all — allow it
+  // through rather than silently locking out a route nobody registered.
+  if (!access || access.requiredModule === null) return true;
+
+  return access.requiredSubModule
+    ? hasSubModule(access.requiredModule, access.requiredSubModule)
+    : hasModule(access.requiredModule);
+};
+
+/**
  * Returns the first top-level nav item's path the user actually has access
  * to (in the registry's declared order — Dashboard first when assigned),
  * or null if the user has no accessible module at all.

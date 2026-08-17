@@ -1,8 +1,9 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -13,7 +14,6 @@ import {
   IconButton,
   LinearProgress,
   Stack,
-  TextField,
   Tooltip,
   Typography,
   useMediaQuery,
@@ -26,6 +26,8 @@ import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
+import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import type { Colors } from "../../../types/colorTypes";
@@ -43,6 +45,11 @@ import {
 import { stageLabel } from "../reschedule/stageLabel";
 import { crqStatusPalette } from "../../../constants/workflowStages";
 import { useValidateForm } from "./useValidateForm";
+import {
+  ValidateTokenField,
+  splitTokens,
+  type TokenIssue,
+} from "./ValidateTokenField";
 
 /**
  * Shown as placeholder and as a persistent hint under each field: the
@@ -53,6 +60,30 @@ import { useValidateForm } from "./useValidateForm";
 const NODE_NAME_EXAMPLE = "HYD-T4-CR11.192,MUM-T5-CR11.15";
 const NAME_INTERFACE_PAIR_EXAMPLE =
   "HYD-T4-CR11.192$TenGigE0/0/0/23,MUM-T5-CR11.15$HundGigE0/0/0/23";
+
+/** Inline keycap, so the "press Enter / , / $" instruction reads as a key. */
+const KeyHint: React.FC<{ colors: Colors; children: React.ReactNode }> = ({
+  colors,
+  children,
+}) => (
+  <Box
+    component="span"
+    sx={{
+      display: "inline-block",
+      px: 0.6,
+      mx: 0.15,
+      borderRadius: "4px",
+      border: `1px solid ${colors.border}`,
+      bgcolor: colors.surface,
+      fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+      fontSize: 10,
+      fontWeight: 800,
+      color: colors.textSecondary,
+    }}
+  >
+    {children}
+  </Box>
+);
 
 /** `HYD-T4-CR11.192$TenGigE0/0/0/23` -> node + interface halves. */
 const splitPair = (token: string): { node: string; iface: string } => {
@@ -262,6 +293,43 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
     closeAndReset();
   }, [form, onSaved, closeAndReset]);
 
+  const nodeTokens = useMemo(() => splitTokens(values.nodeName), [values.nodeName]);
+  const pairTokens = useMemo(
+    () => splitTokens(values.nameInterfacePair),
+    [values.nameInterfacePair],
+  );
+
+  /**
+   * A node with no interface mapped is legal, but almost always an oversight -
+   * only worth flagging once the pair field has something in it, otherwise
+   * every chip turns amber the moment it is typed.
+   */
+  const inspectNode = useCallback(
+    (token: string): TokenIssue | undefined =>
+      !pairTokens.length || pairTokens.some((pair) => splitPair(pair).node === token)
+        ? undefined
+        : { severity: "warning", message: "No interface mapped to this node yet." },
+    [pairTokens],
+  );
+
+  /** The pair column is free text, so shape and node reference are checked here. */
+  const inspectPair = useCallback(
+    (token: string): TokenIssue | undefined => {
+      const { node, iface } = splitPair(token);
+      if (!node || !iface) {
+        return {
+          severity: "error",
+          message: "Expected node$interface, e.g. HYD-T4-CR11.192$TenGigE0/0/0/23.",
+        };
+      }
+      if (nodeTokens.length && !nodeTokens.includes(node)) {
+        return { severity: "warning", message: `"${node}" is not listed under Node Name.` };
+      }
+      return undefined;
+    },
+    [nodeTokens],
+  );
+
   const renderBody = () => {
     if (isLoading) return <StepSkeleton rows={4} />;
 
@@ -365,12 +433,33 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               ) : undefined
             }
           >
-            <Typography
-              sx={{ fontSize: 11, color: colors.textDim, mb: 1.4, lineHeight: 1.65 }}
+            <Stack
+              direction="row"
+              alignItems="center"
+              flexWrap="wrap"
+              useFlexGap
+              sx={{ gap: 1, mb: 1.4 }}
             >
-              Separate multiple entries with a comma, and join each node to its interface
-              with <Box component="span" sx={{ fontWeight: 800 }}>$</Box>.
-            </Typography>
+              <Typography sx={{ fontSize: 11, color: colors.textDim, lineHeight: 1.65 }}>
+                Type an entry and press <KeyHint colors={colors}>Enter</KeyHint> or{" "}
+                <KeyHint colors={colors}>,</KeyHint> to add it. Pair a node with its
+                interface using <KeyHint colors={colors}>$</KeyHint>.
+              </Typography>
+              <Box sx={{ flex: 1 }} />
+              <Button
+                size="small"
+                variant="text"
+                disabled={isSaving}
+                startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 15 }} />}
+                onClick={() => {
+                  form.setValue("nodeName", NODE_NAME_EXAMPLE);
+                  form.setValue("nameInterfacePair", NAME_INTERFACE_PAIR_EXAMPLE);
+                }}
+                sx={{ textTransform: "none", fontWeight: 700, fontSize: 11 }}
+              >
+                Fill example
+              </Button>
+            </Stack>
 
             <Stack
               direction={{ xs: "column", md: "row" }}
@@ -378,50 +467,37 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               useFlexGap
               sx={{ alignItems: "flex-start" }}
             >
-              <TextField
+              <ValidateTokenField
                 label="Node Name"
-                fullWidth
-                size="small"
-                placeholder={NODE_NAME_EXAMPLE}
+                colors={colors}
                 value={values.nodeName}
-                onChange={(e) => form.setValue("nodeName", e.target.value)}
+                onChange={(next) => form.setValue("nodeName", next)}
                 onBlur={() => form.touch("nodeName")}
                 disabled={isSaving}
-                error={!!errors.nodeName}
-                helperText={
-                  errors.nodeName ?? (
-                    <FieldHint
-                      example={NODE_NAME_EXAMPLE}
-                      count={`${values.nodeName.length}/${NODE_NAME_MAX}`}
-                    />
-                  )
-                }
-                sx={{ flex: 1, minWidth: 0 }}
+                error={errors.nodeName}
+                max={NODE_NAME_MAX}
+                placeholder="HYD-T4-CR11.192"
+                inspect={inspectNode}
+                helper={`e.g. ${NODE_NAME_EXAMPLE}`}
               />
-              <TextField
+              <ValidateTokenField
                 label="Node Interface Name"
-                fullWidth
-                size="small"
-                multiline
-                minRows={1}
-                maxRows={3}
-                placeholder={NAME_INTERFACE_PAIR_EXAMPLE}
+                colors={colors}
                 value={values.nameInterfacePair}
-                onChange={(e) => form.setValue("nameInterfacePair", e.target.value)}
+                onChange={(next) => form.setValue("nameInterfacePair", next)}
                 onBlur={() => form.touch("nameInterfacePair")}
                 disabled={isSaving}
-                error={!!errors.nameInterfacePair}
-                helperText={
-                  errors.nameInterfacePair ?? (
-                    <FieldHint
-                      example={NAME_INTERFACE_PAIR_EXAMPLE}
-                      count={`${values.nameInterfacePair.length}/${NAME_INTERFACE_PAIR_MAX}`}
-                    />
-                  )
-                }
-                sx={{ flex: 1, minWidth: 0 }}
+                error={errors.nameInterfacePair}
+                max={NAME_INTERFACE_PAIR_MAX}
+                placeholder="HYD-T4-CR11.192$TenGigE0/0/0/23"
+                inspect={inspectPair}
+                quickInserts={nodeTokens.map((node) => `${node}$`)}
+                quickInsertLabel="From nodes:"
+                helper={`e.g. ${NAME_INTERFACE_PAIR_EXAMPLE}`}
               />
             </Stack>
+
+            <MappingPreview nodes={nodeTokens} pairs={pairTokens} colors={colors} />
           </StepSection>
         </Box>
       </Fade>
@@ -456,13 +532,34 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             bgcolor: colors.surface,
           }}
         >
-          <Stack direction="row" alignItems="center" spacing={1}>
-            <FactCheckRoundedIcon sx={{ fontSize: 20, color: colors.accent }} />
+          <Stack direction="row" alignItems="center" spacing={1.2}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 34,
+                height: 34,
+                flexShrink: 0,
+                borderRadius: colors.radius,
+                bgcolor: colors.accentDim,
+                border: `1px solid ${colors.accentBorder}`,
+              }}
+            >
+              <FactCheckRoundedIcon sx={{ fontSize: 18, color: colors.accent }} />
+            </Box>
             <Box sx={{ minWidth: 0 }}>
               <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: colors.textPrimary }}>
                 Sync Data Plan
               </Typography>
-              <Typography sx={{ fontSize: 11.5, color: colors.textDim }} noWrap>
+              <Typography
+                sx={{
+                  fontSize: 11.5,
+                  color: colors.textDim,
+                  fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
+                }}
+                noWrap
+              >
                 {details?.crqNo ?? crqNo ?? ""}
               </Typography>
             </Box>
@@ -505,6 +602,28 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             Cancel
           </Button>
           <Box sx={{ flex: 1 }} />
+          {/* Live count of what is about to be saved, plus an unsaved-edits dot -
+              the footer used to give no reading of the form's state at all. */}
+          {!!details && (
+            <Stack direction="row" alignItems="center" spacing={0.7} sx={{ mr: 0.5 }}>
+              {isDirty && (
+                <Box
+                  sx={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    bgcolor: colors.warning,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+              <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: colors.textDim }} noWrap>
+                {isDirty ? "Unsaved · " : ""}
+                {nodeTokens.length} {nodeTokens.length === 1 ? "node" : "nodes"} ·{" "}
+                {pairTokens.length} {pairTokens.length === 1 ? "interface" : "interfaces"}
+              </Typography>
+            </Stack>
+          )}
           <Tooltip
             title={
               !canSave && !isSaving && !isFetching

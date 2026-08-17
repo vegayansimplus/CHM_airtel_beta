@@ -15,6 +15,7 @@ import {
   Typography,
 } from "@mui/material";
 import ChevronRightRoundedIcon from "@mui/icons-material/ChevronRightRounded";
+import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import FiberManualRecordIcon from "@mui/icons-material/FiberManualRecord";
 import FirstPageRoundedIcon from "@mui/icons-material/FirstPageRounded";
@@ -62,6 +63,9 @@ interface CrqWorkflowSidebarProps {
    * rows instead of "No plans found" so an empty-looking page mid-fetch
    * doesn't read as a genuinely empty result. */
   isLoading?: boolean;
+  /** Set when the list's own query failed - shown in place of the tree so a
+   * list-level failure never takes down the selected CRQ's cockpit beside it. */
+  errorMessage?: string | null;
   colors: Colors;
 }
 
@@ -112,6 +116,7 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
   onPageChange,
   onPageSizeChange,
   isLoading,
+  errorMessage,
   colors,
 }) => {
   const totalPages = Math.max(1, Math.ceil(totalElements / pageSize));
@@ -162,6 +167,15 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
         </Box>
 
         <Box sx={{ flex: 1, overflowY: "auto", p: 1.2, minHeight: 0 }}>
+      {errorMessage ? (
+        <Stack alignItems="center" spacing={0.7} sx={{ p: 2, textAlign: "center" }}>
+          <ErrorOutlineRoundedIcon sx={{ fontSize: 24, color: colors.danger }} />
+          <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: colors.textPrimary }}>
+            Unable to load the CRQ list
+          </Typography>
+          <Typography sx={{ fontSize: 11.5, color: colors.textDim }}>{errorMessage}</Typography>
+        </Stack>
+      ) : null}
       {isLoading && !plans.length
         ? Array.from({ length: 5 }).map((_, i) => (
             <Skeleton
@@ -428,7 +442,7 @@ export const CrqWorkflowSidebar: React.FC<CrqWorkflowSidebarProps> = ({
           </Box>
         );
       })}
-      {!isLoading && !plans.length && (
+      {!isLoading && !errorMessage && !plans.length && (
         <Typography sx={{ fontSize: 12, color: colors.textDim, p: 2, textAlign: "center" }}>
           No plans found.
         </Typography>

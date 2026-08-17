@@ -1,4 +1,5 @@
 import type { StoredUser } from "../../features/auth/types/auth.types";
+import { postLoginRedirect } from "./postLoginRedirect";
 
 
 export const USER_KEY = "auth_user";
@@ -31,5 +32,11 @@ export const authStorage = {
   clear() {
     localStorage.removeItem(USER_KEY);
     localStorage.removeItem(TOKEN_KEY);
+    // Tearing down a session also drops wherever that session was headed.
+    // Hooking it here rather than at each of the logout call sites (header
+    // menu, AccessDenied, the global 401 handler, a failed token validation)
+    // is what guarantees the next user to sign in on this machine lands on
+    // their own default route instead of the previous user's last page.
+    postLoginRedirect.clear();
   },
 };

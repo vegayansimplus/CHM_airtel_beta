@@ -129,7 +129,7 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
       <Box
         sx={{
           px: { xs: 1.5, md: 2 },
-          py: 1.25,
+          py: 0.85,
           display: "flex",
           alignItems: "center",
           gap: { xs: 1, md: 1.5 },
@@ -277,7 +277,7 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
       <Box
         sx={{
           px: { xs: 1.5, md: 2 },
-          py: 1.5,
+          py: 1,
           display: "grid",
           gridTemplateColumns: {
             xs: "1fr",
@@ -285,7 +285,7 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
             md: "repeat(3, minmax(0, 1fr))",
             lg: "repeat(5, minmax(0, 1fr))",
           },
-          gap: { xs: 1.5, md: 2 },
+          gap: { xs: 1.25, md: 1.5 },
         }}
       >
         <MetaItem icon={TimelineRoundedIcon} label="Current Stage">

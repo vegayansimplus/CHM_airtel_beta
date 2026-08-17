@@ -253,7 +253,12 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
     return buildFlowEdges(flow, layout).filter((e) => present[e.id] ?? e.id.startsWith("sched-link-"));
   }, [flow, layout, schedulingChain, assignment, validate, impactAnalysis, mopCreate, mopValidate, hasApprovals, hasExecution]);
 
-  const { ref: fitRef, scale, isFloored } = useAutoFitScale(layout.width);
+  // baseHeight makes the fit two-dimensional: the diagram shrinks to whatever
+  // viewport height is left under the selector + info strip, so it reads in one
+  // view rather than trailing off below the fold.
+  const { ref: fitRef, scale, isFloored } = useAutoFitScale(layout.width, {
+    baseHeight: layout.height,
+  });
 
   const stepCfg = getStepStatusConfig(isDark);
 
@@ -280,8 +285,8 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
   const schedulingTone = sectionTone("#ED8B00", "#FAC775", "#C2410C");
 
   const header = (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-      <Typography sx={{ fontSize: { xs: 13.5, sm: 15 }, fontWeight: 600, color: "text.primary" }}>
+    <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.25 }}>
+      <Typography sx={{ fontSize: { xs: 13.5, sm: 14.5 }, fontWeight: 600, color: "text.primary" }}>
         CRQ Process Flow
       </Typography>
 
@@ -321,7 +326,7 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
         border: `1px solid ${theme.palette.divider}`,
         borderRadius: "14px",
         boxShadow: isDark ? "0 1px 3px rgba(0,0,0,0.35)" : "0 1px 3px rgba(16,40,70,0.05)",
-        p: { xs: "10px 12px 12px", md: "10px 14px 12px" },
+        p: { xs: "8px 12px 10px", md: "8px 14px 10px" },
       }}
     >
       {header}
@@ -339,7 +344,7 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
       ref={fitRef}
       sx={{
         width: "100%",
-        pt: 0.5,
+        pt: 0.25,
         overflowX: isFloored ? "auto" : "hidden",
         overflowY: "hidden",
       }}
