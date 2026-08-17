@@ -1,12 +1,12 @@
-import { useState, useMemo, useCallback, type ComponentType } from "react";
+import { useCallback, useMemo, useState, type ComponentType } from "react";
 import {
   Calendar,
   momentLocalizer,
   Views,
+  type CalendarProps,
+  type Components,
   type SlotInfo,
   type View,
-  type ToolbarProps,
-  type CalendarProps,
 } from "react-big-calendar";
 import withDragAndDrop, {
   type EventInteractionArgs,
@@ -19,34 +19,39 @@ import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 
 // MUI Components
 import {
-  Box,
   Alert,
-  Typography,
-  Chip,
-  Stack,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
+  Box,
+  LinearProgress,
+  Paper,
   Snackbar,
-  CircularProgress,
+  useTheme,
 } from "@mui/material";
 
 // Components & Utils
 import EventCell from "./EventCell";
 import CustomToolbar from "./CustomToolbar";
-import CommonContainer from "../../../../components/common/CommonContainer";
-import { useGetUserMonthlyRosterQuery } from "../api/userMonthlyRosterApi";
-import { transformRosterToEvents } from "../utils/rosterTransform";
-import { shiftColorMap, getShiftColors } from "../constants/shiftColors";
-import type {
-  CalendarEvent,
-  MonthlyRosterResponse,
-  ToastState,
-} from "../types/roster.types";
+import RosterLegend from "./RosterLegend";
+import RosterStatsStrip from "./RosterStatsStrip";
+import ShiftDetailDialog from "./ShiftDetailDialog";
+import { DayBackgroundCell, MonthDateHeader } from "./MonthDayCell";
+import {
+  CalendarEmptyOverlay,
+  CalendarSkeleton,
+  RosterErrorNotice,
+} from "./CalendarStates";
+import {
+  RosterCalendarContext,
+  toDateKey,
+  type RosterCalendarValue,
+} from "../context/RosterCalendarContext";
+import { useCalendarTokens } from "../constants/calendarTokens";
+import { getShiftVisual } from "../constants/shiftColors";
+import { buildCalendarSx } from "../styles/calendarSx";
+import { useUserRosterMonth } from "../hooks/useUserRosterMonth";
+import type { CalendarEvent, ToastState } from "../types/roster.types";
 
 const localizer = momentLocalizer(moment);
+
 // react-big-calendar's `Calendar` is a generic class component; the DnD HOC's
 // typings can't infer a custom TEvent through it directly, so this asserts
 // the shape it actually has once instantiated with CalendarEvent.
@@ -54,86 +59,108 @@ const DnDCalendar = withDragAndDrop<CalendarEvent>(
   Calendar as unknown as ComponentType<CalendarProps<CalendarEvent, object>>,
 );
 
-// Static calendar chrome overrides — hoisted so it isn't reallocated every render
-const calendarSx = {
-  ".rbc-today": { backgroundColor: "#e3f2fd !important" },
-  ".rbc-event": {
-    transition: "transform 0.15s ease, box-shadow 0.15s ease",
-  },
-  ".rbc-event:hover": {
-    transform: "scale(1.03)",
-    boxShadow: "0px 4px 10px rgba(0,0,0,0.18)",
-    zIndex: 5,
-  },
-  ".rbc-day-bg:hover": {
-    backgroundColor: "#f5f5f5",
-    cursor: "pointer",
-    transition: "background-color 0.2s",
-  },
-  ".rbc-calendar": { fontFamily: "'Roboto', sans-serif" },
-} as const;
+// Module-level: rbc memoises `components` by identity, so rebuilding this
+// object every render would remount the entire grid. The cell renderers read
+// their per-day data from RosterCalendarContext instead of from props.
+const CALENDAR_COMPONENTS: Components<CalendarEvent, object> = {
+  event: EventCell,
+  dateCellWrapper: DayBackgroundCell,
+  month: { dateHeader: MonthDateHeader },
+};
 
-const computeEvents = (data: MonthlyRosterResponse | undefined): CalendarEvent[] => {
-  if (data?.status === "Error" || !data?.data?.[0]?.roster) {
-    return [];
-  }
-  return transformRosterToEvents(data.data[0].roster);
+const CALENDAR_VIEWS = [Views.MONTH, Views.WEEK, Views.DAY];
+
+type RosterView = "month" | "week" | "day";
+
+interface DetailTarget {
+  date: Date;
+  dateKey: string;
+  event: CalendarEvent | null;
+}
+
+/** Horizontal rhythm copied from CommonContainer so this page lines up with
+ *  its sibling tabs — but without CommonContainer's fixed height + `overflow:
+ *  auto`, which stacked a second scroller inside the shell's own. The shell
+ *  is now the single scroll owner. */
+const PAGE_PADDING = {
+  xs: "0px 8px 12px",
+  sm: "4px 12px 14px",
+  md: "4px 18px 16px",
+  lg: "4px 40px 16px",
+  xl: "8px 16px 18px",
 };
 
 const UserMonthlyRosterView = () => {
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState<"month" | "week" | "day">(Views.MONTH);
-  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(
-    null,
-  );
+  const theme = useTheme();
+  const t = useCalendarTokens(theme);
+
+  const [currentDate, setCurrentDate] = useState(() => new Date());
+  const [view, setView] = useState<RosterView>(Views.MONTH as RosterView);
+  const [selectedKey, setSelectedKey] = useState<string | null>(null);
+  const [detail, setDetail] = useState<DetailTarget | null>(null);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  const { startDate, endDate } = useMemo(
-    () => ({
-      startDate: moment(currentDate).startOf("month").format("YYYY-MM-DD"),
-      endDate: moment(currentDate).endOf("month").format("YYYY-MM-DD"),
-    }),
-    [currentDate],
-  );
+  const { events, dayMeta, stats, status, errorMessage, isRefreshing, refetch } =
+    useUserRosterMonth(currentDate);
 
-  // API Call
-  const { data, isError, isLoading, isFetching } =
-    useGetUserMonthlyRosterQuery({ startDate, endDate });
-
-  // Sync API data into locally-editable state (drag & drop mutates this copy)
-  // without an Effect — avoids the extra render pass setState-in-effect causes.
-  const [lastRosterData, setLastRosterData] = useState(data);
-  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(() =>
-    computeEvents(data),
-  );
-  if (data !== lastRosterData) {
-    setLastRosterData(data);
-    setLocalEvents(computeEvents(data));
+  // Drag & drop edits a local copy of the events. Synced from the query
+  // during render rather than in an Effect — avoids the extra render pass
+  // setState-in-effect causes. `events` is memoised on the roster payload,
+  // so this only re-runs when the data actually changes.
+  const [lastEvents, setLastEvents] = useState(events);
+  const [localEvents, setLocalEvents] = useState<CalendarEvent[]>(events);
+  if (events !== lastEvents) {
+    setLastEvents(events);
+    setLocalEvents(events);
   }
 
-  const apiErrorMessage = isError
-    ? "Failed to fetch roster due to a network or server error."
-    : data?.status === "Error"
-      ? data.message
-      : null;
+  const todayKey = useMemo(() => toDateKey(new Date()), []);
 
-  const isBusy = isLoading || isFetching;
+  const periodLabel = useMemo(() => {
+    if (view === "month") return moment(currentDate).format("MMMM YYYY");
+    if (view === "week") {
+      const start = moment(currentDate).startOf("week");
+      const end = moment(currentDate).endOf("week");
+      return `${start.format("DD MMM")} – ${end.format("DD MMM YYYY")}`;
+    }
+    return moment(currentDate).format("dddd, DD MMM YYYY");
+  }, [currentDate, view]);
 
-  // --- Handlers ---
+  /* ── Handlers ───────────────────────────────────────────────────────── */
+
+  const handleNavigate = useCallback(
+    (action: "PREV" | "NEXT" | "TODAY") => {
+      if (action === "TODAY") {
+        setCurrentDate(new Date());
+        return;
+      }
+      const unit = view === "month" ? "month" : view === "week" ? "week" : "day";
+      setCurrentDate((prev) =>
+        action === "PREV"
+          ? moment(prev).subtract(1, unit).toDate()
+          : moment(prev).add(1, unit).toDate(),
+      );
+    },
+    [view],
+  );
+
   const handleSelectEvent = useCallback((event: CalendarEvent) => {
-    setSelectedEvent(event);
+    setDetail({
+      date: event.start,
+      dateKey: event.resource?.dateKey ?? toDateKey(event.start),
+      event,
+    });
   }, []);
 
   const handleSelectSlot = useCallback((slotInfo: SlotInfo) => {
-    const isPast = moment(slotInfo.start).isBefore(moment(), "day");
-    if (isPast) {
+    // Unchanged product rule: past dates are not selectable.
+    if (moment(slotInfo.start).isBefore(moment(), "day")) {
       setToast({ message: "Cannot select past dates.", severity: "warning" });
       return;
     }
-    setToast({
-      message: `Date Selected: ${moment(slotInfo.start).format("MMM DD, YYYY")}`,
-      severity: "info",
-    });
+    // The selection is now visible in the grid, so the old
+    // "Date Selected: …" toast would just be redundant noise.
+    setSelectedKey(toDateKey(slotInfo.start));
   }, []);
 
   const handleEventDrop = useCallback(
@@ -154,175 +181,200 @@ const UserMonthlyRosterView = () => {
     [],
   );
 
-  // --- Dynamic Style Getter using shiftColorMap ---
-  const eventStyleGetter = useCallback((event: CalendarEvent) => {
-    const shiftColors = getShiftColors(event.title);
-    return {
-      style: {
-        backgroundColor: shiftColors.background,
-        color: shiftColors.color,
-        border: `1px solid ${shiftColors.border}`,
-        borderRadius: "6px",
-        padding: "4px",
-        fontSize: "12px",
-        fontWeight: 600,
-        boxShadow: "0px 2px 4px rgba(0,0,0,0.05)",
-      },
-    };
-  }, []);
-
-  const components = useMemo(
-    () => ({
-      event: EventCell,
-      toolbar: (toolbarProps: ToolbarProps<CalendarEvent, object>) => (
-        <CustomToolbar
-          {...toolbarProps}
-          currentView={view}
-          onDateChange={setCurrentDate}
-        />
-      ),
-    }),
-    [view],
+  const eventStyleGetter = useCallback(
+    (event: CalendarEvent) => {
+      const v = getShiftVisual(event.resource?.code ?? event.title, t.isDark);
+      return {
+        style: {
+          backgroundColor: v.bg,
+          color: v.fg,
+          border: `1px solid ${v.border}`,
+          borderLeft: `3px solid ${v.accent}`,
+          borderRadius: `${t.radiusSm}px`,
+          padding: "1px 4px",
+          minHeight: 18,
+          fontSize: 11,
+          fontWeight: 600,
+          boxShadow: "none",
+        },
+      };
+    },
+    [t.isDark, t.radiusSm],
   );
 
-  const selectedEventColors = selectedEvent
-    ? getShiftColors(selectedEvent.title)
-    : null;
+  /* ── Derived render state ───────────────────────────────────────────── */
+
+  const calendarSx = useMemo(() => buildCalendarSx(t, theme), [t, theme]);
+
+  const contextValue = useMemo<RosterCalendarValue>(
+    () => ({ dayMeta, selectedKey, todayKey, tokens: t }),
+    [dayMeta, selectedKey, todayKey, t],
+  );
+
+  const detailMeta = detail ? (dayMeta.get(detail.dateKey) ?? null) : null;
+  const isCold = status === "loading";
+  const showStats = status === "ready";
 
   return (
-    <CommonContainer>
-      <Box sx={calendarSx}>
-        {apiErrorMessage && (
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {apiErrorMessage}
-          </Alert>
+    <Box
+      sx={{
+        // Fills the routed content region (AnimatedOutlet is a flex column)
+        // so the page paints the full shell instead of floating as a short
+        // box on the tab's tinted background.
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        minWidth: 0,
+        minHeight: 0,
+        // No height cap and no `overflow` here on purpose: the page shell
+        // above owns the only scrollbar.
+        p: PAGE_PADDING,
+        bgcolor: "background.default",
+      }}
+    >
+      <Paper
+        elevation={0}
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          minWidth: 0,
+          position: "relative",
+          overflow: "hidden",
+          borderRadius: `${t.radius + 4}px`,
+          border: `1px solid ${t.grid}`,
+          bgcolor: t.surface,
+          boxShadow: t.shadowCard,
+          p: { xs: 1.25, sm: 1.75, md: 2 },
+          // Fills the viewport on a real screen, falls back to natural
+          // height on small ones where the page scrolls anyway.
+          //
+          // Deliberately a viewport calc rather than `flex: 1`: it is always
+          // a definite length, so the grid can never collapse to zero height
+          // if the flex chain above changes. And being pure CSS there is no
+          // measure → resize → re-measure loop at boundary window sizes.
+          // The 116px subtracts the shell chrome above (tab strip + padding).
+          height: {
+            xs: "auto",
+            md: "clamp(520px, calc(100vh - 116px), 1040px)",
+          },
+        }}
+      >
+        {/* Background refresh: 2px, absolutely positioned, so month-to-month
+            navigation never shifts the layout or blocks the grid. */}
+        {isRefreshing && (
+          <LinearProgress
+            aria-label="Refreshing roster"
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              height: 2,
+              borderRadius: 0,
+              bgcolor: "transparent",
+              "& .MuiLinearProgress-bar": { bgcolor: t.accent },
+            }}
+          />
         )}
 
-        {/* Shift color legend */}
-        <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
-          {Array.from(shiftColorMap.entries()).map(([code, colors]) => (
-            <Chip
-              key={code}
-              label={code}
-              size="small"
-              sx={{
-                bgcolor: colors.background,
-                color: colors.color,
-                border: `1px solid ${colors.border}`,
-                fontWeight: 600,
-              }}
-            />
-          ))}
-        </Stack>
+        <CustomToolbar
+          date={currentDate}
+          label={periodLabel}
+          currentView={view}
+          onNavigate={handleNavigate}
+          onView={setView}
+          onDateChange={setCurrentDate}
+          onRefresh={refetch}
+          isRefreshing={isRefreshing}
+        />
+
+        {status === "error" && errorMessage && (
+          <RosterErrorNotice
+            message={errorMessage}
+            onRetry={refetch}
+            isRetrying={isRefreshing}
+          />
+        )}
+
+        {showStats && <RosterStatsStrip stats={stats} />}
 
         <Box
           sx={{
-            p: 2,
-            bgcolor: "background.paper",
-            borderRadius: 3,
-            boxShadow: 2,
+            // Vendor overrides first, layout second: the layout below owns
+            // this box's own size and must not be merged away.
+            ...calendarSx,
             position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            minWidth: 0,
+            minHeight: 0,
+            flex: { md: 1 },
+            // Definite height on phones/tablets (the Paper is auto there);
+            // the flex remainder on desktop.
+            height: { xs: 460, sm: 540, md: "auto" },
+            opacity: isRefreshing ? 0.72 : 1,
+            transition: "opacity .18s ease",
           }}
         >
-          {isBusy && (
-            <Box
-              sx={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                bgcolor: "rgba(255,255,255,0.5)",
-                borderRadius: 3,
-                zIndex: 10,
-              }}
-            >
-              <CircularProgress size={32} />
-            </Box>
+          {isCold ? (
+            <CalendarSkeleton />
+          ) : (
+            <RosterCalendarContext.Provider value={contextValue}>
+              <DnDCalendar
+                localizer={localizer}
+                events={localEvents}
+                startAccessor="start"
+                endAccessor="end"
+                date={currentDate}
+                onNavigate={setCurrentDate}
+                onView={(nextView: View) => setView(nextView as RosterView)}
+                view={view}
+                views={CALENDAR_VIEWS}
+                toolbar={false}
+                popup
+                selectable
+                onSelectEvent={handleSelectEvent}
+                onSelectSlot={handleSelectSlot}
+                onEventDrop={handleEventDrop}
+                resizable={false}
+                eventPropGetter={eventStyleGetter}
+                components={CALENDAR_COMPONENTS}
+              />
+
+              {status === "empty" && <CalendarEmptyOverlay />}
+            </RosterCalendarContext.Provider>
           )}
-          <DnDCalendar
-            localizer={localizer}
-            events={localEvents}
-            startAccessor="start"
-            endAccessor="end"
-            date={currentDate}
-            onNavigate={setCurrentDate}
-            onView={(nextView: View) =>
-              setView(nextView as "month" | "week" | "day")
-            }
-            view={view}
-            views={[Views.MONTH, Views.WEEK, Views.DAY]}
-            selectable={true}
-            onSelectEvent={handleSelectEvent}
-            onSelectSlot={handleSelectSlot}
-            onEventDrop={handleEventDrop}
-            resizable={false}
-            style={{
-              height: "75vh",
-              pointerEvents: isBusy ? "none" : "auto",
-            }}
-            eventPropGetter={eventStyleGetter}
-            components={components}
-          />
         </Box>
 
-        <Dialog
-          open={!!selectedEvent}
-          onClose={() => setSelectedEvent(null)}
-          maxWidth="xs"
-          fullWidth
-        >
-          {selectedEventColors && (
-            <Box sx={{ height: 6, bgcolor: selectedEventColors.border }} />
-          )}
-          <DialogTitle fontWeight="bold">Shift Details</DialogTitle>
-          <DialogContent dividers>
-            <Typography variant="body1">
-              <strong>Status/Shift:</strong> {selectedEvent?.title}
-            </Typography>
-            <Typography variant="body1" mt={1}>
-              <strong>Date:</strong>{" "}
-              {selectedEvent?.start &&
-                moment(selectedEvent.start).format("dddd, MMM DD, YYYY")}
-            </Typography>
-            {!selectedEvent?.allDay && (
-              <Typography variant="body1" mt={1}>
-                <strong>Time:</strong>{" "}
-                {moment(selectedEvent?.start).format("hh:mm A")} -{" "}
-                {moment(selectedEvent?.end).format("hh:mm A")}
-              </Typography>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => setSelectedEvent(null)}
-              color="primary"
-              variant="contained"
-            >
-              Close
-            </Button>
-          </DialogActions>
-        </Dialog>
+        <RosterLegend />
+      </Paper>
 
-        <Snackbar
-          open={!!toast}
-          autoHideDuration={3000}
-          onClose={() => setToast(null)}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-        >
-          {toast ? (
-            <Alert
-              onClose={() => setToast(null)}
-              severity={toast.severity}
-              variant="filled"
-              sx={{ width: "100%" }}
-            >
-              {toast.message}
-            </Alert>
-          ) : undefined}
-        </Snackbar>
-      </Box>
-    </CommonContainer>
+      <ShiftDetailDialog
+        open={!!detail}
+        onClose={() => setDetail(null)}
+        date={detail?.date ?? null}
+        meta={detailMeta}
+        event={detail?.event ?? null}
+      />
+
+      <Snackbar
+        open={!!toast}
+        autoHideDuration={3000}
+        onClose={() => setToast(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        {toast ? (
+          <Alert
+            onClose={() => setToast(null)}
+            severity={toast.severity}
+            variant="filled"
+            sx={{ width: "100%" }}
+          >
+            {toast.message}
+          </Alert>
+        ) : undefined}
+      </Snackbar>
+    </Box>
   );
 };
 

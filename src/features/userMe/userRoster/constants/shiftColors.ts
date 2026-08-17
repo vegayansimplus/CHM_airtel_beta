@@ -1,35 +1,102 @@
+import { alpha } from "@mui/material/styles";
+import {
+  getShiftStyle,
+  resolveShiftKeyFromDisplay,
+} from "../../../roster/constant/shiftPalette";
+
 export interface ShiftColorTriple {
   background: string;
   color: string;
   border: string;
+  /** Human-readable name for the code, e.g. "N" -> "Night". */
+  label: string;
 }
 
-// Accessible tint/text/border triples — one hue family per shift/status code.
-export const shiftColorMap = new Map<string, ShiftColorTriple>([
-  ["Leave", { background: "#FEF2F2", color: "#B91C1C", border: "#FCA5A5" }],
-  [
-    "New Joinee",
-    { background: "#FFFBEB", color: "#92400E", border: "#FCD34D" },
-  ],
-  ["N", { background: "#EEF2FF", color: "#3730A3", border: "#818CF8" }],
-  ["A", { background: "#FEF9C3", color: "#854D0E", border: "#FDE047" }],
-  ["B", { background: "#ECFEFF", color: "#155E75", border: "#67E8F9" }],
-  ["G", { background: "#EFF6FF", color: "#1D4ED8", border: "#93C5FD" }],
-  ["L", { background: "#ECFDF5", color: "#065F46", border: "#6EE7B7" }],
-  ["W", { background: "#F8FAFC", color: "#475569", border: "#CBD5E1" }],
-  ["H", { background: "#FFF7ED", color: "#C2410C", border: "#FDBA74" }],
-  ["C", { background: "#F5F3FF", color: "#5B21B6", border: "#C4B5FD" }],
-]);
+/**
+ * Codes shown in the roster legend — working shifts first, then off/leave
+ * statuses. Kept as codes only (no full-word duplicates like "Leave", which
+ * is already "L") so the legend, the calendar cells and the weekly/monthly
+ * roster views all speak the same language.
+ */
+export const LEGEND_CODES = [
+  "G",
+  "LG",
+  "A",
+  "B",
+  "N",
+  "W",
+  "H",
+  "L",
+  "C",
+] as const;
+
+const toTriple = (code: string): ShiftColorTriple => {
+  const style = getShiftStyle(code);
+  return {
+    background: style.cardBg,
+    color: style.textColor,
+    border: style.cardBorder,
+    label: style.label,
+  };
+};
+
+// Colors/labels come from the shared palette so a code looks identical here
+// and in the scheduler's roster views.
+export const shiftColorMap = new Map<string, ShiftColorTriple>(
+  LEGEND_CODES.map((code) => [code, toTriple(code)]),
+);
 
 const DEFAULT_SHIFT_COLORS: ShiftColorTriple = {
   background: "#F1F5F9",
   color: "#475569",
   border: "#CBD5E1",
+  label: "Unassigned",
 };
 
-// Resolve the color triple for a shift/event title (e.g. "N (WFO)" -> "N", "WO" -> "W")
+/** Resolve the color triple for a shift display/title (e.g. "N (10 PM - 7 AM)", "WO"). */
 export const getShiftColors = (title: string): ShiftColorTriple => {
-  const baseShift = title.split("(")[0].trim();
-  const shiftLookup = baseShift === "WO" ? "W" : baseShift;
-  return shiftColorMap.get(shiftLookup) || DEFAULT_SHIFT_COLORS;
+  const code = resolveShiftKeyFromDisplay(title.split("(")[0].trim());
+  return shiftColorMap.get(code) || DEFAULT_SHIFT_COLORS;
 };
+
+/**
+ * Mode-aware version of the triple above, plus the accent hue and shift
+ * time. `ShiftColorTriple` is light-mode only (its hexes are baked light
+ * tints) and is consumed by the dashboard, so rather than change it this
+ * adds the dark branch alongside — the same tint/border/text recipe the
+ * scheduler's Monthly grid uses, so a code reads identically in both
+ * surfaces and both themes.
+ */
+export interface ShiftVisual {
+  /** Fill behind the shift pill. */
+  bg: string;
+  /** Pill border. */
+  border: string;
+  /** Pill text. */
+  fg: string;
+  /** Saturated hue for dots, legend swatches and focus rings. */
+  accent: string;
+  label: string;
+  /** Canonical shift window, e.g. "10:00 PM – 7:00 AM" ("—" for off days). */
+  time: string;
+}
+
+export const getShiftVisual = (code: string, isDark: boolean): ShiftVisual => {
+  const style = getShiftStyle(code);
+
+  return {
+    bg: isDark ? alpha(style.badgeBg, 0.16) : style.cardBg,
+    border: isDark ? alpha(style.badgeBg, 0.34) : style.cardBorder,
+    fg: isDark ? style.textColorDark : style.textColor,
+    accent: style.badgeBg,
+    label: style.label,
+    time: style.time,
+  };
+};
+
+/** Same as above but starting from a display string rather than a code. */
+export const getShiftVisualFromTitle = (
+  title: string,
+  isDark: boolean,
+): ShiftVisual =>
+  getShiftVisual(resolveShiftKeyFromDisplay(title.split("(")[0].trim()), isDark);

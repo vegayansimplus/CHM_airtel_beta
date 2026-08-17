@@ -40,7 +40,7 @@ export const SHIFT_COLOR_MAP: Record<string, ShiftStyle> = {
     textColor: "#065F46",
     textColorDark: "#6ee7b7",
     glowColor: "rgba(16,185,129,.2)",
-    label: "LG Shift",
+    label: "Late General",
     time: "11:00 AM – 8:00 PM",
   },
   B: {
