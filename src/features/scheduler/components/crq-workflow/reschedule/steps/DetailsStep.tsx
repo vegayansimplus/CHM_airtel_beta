@@ -38,7 +38,15 @@ import { stageLabel } from "../stageLabel";
 export const DetailsStep: React.FC<{
   wizard: RescheduleWizard;
   colors: Colors;
-}> = ({ wizard, colors }) => {
+  /**
+   * The CRQ's planned execution window as the cockpit already has it
+   * (activity_plan_start_date/end_date). Shown in preference to the
+   * scheduling-engine reservation the context procedure returns, falling back
+   * to it when the caller has no plan dates to hand.
+   */
+  activityPlanStartDate?: string | null;
+  activityPlanEndDate?: string | null;
+}> = ({ wizard, colors, activityPlanStartDate, activityPlanEndDate }) => {
   const {
     context,
     isContextLoading,
@@ -128,13 +136,13 @@ export const DetailsStep: React.FC<{
           />
           <InfoTile
             label="Execution start"
-            value={formatDateTime(context.scheduledStart)}
+            value={formatDateTime(activityPlanStartDate ?? context.scheduledStart)}
             colors={colors}
             icon={<EventRoundedIcon sx={{ fontSize: 12 }} />}
           />
           <InfoTile
             label="Execution End"
-            value={formatDateTime(context.scheduledEnd)}
+            value={formatDateTime(activityPlanEndDate ?? context.scheduledEnd)}
             colors={colors}
             icon={<EventRoundedIcon sx={{ fontSize: 12 }} />}
           />

@@ -46,6 +46,14 @@ export interface RescheduleDialogProps {
   crqId: number | null;
   crqNo?: string | null;
   colors: Colors;
+  /**
+   * The CRQ's planned execution window (activity_plan_start_date/end_date) as
+   * the caller already holds it, so step 1 shows the plan dates rather than the
+   * scheduling reservation. Optional - omitted, step 1 falls back to the
+   * context procedure's scheduled_start/scheduled_end.
+   */
+  activityPlanStartDate?: string | null;
+  activityPlanEndDate?: string | null;
   /** Fired once the reschedule is confirmed, so the cockpit can refresh. */
   onCompleted?: () => void;
 }
@@ -76,6 +84,8 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   crqId,
   crqNo,
   colors,
+  activityPlanStartDate,
+  activityPlanEndDate,
   onCompleted,
 }) => {
   const theme = useTheme();
@@ -146,7 +156,14 @@ export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   const renderStep = () => {
     switch (step) {
       case STEP_DETAILS:
-        return <DetailsStep wizard={wizard} colors={colors} />;
+        return (
+          <DetailsStep
+            wizard={wizard}
+            colors={colors}
+            activityPlanStartDate={activityPlanStartDate}
+            activityPlanEndDate={activityPlanEndDate}
+          />
+        );
       case STEP_DATE:
         return <SelectDateStep wizard={wizard} colors={colors} />;
       case STEP_STAGE:

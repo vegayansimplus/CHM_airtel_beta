@@ -742,6 +742,8 @@ export const CrqDetailedView: React.FC = () => {
             crqId={selectedCrq?.crqId ?? null}
             crqNo={selectedCrq?.crqNo ?? null}
             colors={colors}
+            activityPlanStartDate={selectedCrq?.activityPlanStartDate ?? null}
+            activityPlanEndDate={selectedCrq?.activityPlanEndDate ?? null}
           />
         </Suspense>
       )}

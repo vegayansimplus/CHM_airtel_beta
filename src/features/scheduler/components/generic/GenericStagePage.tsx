@@ -330,6 +330,8 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             crqId={rescheduleCrq.crqId ?? null}
             crqNo={rescheduleCrq.crqNo ?? null}
             colors={colors}
+            activityPlanStartDate={rescheduleCrq.activityPlanStartDate ?? null}
+            activityPlanEndDate={rescheduleCrq.activityPlanEndDate ?? null}
             onCompleted={refetchStageData}
           />
         </Suspense>
