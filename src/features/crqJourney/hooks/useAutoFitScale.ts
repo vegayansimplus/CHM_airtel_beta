@@ -119,9 +119,10 @@ export const useAutoFitScale = (
     // smaller fit → shorter canvas → no overflow → scrollbar goes → repeat.
     // It only bites at the window sizes where the page lands right on the
     // overflow boundary, which is why the diagram was rock-steady at one screen
-    // size and strobing at the next. Width changes smaller than a scrollbar are
-    // therefore treated as noise; a real resize clears them by an order of
-    // magnitude, and sets `exactRef` besides.
+    // size and strobing at the next. `noise` is how much of the scale a
+    // scrollbar is worth, and re-growing by less than that is refused below. A
+    // real resize clears it by an order of magnitude, and sets `exactRef`
+    // besides.
     const noise = SCROLLBAR_ALLOWANCE / baseWidth;
 
     // Consumed here rather than inside the updater — updaters have to stay pure
@@ -132,11 +133,13 @@ export const useAutoFitScale = (
     setFit((prev) => {
       if (prev.scale === next && prev.widthFloored === floored) return prev;
       if (exact || prev.widthFloored !== floored) return { scale: next, widthFloored: floored };
-      // Growth is the dangerous direction (it's what re-summons the scrollbar),
-      // so it has to clear a wider band than shrinking does.
+      // Only *growth* is filtered. Shrinking always applies, so the diagram is
+      // never left wider than the space it's in; growth has to clear more than
+      // a scrollbar's worth, so re-gaining that width can't push it back out
+      // again. Together those give the loop one direction and it settles after
+      // a single correction instead of ringing.
       const delta = next - prev.scale;
-      const band = delta > 0 ? noise * 1.5 : noise;
-      return Math.abs(delta) < band ? prev : { scale: next, widthFloored: floored };
+      return delta > 0 && delta < noise * 1.5 ? prev : { scale: next, widthFloored: floored };
     });
   }, [baseWidth, baseHeight, min, max, bottomGutter, minViewportSlot]);
 

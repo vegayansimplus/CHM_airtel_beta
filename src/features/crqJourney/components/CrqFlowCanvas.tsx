@@ -381,6 +381,10 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
         pt: 0.25,
         overflowX: isFloored ? "auto" : "hidden",
         overflowY: "hidden",
+        // The horizontal scrollbar takes its height out of this box, and
+        // overflowY is hidden — without the reserve it eats the bottom edge of
+        // the diagram at the sizes where scrolling kicks in.
+        pb: isFloored ? "10px" : 0,
       }}
     >
       <Box

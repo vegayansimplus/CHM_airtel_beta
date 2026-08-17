@@ -210,10 +210,21 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     ],
   },
   {
+    /*
+     * Gated on "Inbox" (WEB_MODULE 7 — sub-modules "Notification" and
+     * "Action", i.e. exactly the two routes under /inbox), not on
+     * "Notification System" (WEB_MODULE 22), which this previously named.
+     * Module 22 is the admin-side notification config module — its
+     * sub-modules are Notification Configuration / Queue / Template — and
+     * it is only granted to SUPER_ADMIN, FUNCTION_HEAD and SUB_DOMAIN_HEAD.
+     * So Inbox appeared for those three by coincidence while TEAM_MEMBER and
+     * VERTICAL_HEAD, who hold the real Inbox module, never saw the item no
+     * matter what was granted to them.
+     */
     to: "/inbox",
     text: "Inbox",
     icon: <MailIcon />,
-    requiredModule: "Notification System",
+    requiredModule: "Inbox",
     showBadge: true,
   },
   {
