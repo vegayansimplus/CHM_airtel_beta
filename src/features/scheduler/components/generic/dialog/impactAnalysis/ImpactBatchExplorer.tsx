@@ -11,7 +11,6 @@ import {
   Typography,
   alpha,
 } from "@mui/material";
-import { format } from "date-fns";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
@@ -23,8 +22,13 @@ import FolderOpenTwoToneIcon from "@mui/icons-material/FolderOpenTwoTone";
 import BarChartRoundedIcon from "@mui/icons-material/BarChartRounded";
 import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
 import type { Colors } from "../../../../types/colorTypes";
-import { BATCH_SLOTS, buildImpactBatchFileNames, errorMessage } from "../../../../types/impactBatch.types";
 import {
+  buildImpactBatchFileNames,
+  errorMessage,
+  formatImpactModifiedDate,
+} from "../../../../types/impactBatch.types";
+import {
+  useGetImpactBatchStatusQuery,
   useGetImpactAnalysisSummaryQuery,
   useRunImpactAnalysisScriptMutation,
   useLazyDownloadImpactBatchExcelQuery,
@@ -51,24 +55,26 @@ function buildExcelFileName(crqNo: string, batchNo: number): string {
 const BatchSlotCard: React.FC<{
   label: string;
   sublabel: string;
-  hasData: boolean;
+  /** How many CSVs step 1 listed for this batch. */
+  fileCount: number;
+  /** Display form of the batch's modifiedDate - the value step 2 is keyed on. */
+  modifiedLabel: string;
   isActive: boolean;
   colorMain: string;
   colors: Colors;
   onSelect: () => void;
-}> = ({ label, sublabel, hasData, isActive, colorMain, colors, onSelect }) => (
+}> = ({ label, sublabel, fileCount, modifiedLabel, isActive, colorMain, colors, onSelect }) => (
   <Paper
     elevation={0}
     onClick={onSelect}
     sx={{
-      flex: 1,
-      minWidth: 0,
-      border: `1.5px solid ${isActive && hasData ? colorMain : colors.border}`,
-      bgcolor: isActive && hasData ? alpha(colorMain, colors.isDark ? 0.16 : 0.08) : colors.surface,
+      flex: "1 1 170px",
+      minWidth: 150,
+      border: `1.5px solid ${isActive ? colorMain : colors.border}`,
+      bgcolor: isActive ? alpha(colorMain, colors.isDark ? 0.16 : 0.08) : colors.surface,
       borderRadius: colors.radiusL,
       overflow: "hidden",
       cursor: "pointer",
-      opacity: hasData ? 1 : 0.55,
       transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
       "&:hover": { borderColor: colorMain, boxShadow: `0 4px 14px ${alpha(colorMain, 0.15)}`, transform: "translateY(-1px)" },
     }}
@@ -78,8 +84,8 @@ const BatchSlotCard: React.FC<{
       sx={{
         px: 1.5,
         py: 1,
-        borderBottom: `1px solid ${isActive && hasData ? alpha(colorMain, 0.25) : colors.border}`,
-        background: isActive && hasData
+        borderBottom: `1px solid ${isActive ? alpha(colorMain, 0.25) : colors.border}`,
+        background: isActive
           ? `linear-gradient(90deg, ${alpha(colorMain, 0.14)}, ${alpha(colorMain, 0.04)})`
           : colors.surface2,
       }}
@@ -90,24 +96,24 @@ const BatchSlotCard: React.FC<{
             width: 22,
             height: 22,
             borderRadius: colors.radius,
-            bgcolor: isActive && hasData ? colorMain : alpha(colorMain, 0.14),
-            color: isActive && hasData ? "#fff" : colorMain,
+            bgcolor: isActive ? colorMain : alpha(colorMain, 0.14),
+            color: isActive ? "#fff" : colorMain,
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             flexShrink: 0,
-            boxShadow: isActive && hasData ? `0 2px 6px ${alpha(colorMain, 0.35)}` : "none",
+            boxShadow: isActive ? `0 2px 6px ${alpha(colorMain, 0.35)}` : "none",
           }}
         >
-          {isActive && hasData ? <FolderOpenTwoToneIcon sx={{ fontSize: 13 }} /> : <FolderZipTwoToneIcon sx={{ fontSize: 13 }} />}
+          {isActive ? <FolderOpenTwoToneIcon sx={{ fontSize: 13 }} /> : <FolderZipTwoToneIcon sx={{ fontSize: 13 }} />}
         </Box>
         <Typography
-          sx={{ fontSize: "0.7rem", fontWeight: 800, color: isActive && hasData ? colorMain : colors.textSecondary, letterSpacing: 0.3, lineHeight: 1, flex: 1 }}
+          sx={{ fontSize: "0.7rem", fontWeight: 800, color: isActive ? colorMain : colors.textSecondary, letterSpacing: 0.3, lineHeight: 1, flex: 1 }}
           noWrap
         >
           {label}
         </Typography>
-        {isActive && hasData && (
+        {isActive && (
           <Box sx={{ width: 16, height: 16, borderRadius: "50%", bgcolor: colorMain, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <CheckRoundedIcon sx={{ fontSize: 10, color: "#fff" }} />
           </Box>
@@ -121,10 +127,12 @@ const BatchSlotCard: React.FC<{
         {sublabel}
       </Typography>
       <Stack direction="row" alignItems="center" spacing={0.5} sx={{ mt: 0.25 }}>
-        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: hasData ? colors.success : colors.border, flexShrink: 0 }} />
-        <Typography sx={{ fontSize: "0.62rem", color: colors.textSecondary, fontStyle: hasData ? "normal" : "italic", fontWeight: hasData ? 600 : 400 }} noWrap>
-          {hasData ? `• ${label}` : "No data yet"}
-        </Typography>
+        <Box sx={{ width: 5, height: 5, borderRadius: "50%", bgcolor: fileCount > 0 ? colors.success : colors.border, flexShrink: 0 }} />
+        <Tooltip title={`${fileCount} CSV file(s) on SFTP · last modified ${modifiedLabel}`} arrow>
+          <Typography sx={{ fontSize: "0.62rem", color: colors.textSecondary, fontWeight: 600 }} noWrap>
+            {fileCount} file{fileCount === 1 ? "" : "s"} · {modifiedLabel}
+          </Typography>
+        </Tooltip>
       </Stack>
     </Box>
   </Paper>
@@ -260,50 +268,86 @@ const EntityBreakdownCard: React.FC<{
 );
 
 export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo, colors }) => {
-  const [selectedBatchNo, setSelectedBatchNo] = useState<number>(1);
-  const [drillEntity, setDrillEntity] = useState<string | null>(null);
+  // The user's explicit pick, if any - resolved against the step-1 listing
+  // below, so it can never point at a batch the server didn't report.
+  const [pickedBatchNo, setPickedBatchNo] = useState<number | null>(null);
+  // Drilldown is scoped to the CRQ + batch it was opened from, so switching
+  // either one drops it automatically instead of showing another batch's
+  // category as if it were this one's.
+  const [drill, setDrill] = useState<{ crqNo: string; batchNo: number; entity: string } | null>(null);
   const [deltaOpen, setDeltaOpen] = useState(false);
 
-  // Always today's date - the proc only ever matches today's run anyway
-  // (chm_get_main_summary_data compares on the date portion of modifiedDate),
-  // so there's nothing useful for the user to pick.
-  const modifiedDate = useMemo(() => new Date(`${format(new Date(), "yyyy-MM-dd")}T12:00:00`), []);
+  // ── STEP 1 ── GET /impact/statuscsv/batch?crqNo=
+  // The only source of truth for which batches exist and when each one ran.
+  // Nothing below may invent a batch number or a date.
+  const {
+    data: batchStatus,
+    isFetching: batchesLoading,
+    error: batchesError,
+  } = useGetImpactBatchStatusQuery({ crqNo: crqNo as string }, { skip: !crqNo });
 
-  // One summary query per fixed batch slot (not a dynamic loop - BATCH_SLOTS
-  // is a 4-entry compile-time constant) so every batch card can show its
-  // real "loaded / no data yet" state up front, matching the reference
-  // design, instead of only after it's selected. RTK Query dedupes this
-  // against the same-args query below once a slot is picked, so selecting
-  // a batch never re-fetches.
-  const batchQuery1 = useGetImpactAnalysisSummaryQuery({ crqNo: crqNo as string, batchNo: 1, modifiedDate, flag: "Main" }, { skip: !crqNo });
-  const batchQuery2 = useGetImpactAnalysisSummaryQuery({ crqNo: crqNo as string, batchNo: 2, modifiedDate, flag: "Main" }, { skip: !crqNo });
-  const batchQuery3 = useGetImpactAnalysisSummaryQuery({ crqNo: crqNo as string, batchNo: 3, modifiedDate, flag: "Main" }, { skip: !crqNo });
-  const batchQuery4 = useGetImpactAnalysisSummaryQuery({ crqNo: crqNo as string, batchNo: 4, modifiedDate, flag: "Main" }, { skip: !crqNo });
-  const batchQueries = [batchQuery1, batchQuery2, batchQuery3, batchQuery4];
-  const loadedCount = batchQueries.filter((q) => (q.data?.length ?? 0) > 0).length;
+  const batches = useMemo(() => batchStatus ?? [], [batchStatus]);
 
-  const activeBatchQuery = batchQueries[selectedBatchNo - 1];
-  const summaryRows = activeBatchQuery.data;
-  const summaryLoading = activeBatchQuery.isFetching;
-  const summaryError = activeBatchQuery.error;
+  // Resolve the pick against what step 1 reported: an unset or no-longer-listed
+  // pick (new CRQ, re-run that changed the batch set) falls back to the newest
+  // batch, which is the run people care about by default.
+  const selectedBatch = useMemo(() => {
+    if (!batches.length) return null;
+    return batches.find((b) => b.batchNo === pickedBatchNo) ?? batches[batches.length - 1];
+  }, [batches, pickedBatchNo]);
 
+  const selectedBatchNo = selectedBatch?.batchNo ?? null;
+
+  const drillEntity =
+    drill && drill.crqNo === crqNo && drill.batchNo === selectedBatchNo ? drill.entity : null;
+
+  // ── STEP 2 ── GET /crqworkflow/impactanalysis/batch?crqNo=&batchNo=&flag=Main&modifiedDate=
+  // batchNo *and* modifiedDate both come from the step-1 row for this batch;
+  // the query stays skipped until that row exists, so it never fires with a
+  // guessed date (which the proc would just match to zero rows).
+  const {
+    data: summaryRows,
+    isFetching: summaryLoading,
+    error: summaryError,
+  } = useGetImpactAnalysisSummaryQuery(
+    {
+      crqNo: crqNo as string,
+      batchNo: selectedBatch?.batchNo as number,
+      modifiedDate: selectedBatch?.modifiedDate as string,
+      flag: "Main",
+    },
+    { skip: !crqNo || !selectedBatch },
+  );
+
+  // Drilldown re-issues step 2 for the same batch/date with the category as flag.
   const {
     data: drillRows,
     isFetching: drillLoading,
     error: drillError,
   } = useGetImpactAnalysisSummaryQuery(
-    { crqNo: crqNo as string, batchNo: selectedBatchNo, modifiedDate, flag: drillEntity as string },
-    { skip: !crqNo || !drillEntity },
+    {
+      crqNo: crqNo as string,
+      batchNo: selectedBatch?.batchNo as number,
+      modifiedDate: selectedBatch?.modifiedDate as string,
+      flag: drillEntity as string,
+    },
+    { skip: !crqNo || !selectedBatch || !drillEntity },
   );
 
   const [runScript, { isLoading: scriptRunning }] = useRunImpactAnalysisScriptMutation();
   const [scriptStatus, setScriptStatus] = useState<{ ok: boolean; message: string } | null>(null);
 
+  // Step 1 legitimately comes back empty when the script has never run for
+  // this CRQ - exactly when the run button matters most - so it falls back to
+  // attempt 1 instead of being dead. The mutation invalidates "ImpactBatch",
+  // so step 1 re-lists and step 2 re-runs off the new modifiedDate.
+  const scriptAttempt = selectedBatch?.batchNo ?? 1;
+
   const handleRunScript = async () => {
     if (!crqNo) return;
     setScriptStatus(null);
     try {
-      const result = await runScript({ crqNo, attempt: selectedBatchNo }).unwrap();
+      const result = await runScript({ crqNo, attempt: scriptAttempt }).unwrap();
       setScriptStatus({ ok: result.status === "SUCCESS", message: result.message });
     } catch (err) {
       setScriptStatus({ ok: false, message: errorMessage(err, "Failed to execute impact analysis script.") });
@@ -313,14 +357,18 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
   const [triggerDownload, { isFetching: downloading }] = useLazyDownloadImpactBatchExcelQuery();
 
   const handleDownload = async () => {
-    if (!crqNo) return;
+    if (!crqNo || !selectedBatch) return;
     try {
-      const fileNames = buildImpactBatchFileNames(crqNo, selectedBatchNo);
+      // Real names from step 1; the constructed candidate set is only a
+      // fallback for a batch whose listing came back without files.
+      const fileNames = selectedBatch.files.length
+        ? selectedBatch.files
+        : buildImpactBatchFileNames(crqNo, selectedBatch.batchNo);
       const blob = await triggerDownload({ fileNames }).unwrap();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = buildExcelFileName(crqNo, selectedBatchNo);
+      a.download = buildExcelFileName(crqNo, selectedBatch.batchNo);
       a.click();
       URL.revokeObjectURL(url);
     } catch {
@@ -345,14 +393,18 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
           <LayersRoundedIcon sx={{ fontSize: 15, color: colors.textSecondary }} />
           <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: colors.textPrimary }}>Batch Selection</Typography>
           <Chip
-            label={`${loadedCount}/${BATCH_SLOTS.length} loaded`}
+            label={
+              batchesLoading && !batches.length
+                ? "Loading batches…"
+                : `${batches.length} batch${batches.length === 1 ? "" : "es"} found`
+            }
             size="small"
             sx={{
               height: 20,
               fontSize: 10.5,
               fontWeight: 700,
-              bgcolor: loadedCount > 0 ? colors.successDim : colors.surface2,
-              color: loadedCount > 0 ? colors.success : colors.textDim,
+              bgcolor: batches.length > 0 ? colors.successDim : colors.surface2,
+              color: batches.length > 0 ? colors.success : colors.textDim,
             }}
           />
           <Box sx={{ flex: 1 }} />
@@ -374,30 +426,61 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
             size="small"
             startIcon={<CompareArrowsRoundedIcon sx={{ fontSize: 14 }} />}
             onClick={() => setDeltaOpen(true)}
+            disabled={batches.length < 2}
             sx={{ fontSize: 11, textTransform: "none", color: colors.textSecondary, border: `1px solid ${colors.border}`, borderRadius: colors.radiusL, px: 1.25 }}
           >
             Delta
           </Button>
         </Stack>
 
-        <Stack direction="row" spacing={1.25}>
-          {BATCH_SLOTS.map((slot, index) => (
-            <BatchSlotCard
-              key={slot.key}
-              label={slot.label}
-              sublabel={slot.sublabel}
-              hasData={(batchQueries[index].data?.length ?? 0) > 0}
-              isActive={selectedBatchNo === slot.batchNo}
-              colorMain={SLOT_ACCENTS[index % SLOT_ACCENTS.length]}
-              colors={colors}
-              onSelect={() => {
-                setSelectedBatchNo(slot.batchNo);
-                setDrillEntity(null);
-                setScriptStatus(null);
-              }}
-            />
-          ))}
-        </Stack>
+        {batchesLoading && !batches.length ? (
+          <Stack alignItems="center" py={2.5} spacing={1}>
+            <CircularProgress size={20} sx={{ color: colors.accent }} />
+            <Typography sx={{ fontSize: 12, color: colors.textSecondary }}>Discovering batches…</Typography>
+          </Stack>
+        ) : !batches.length ? (
+          <Paper
+            elevation={0}
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              px: 1.75,
+              py: 1.5,
+              borderRadius: colors.radiusL,
+              border: `1px dashed ${colors.border}`,
+              bgcolor: colors.surface2,
+            }}
+          >
+            <FolderZipTwoToneIcon sx={{ fontSize: 18, color: colors.textDim }} />
+            <Typography sx={{ fontSize: 12, color: colors.textSecondary, fontWeight: 600 }}>
+              {errorMessage(
+                batchesError,
+                "No impact analysis batch files found for this CRQ yet — use Refetch above to generate them.",
+              )}
+            </Typography>
+          </Paper>
+        ) : (
+          <Stack direction="row" spacing={1.25} flexWrap="wrap" useFlexGap>
+            {batches.map((batch, index) => (
+              <BatchSlotCard
+                key={batch.key}
+                label={batch.label}
+                sublabel={batch.sublabel}
+                fileCount={batch.files.length}
+                modifiedLabel={formatImpactModifiedDate(batch.modifiedDate)}
+                isActive={selectedBatchNo === batch.batchNo}
+                colorMain={SLOT_ACCENTS[index % SLOT_ACCENTS.length]}
+                colors={colors}
+                onSelect={() => {
+                  setPickedBatchNo(batch.batchNo);
+                  setDrill(null);
+                  setScriptStatus(null);
+                }}
+              />
+            ))}
+          </Stack>
+        )}
       </Box>
 
       {scriptStatus && (
@@ -425,12 +508,23 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
 
       {/* ── Key Impact Metrics ── */}
       <Box>
-        <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 1.25 }}>
+        <Stack direction="row" alignItems="baseline" spacing={1} sx={{ mb: 1.25, flexWrap: "wrap", rowGap: 0.5 }}>
           <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: colors.textPrimary }}>Key Impact Metrics</Typography>
           <Typography sx={{ fontSize: 11, color: colors.textDim }}>Click a category to drill down</Typography>
+          {selectedBatch && (
+            <Chip
+              label={`Run ${formatImpactModifiedDate(selectedBatch.modifiedDate)}`}
+              size="small"
+              sx={{ height: 19, fontSize: 10, fontWeight: 700, bgcolor: colors.surface2, color: colors.textSecondary }}
+            />
+          )}
         </Stack>
 
-        {summaryLoading ? (
+        {!selectedBatch ? (
+          <Typography sx={{ fontSize: 12, color: colors.textSecondary }}>
+            {batchesLoading ? "Waiting for the batch listing…" : "Select a batch above to load its impact summary."}
+          </Typography>
+        ) : summaryLoading ? (
           <Stack alignItems="center" py={3} spacing={1}>
             <CircularProgress size={22} sx={{ color: colors.accent }} />
             <Typography sx={{ fontSize: 12, color: colors.textSecondary }}>Loading summary…</Typography>
@@ -454,7 +548,13 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
                 isActive={drillEntity === row.entity}
                 colorMain={ENTITY_ACCENTS[i % ENTITY_ACCENTS.length]}
                 colors={colors}
-                onClick={() => setDrillEntity(drillEntity === row.entity ? null : row.entity)}
+                onClick={() =>
+                  setDrill(
+                    drillEntity === row.entity || !selectedBatch
+                      ? null
+                      : { crqNo, batchNo: selectedBatch.batchNo, entity: row.entity },
+                  )
+                }
               />
             ))}
           </Stack>
@@ -465,7 +565,7 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
       {drillEntity && (
         <Box>
           <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.25 }}>
-            <IconButton size="small" onClick={() => setDrillEntity(null)}>
+            <IconButton size="small" onClick={() => setDrill(null)}>
               <ArrowBackRoundedIcon sx={{ fontSize: 15, color: colors.textSecondary }} />
             </IconButton>
             <Typography sx={{ fontSize: 12.5, fontWeight: 800, color: colors.textPrimary }}>
@@ -524,8 +624,14 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
         <Typography sx={{ fontSize: 11.5, color: colors.textSecondary, fontWeight: 600 }}>
           Active batch:{" "}
           <Box component="span" sx={{ color: colors.textPrimary, fontWeight: 800 }}>
-            Batch {selectedBatchNo}
+            {selectedBatch ? selectedBatch.label : "—"}
           </Box>
+          {selectedBatch && (
+            <Box component="span" sx={{ color: colors.textDim, ml: 0.6 }}>
+              ({selectedBatch.files.length} file{selectedBatch.files.length === 1 ? "" : "s"} ·{" "}
+              {formatImpactModifiedDate(selectedBatch.modifiedDate)})
+            </Box>
+          )}
           {drillEntity && (
             <>
               <Box component="span" sx={{ color: colors.textDim, mx: 0.6 }}>
@@ -543,14 +649,14 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
           variant="contained"
           startIcon={downloading ? <CircularProgress size={13} color="inherit" /> : <FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
           onClick={handleDownload}
-          disabled={downloading}
+          disabled={downloading || !selectedBatch}
           sx={{ fontSize: 11.5, textTransform: "none", bgcolor: colors.accent, borderRadius: colors.radiusL }}
         >
           {downloading ? "Preparing…" : "Export Excel"}
         </Button>
       </Paper>
 
-      <ImpactDeltaDialog open={deltaOpen} onClose={() => setDeltaOpen(false)} crqNo={crqNo} modifiedDate={modifiedDate} colors={colors} />
+      <ImpactDeltaDialog open={deltaOpen} onClose={() => setDeltaOpen(false)} crqNo={crqNo} batches={batches} colors={colors} />
     </Box>
   );
 };

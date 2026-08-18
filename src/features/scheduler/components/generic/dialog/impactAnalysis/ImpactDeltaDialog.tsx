@@ -17,7 +17,6 @@ import {
   Typography,
   alpha,
 } from "@mui/material";
-import { format } from "date-fns";
 import CloseIcon from "@mui/icons-material/Close";
 import CompareArrowsRoundedIcon from "@mui/icons-material/CompareArrowsRounded";
 import FolderZipTwoToneIcon from "@mui/icons-material/FolderZipTwoTone";
@@ -31,7 +30,7 @@ import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import SwapHorizRoundedIcon from "@mui/icons-material/SwapHorizRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { Colors } from "../../../../types/colorTypes";
-import { BATCH_SLOTS, errorMessage } from "../../../../types/impactBatch.types";
+import { errorMessage, formatImpactModifiedDate, type ImpactBatchStatus } from "../../../../types/impactBatch.types";
 import { useGetImpactAnalysisSummaryQuery } from "../../../../api/impactBatchApiSlice";
 
 // Batch B needs its own fixed accent (distinct from the theme's primary,
@@ -45,8 +44,12 @@ interface ImpactDeltaDialogProps {
   open: boolean;
   onClose: () => void;
   crqNo: string | null;
-  /** Date the two batches are compared on (proc only matches on the date portion). */
-  modifiedDate: Date;
+  /**
+   * Batches from step 1 (GET /impact/statuscsv/batch). Each carries its own
+   * modifiedDate, so A and B are fetched on the date each one actually ran -
+   * a single shared date would silently blank out the older side.
+   */
+  batches: ImpactBatchStatus[];
   colors: Colors;
 }
 
@@ -262,17 +265,20 @@ const SummaryCard: React.FC<{ label: string; value: string | number; color: stri
 // ─────────────────────────────────────────────
 // MAIN DELTA DIALOG
 // ─────────────────────────────────────────────
-export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onClose, crqNo, modifiedDate, colors }) => {
+export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onClose, crqNo, batches, colors }) => {
   const [batchA, setBatchA] = useState<number | null>(null);
   const [batchB, setBatchB] = useState<number | null>(null);
 
+  const infoA = useMemo(() => batches.find((b) => b.batchNo === batchA) ?? null, [batches, batchA]);
+  const infoB = useMemo(() => batches.find((b) => b.batchNo === batchB) ?? null, [batches, batchB]);
+
   const { data: dataA, isFetching: loadingA, error: errorA } = useGetImpactAnalysisSummaryQuery(
-    { crqNo: crqNo as string, batchNo: batchA as number, modifiedDate, flag: "Main" },
-    { skip: !crqNo || !batchA },
+    { crqNo: crqNo as string, batchNo: infoA?.batchNo as number, modifiedDate: infoA?.modifiedDate as string, flag: "Main" },
+    { skip: !crqNo || !infoA },
   );
   const { data: dataB, isFetching: loadingB, error: errorB } = useGetImpactAnalysisSummaryQuery(
-    { crqNo: crqNo as string, batchNo: batchB as number, modifiedDate, flag: "Main" },
-    { skip: !crqNo || !batchB },
+    { crqNo: crqNo as string, batchNo: infoB?.batchNo as number, modifiedDate: infoB?.modifiedDate as string, flag: "Main" },
+    { skip: !crqNo || !infoB },
   );
 
   const isLoading = loadingA || loadingB;
@@ -312,7 +318,12 @@ export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onCl
   }, [comparisonRows, dataA, dataB]);
 
   const canCompare = !!batchA && !!batchB && !isLoading && !loadError;
-  const dateLabel = format(modifiedDate, "dd-MMM-yyyy");
+  const dateLabel =
+    infoA && infoB
+      ? `${formatImpactModifiedDate(infoA.modifiedDate, "dd-MMM-yyyy HH:mm")} → ${formatImpactModifiedDate(infoB.modifiedDate, "dd-MMM-yyyy HH:mm")}`
+      : infoA
+        ? formatImpactModifiedDate(infoA.modifiedDate, "dd-MMM-yyyy HH:mm")
+        : `${batches.length} batch${batches.length === 1 ? "" : "es"} available`;
 
   const handleClose = () => {
     setBatchA(null);
@@ -434,21 +445,21 @@ export const ImpactDeltaDialog: React.FC<ImpactDeltaDialogProps> = ({ open, onCl
             />
 
             <Box sx={{ display: "flex", gap: 1, overflowX: "auto", pb: 0.5 }}>
-              {BATCH_SLOTS.map((slot, index) => {
-                const label = labelFor(slot.batchNo);
+              {batches.map((batch, index) => {
+                const label = labelFor(batch.batchNo);
                 const isSelected = label !== null;
                 const colorMain = label === "A" ? colors.accent : label === "B" ? BATCH_B_ACCENT : SLOT_ACCENTS[index % SLOT_ACCENTS.length];
 
                 return (
                   <DeltaBatchPill
-                    key={slot.key}
-                    label={slot.label}
-                    sublabel={slot.sublabel}
+                    key={batch.key}
+                    label={batch.label}
+                    sublabel={formatImpactModifiedDate(batch.modifiedDate)}
                     isSelected={isSelected}
                     selectionLabel={label}
                     colorMain={colorMain}
                     colors={colors}
-                    onClick={() => handleSelect(slot.batchNo)}
+                    onClick={() => handleSelect(batch.batchNo)}
                   />
                 );
               })}
