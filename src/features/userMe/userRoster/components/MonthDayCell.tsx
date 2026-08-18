@@ -1,5 +1,5 @@
-import { Children, cloneElement, memo } from "react";
-import type { DateCellWrapperProps, DateHeaderProps } from "react-big-calendar";
+import { memo } from "react";
+import type { DateHeaderProps } from "react-big-calendar";
 import { Box, Divider, Tooltip, Typography } from "@mui/material";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import {
@@ -12,37 +12,6 @@ const isWeekendDate = (date: Date) => {
   const day = date.getDay();
   return day === 0 || day === 6;
 };
-
-/**
- * Paints one month cell's background state.
- *
- * It stamps `data-state` / `data-weekend` on rbc's own `.rbc-day-bg` node
- * rather than writing inline colours, so the stylesheet keeps full control
- * of layering (see `calendarSx`) and hover still reads on top of a
- * today/selected/holiday fill.
- */
-const DayBackgroundCellBase = ({ children, value }: DateCellWrapperProps) => {
-  const { dayMeta, selectedKey, todayKey } = useRosterCalendar();
-  const key = toDateKey(value);
-
-  // Strongest state wins: selection is an explicit user act, "today" is the
-  // anchor everyone orients by, a holiday is a property of the day itself.
-  const state =
-    key === selectedKey
-      ? "selected"
-      : key === todayKey
-        ? "today"
-        : dayMeta.get(key)?.isHoliday
-          ? "holiday"
-          : undefined;
-
-  return cloneElement(Children.only(children), {
-    "data-state": state,
-    "data-weekend": isWeekendDate(value) ? "1" : undefined,
-  } as Record<string, string | undefined>);
-};
-
-export const DayBackgroundCell = memo(DayBackgroundCellBase);
 
 /** Day-level roster summary shown on hover over the date. */
 const DaySummary = ({

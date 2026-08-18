@@ -96,7 +96,10 @@ function buildCalendarTokens(theme: Theme): CalendarTokens {
     textFaint: tk.textDim,
 
     // Weekends read as a faint recess, never as a different colour family.
-    weekendBg: isDark ? "rgba(255,255,255,0.022)" : "rgba(13,27,42,0.024)",
+    // Perceptible against a white column but still a recess, not a colour.
+    // 2.4% only read at all where it composited over the tinted header, so
+    // weekends looked shaded in the Week heading and plain in the grid.
+    weekendBg: isDark ? "rgba(255,255,255,0.035)" : "rgba(13,27,42,0.04)",
     offRangeBg: isDark ? "rgba(0,0,0,0.22)" : "rgba(13,27,42,0.035)",
     offRangeText: isDark ? "rgba(232,237,245,0.26)" : "rgba(13,27,42,0.3)",
     todayBg: alpha(accent, isDark ? 0.11 : 0.06),

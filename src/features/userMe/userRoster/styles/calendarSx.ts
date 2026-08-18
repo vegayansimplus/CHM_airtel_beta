@@ -3,23 +3,45 @@ import type { SxProps } from "@mui/material";
 import type { CalendarTokens } from "../constants/calendarTokens";
 
 /**
+ * Day-state classes stamped onto rbc's own day nodes by `dayPropGetter`.
+ *
+ * `dayPropGetter` reaches all three places a day is drawn — the Month
+ * background cell, the Week/Day column, and the time-view column heading —
+ * so one getter keeps every view's weekend/holiday/today/selected language
+ * identical. (The first pass used `dateCellWrapper`, which only exists in
+ * the Month view, which is why Week and Day came out unstyled.)
+ */
+export const DAY_CLASS = {
+  weekend: "roster-day--weekend",
+  holiday: "roster-day--holiday",
+  today: "roster-day--today",
+  selected: "roster-day--selected",
+} as const;
+
+/**
+ * Exact heights of the two Week/Day header bands. The gutter corner spans
+ * both and has to align its "All day" label with the second one, so these
+ * are shared rather than duplicated as magic numbers on either side.
+ */
+// 64 = 6 pad + 10 weekday + 2 + 26 date pill + 2 + 11 indicator strip + 6 pad.
+export const TIME_HEADER_ROW_H = 64;
+export const ALL_DAY_ROW_H = 32;
+
+/**
  * Full visual override for react-big-calendar's stock stylesheet.
  *
  * Everything here is scoped under the wrapper's generated class, so every
  * rule is one class more specific than the vendor CSS it replaces — no
  * `!important` anywhere, and nothing leaks to the rest of the app.
- *
- * Day-cell state colours are driven by `data-*` attributes stamped on
- * `.rbc-day-bg` by `DayBackgroundCell`, rather than inline styles, so the
- * hover layer can sit *on top of* a today/selected/holiday fill instead of
- * being overridden by it.
  */
+
 export const buildCalendarSx = (
   t: CalendarTokens,
   theme: Theme,
 ): SxProps<Theme> => ({
   // No sizing at this level on purpose — the host Box owns the height, and
   // a `height: 100%` here would win the merge and flatten it.
+  //
   // The host is a flex column, so the calendar takes the remainder via
   // `flex` rather than the vendor's `height: 100%`. A percentage height
   // against a flex-sized parent is exactly the ambiguity that produces a
@@ -41,12 +63,12 @@ export const buildCalendarSx = (
     minHeight: 0,
   },
 
-  /* ── Weekday header row ────────────────────────────────────────────── */
+  /* ── Month weekday header row ──────────────────────────────────────── */
   "& .rbc-month-header": {
     background: t.surfaceHeader,
     borderBottom: `1px solid ${t.grid}`,
   },
-  "& .rbc-header": {
+  "& .rbc-month-view .rbc-header": {
     padding: "10px 8px",
     fontSize: 11,
     fontWeight: 700,
@@ -59,7 +81,6 @@ export const buildCalendarSx = (
     textOverflow: "ellipsis",
   },
   "& .rbc-header + .rbc-header": { borderLeft: `1px solid ${t.grid}` },
-  "& .rbc-header.rbc-today": { color: t.accent },
   "& .rbc-header .rbc-button-link": { cursor: "default", fontWeight: "inherit" },
 
   /* ── Month grid ────────────────────────────────────────────────────── */
@@ -68,13 +89,11 @@ export const buildCalendarSx = (
     minHeight: 78,
   },
   "& .rbc-month-row:first-of-type": { borderTop: "none" },
-
   "& .rbc-day-bg": {
     position: "relative",
     transition: "background-color .16s ease, box-shadow .16s ease",
   },
   "& .rbc-day-bg + .rbc-day-bg": { borderLeft: `1px solid ${t.grid}` },
-
   // Hover lives on a pseudo-element so it layers over the state fill below
   // rather than competing with it.
   "& .rbc-day-bg::after": {
@@ -87,36 +106,51 @@ export const buildCalendarSx = (
   },
   "& .rbc-day-bg:hover::after": { backgroundColor: t.hoverBg },
 
-  /* Day states — ordered weakest → strongest; later rules win ties. */
-  '& .rbc-day-bg[data-weekend="1"]': { backgroundColor: t.weekendBg },
-  '& .rbc-day-bg[data-state="offrange"]': { backgroundColor: t.offRangeBg },
-  '& .rbc-day-bg[data-state="holiday"]': {
-    backgroundColor: t.holidayBg,
-    boxShadow: `inset 3px 0 0 ${alpha(t.holiday, 0.5)}`,
-  },
-  '& .rbc-day-bg[data-state="today"]': {
-    backgroundColor: t.todayBg,
-    boxShadow: `inset 0 2px 0 ${t.accent}`,
-  },
-  '& .rbc-day-bg[data-state="selected"]': {
-    backgroundColor: t.selectedBg,
-    boxShadow: `inset 0 0 0 2px ${t.accent}`,
-  },
+  /* ── Day states ────────────────────────────────────────────────────── */
+  // Split deliberately into tints and decorations.
+  //
+  // `dayPropGetter` also stamps these classes on the day cells *inside* the
+  // 32px all-day strip. A tint there is right; an inset bar is not — that is
+  // what drew a stray accent rule immediately under the Week headings.
+  // So fills apply everywhere, and bars/rings only to the full-size
+  // surfaces: the Month cell and the Week/Day column.
 
-  /* Stock "today" fill in the time views (no dateCellWrapper there). */
-  "& .rbc-time-view .rbc-today, & .rbc-time-view .rbc-day-slot.rbc-today": {
-    backgroundColor: t.todayBg,
+  /* Fills — weakest first; later rules win ties. */
+  [`& .rbc-day-bg.${DAY_CLASS.weekend}, & .rbc-day-slot.${DAY_CLASS.weekend}`]: {
+    backgroundColor: t.weekendBg,
   },
+  // Off-range must out-rank weekend, hence the two-class selector.
+  "& .rbc-day-bg.rbc-off-range-bg": { backgroundColor: t.offRangeBg },
   "& .rbc-off-range-bg": { backgroundColor: t.offRangeBg },
   "& .rbc-off-range": { color: t.offRangeText },
+  [`& .rbc-day-bg.${DAY_CLASS.holiday}, & .rbc-day-slot.${DAY_CLASS.holiday}`]: {
+    backgroundColor: t.holidayBg,
+  },
+  [`& .rbc-day-bg.${DAY_CLASS.today}, & .rbc-day-slot.${DAY_CLASS.today}`]: {
+    backgroundColor: t.todayBg,
+  },
+  [`& .rbc-day-bg.${DAY_CLASS.selected}, & .rbc-day-slot.${DAY_CLASS.selected}`]:
+    { backgroundColor: t.selectedBg },
 
-  /* Drag-to-select feedback. */
+  /* Decorations — full-size day surfaces only. */
+  [`& .rbc-month-view .rbc-day-bg.${DAY_CLASS.holiday}, & .rbc-day-slot.${DAY_CLASS.holiday}`]:
+    { boxShadow: `inset 3px 0 0 ${alpha(t.holiday, 0.5)}` },
+  [`& .rbc-month-view .rbc-day-bg.${DAY_CLASS.today}`]: {
+    boxShadow: `inset 0 2px 0 ${t.accent}`,
+  },
+  [`& .rbc-month-view .rbc-day-bg.${DAY_CLASS.selected}, & .rbc-day-slot.${DAY_CLASS.selected}`]:
+    { boxShadow: `inset 0 0 0 2px ${t.accent}` },
+
+  // Only today gets a heading tint. Tinting weekend headings too left grey
+  // blocks sitting above plainly white columns, which read as a misalignment
+  // rather than as a weekend — the muted heading text carries that instead.
+  [`& .rbc-header.${DAY_CLASS.today}`]: { backgroundColor: t.todayBg },
   "& .rbc-slot-selection, & .rbc-selected-cell": {
     backgroundColor: alpha(t.accent, 0.18),
     color: t.text,
   },
 
-  /* ── Row content ───────────────────────────────────────────────────── */
+  /* ── Month row content ─────────────────────────────────────────────── */
   // The event/date layer normally covers the whole row and swallows the
   // hover intended for the day cell underneath, which is why cell hover
   // used to only work in the lower half of a cell. Making the layer
@@ -127,7 +161,6 @@ export const buildCalendarSx = (
   "& .rbc-month-view .rbc-event, & .rbc-month-view .rbc-show-more": {
     pointerEvents: "auto",
   },
-
   "& .rbc-date-cell": {
     padding: 0,
     textAlign: "left",
@@ -153,7 +186,6 @@ export const buildCalendarSx = (
   },
   "& .rbc-event.rbc-selected": { boxShadow: `0 0 0 2px ${t.accent}` },
   "& .rbc-event-label": { fontSize: 10, opacity: 0.85 },
-
   "& .rbc-show-more": {
     background: "transparent",
     color: t.accent,
@@ -189,17 +221,73 @@ export const buildCalendarSx = (
   },
 
   /* ── Week / Day (time) views ───────────────────────────────────────── */
-  "& .rbc-time-header": { borderBottom: `1px solid ${t.grid}` },
-  "& .rbc-time-header.rbc-overflowing": { borderRight: `1px solid ${t.grid}` },
-  "& .rbc-time-header-content": { borderLeft: `1px solid ${t.grid}` },
-  "& .rbc-time-header-cell .rbc-header": { borderBottom: `1px solid ${t.grid}` },
-  "& .rbc-time-header-gutter": { background: t.surfaceHeader },
-  "& .rbc-time-view .rbc-time-header-content > .rbc-row": {
+  "& .rbc-time-header": {
     background: t.surfaceHeader,
+    borderBottom: `1px solid ${t.grid}`,
   },
-  "& .rbc-allday-cell": { maxHeight: 64 },
+  "& .rbc-time-header.rbc-overflowing": { borderRight: `1px solid ${t.grid}` },
+  "& .rbc-time-header-content": {
+    borderLeft: `1px solid ${t.grid}`,
+    minWidth: 0,
+  },
+  // ── Header block geometry ──
+  // Both bands get an exact height rather than a min, because the gutter
+  // corner beside them has to line up with the all-day row to the pixel and
+  // a `min-height` leaves that dependent on content. CalendarHeaders.tsx
+  // imports ALL_DAY_ROW_H so both sides agree by construction.
+  //
+  // Deliberately no blanket `.rbc-time-view .rbc-row` min-height: the
+  // heading row carries that class too, and a small value there is exactly
+  // what cropped the column headings.
+  "& .rbc-time-header-cell": {
+    height: TIME_HEADER_ROW_H,
+    minHeight: TIME_HEADER_ROW_H,
+    borderBottom: `1px solid ${t.grid}`,
+  },
+  "& .rbc-time-view .rbc-header": {
+    height: "100%",
+    minHeight: 0,
+    padding: 0,
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderBottom: "none",
+    overflow: "visible",
+    fontWeight: 400,
+    textTransform: "none",
+    letterSpacing: 0,
+    color: t.text,
+  },
+  "& .rbc-time-header-gutter": {
+    background: t.surfaceHeader,
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    padding: 0,
+  },
+  // All-day strip, pinned to a single row.
+  //
+  // rbc hardcodes `minRows: 2` on this row, so it always reserved two rows'
+  // worth of height — that empty ~60px band was the gap between the day
+  // headings and the grid. One row is right for this data: a day carries at
+  // most one roster entry, and non-overlapping all-day segments all pack
+  // into the first level, so the second row is pure filler.
+  "& .rbc-time-view .rbc-allday-cell": {
+    boxSizing: "border-box",
+    height: ALL_DAY_ROW_H,
+    minHeight: ALL_DAY_ROW_H,
+    maxHeight: ALL_DAY_ROW_H,
+    overflow: "hidden",
+  },
+  "& .rbc-allday-cell .rbc-row-content > .rbc-row + .rbc-row": {
+    display: "none",
+  },
+  "& .rbc-allday-cell .rbc-row-segment": { padding: "2px 3px" },
+  "& .rbc-time-view .rbc-allday-cell + .rbc-allday-cell": {
+    borderLeft: `1px solid ${t.grid}`,
+  },
   "& .rbc-time-content": {
-    borderTop: `2px solid ${t.grid}`,
+    borderTop: `1px solid ${t.grid}`,
     "&::-webkit-scrollbar": { width: 6, height: 6 },
     "&::-webkit-scrollbar-track": { background: "transparent" },
     "&::-webkit-scrollbar-thumb": {
@@ -211,13 +299,22 @@ export const buildCalendarSx = (
     },
   },
   "& .rbc-time-content > * + * > *": { borderLeft: `1px solid ${t.grid}` },
+  // 40px an hour brings a full day close to one screen instead of the
+  // ~1100px of scrolling the default produced.
   "& .rbc-timeslot-group": {
     borderBottom: `1px solid ${t.grid}`,
-    minHeight: 46,
+    minHeight: 40,
   },
   "& .rbc-day-slot .rbc-time-slot": {
-    borderTop: `1px dotted ${t.isDark ? "rgba(255,255,255,0.05)" : "rgba(13,27,42,0.05)"}`,
+    borderTop: `1px dotted ${
+      t.isDark ? "rgba(255,255,255,0.05)" : "rgba(13,27,42,0.05)"
+    }`,
   },
+  // rbc measures this column's real width in a rAF and copies it to the
+  // header corner, so a min-width here is what gives the corner's "All day"
+  // label room. Sized off "12 PM" plus the label, not off the hour text
+  // alone — which is why the label was being clipped.
+  "& .rbc-time-gutter": { background: t.surfaceSubtle, minWidth: 68 },
   "& .rbc-time-gutter .rbc-timeslot-group": { borderBottom: "none" },
   "& .rbc-label": {
     fontSize: 10.5,
@@ -232,7 +329,6 @@ export const buildCalendarSx = (
   "& .rbc-day-slot .rbc-event, & .rbc-day-slot .rbc-background-event": {
     border: "none",
   },
-  "& .rbc-time-view .rbc-row": { minHeight: 0 },
 
   /* ── Drag & drop addon ─────────────────────────────────────────────── */
   "& .rbc-addons-dnd-dragged-event": { opacity: 0.45 },
@@ -244,15 +340,23 @@ export const buildCalendarSx = (
     "& .rbc-month-row": { minHeight: 68 },
   },
   [theme.breakpoints.down("md")]: {
-    "& .rbc-header": { fontSize: 10, padding: "8px 4px", letterSpacing: "0.05em" },
+    "& .rbc-month-view .rbc-header": {
+      fontSize: 10,
+      padding: "8px 4px",
+      letterSpacing: "0.05em",
+    },
     "& .rbc-month-row": { minHeight: 60 },
-    "& .rbc-timeslot-group": { minHeight: 40 },
+    "& .rbc-timeslot-group": { minHeight: 36 },
   },
   [theme.breakpoints.down("sm")]: {
-    "& .rbc-header": { fontSize: 9, padding: "7px 1px", letterSpacing: 0 },
+    "& .rbc-month-view .rbc-header": {
+      fontSize: 9,
+      padding: "7px 1px",
+      letterSpacing: 0,
+    },
     "& .rbc-month-row": { minHeight: 52 },
     "& .rbc-row-segment": { padding: "0 1px 1px" },
-    "& .rbc-label": { fontSize: 9, padding: "0 4px" },
-    "& .rbc-time-header-gutter, & .rbc-time-gutter": { minWidth: 44 },
+    "& .rbc-label": { fontSize: 9, padding: "0 5px" },
+    "& .rbc-timeslot-group": { minHeight: 34 },
   },
 });
