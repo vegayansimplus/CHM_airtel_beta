@@ -33,7 +33,8 @@ import CustomToolbar from "./CustomToolbar";
 import RosterLegend from "./RosterLegend";
 import RosterStatsStrip from "./RosterStatsStrip";
 import ShiftDetailDialog from "./ShiftDetailDialog";
-import { DayBackgroundCell, MonthDateHeader } from "./MonthDayCell";
+import { MonthDateHeader } from "./MonthDayCell";
+import { TimeGutterHeader, TimeViewHeader } from "./CalendarHeaders";
 import {
   CalendarEmptyOverlay,
   CalendarSkeleton,
@@ -46,7 +47,7 @@ import {
 } from "../context/RosterCalendarContext";
 import { useCalendarTokens } from "../constants/calendarTokens";
 import { getShiftVisual } from "../constants/shiftColors";
-import { buildCalendarSx } from "../styles/calendarSx";
+import { DAY_CLASS, buildCalendarSx } from "../styles/calendarSx";
 import { useUserRosterMonth } from "../hooks/useUserRosterMonth";
 import type { CalendarEvent, ToastState } from "../types/roster.types";
 
@@ -64,11 +65,23 @@ const DnDCalendar = withDragAndDrop<CalendarEvent>(
 // their per-day data from RosterCalendarContext instead of from props.
 const CALENDAR_COMPONENTS: Components<CalendarEvent, object> = {
   event: EventCell,
-  dateCellWrapper: DayBackgroundCell,
+  timeGutterHeader: TimeGutterHeader,
   month: { dateHeader: MonthDateHeader },
+  week: { header: TimeViewHeader },
+  day: { header: TimeViewHeader },
 };
 
 const CALENDAR_VIEWS = [Views.MONTH, Views.WEEK, Views.DAY];
+
+// "12:00 AM" in every gutter row is noise at this density; the hour alone
+// reads faster and lets the gutter stay narrow.
+const CALENDAR_FORMATS = { timeGutterFormat: "h A" };
+
+/** Where Week/Day open their scroll — the start of the working day rather
+ *  than midnight, which is what made the time views land on seven empty
+ *  hours. Night shifts still exist above and below; this is only the
+ *  initial scroll offset, not a clamp on the range. */
+const SCROLL_TO_TIME = new Date(1970, 0, 1, 7, 0, 0);
 
 type RosterView = "month" | "week" | "day";
 
@@ -200,6 +213,28 @@ const UserMonthlyRosterView = () => {
       };
     },
     [t.isDark, t.radiusSm],
+  );
+
+  /**
+   * One source of truth for day states across all three views. rbc applies
+   * this to the Month background cell, the Week/Day column *and* the
+   * time-view column heading, so Week and Day now carry the same
+   * weekend/holiday/today/selected language the Month grid does.
+   */
+  const dayPropGetter = useCallback(
+    (date: Date) => {
+      const key = toDateKey(date);
+      const weekday = date.getDay();
+      const classes: string[] = [];
+
+      if (weekday === 0 || weekday === 6) classes.push(DAY_CLASS.weekend);
+      if (dayMeta.get(key)?.isHoliday) classes.push(DAY_CLASS.holiday);
+      if (key === todayKey) classes.push(DAY_CLASS.today);
+      if (key === selectedKey) classes.push(DAY_CLASS.selected);
+
+      return classes.length ? { className: classes.join(" ") } : {};
+    },
+    [dayMeta, todayKey, selectedKey],
   );
 
   /* ── Derived render state ───────────────────────────────────────────── */
@@ -338,6 +373,10 @@ const UserMonthlyRosterView = () => {
                 onEventDrop={handleEventDrop}
                 resizable={false}
                 eventPropGetter={eventStyleGetter}
+                dayPropGetter={dayPropGetter}
+                dayLayoutAlgorithm="no-overlap"
+                scrollToTime={SCROLL_TO_TIME}
+                formats={CALENDAR_FORMATS}
                 components={CALENDAR_COMPONENTS}
               />
 
