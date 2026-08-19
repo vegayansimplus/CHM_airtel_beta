@@ -26,6 +26,15 @@ export const parseShiftTime = (shift: string) => {
   };
 };
 
+/** Pulls the "(10:00 PM - 07:00 AM)" window out of a shiftDisplay string for
+ *  tooltips/detail views — `null` for shifts with no time range (WO, H,
+ *  Leave, Comp Off). Display-only: unlike `parseShiftTime`, this never
+ *  rolls the end onto the next day, so it can't be used to date an event. */
+export const extractShiftTimeLabel = (shiftDisplay: string): string | null => {
+  const match = shiftDisplay.match(/\(([^)]+)\)/);
+  return match ? match[1].replace(/\s*-\s*/, " – ") : null;
+};
+
 export const transformRosterToEvents = (
   roster: Record<string, RosterDay>,
 ): CalendarEvent[] => {
@@ -34,13 +43,23 @@ export const transformRosterToEvents = (
     const code = resolveShiftKeyFromDisplay(shiftDisplay);
     const workMode = value.workMode || null;
 
-    // The title is the bare code; the time range, work mode and the day's
-    // activity/availability counters live on `resource` so cells, tooltips
-    // and the detail dialog present them consistently instead of each
-    // re-parsing a concatenated string.
-    const base = {
+    // The roster is one entry per calendar date, so the event has to stay
+    // inside that one date too — always `allDay` on its own day, never a
+    // real date range. Night shifts *do* run past midnight in real time
+    // (parseShiftTime rolls their end onto the next day for the dashboard's
+    // hour-by-hour timeline, which genuinely needs that), but modelling
+    // that rollover here made rbc treat the shift as spanning two calendar
+    // days — so a night shift's tail landed as a second chip on the next
+    // day's cell, stacked on top of whatever that day was separately
+    // rostered. The precise time range still reaches tooltips/detail views
+    // via `extractShiftTimeLabel(shiftDisplay)`, just not through the
+    // event's start/end.
+    return {
       id: `${date}-${index}`,
       title: code,
+      start: new Date(date),
+      end: new Date(date),
+      allDay: true,
       resource: {
         code,
         label: getShiftStyle(code).label,
@@ -51,28 +70,6 @@ export const transformRosterToEvents = (
         dateKey: date,
       },
     };
-
-    const parsed = parseShiftTime(shiftDisplay);
-
-    // Off days and any shift without a time range (WO, H, Leave, Comp Off)
-    // render as all-day entries on their own date.
-    if (!("startTime" in parsed)) {
-      return {
-        ...base,
-        start: new Date(date),
-        end: new Date(date),
-        allDay: true,
-      };
-    }
-
-    const start = new Date(`${date} ${parsed.startTime}`);
-    const end = new Date(`${date} ${parsed.endTime}`);
-    // Night shifts wrap past midnight, so their end lands on the next day.
-    if (end <= start) {
-      end.setDate(end.getDate() + 1);
-    }
-
-    return { ...base, start, end, allDay: false };
   });
 };
 

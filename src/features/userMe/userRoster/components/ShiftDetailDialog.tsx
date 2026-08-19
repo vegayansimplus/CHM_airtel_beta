@@ -19,6 +19,7 @@ import LaptopMacRoundedIcon from "@mui/icons-material/LaptopMacRounded";
 import moment from "moment";
 import { useCalendarTokens } from "../constants/calendarTokens";
 import { getShiftVisual } from "../constants/shiftColors";
+import { extractShiftTimeLabel } from "../utils/rosterTransform";
 import type { CalendarEvent, RosterDayMeta } from "../types/roster.types";
 
 interface Props {
@@ -93,13 +94,13 @@ const ShiftDetailDialogBase = ({ open, onClose, date, meta, event }: Props) => {
 
   const visual = meta ? getShiftVisual(meta.code, t.isDark) : null;
 
-  const timeValue = event
-    ? event.allDay
-      ? "All day"
-      : `${moment(event.start).format("h:mm A")} – ${moment(event.end).format("h:mm A")}`
-    : visual && visual.time !== "—"
-      ? visual.time
-      : "All day";
+  // Every event is `allDay` now (see rosterTransform.ts) — read the real
+  // window off the shift display text instead, falling back to the code's
+  // canonical time when this specific entry carries none.
+  const shiftDisplay = meta?.shiftDisplay ?? event?.resource?.shiftDisplay ?? "";
+  const timeValue =
+    extractShiftTimeLabel(shiftDisplay) ??
+    (visual && visual.time !== "—" ? visual.time : "All day");
 
   return (
     <Dialog

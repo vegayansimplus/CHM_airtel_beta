@@ -5,6 +5,7 @@ import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
 import ScheduleRoundedIcon from "@mui/icons-material/ScheduleRounded";
 import moment from "moment";
 import { useRosterCalendar } from "../context/RosterCalendarContext";
+import { extractShiftTimeLabel } from "../utils/rosterTransform";
 import type { CalendarEvent } from "../types/roster.types";
 
 /** Multi-line hover card — replaces the old single concatenated string. */
@@ -64,11 +65,10 @@ const EventCell: React.FC<EventProps<CalendarEvent>> = ({ event }) => {
   const assignActCount = resource?.assignActCount ?? 0;
   const availableMins = resource?.availableMins ?? 0;
 
-  const timeLabel = event.allDay
-    ? "All day"
-    : `${moment(event.start).format("h:mm A")} – ${moment(event.end).format(
-        "h:mm A",
-      )}`;
+  // Every event is `allDay` now (see rosterTransform.ts) — the shift's real
+  // time window, when it has one, comes from the display string instead.
+  const timeRange = extractShiftTimeLabel(resource?.shiftDisplay ?? "");
+  const timeLabel = timeRange ?? "All day";
 
   return (
     <Tooltip
@@ -161,7 +161,7 @@ const EventCell: React.FC<EventProps<CalendarEvent>> = ({ event }) => {
           </Box>
         )}
 
-        {!event.allDay && !workMode && assignActCount === 0 && (
+        {timeRange && !workMode && assignActCount === 0 && (
           <ScheduleRoundedIcon
             sx={{
               ml: "auto",

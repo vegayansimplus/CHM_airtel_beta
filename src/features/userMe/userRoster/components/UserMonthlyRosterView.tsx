@@ -318,7 +318,6 @@ const UserMonthlyRosterView = () => {
           currentView={view}
           onNavigate={handleNavigate}
           onView={setView}
-          onDateChange={setCurrentDate}
           onRefresh={refetch}
           isRefreshing={isRefreshing}
         />

@@ -31,8 +31,9 @@ export const ALL_DAY_ROW_H = 32;
  * Full visual override for react-big-calendar's stock stylesheet.
  *
  * Everything here is scoped under the wrapper's generated class, so every
- * rule is one class more specific than the vendor CSS it replaces — no
- * `!important` anywhere, and nothing leaks to the rest of the app.
+ * rule is one class more specific than the vendor CSS it replaces, and
+ * nothing leaks to the rest of the app. The single `!important` is aimed at
+ * an inline style rbc writes from JS, which specificity alone cannot reach.
  */
 
 export const buildCalendarSx = (
@@ -55,11 +56,16 @@ export const buildCalendarSx = (
   },
 
   /* ── Frame ─────────────────────────────────────────────────────────── */
+  // `flex: 1 1 0` rather than rbc's own `1 0 0`: the stock rule lets the
+  // view grow but never shrink, so once its rows added up to more than the
+  // frame had, the surplus was silently swallowed by `overflow: hidden`
+  // instead of being divided out. Shrinkable, it always matches its slot.
   "& .rbc-month-view, & .rbc-time-view": {
     border: `1px solid ${t.grid}`,
     borderRadius: `${t.radius}px`,
     background: t.surface,
     overflow: "hidden",
+    flex: "1 1 0%",
     minHeight: 0,
   },
 
@@ -67,6 +73,8 @@ export const buildCalendarSx = (
   "& .rbc-month-header": {
     background: t.surfaceHeader,
     borderBottom: `1px solid ${t.grid}`,
+    // Holds its own height while the week rows below absorb the shrinking.
+    flex: "0 0 auto",
   },
   "& .rbc-month-view .rbc-header": {
     padding: "10px 8px",
@@ -84,9 +92,18 @@ export const buildCalendarSx = (
   "& .rbc-header .rbc-button-link": { cursor: "default", fontWeight: "inherit" },
 
   /* ── Month grid ────────────────────────────────────────────────────── */
+  // Every week of the month has to be on screen — a month that ends on a
+  // sixth row must still show that row.
+  //
+  // The weeks divide the frame instead of claiming a fixed height each: a
+  // per-row `min-height` taller than frame ÷ rows is exactly what pushed
+  // the last week (and with it the 30th/31st) out through the frame's
+  // `overflow: hidden`. rbc measures the row it actually gets and turns any
+  // surplus events into "+ n more", so shorter rows lose no information.
   "& .rbc-month-row": {
     borderTop: `1px solid ${t.grid}`,
-    minHeight: 78,
+    flex: "1 1 0%",
+    minHeight: 0,
   },
   "& .rbc-month-row:first-of-type": { borderTop: "none" },
   "& .rbc-day-bg": {
@@ -221,11 +238,33 @@ export const buildCalendarSx = (
   },
 
   /* ── Week / Day (time) views ───────────────────────────────────────── */
+  // ── Heading ↔ column alignment ──
+  // The day headings sit in a different scroll box from the columns they
+  // label, so the two only line up if both reserve the same gutter for the
+  // grid's scrollbar. rbc does that in JS — but only after `isOverflowing`
+  // flips on a *later* render (it never checks on mount), and it measures
+  // the browser's default scrollbar rather than the slim one this grid
+  // actually draws. So the heading band stayed a scrollbar wider than the
+  // grid, and every boundary from Sun to Sat drifted right of its column.
+  //
+  // Both bands now reserve their own gutter from identical CSS: the header
+  // scrolls invisibly, the content scrolls for real, and their usable
+  // widths are equal by construction — no measuring, nothing to get out of
+  // sync on the first paint. rbc's inline margin is zeroed so the two
+  // mechanisms cannot stack into a double offset.
   "& .rbc-time-header": {
     background: t.surfaceHeader,
     borderBottom: `1px solid ${t.grid}`,
+    overflowY: "scroll",
+    overflowX: "hidden",
+    scrollbarWidth: "thin",
+    scrollbarColor: "transparent transparent",
+    "&::-webkit-scrollbar": { width: 6 },
+    "&::-webkit-scrollbar-track, &::-webkit-scrollbar-thumb": {
+      background: "transparent",
+    },
   },
-  "& .rbc-time-header.rbc-overflowing": { borderRight: `1px solid ${t.grid}` },
+  "& .rbc-time-header.rbc-overflowing": { marginRight: "0px !important" },
   "& .rbc-time-header-content": {
     borderLeft: `1px solid ${t.grid}`,
     minWidth: 0,
@@ -267,11 +306,13 @@ export const buildCalendarSx = (
   },
   // All-day strip, pinned to a single row.
   //
-  // rbc hardcodes `minRows: 2` on this row, so it always reserved two rows'
-  // worth of height — that empty ~60px band was the gap between the day
-  // headings and the grid. One row is right for this data: a day carries at
-  // most one roster entry, and non-overlapping all-day segments all pack
-  // into the first level, so the second row is pure filler.
+  // rbc hardcodes `minRows: 2` on this row, so it always reserves two rows'
+  // worth of height even when nothing needs the second — that empty ~30px
+  // band was pure gap. `transformRosterToEvents` now guarantees at most one
+  // event per calendar day (every shift — including night shifts, which run
+  // past midnight in real time — is built as a same-day `allDay` entry; see
+  // rosterTransform.ts), so a genuine second-row stack can no longer occur.
+  // One row is right for this data.
   "& .rbc-time-view .rbc-allday-cell": {
     boxSizing: "border-box",
     height: ALL_DAY_ROW_H,
@@ -288,6 +329,14 @@ export const buildCalendarSx = (
   },
   "& .rbc-time-content": {
     borderTop: `1px solid ${t.grid}`,
+    // Always `scroll`, never `auto`: the gutter has to be reserved even in
+    // the moment before the grid has scrollable content, or the columns
+    // would jump sideways against the headings. Firefox needs the same
+    // slim scrollbar the webkit rules below ask for — left to `auto` it
+    // reserves ~17px here and the two bands stop matching.
+    overflowY: "scroll",
+    scrollbarWidth: "thin",
+    scrollbarColor: `${t.isDark ? "#1E2D40" : "#CBD5E1"} transparent`,
     "&::-webkit-scrollbar": { width: 6, height: 6 },
     "&::-webkit-scrollbar-track": { background: "transparent" },
     "&::-webkit-scrollbar-thumb": {
@@ -336,16 +385,16 @@ export const buildCalendarSx = (
     { display: "none" },
 
   /* ── Responsive ────────────────────────────────────────────────────── */
-  [theme.breakpoints.down("lg")]: {
-    "& .rbc-month-row": { minHeight: 68 },
-  },
+  // Deliberately no per-breakpoint `.rbc-month-row` min-height: the rows
+  // divide the frame at every width, and a floor here would clip the last
+  // week again on exactly the short screens these rules target. The month
+  // frame itself is what gets a definite height (see UserMonthlyRosterView).
   [theme.breakpoints.down("md")]: {
     "& .rbc-month-view .rbc-header": {
       fontSize: 10,
       padding: "8px 4px",
       letterSpacing: "0.05em",
     },
-    "& .rbc-month-row": { minHeight: 60 },
     "& .rbc-timeslot-group": { minHeight: 36 },
   },
   [theme.breakpoints.down("sm")]: {
@@ -354,7 +403,6 @@ export const buildCalendarSx = (
       padding: "7px 1px",
       letterSpacing: 0,
     },
-    "& .rbc-month-row": { minHeight: 52 },
     "& .rbc-row-segment": { padding: "0 1px 1px" },
     "& .rbc-label": { fontSize: 9, padding: "0 5px" },
     "& .rbc-timeslot-group": { minHeight: 34 },

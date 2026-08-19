@@ -1,11 +1,9 @@
-import React, { memo, useMemo } from "react";
+import React, { memo } from "react";
 import {
   Box,
   Button,
   Chip,
   IconButton,
-  MenuItem,
-  Select,
   Stack,
   ToggleButton,
   ToggleButtonGroup,
@@ -13,7 +11,6 @@ import {
   Typography,
   useMediaQuery,
   useTheme,
-  type SelectChangeEvent,
 } from "@mui/material";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
@@ -36,7 +33,6 @@ interface CustomToolbarProps {
   currentView: RosterView;
   onNavigate: (action: "PREV" | "NEXT" | "TODAY") => void;
   onView: (view: RosterView) => void;
-  onDateChange: (date: Date) => void;
   onRefresh: () => void;
   isRefreshing: boolean;
 }
@@ -49,7 +45,6 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
   onView,
   label,
   currentView,
-  onDateChange,
   onRefresh,
   isRefreshing,
 }) => {
@@ -57,20 +52,6 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
   const t = useCalendarTokens(theme);
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const isCompact = useMediaQuery(theme.breakpoints.down("md"));
-
-  const currentYear = date.getFullYear();
-  const years = useMemo(
-    () => Array.from({ length: 10 }, (_, i) => currentYear - 5 + i),
-    [currentYear],
-  );
-
-  const handleYearChange = (event: SelectChangeEvent<number>) => {
-    // Kept from the original: mutate a copy, never `date` itself, then hand
-    // the new anchor to the parent so its query range moves with it.
-    const next = new Date(date);
-    next.setFullYear(Number(event.target.value));
-    onDateChange(next);
-  };
 
   const isCurrentPeriod = moment(date).isSame(moment(), "month");
 
@@ -205,29 +186,12 @@ const CustomToolbar: React.FC<CustomToolbarProps> = ({
         </Box>
       </Stack>
 
-      {/* ── Year jump + refresh + view switch ──────────────────────── */}
+      {/* ── Refresh + view switch ──────────────────────────────────── */}
+      {/* No year picker: the period arrows and Today already move the
+          anchor, and the heading states the year outright — a second,
+          coarser control for the same thing was only a way to land on a
+          month nobody asked for. */}
       <Stack direction="row" alignItems="center" spacing={1} flexShrink={0}>
-        <Select
-          value={currentYear}
-          size="small"
-          onChange={handleYearChange}
-          aria-label="Select year"
-          sx={{
-            height: 32,
-            minWidth: 84,
-            fontSize: 12,
-            fontWeight: 600,
-            bgcolor: t.surface,
-            "& .MuiSelect-select": { py: 0.5 },
-          }}
-        >
-          {years.map((year) => (
-            <MenuItem key={year} value={year}>
-              {year}
-            </MenuItem>
-          ))}
-        </Select>
-
         <Tooltip title="Refresh roster" arrow>
           <span>
             <IconButton
