@@ -68,7 +68,10 @@ export default function ModernHomeDashboard() {
   return (
     <Box
       sx={{
-        p: { xs: "12px 4px 28px", md: "16px 8px 32px" },
+        // Absorbs the 16px the retired Home shell used to add around this
+        // page (pl/pr: 2). The merged shell pads nothing, so the Overview tab
+        // keeps the exact gutters it had before the restructure.
+        p: { xs: "12px 20px 28px", md: "16px 24px 32px" },
         fontFamily: (theme) => theme.typography.fontFamily,
       }}
     >

@@ -7,6 +7,7 @@ import MailOutlined from "@mui/icons-material/MailOutlined";
 import SupervisedUserCircleOutlined from "@mui/icons-material/SupervisedUserCircleOutlined";
 import CloudSyncOutlined from "@mui/icons-material/CloudSyncOutlined";
 import TuneOutlined from "@mui/icons-material/TuneOutlined";
+import { MY_DASHBOARD_BASE } from "../myDashboard/config/dashboardTabs";
 
 export interface QuickAction {
   id: string;
@@ -28,14 +29,14 @@ export const QUICK_ACTIONS: QuickAction[] = [
   {
     id: "qa-my-roster",
     label: "View My Roster",
-    path: "/me/monthlyview",
+    path: `${MY_DASHBOARD_BASE}/monthly-view`,
     icon: <CalendarMonthOutlined fontSize="small" />,
     requiredModule: "Me",
   },
   {
     id: "qa-my-leave",
     label: "View My Leave",
-    path: "/me/leave",
+    path: `${MY_DASHBOARD_BASE}/leave`,
     icon: <EventNoteOutlined fontSize="small" />,
     requiredModule: "Me",
   },

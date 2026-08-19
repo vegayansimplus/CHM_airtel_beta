@@ -1,10 +1,12 @@
 // src/rbac/routeAccess.ts
-import { ALL_NAV_ITEMS, isNavItemAllowed, type NavItem } from "./navRegistry";
+import {
+  ALL_NAV_ITEMS,
+  isNavItemAllowed,
+  type AccessRequirement,
+  type NavItem,
+} from "./navRegistry";
 
-export interface RequiredAccess {
-  requiredModule: string | null;
-  requiredSubModule?: string;
-}
+export type RequiredAccess = AccessRequirement;
 
 /**
  * Modules whose sub-module-level gating is known to be unreliable at the
@@ -27,11 +29,9 @@ const matchesPath = (pathname: string, to: string, matchPaths?: string[]): boole
   return candidates.some((p) => pathname === p || pathname.startsWith(p + "/"));
 };
 
-interface FlatEntry {
+interface FlatEntry extends AccessRequirement {
   to: string;
   matchPaths?: string[];
-  requiredModule: string | null;
-  requiredSubModule?: string;
 }
 
 const flatten = (items: NavItem[]): FlatEntry[] => {
@@ -42,6 +42,7 @@ const flatten = (items: NavItem[]): FlatEntry[] => {
       matchPaths: item.matchPaths,
       requiredModule: item.requiredModule,
       requiredSubModule: item.requiredSubModule,
+      requiredAnyOf: item.requiredAnyOf,
     });
     for (const child of item.children ?? []) {
       entries.push({
@@ -49,6 +50,7 @@ const flatten = (items: NavItem[]): FlatEntry[] => {
         matchPaths: child.matchPaths,
         requiredModule: child.requiredModule,
         requiredSubModule: child.requiredSubModule,
+        requiredAnyOf: child.requiredAnyOf,
       });
     }
   }
@@ -73,7 +75,11 @@ export const getRequiredAccess = (pathname: string): RequiredAccess | undefined 
     return { requiredModule: entry.requiredModule };
   }
 
-  return { requiredModule: entry.requiredModule, requiredSubModule: entry.requiredSubModule };
+  return {
+    requiredModule: entry.requiredModule,
+    requiredSubModule: entry.requiredSubModule,
+    requiredAnyOf: entry.requiredAnyOf,
+  };
 };
 
 /**
@@ -93,11 +99,12 @@ export const isPathAllowed = (
 
   // Undefined means the path isn't in the nav registry at all — allow it
   // through rather than silently locking out a route nobody registered.
-  if (!access || access.requiredModule === null) return true;
+  if (!access) return true;
 
-  return access.requiredSubModule
-    ? hasSubModule(access.requiredModule, access.requiredSubModule)
-    : hasModule(access.requiredModule);
+  // Delegated rather than re-implemented, so route protection and sidebar
+  // visibility stay one predicate — including the requiredAnyOf case a
+  // multi-module group (My Dashboard) relies on.
+  return isNavItemAllowed(access, hasModule, hasSubModule);
 };
 
 /**

@@ -14,6 +14,11 @@ import type { DashboardRosterStatus } from "../hooks/useDashboardRoster";
 import { fadeIn, getCardSx } from "../constants/dashboard.styles";
 import { SectionHeader } from "./SectionHeader";
 import { ShiftLegend } from "./ShiftLegend";
+import { MY_DASHBOARD_TABS } from "../../myDashboard/config/dashboardTabs";
+
+/** The Monthly View tab of My Dashboard — resolved from the tab registry so
+ *  this shortcut cannot drift from the route that actually exists. */
+const MONTHLY_VIEW_PATH = MY_DASHBOARD_TABS.find((t) => t.segment === "monthly-view")!.to;
 
 interface WeeklyScheduleCardProps {
   week: readonly WeekDay[];
@@ -66,7 +71,9 @@ export function WeeklyScheduleCard({
               <ChevronRightIcon sx={{ fontSize: 16, color: colors.textSecondary }} />
             </IconButton>
             <Typography
-              onClick={() => navigate("/me/monthlyview", { state: { initialDate: anchorDate } })}
+              onClick={() =>
+                navigate(MONTHLY_VIEW_PATH, { state: { initialDate: anchorDate } })
+              }
               sx={{ fontSize: 11, color: colors.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", ml: "6px", "&:hover": { textDecoration: "underline" } }}
             >
               Full view <OpenInFullIcon sx={{ fontSize: 11 }} />
