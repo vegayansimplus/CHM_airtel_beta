@@ -1,6 +1,6 @@
 import { type ReactNode } from "react";
 import DashboardIcon from "@mui/icons-material/DashboardOutlined";
-import PersonIcon from "@mui/icons-material/PersonOutlined";
+import SpaceDashboardIcon from "@mui/icons-material/SpaceDashboardOutlined";
 import Groups2Icon from "@mui/icons-material/Groups2Outlined";
 import AltRouteIcon from "@mui/icons-material/AltRouteOutlined";
 import BusinessCenterIcon from "@mui/icons-material/BusinessCenterOutlined";
@@ -26,13 +26,23 @@ import SchemaIcon from "@mui/icons-material/SchemaOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
-export interface NavItem {
+import {
+  MY_DASHBOARD_BASE,
+  MY_DASHBOARD_VISIBLE_TABS,
+} from "../features/myDashboard/config/dashboardTabs";
+/** The minimal shape `isNavItemAllowed` needs in order to decide one grant. */
+export interface AccessRequirement {
+  requiredModule: string | null;
+  /** When set, gates on a specific sub-module of requiredModule instead of the whole module. */
+  requiredSubModule?: string;
+  /** When set, the item is allowed if ANY listed requirement is satisfied. */
+  requiredAnyOf?: AccessRequirement[];
+}
+
+export interface NavItem extends AccessRequirement {
   to: string;
   text: string;
   icon: ReactNode;
-  requiredModule: string | null;
-  /** When set, gates this item on a specific sub-module of requiredModule instead of the whole module. */
-  requiredSubModule?: string;
   showBadge?: boolean;
 
   matchPaths?: string[];
@@ -40,17 +50,37 @@ export interface NavItem {
 }
 
 export const ALL_NAV_ITEMS: NavItem[] = [
+  /*
+   * "Dashboard" (/home) and "Me" (/me, itself carrying an in-page tab strip)
+   * used to be two top-level entries wrapping five screens between them.
+   * They are now one workspace, generated from MY_DASHBOARD_VISIBLE_TABS so that the
+   * sidebar, the router, the in-page tabs and the direct-URL route guard can
+   * never disagree about which of them a given user may open.
+   *
+   * The parent declares `requiredAnyOf` rather than a single requiredModule
+   * because it spans two modules ("Dashboard" and "Me"): it appears when the
+   * user can reach at least one tab underneath it, and disappears entirely
+   * when they can reach none.
+   */
   {
-    to: "/home",
-    text: "Dashboard",
-    icon: <DashboardIcon />,
-    requiredModule: "Dashboard",
-  },
-  {
-    to: "/me",
-    text: "Me",
-    icon: <PersonIcon />,
-    requiredModule: "Me",
+    to: MY_DASHBOARD_BASE,
+    text: "My Dashboard",
+    icon: <SpaceDashboardIcon />,
+    requiredModule: null,
+    requiredAnyOf: MY_DASHBOARD_VISIBLE_TABS.map(
+      ({ requiredModule, requiredSubModule }) => ({
+        requiredModule,
+        requiredSubModule,
+      }),
+    ),
+    children: MY_DASHBOARD_VISIBLE_TABS.map((tab) => ({
+      to: tab.to,
+      text: tab.label,
+      icon: tab.icon,
+      requiredModule: tab.requiredModule,
+      requiredSubModule: tab.requiredSubModule,
+      matchPaths: [tab.to],
+    })),
   },
   {
     to: "/cabmanager",
@@ -318,10 +348,18 @@ export const ALL_NAV_ITEMS: NavItem[] = [
 ];
 
 export const isNavItemAllowed = (
-  item: Pick<NavItem, "requiredModule" | "requiredSubModule">,
+  item: AccessRequirement,
   hasModule: (moduleName: string) => boolean,
   hasSubModule: (moduleName: string, subModuleName: string) => boolean,
 ): boolean => {
+  // Evaluated before the `requiredModule === null` shortcut below, so a group
+  // spanning several modules can declare `requiredModule: null` and still be
+  // gated — otherwise that null would read as "open to every signed-in user".
+  if (item.requiredAnyOf?.length) {
+    return item.requiredAnyOf.some((req) =>
+      isNavItemAllowed(req, hasModule, hasSubModule),
+    );
+  }
   if (item.requiredModule === null) return true;
   if (item.requiredSubModule) {
     return hasSubModule(item.requiredModule, item.requiredSubModule);

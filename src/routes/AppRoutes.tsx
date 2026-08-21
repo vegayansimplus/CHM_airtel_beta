@@ -4,6 +4,13 @@ import { PrivateRoute } from "./PrivateRoute";
 import DefaultRedirect from "./DefaultRedirect";
 import CommonContainer from "../components/common/CommonContainer";
 import { RouteFallback } from "../components/loading/PageLoader";
+import LegacyRedirect from "./LegacyRedirect";
+import {
+  MY_DASHBOARD_BASE,
+  MY_DASHBOARD_HIDDEN_SEGMENTS,
+  MY_DASHBOARD_LEGACY_REDIRECTS,
+  MY_DASHBOARD_VISIBLE_TABS,
+} from "../features/myDashboard/config/dashboardTabs";
 
 // Route-level code splitting — every feature page below is fetched on
 // first navigation instead of bundled eagerly into the initial load. The
@@ -20,8 +27,11 @@ const TeamManagementMain = lazy(() =>
     default: m.TeamManagementMain,
   })),
 );
-const DashboardViewPage = lazy(
-  () => import("../features/dashboard/pages/DashboardPage"),
+const MyDashboardPage = lazy(
+  () => import("../features/myDashboard/pages/MyDashboardPage"),
+);
+const MyDashboardIndexRedirect = lazy(
+  () => import("../features/myDashboard/pages/MyDashboardIndexRedirect"),
 );
 const MonthlyRosterPageTab = lazy(
   () => import("../features/roster/page/MonthlyRosterPageTab"),
@@ -30,9 +40,6 @@ const RosterViewMain = lazy(() =>
   import("../features/roster/page/RosterViewMain").then((m) => ({
     default: m.RosterViewMain,
   })),
-);
-const UserMeMainPageTab = lazy(
-  () => import("../features/userMe/pages/UserMeMainPageTab"),
 );
 const UserRosterMain = lazy(() =>
   import("../features/userMe/pages/UserRosterMain").then((m) => ({
@@ -205,6 +212,18 @@ const LinuxSftpPage = lazy(() =>
   })),
 );
 
+// The body each My Dashboard tab renders, keyed by the segment the registry
+// declares — so a renamed tab cannot leave the router pointing at a path
+// nothing links to, and a tab marked hidden simply never gets a route.
+// Entries for hidden tabs stay here so switching one back on is a one-flag
+// change in dashboardTabs.tsx.
+const MY_DASHBOARD_TAB_ELEMENTS: Record<string, JSX.Element> = {
+  overview: <ModernHomeDashboard />,
+  "monthly-view": <UserRosterMain />,
+  leave: <UserLeaveSectionMain />,
+  notifications: <NotificationManagerMain />,
+};
+
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
   setDynamicHeaderIcon: (icon: JSX.Element) => void;
@@ -218,21 +237,63 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
   return (
     <Suspense fallback={<RouteFallback />}>
       <Routes>
+        {/*
+          My Dashboard — the merged Home + Me workspace. One guarded shell,
+          one routed body per tab, so only the tab in view is ever mounted
+          (and only its data is ever fetched). PrivateRoute sits on the
+          parent and re-evaluates the full pathname on every navigation, so
+          a direct URL to a tab the user lacks is refused here too, not just
+          hidden from the tab strip.
+        */}
         <Route
-          path="/"
+          path="my-dashboard"
           element={
             <PrivateRoute
               element={
-                <DashboardViewPage
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
+                <MyDashboardPage
                   setDynamicHeaderText={setDynamicHeaderText}
+                  setDynamicHeaderIcon={setDynamicHeaderIcon}
                 />
               }
             />
           }
         >
-          <Route path="/home" element={<ModernHomeDashboard />} />
+          <Route index element={<MyDashboardIndexRedirect />} />
+          {MY_DASHBOARD_VISIBLE_TABS.map((tab) => (
+            <Route
+              key={tab.segment}
+              path={tab.segment}
+              element={MY_DASHBOARD_TAB_ELEMENTS[tab.segment]}
+            />
+          ))}
+          {/*
+            Tabs hidden for now. Their URLs still resolve — landing on the
+            workspace root rather than dead-ending on the catch-all — so any
+            bookmark or stale link stays harmless until they return.
+          */}
+          {MY_DASHBOARD_HIDDEN_SEGMENTS.map((segment) => (
+            <Route
+              key={segment}
+              path={segment}
+              element={<LegacyRedirect to={MY_DASHBOARD_BASE} />}
+            />
+          ))}
         </Route>
+
+        {/*
+          Backward compatibility: /home and every /me/* URL that shipped keep
+          resolving, so bookmarks, in-app deep links and anything holding an
+          old URL land on the same screen as before. LegacyRedirect carries
+          the query string, hash and location state across.
+        */}
+        {MY_DASHBOARD_LEGACY_REDIRECTS.map(({ from, to }) => (
+          <Route
+            key={from}
+            path={from.replace(/^\//, "")}
+            element={<LegacyRedirect to={to} />}
+          />
+        ))}
+        <Route path="me/*" element={<LegacyRedirect to={MY_DASHBOARD_BASE} />} />
         <Route
           path="team"
           element={
@@ -253,28 +314,6 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             element={
               <CommonContainer>Hello Task Configuration</CommonContainer>
             }
-          />
-        </Route>
-
-        <Route
-          path="me"
-          element={
-            <PrivateRoute
-              element={
-                <UserMeMainPageTab
-                  setDynamicHeaderText={setDynamicHeaderText}
-                  setDynamicHeaderIcon={setDynamicHeaderIcon}
-                />
-              }
-            />
-          }
-        >
-          <Route index element={<Navigate to="monthlyview" replace />} />
-          <Route path="monthlyview" element={<UserRosterMain />} />
-          <Route path="leave" element={<UserLeaveSectionMain />} />
-          <Route
-            path="notifiactionmanger"
-            element={<NotificationManagerMain />}
           />
         </Route>
 

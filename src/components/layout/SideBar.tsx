@@ -603,7 +603,7 @@ const SideBar: React.FC<SideBarProps> = ({
         >
           <FlyoutMenu
             anchorEl={flyoutAnchor}
-            open={Boolean(flyoutAnchor)}
+            open={Boolean(flyoutAnchor)}  
             parentText={flyoutItem.text}
             children={flyoutItem.children ?? []}
             colors={colors}

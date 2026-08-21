@@ -68,7 +68,10 @@ export default function ModernHomeDashboard() {
   return (
     <Box
       sx={{
-        p: { xs: "12px 4px 28px", md: "16px 8px 32px" },
+        // Absorbs the 16px the retired Home shell used to add around this
+        // page (pl/pr: 2). The merged shell pads nothing, so the Overview tab
+        // keeps the exact gutters it had before the restructure.
+        p: { xs: "12px 20px 28px", md: "16px 24px 32px" },
         fontFamily: (theme) => theme.typography.fontFamily,
       }}
     >
@@ -111,23 +114,23 @@ export default function ModernHomeDashboard() {
             delay={0.1}
           />
 
-          <UpcomingHolidaysCard
+          {/* <UpcomingHolidaysCard
             holidays={holidays.holidays}
             status={holidays.status}
             errorMessage={holidays.errorMessage}
             colors={colors}
             mounted={mounted}
             delay={0.15}
-          />
+          /> */}
 
-          <OnLeaveTodayCard
+          {/* <OnLeaveTodayCard
             team={leaveTeam.team}
             status={leaveTeam.status}
             errorMessage={leaveTeam.errorMessage}
             colors={colors}
             mounted={mounted}
             delay={0.2}
-          />
+          /> */}
         </Box>
 
         {/* ── RIGHT — Assignments + stats (equal height), schedule, notifications ── */}
@@ -153,7 +156,7 @@ export default function ModernHomeDashboard() {
 
             <StatCardsGrid cards={statCards} colors={colors} mounted={mounted} delay={0.12} />
           </Box>
-          <RescheduleNotificationPage />
+          {/* <RescheduleNotificationPage /> */}
 
           <WeeklyScheduleCard
             week={roster.days}
