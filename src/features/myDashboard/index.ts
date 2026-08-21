@@ -3,6 +3,8 @@ export { default as MyDashboardIndexRedirect } from "./pages/MyDashboardIndexRed
 export {
   MY_DASHBOARD_BASE,
   MY_DASHBOARD_TABS,
+  MY_DASHBOARD_VISIBLE_TABS,
+  MY_DASHBOARD_HIDDEN_SEGMENTS,
   MY_DASHBOARD_LEGACY_REDIRECTS,
   findTabByPath,
   type MyDashboardTab,

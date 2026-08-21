@@ -14,11 +14,15 @@ import type { DashboardRosterStatus } from "../hooks/useDashboardRoster";
 import { fadeIn, getCardSx } from "../constants/dashboard.styles";
 import { SectionHeader } from "./SectionHeader";
 import { ShiftLegend } from "./ShiftLegend";
-import { MY_DASHBOARD_TABS } from "../../myDashboard/config/dashboardTabs";
+import { MY_DASHBOARD_VISIBLE_TABS } from "../../myDashboard/config/dashboardTabs";
 
 /** The Monthly View tab of My Dashboard — resolved from the tab registry so
- *  this shortcut cannot drift from the route that actually exists. */
-const MONTHLY_VIEW_PATH = MY_DASHBOARD_TABS.find((t) => t.segment === "monthly-view")!.to;
+ *  this shortcut cannot drift from the route that actually exists. Undefined
+ *  while that tab is hidden, in which case the shortcut is not rendered at
+ *  all rather than pointing at a route that would bounce the user home. */
+const MONTHLY_VIEW_PATH = MY_DASHBOARD_VISIBLE_TABS.find(
+  (t) => t.segment === "monthly-view",
+)?.to;
 
 interface WeeklyScheduleCardProps {
   week: readonly WeekDay[];
@@ -70,14 +74,16 @@ export function WeeklyScheduleCard({
             <IconButton size="small" onClick={onNext} aria-label="Next week" sx={{ p: "4px" }}>
               <ChevronRightIcon sx={{ fontSize: 16, color: colors.textSecondary }} />
             </IconButton>
-            <Typography
-              onClick={() =>
-                navigate(MONTHLY_VIEW_PATH, { state: { initialDate: anchorDate } })
-              }
-              sx={{ fontSize: 11, color: colors.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", ml: "6px", "&:hover": { textDecoration: "underline" } }}
-            >
-              Full view <OpenInFullIcon sx={{ fontSize: 11 }} />
-            </Typography>
+            {MONTHLY_VIEW_PATH && (
+              <Typography
+                onClick={() =>
+                  navigate(MONTHLY_VIEW_PATH, { state: { initialDate: anchorDate } })
+                }
+                sx={{ fontSize: 11, color: colors.accent, fontWeight: 700, cursor: "pointer", display: "flex", alignItems: "center", gap: "3px", ml: "6px", "&:hover": { textDecoration: "underline" } }}
+              >
+                Full view <OpenInFullIcon sx={{ fontSize: 11 }} />
+              </Typography>
+            )}
           </Box>
         }
       />

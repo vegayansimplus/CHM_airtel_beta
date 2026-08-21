@@ -114,23 +114,23 @@ export default function ModernHomeDashboard() {
             delay={0.1}
           />
 
-          <UpcomingHolidaysCard
+          {/* <UpcomingHolidaysCard
             holidays={holidays.holidays}
             status={holidays.status}
             errorMessage={holidays.errorMessage}
             colors={colors}
             mounted={mounted}
             delay={0.15}
-          />
+          /> */}
 
-          <OnLeaveTodayCard
+          {/* <OnLeaveTodayCard
             team={leaveTeam.team}
             status={leaveTeam.status}
             errorMessage={leaveTeam.errorMessage}
             colors={colors}
             mounted={mounted}
             delay={0.2}
-          />
+          /> */}
         </Box>
 
         {/* ── RIGHT — Assignments + stats (equal height), schedule, notifications ── */}
@@ -156,7 +156,7 @@ export default function ModernHomeDashboard() {
 
             <StatCardsGrid cards={statCards} colors={colors} mounted={mounted} delay={0.12} />
           </Box>
-          <RescheduleNotificationPage />
+          {/* <RescheduleNotificationPage /> */}
 
           <WeeklyScheduleCard
             week={roster.days}

@@ -7,8 +7,9 @@ import { RouteFallback } from "../components/loading/PageLoader";
 import LegacyRedirect from "./LegacyRedirect";
 import {
   MY_DASHBOARD_BASE,
+  MY_DASHBOARD_HIDDEN_SEGMENTS,
   MY_DASHBOARD_LEGACY_REDIRECTS,
-  MY_DASHBOARD_TABS,
+  MY_DASHBOARD_VISIBLE_TABS,
 } from "../features/myDashboard/config/dashboardTabs";
 
 // Route-level code splitting — every feature page below is fetched on
@@ -211,9 +212,17 @@ const LinuxSftpPage = lazy(() =>
   })),
 );
 
-// Segments come from the same registry the sidebar and tab strip read, so a
-// renamed tab cannot leave the router pointing at a path nothing links to.
-const [OVERVIEW, MONTHLY_VIEW, LEAVE, NOTIFICATIONS] = MY_DASHBOARD_TABS;
+// The body each My Dashboard tab renders, keyed by the segment the registry
+// declares — so a renamed tab cannot leave the router pointing at a path
+// nothing links to, and a tab marked hidden simply never gets a route.
+// Entries for hidden tabs stay here so switching one back on is a one-flag
+// change in dashboardTabs.tsx.
+const MY_DASHBOARD_TAB_ELEMENTS: Record<string, JSX.Element> = {
+  overview: <ModernHomeDashboard />,
+  "monthly-view": <UserRosterMain />,
+  leave: <UserLeaveSectionMain />,
+  notifications: <NotificationManagerMain />,
+};
 
 interface AppRoutesProps {
   setDynamicHeaderText: (text: string) => void;
@@ -250,10 +259,25 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           }
         >
           <Route index element={<MyDashboardIndexRedirect />} />
-          <Route path={OVERVIEW.segment} element={<ModernHomeDashboard />} />
-          <Route path={MONTHLY_VIEW.segment} element={<UserRosterMain />} />
-          <Route path={LEAVE.segment} element={<UserLeaveSectionMain />} />
-          <Route path={NOTIFICATIONS.segment} element={<NotificationManagerMain />} />
+          {MY_DASHBOARD_VISIBLE_TABS.map((tab) => (
+            <Route
+              key={tab.segment}
+              path={tab.segment}
+              element={MY_DASHBOARD_TAB_ELEMENTS[tab.segment]}
+            />
+          ))}
+          {/*
+            Tabs hidden for now. Their URLs still resolve — landing on the
+            workspace root rather than dead-ending on the catch-all — so any
+            bookmark or stale link stays harmless until they return.
+          */}
+          {MY_DASHBOARD_HIDDEN_SEGMENTS.map((segment) => (
+            <Route
+              key={segment}
+              path={segment}
+              element={<LegacyRedirect to={MY_DASHBOARD_BASE} />}
+            />
+          ))}
         </Route>
 
         {/*

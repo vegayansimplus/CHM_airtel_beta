@@ -1,7 +1,10 @@
 import { useMemo } from "react";
 import { usePermission } from "../../../rbac/usePermission";
 import { isNavItemAllowed } from "../../../rbac/navRegistry";
-import { MY_DASHBOARD_TABS, type MyDashboardTab } from "../config/dashboardTabs";
+import {
+  MY_DASHBOARD_VISIBLE_TABS,
+  type MyDashboardTab,
+} from "../config/dashboardTabs";
 
 /**
  * The tabs this user may actually open, filtered through the very same
@@ -15,7 +18,7 @@ export const useMyDashboardTabs = (): MyDashboardTab[] => {
 
   return useMemo(
     () =>
-      MY_DASHBOARD_TABS.filter((tab) =>
+      MY_DASHBOARD_VISIBLE_TABS.filter((tab) =>
         isNavItemAllowed(tab, hasModule, hasSubModule),
       ),
     [hasModule, hasSubModule],

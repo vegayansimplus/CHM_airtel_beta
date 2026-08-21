@@ -28,7 +28,7 @@ import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
 import {
   MY_DASHBOARD_BASE,
-  MY_DASHBOARD_TABS,
+  MY_DASHBOARD_VISIBLE_TABS,
 } from "../features/myDashboard/config/dashboardTabs";
 /** The minimal shape `isNavItemAllowed` needs in order to decide one grant. */
 export interface AccessRequirement {
@@ -53,7 +53,7 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   /*
    * "Dashboard" (/home) and "Me" (/me, itself carrying an in-page tab strip)
    * used to be two top-level entries wrapping five screens between them.
-   * They are now one workspace, generated from MY_DASHBOARD_TABS so that the
+   * They are now one workspace, generated from MY_DASHBOARD_VISIBLE_TABS so that the
    * sidebar, the router, the in-page tabs and the direct-URL route guard can
    * never disagree about which of them a given user may open.
    *
@@ -67,13 +67,13 @@ export const ALL_NAV_ITEMS: NavItem[] = [
     text: "My Dashboard",
     icon: <SpaceDashboardIcon />,
     requiredModule: null,
-    requiredAnyOf: MY_DASHBOARD_TABS.map(
+    requiredAnyOf: MY_DASHBOARD_VISIBLE_TABS.map(
       ({ requiredModule, requiredSubModule }) => ({
         requiredModule,
         requiredSubModule,
       }),
     ),
-    children: MY_DASHBOARD_TABS.map((tab) => ({
+    children: MY_DASHBOARD_VISIBLE_TABS.map((tab) => ({
       to: tab.to,
       text: tab.label,
       icon: tab.icon,

@@ -29,6 +29,13 @@ export interface MyDashboardTab {
   requiredSubModule?: string;
   /** Pre-restructure URLs that must keep resolving here. */
   legacyPaths: string[];
+  /**
+   * Temporarily withdrawn from the app: no tab, no sidebar entry, no route.
+   * The entry stays here rather than being deleted so its gating, copy and
+   * legacy URLs survive intact until it is switched back on — clear this
+   * flag and the tab, the sidebar child and the route all come back together.
+   */
+  hidden?: boolean;
 }
 
 /**
@@ -62,12 +69,13 @@ export const MY_DASHBOARD_TABS: MyDashboardTab[] = [
   {
     segment: "monthly-view",
     to: `${MY_DASHBOARD_BASE}/monthly-view`,
-    label: "Monthly View",
+    label: "Roster view",
     headerText: "My Dashboard — Monthly View",
     caption: "Your monthly roster calendar",
     icon: <CalendarMonthOutlinedIcon />,
     requiredModule: "Me",
     legacyPaths: ["/me/monthlyview"],
+    hidden: true,
   },
   {
     segment: "leave",
@@ -93,10 +101,31 @@ export const MY_DASHBOARD_TABS: MyDashboardTab[] = [
   },
 ];
 
-/** Every legacy path -> its new home, for the compatibility redirects. */
+/**
+ * The tabs currently in service. Everything user-facing — the tab strip, the
+ * sidebar children, the router and the index redirect — reads this list, so
+ * hiding a tab removes it from all four at once and leaves no reachable URL
+ * pointing at it.
+ */
+export const MY_DASHBOARD_VISIBLE_TABS: MyDashboardTab[] =
+  MY_DASHBOARD_TABS.filter((tab) => !tab.hidden);
+
+/** Segments of the tabs hidden for now — their URLs redirect to the root. */
+export const MY_DASHBOARD_HIDDEN_SEGMENTS: string[] = MY_DASHBOARD_TABS.filter(
+  (tab) => tab.hidden,
+).map((tab) => tab.segment);
+
+/**
+ * Every legacy path -> its new home, for the compatibility redirects. A
+ * hidden tab's old URLs still resolve rather than dead-end, but they land on
+ * the workspace root instead of a page that is no longer routed.
+ */
 export const MY_DASHBOARD_LEGACY_REDIRECTS: { from: string; to: string }[] = [
   ...MY_DASHBOARD_TABS.flatMap((tab) =>
-    tab.legacyPaths.map((from) => ({ from, to: tab.to })),
+    tab.legacyPaths.map((from) => ({
+      from,
+      to: tab.hidden ? MY_DASHBOARD_BASE : tab.to,
+    })),
   ),
   // The old Me landing page had no body of its own — it index-redirected to
   // its first tab, which is exactly what MY_DASHBOARD_BASE does now.
@@ -105,6 +134,6 @@ export const MY_DASHBOARD_LEGACY_REDIRECTS: { from: string; to: string }[] = [
 
 /** Resolves the tab that owns a pathname (used for header + active state). */
 export const findTabByPath = (pathname: string): MyDashboardTab | undefined =>
-  MY_DASHBOARD_TABS.find(
+  MY_DASHBOARD_VISIBLE_TABS.find(
     (tab) => pathname === tab.to || pathname.startsWith(`${tab.to}/`),
   );

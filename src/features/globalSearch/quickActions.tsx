@@ -7,7 +7,10 @@ import MailOutlined from "@mui/icons-material/MailOutlined";
 import SupervisedUserCircleOutlined from "@mui/icons-material/SupervisedUserCircleOutlined";
 import CloudSyncOutlined from "@mui/icons-material/CloudSyncOutlined";
 import TuneOutlined from "@mui/icons-material/TuneOutlined";
-import { MY_DASHBOARD_BASE } from "../myDashboard/config/dashboardTabs";
+import {
+  MY_DASHBOARD_BASE,
+  MY_DASHBOARD_HIDDEN_SEGMENTS,
+} from "../myDashboard/config/dashboardTabs";
 
 export interface QuickAction {
   id: string;
@@ -25,7 +28,7 @@ export interface QuickAction {
  * `isNavItemAllowed` (already exported from there) can filter this list
  * with zero new permission logic.
  */
-export const QUICK_ACTIONS: QuickAction[] = [
+const ALL_QUICK_ACTIONS: QuickAction[] = [
   {
     id: "qa-my-roster",
     label: "View My Roster",
@@ -93,3 +96,17 @@ export const QUICK_ACTIONS: QuickAction[] = [
     requiredSubModule: "Admin Settings",
   },
 ];
+
+/** Paths of the My Dashboard tabs that are hidden for now. */
+const HIDDEN_MY_DASHBOARD_PATHS = MY_DASHBOARD_HIDDEN_SEGMENTS.map(
+  (segment) => `${MY_DASHBOARD_BASE}/${segment}`,
+);
+
+/**
+ * The shortcuts actually offered. A quick action pointing at a My Dashboard
+ * tab that is currently hidden drops out on its own, so search can never
+ * surface a deep link to a page the router no longer serves.
+ */
+export const QUICK_ACTIONS: QuickAction[] = ALL_QUICK_ACTIONS.filter(
+  (action) => !HIDDEN_MY_DASHBOARD_PATHS.includes(action.path),
+);
