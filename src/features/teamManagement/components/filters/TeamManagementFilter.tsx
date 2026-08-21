@@ -1,11 +1,6 @@
-import { useState, useCallback, useRef } from "react";
-import {
-  Box, Button, ButtonGroup, Divider, MenuItem,
-  Paper, ClickAwayListener, MenuList, Grow, Popper,
-} from "@mui/material";
-import ArrowDropDownIcon from "@mui/icons-material/ArrowDropDown";
+import { useState, useCallback } from "react";
+import { Box, Button } from "@mui/material";
 import PersonAddAltIcon from "@mui/icons-material/PersonAddAlt";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
 
 import { authStorage } from "../../../../app/store/auth.storage";
 import { usePermission } from "../../../../rbac/usePermission";
@@ -13,6 +8,7 @@ import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierar
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import type { OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 import { AddMemberDialog } from "../dialog/AddMemberDialog";
+import AddMemberTypeDialog from "../dialog/AddMemberTypeDialog";
 import { UploadEmployeeDialog } from "../dialog/UploadEmployeeDialog";
 import { ExportPanel } from "./ExportPanel";
 import { RichStatusToggle } from "./RichStatusToggle";
@@ -45,10 +41,9 @@ export const TeamManagementFilter = ({
   const canCreateTeam = can("Team Management", "CREATE");
   const { options } = useOrgHierarchyFilters(filters);
 
+  const [openTypeDialog,   setOpenTypeDialog]   = useState(false);
   const [openAddDialog,    setOpenAddDialog]    = useState(false);
   const [openUploadDialog, setOpenUploadDialog] = useState(false);
-  const [splitOpen,        setSplitOpen]        = useState(false);
-  const splitAnchorRef = useRef<HTMLDivElement>(null);
 
   const handleFilterChange = useCallback(
     (key: keyof OrgFilterValues, value?: number) => {
@@ -103,35 +98,20 @@ export const TeamManagementFilter = ({
             }}
           >
             {canCreateTeam && (
-              <ButtonGroup
+              <Button
                 variant="contained"
-                ref={splitAnchorRef}
                 disableElevation
+                startIcon={<PersonAddAltIcon />}
+                onClick={() => setOpenTypeDialog(true)}
                 sx={{
                   flex: { xs: "1 1 100%", sm: "0 1 auto" },
                   minWidth: "max-content",
-                  borderRadius: "8px",
-                  "& .MuiButtonGroup-grouped": { borderColor: "rgba(255,255,255,0.3)" },
+                  textTransform: "none", fontWeight: 600,
+                  borderRadius: "8px", px: 2, whiteSpace: "nowrap",
                 }}
               >
-                <Button
-                  startIcon={<PersonAddAltIcon />}
-                  onClick={() => actorUserId && setOpenAddDialog(true)}
-                  sx={{
-                    flexGrow: 1, textTransform: "none", fontWeight: 600,
-                    borderRadius: "8px 0 0 8px", px: 2, whiteSpace: "nowrap",
-                  }}
-                >
-                  Add Member
-                </Button>
-                <Button
-                  size="small"
-                  onClick={() => setSplitOpen((p) => !p)}
-                  sx={{ borderRadius: "0 8px 8px 0", px: 0.5, minWidth: 32 }}
-                >
-                  <ArrowDropDownIcon />
-                </Button>
-              </ButtonGroup>
+                Add Member
+              </Button>
             )}
 
             {/*  ExportPanel now receives live data props */}
@@ -146,50 +126,19 @@ export const TeamManagementFilter = ({
         </Box>
       </OrgHierarchyFilters>
 
-      {/* Popper */}
-      <Popper
-        open={splitOpen}
-        anchorEl={splitAnchorRef.current}
-        transition
-        disablePortal
-        placement="bottom-end"
-        style={{ zIndex: 1300 }}
-      >
-        {({ TransitionProps }) => (
-          <Grow {...TransitionProps}>
-            <Paper
-              elevation={3}
-              sx={{ borderRadius: "10px", border: "1px solid", borderColor: "divider", overflow: "hidden", mt: 0.5 }}
-            >
-              <ClickAwayListener onClickAway={() => setSplitOpen(false)}>
-                <MenuList dense disablePadding>
-                  <MenuItem
-                    onClick={() => {
-                      setSplitOpen(false);
-                      actorUserId && setOpenAddDialog(true);
-                    }}
-                    sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
-                  >
-                    <PersonAddAltIcon sx={{ fontSize: 18, color: "primary.main" }} />
-                    Add single member
-                  </MenuItem>
-                  <Divider sx={{ my: 0 }} />
-                  <MenuItem
-                    onClick={() => {
-                      setSplitOpen(false);
-                      setOpenUploadDialog(true);
-                    }}
-                    sx={{ py: 1.5, px: 2, gap: 1.5, fontSize: 14 }}
-                  >
-                    <UploadFileIcon sx={{ fontSize: 18, color: "success.main" }} />
-                    Upload via Excel
-                  </MenuItem>
-                </MenuList>
-              </ClickAwayListener>
-            </Paper>
-          </Grow>
-        )}
-      </Popper>
+      {/* Pick how to add: single member or Excel upload */}
+      <AddMemberTypeDialog
+        open={openTypeDialog}
+        onClose={() => setOpenTypeDialog(false)}
+        onSelectSingle={() => {
+          setOpenTypeDialog(false);
+          if (actorUserId) setOpenAddDialog(true);
+        }}
+        onSelectUpload={() => {
+          setOpenTypeDialog(false);
+          setOpenUploadDialog(true);
+        }}
+      />
 
       {actorUserId && (
         <AddMemberDialog
