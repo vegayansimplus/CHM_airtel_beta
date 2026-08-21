@@ -45,6 +45,12 @@ import {
 // actions - only fetched once the corresponding button is actually clicked.
 const PlanInvDialog = lazy(() => import("../dialog/plan-inv-preview/PlanInvDialog"));
 const PreviewCrqPdfDialog = lazy(() => import("../dialog/crq-preview/PreviewCrqPdfDialog"));
+// Host for the "Attribute Update" button that now lives inside the review
+// dialog's form (see generic/dialog/AttributeUpdateGate) - the button only
+// dispatches the open action, so the dialog itself has to be mounted here.
+const AttributeUpdateDialog = lazy(
+  () => import("../../sub-feature/attributeUpdate/components/AttributeUpdateDialog"),
+);
 
 interface PlanAndInventoryPageProps {
   /**
@@ -645,6 +651,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
             colors={colors}
             onSubmit={handleReviewSubmit}
           />
+          <AttributeUpdateDialog />
         </Suspense>
       )}
       {/* Same "Preview CRQ" plan PDF the single-CRQ cockpit renders, matching

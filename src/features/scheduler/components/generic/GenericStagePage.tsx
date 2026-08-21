@@ -35,6 +35,12 @@ import { usePermission } from "../../../auth/hooks/usePermission";
 const RescheduleDialog = lazy(() => import("../crq-workflow/reschedule/RescheduleDialog"));
 const StageReviewDialog = lazy(() => import("./dialog/StageReviewDialog"));
 const PreviewCrqPdfDialog = lazy(() => import("../dialog/crq-preview/PreviewCrqPdfDialog"));
+// Host for the "Attribute Update" button that now lives inside the review
+// dialog's form (see dialog/AttributeUpdateGate) - the button only dispatches
+// the open action, so the dialog itself has to be mounted by the page.
+const AttributeUpdateDialog = lazy(
+  () => import("../../sub-feature/attributeUpdate/components/AttributeUpdateDialog"),
+);
 const RESCHEDULABLE_STAGES = new Set<StageKey>(["scheduling", "activityimplement"]);
 
 /** RBAC module + permission the Reschedule action requires. */
@@ -362,6 +368,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
             stageConfig={stageConfig}
             onSubmitDone={handleSubmitDone}
           />
+          <AttributeUpdateDialog />
         </Suspense>
       )}
       {/* Same "Preview CRQ" plan PDF the single-CRQ cockpit renders, opened

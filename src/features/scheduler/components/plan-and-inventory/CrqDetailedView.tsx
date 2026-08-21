@@ -4,7 +4,6 @@ import { useSelector } from "react-redux";
 import { useNavigate, useParams, useSearchParams } from "react-router";
 import { Box, Button, GlobalStyles, IconButton, Skeleton, Stack, Tooltip, Typography, useTheme } from "@mui/material";
 import VisibilityIcon from "@mui/icons-material/Visibility";
-import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import EventRepeatRoundedIcon from "@mui/icons-material/EventRepeatRounded";
 import FactCheckRoundedIcon from "@mui/icons-material/FactCheckRounded";
 import ChevronLeftRoundedIcon from "@mui/icons-material/ChevronLeftRounded";
@@ -49,17 +48,6 @@ import { PlanInvDialog } from "../dialog/plan-inv-preview/PlanInvDialog";
 import { StageReviewDialog } from "../generic/dialog/StageReviewDialog";
 import { PrevCrqStatusDialog } from "../dialog/impact/PrevCrqStatusDialog";
 import { PreviewCrqPdfDialog } from "../dialog/crq-preview/PreviewCrqPdfDialog";
-// Both imported by direct file path, deliberately bypassing the sub-feature's
-// barrel (index.ts): the barrel statically re-exports every component in the
-// sub-feature (including the Dialog itself), so importing anything through
-// it - even just the launcher hook - would give this page a static import
-// edge into the whole Attribute Update module graph and defeat the
-// dynamic-import code-split below. useOpenAttributeUpdate's own file has no
-// dependency on the field catalog or the dialog subtree, so it's safe to
-// import eagerly; the Dialog (react-hook-form, the full 7-stage field
-// catalog, WorkflowStageCard/Body) is only ever needed after the user
-// actually clicks "Attribute Update", hence React.lazy.
-import { useOpenAttributeUpdate } from "../../sub-feature/attributeUpdate/hooks/useOpenAttributeUpdate";
 
 const AttributeUpdateDialog = lazy(
   () => import("../../sub-feature/attributeUpdate/components/AttributeUpdateDialog"),
@@ -198,7 +186,6 @@ export const CrqDetailedView: React.FC = () => {
   const [validateOpen, setValidateOpen] = useState(false);
   const [previewPdfOpen, setPreviewPdfOpen] = useState(false);
   const [previewPdfCrqNo, setPreviewPdfCrqNo] = useState<string | null>(null);
-  const openAttributeUpdate = useOpenAttributeUpdate();
 
   const { hasPermission } = usePermission();
   // One gate for every mutating affordance on this screen. Reschedule already
@@ -448,17 +435,10 @@ export const CrqDetailedView: React.FC = () => {
             } satisfies CRQAction,
           ]
         : []),
-      ...(canEdit
-        ? [
-            {
-              key: "attribute-update",
-              label: "Attribute Update",
-              icon: <EditNoteRoundedIcon sx={{ fontSize: 16 }} />,
-              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
-              onClick: () => selectedCrq && openAttributeUpdate(selectedCrq),
-            } satisfies CRQAction,
-          ]
-        : []),
+      // "Attribute Update" deliberately no longer lives here: it moved inside
+      // the stage's Review dialog, directly above its outcome selector, so the
+      // attributes are updated in the same breath as the Pass/Failed decision
+      // they justify. See dialog/AttributeUpdateGate.
       {
         key: "show-prev-crq-status",
         label: "CRQ Details",
@@ -490,7 +470,6 @@ export const CrqDetailedView: React.FC = () => {
       isCrqDone,
       canEdit,
       canReschedule,
-      openAttributeUpdate,
       handleShowPrevCrqStatus,
     ],
   );

@@ -33,6 +33,10 @@ import {
   STATUS_OPTIONS,
 } from "../../../types/constants";
 import { SectionLabel, StatusCard, TeamButton } from "./PlanInvDialog.styles";
+import {
+  AttributeUpdateGate,
+  useAttributeUpdateGate,
+} from "../../generic/dialog/AttributeUpdateGate";
 
 interface Props {
   crq: any;
@@ -48,6 +52,10 @@ interface Props {
    * cancelled or already reviewed. */
   readOnly?: boolean;
   panelOpen: boolean;
+  /** Mirrors `PlanInvDialog`'s own `open` flag - flipping it resets the
+   * Attribute Update gate, so every fresh visit to this form has to visit
+   * attributes again before an outcome is recorded silently. */
+  open: boolean;
   colors: ThemeColors;
   setPanelOpen: (v: boolean) => void;
   onClose: () => void;
@@ -63,6 +71,7 @@ export const FormPanel: React.FC<Props> = ({
   isDone,
   readOnly = false,
   panelOpen,
+  open,
   colors,
   setPanelOpen,
   onClose,
@@ -72,6 +81,12 @@ export const FormPanel: React.FC<Props> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionError, setSubmissionError] = useState<string | null>(null);
   const isLocked = isCancelled || isDone || readOnly;
+
+  // "Attribute Update" lives here, directly above the outcome selector,
+  // instead of on the cockpit's record-action row - same gate the six generic
+  // stages use, so Plan & Inventory behaves identically. Picking an outcome
+  // without opening it warns but never blocks.
+  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isLocked });
 
   const {
     control,
@@ -252,6 +267,14 @@ export const FormPanel: React.FC<Props> = ({
                 </Alert>
               </Collapse>
 
+              <AttributeUpdateGate
+                visited={attributeGate.visited}
+                warned={attributeGate.warned}
+                disabled={attributeGate.isDisabled}
+                colors={colors}
+                onOpen={attributeGate.openDialog}
+              />
+
               {/* ── Status selector ──────────────────────────────── */}
               <Box>
                 <Stack
@@ -299,9 +322,11 @@ export const FormPanel: React.FC<Props> = ({
                             selected={selected}
                             accent={color}
                             isDisabled={isLocked}
-                            onClick={() =>
-                              !isLocked && field.onChange(opt.value)
-                            }
+                            onClick={() => {
+                              if (isLocked) return;
+                              field.onChange(opt.value);
+                              attributeGate.warnIfPending();
+                            }}
                             role="radio"
                             aria-checked={selected}
                             aria-disabled={isLocked}
@@ -313,6 +338,7 @@ export const FormPanel: React.FC<Props> = ({
                               ) {
                                 e.preventDefault();
                                 field.onChange(opt.value);
+                                attributeGate.warnIfPending();
                               }
                             }}
                           >

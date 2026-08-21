@@ -95,6 +95,7 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           readOnly={!canEdit}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
+          open={open}
           colors={dialogColors}
           onClose={onClose}
           onExternalSubmit={onSubmit}

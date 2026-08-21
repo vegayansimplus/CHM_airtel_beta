@@ -19,6 +19,7 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { FieldRenderer } from "./FieldRenderer";
+import { AttributeUpdateGate, useAttributeUpdateGate } from "./AttributeUpdateGate";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
 
 interface GenericFormPanelProps {
@@ -41,6 +42,10 @@ interface GenericFormPanelProps {
    * for the "Hide Panel" toggle to reveal, so it's omitted and this stays
    * the dialog's only content. */
   hasPreviewPanel: boolean;
+  /** Mirrors `StageReviewDialog`'s own `open` flag - flipping it resets the
+   * Attribute Update gate, so every fresh visit to this form has to visit
+   * attributes again before an outcome is recorded silently. */
+  open: boolean;
   onClose: () => void;
   onSubmitDone: (values: Record<string, any>, crq: any) => Promise<{ success: boolean }>;
 }
@@ -61,11 +66,18 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   colors,
   setPanelOpen,
   hasPreviewPanel,
+  open,
   onClose,
   onSubmitDone,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isLocked = isCancelled || isDone || readOnly;
+
+  // "Attribute Update" lives here, directly above the outcome selector,
+  // instead of on the cockpit's record-action row. Picking Pass/Failed/
+  // Cancelled without opening it warns but never blocks - see
+  // useAttributeUpdateGate.
+  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isLocked });
 
   const {
     control,
@@ -173,6 +185,14 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                   </Alert>
                 </Collapse>
 
+                <AttributeUpdateGate
+                  visited={attributeGate.visited}
+                  warned={attributeGate.warned}
+                  disabled={attributeGate.isDisabled}
+                  colors={colors}
+                  onOpen={attributeGate.openDialog}
+                />
+
                 {/* Outcome selector, built from stageConfig.statusOptions */}
                 <Box>
                   <Typography
@@ -191,7 +211,11 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                           key={opt.value}
                           role="radio"
                           aria-checked={selected}
-                          onClick={() => !isLocked && setValue("status", opt.value, { shouldDirty: true, shouldValidate: true })}
+                          onClick={() => {
+                            if (isLocked) return;
+                            setValue("status", opt.value, { shouldDirty: true, shouldValidate: true });
+                            attributeGate.warnIfPending();
+                          }}
                           sx={{
                             display: "flex",
                             alignItems: "flex-start",

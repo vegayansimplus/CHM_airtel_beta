@@ -97,6 +97,7 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
       panelOpen={panelOpen}
       setPanelOpen={setPanelOpen}
       hasPreviewPanel={hasPreviewPanel}
+      open={open}
       colors={colors}
       onClose={onClose}
       onSubmitDone={onSubmitDone}
