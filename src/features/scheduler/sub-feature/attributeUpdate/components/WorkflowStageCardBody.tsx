@@ -49,6 +49,7 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
       control,
       handleSubmit,
       reset,
+      setValue,
       formState: { errors },
     } = useForm<AttributeFormValues>({ defaultValues: EMPTY_FORM_DEFAULTS });
 
@@ -127,6 +128,7 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
           system="remedy"
           attributes={stageView.remedyAttributes}
           control={control}
+          setValue={setValue}
           errors={errors}
           viewOnly={!isEditable}
           colors={colors}
@@ -135,19 +137,19 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
           system="cab"
           attributes={stageView.cabAttributes}
           control={control}
+          setValue={setValue}
           errors={errors}
           viewOnly={!isEditable}
           colors={colors}
         />
-        <AttributeSection
-          system="planningTool"
-          attributes={stageView.planningToolVisible}
-          backendAttributes={stageView.planningToolBackend}
-          control={control}
-          errors={errors}
-          viewOnly={!isEditable}
-          colors={colors}
-        />
+        {/* The Planning Tool (Cygnet) section is deliberately not rendered at
+            any stage - it is hidden from the UI, not dropped from the flow.
+            Its fields stay in the form state (buildAttributeFormDefaults still
+            seeds `planningTool` from the live GET, and react-hook-form keeps
+            unrendered values because shouldUnregister is off), so
+            buildAttributeSaveSections still emits the full `cygnet` section on
+            Save exactly as before. Re-add an <AttributeSection system="planningTool">
+            here to bring the card back. */}
 
         {isEditable && (
           <AttributeDialogFooter

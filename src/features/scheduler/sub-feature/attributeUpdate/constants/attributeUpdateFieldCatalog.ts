@@ -91,52 +91,175 @@ const YES_NO_VALUES = ["Yes", "No"];
 
 const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 
+/** Circle codes offered by the numbered CAB circle slots (circle1..circle19).
+ * Deliberately separate from the "Impacted Circle(s)**" list below, which also
+ * carries an "All" entry and spells one circle "GI" - that field's options are
+ * left exactly as they were. */
+const CIRCLE_VALUES = [
+  "AP",
+  "BH&J",
+  "GJ",
+  "HPHP",
+  "ITMC",
+  "J&K",
+  "KK",
+  "KL",
+  "ROMH",
+  "MPCG",
+  "MUM",
+  "NCR",
+  "NESA",
+  "OR",
+  "RJ",
+  "TN",
+  "UPE",
+  "UPW",
+  "WB",
+];
+
+/** Options for the 19 numbered per-circle impactedPartiesCab* fields. Same list
+ * the existing "Impacted Parties*" multi-select uses, kept as its own const so
+ * that field's inline options stay exactly as they were. */
+const IMPACTED_PARTIES_VALUES = [
+  "Core/MPBN",
+  "TWAMP-Accedian",
+  "B2B",
+  "NOC_DCN_&_Tool",
+  "Telemedia",
+  "Switch",
+  "NOC_IM",
+  "NOC_NS",
+  "TWAMP-Exfo",
+  "Mobility-RAN",
+  "DC",
+  "NA",
+  "IWAN",
+];
+
 // ─── Shared attribute blocks ─────────────────────────────────────────────────
+
+/** How many numbered circle slots the CAB form stores (circle1..circle19 and
+ * their matching impactedPartiesCab1..impactedPartiesCab19). */
+const CAB_CIRCLE_SLOT_COUNT = 19;
+
+/**
+ * The CAB form's 19 numbered circle / impacted-parties pairs, as flat fields.
+ *
+ * Which circle sits in which slot is backend-driven, not fixed: the API sends
+ * whatever circle1..circle19 hold for this CRQ, so both halves of each pair are
+ * editable rather than hardcoded labels. That also matters for saving - a
+ * read-only attribute is skipped entirely by buildAttributeSaveSections, so
+ * marking the circle fields read-only would drop them from the payload instead
+ * of echoing them back untouched.
+ */
+const CAB_CIRCLE_SLOT_ATTRIBUTES: StageAttribute[] = Array.from(
+  { length: CAB_CIRCLE_SLOT_COUNT },
+  (_, i) => i + 1,
+).flatMap((slot) => [
+  {
+    name: `Circle ${slot}`,
+    field: `circle${slot}`,
+    type: "Dropdown" as const,
+    mandatory: "Optional",
+    values: CIRCLE_VALUES,
+  },
+  {
+    name: `Impacted Parties ${slot}`,
+    field: `impactedPartiesCab${slot}`,
+    type: "Dropdown" as const,
+    mandatory: "Optional",
+    values: IMPACTED_PARTIES_VALUES,
+  },
+]);
+
+/**
+ * One "Support Company → Support Organization → Support Group Name+" cascade.
+ *
+ * The Change Coordinator and Change Implementer trios are the same three-level
+ * lookup over the same lists - GET_IMPL_COMPANY_DROPDOWN /
+ * GET_IMPL_ORG_DROPDOWN / GET_IMPL_GROUP_DROPDOWN, fronted by
+ * /attributeupdate/dropdown/impl-*, which narrow organizations by company and
+ * groups by company + organization. They differ only in field names, labels and
+ * mandatory-ness, so both are built from this one definition rather than
+ * duplicated.
+ *
+ * `values` stays behind as the offline fallback if a lookup fails; `dependsOn`
+ * tells useAttributeOptions which sibling fields parameterize the lookup, and
+ * `resets` clears the levels below whenever a level changes.
+ */
+const buildSupportCascade = (
+  /** Display names, company → organization → group. */
+  [companyName, organizationName, groupName]: [string, string, string],
+  /** DTO field names, in the same order. */
+  [companyField, organizationField, groupField]: [string, string, string],
+  mandatory: string,
+): StageAttribute[] => {
+  const company = { field: companyField, label: companyName };
+  const organization = { field: organizationField, label: organizationName };
+
+  return [
+    {
+      name: companyName,
+      field: companyField,
+      type: "Dropdown",
+      mandatory,
+      optionSource: "implCompany",
+      resets: [organizationField, groupField],
+      values: COMPANY_VALUES,
+    },
+    {
+      name: organizationName,
+      field: organizationField,
+      type: "Dropdown",
+      mandatory,
+      optionSource: "implOrganization",
+      dependsOn: [company],
+      resets: [groupField],
+      values: ORGANIZATION_VALUES,
+    },
+    {
+      name: groupName,
+      field: groupField,
+      type: "Dropdown",
+      mandatory,
+      optionSource: "implGroup",
+      dependsOn: [company, organization],
+      values: GROUP_VALUES,
+    },
+  ];
+};
 
 /** Coordinator / implementer support-group attributes (Remedy). */
 const COORDINATOR_IMPLEMENTER_ATTRIBUTES: StageAttribute[] = [
-  {
-    name: "Support Company - Change Coordinator",
-    field: "supportCompanyChangeCoordinator",
-    type: "Dropdown",
-    mandatory: "Mandatory",
-    values: COMPANY_VALUES,
-  },
-  {
-    name: "Support Organization - Change Coordinator",
-    field: "supportOrganizationChangeCoordinator",
-    type: "Dropdown",
-    mandatory: "Mandatory",
-    values: ORGANIZATION_VALUES,
-  },
-  {
-    name: "Support Group Name+ - Change Coordinator",
-    field: "supportGroupNameChangeCoordinator",
-    type: "Dropdown",
-    mandatory: "Mandatory",
-    values: GROUP_VALUES,
-  },
-  {
-    name: "Support Company - Change Implementer",
-    field: "supportCompanyChangeImplementer",
-    type: "Dropdown",
-    mandatory: "Optional",
-    values: COMPANY_VALUES,
-  },
-  {
-    name: "Support Organization -Change Implementer",
-    field: "supportOrganizationChangeImplementer",
-    type: "Dropdown",
-    mandatory: "Optional",
-    values: ORGANIZATION_VALUES,
-  },
-  {
-    name: "Support Group Name+ - Change Implementer",
-    field: "supportGroupNameChangeImplementer",
-    type: "Dropdown",
-    mandatory: "Optional",
-    values: GROUP_VALUES,
-  },
+  // Remedy's ASCPY / ASORG / ASGRP.
+  ...buildSupportCascade(
+    [
+      "Support Company - Change Coordinator",
+      "Support Organization - Change Coordinator",
+      "Support Group Name+ - Change Coordinator",
+    ],
+    [
+      "supportCompanyChangeCoordinator",
+      "supportOrganizationChangeCoordinator",
+      "supportGroupNameChangeCoordinator",
+    ],
+    "Mandatory",
+  ),
+  // Remedy's ChgImpCpy / ChgImpOrg / ChgImpGrp. The missing space in
+  // "Organization -Change" matches the source system's own label.
+  ...buildSupportCascade(
+    [
+      "Support Company - Change Implementer",
+      "Support Organization -Change Implementer",
+      "Support Group Name+ - Change Implementer",
+    ],
+    [
+      "supportCompanyChangeImplementer",
+      "supportOrganizationChangeImplementer",
+      "supportGroupNameChangeImplementer",
+    ],
+    "Optional",
+  ),
 ];
 
 /**
@@ -181,7 +304,8 @@ const BUSINESS_JUSTIFICATION_ATTRIBUTE: StageAttribute = {
 
 // ─── 7 CMS stages (ids reuse the app-wide WorkflowStageId) ───────────────────
 
-export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
+/** The per-stage schemas before the stage-agnostic CAB fields are appended. */
+const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
   {
     id: "review",
     label: "Plan & Inventory Validation",
@@ -226,7 +350,10 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
       {
         name: "Impacted Segment",
         field: "impactedSegment",
-        type: "Radio Button",
+        // Multi-select: an activity can hit more than one segment. Held as
+        // string[] in the form, saved as a CSV string like the other
+        // multi-value fields.
+        type: "Multi Select Checkbox",
         mandatory: "Optional",
         values: [
           "DC",
@@ -640,6 +767,20 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = [
     ],
   },
 ];
+
+/**
+ * The stage schemas, with the 19 numbered circle / impacted-parties pairs
+ * appended to every stage's CAB section.
+ *
+ * They are not stage-specific: GET /attributeupdate/details returns the whole
+ * CAB row whatever the stage, and INSERT_CAB_UPDATE_ATTR writes it back whole,
+ * so a stage that omitted these columns would blank whatever the previous stage
+ * had saved in them. Appended here rather than spread into each stage's `cab`
+ * array so no stage can be forgotten.
+ */
+export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = CMS_STAGE_SCHEMAS_BASE.map(
+  (stage) => ({ ...stage, cab: [...stage.cab, ...CAB_CIRCLE_SLOT_ATTRIBUTES] }),
+);
 
 // ─── Planning Tool (Cygnet) master field list, filtered per stage via scopes ─
 

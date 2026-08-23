@@ -23,6 +23,7 @@ export * from "./selectors/attributeUpdate.selectors";
 // Hooks
 export * from "./hooks/useOpenAttributeUpdate";
 export * from "./hooks/useAttributeUpdate";
+export * from "./hooks/useAttributeOptions";
 
 // Components
 export { AttributeUpdateDialog } from "./components/AttributeUpdateDialog";

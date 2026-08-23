@@ -1,4 +1,5 @@
 import type {
+  AttributeFieldType,
   AttributeUpdateDetailsResponse,
   MandatoryLevel,
   ResolvedAttribute,
@@ -109,7 +110,7 @@ const SYSTEM_TO_PAYLOAD_KEY: Record<TargetSystem, "remedy" | "cab" | "cygnet"> =
   planningTool: "cygnet",
 };
 
-/** Editable form value for one field: plain string, or a string[] for Multi Select Dropdown. */
+/** Editable form value for one field: plain string, or a string[] for the multi-value types. */
 export type AttributeFormValue = string | string[];
 export type AttributeFormSection = Record<string, AttributeFormValue>;
 /** react-hook-form values shape for the dialog's single stage-wide form. */
@@ -123,6 +124,11 @@ const fromDateTimeLocal = (value: string): string | null =>
 
 const isEditable = (attribute: ResolvedAttribute) =>
   !attribute.readOnly && !attribute.isBackend && !attribute.autoSetFrom;
+
+/** Field types held as string[] in the form and sent as a CSV string on save -
+ * the dropdown and the checkbox-group renderings of the same multi-value field. */
+const isMultiValueType = (type: AttributeFieldType) =>
+  type === "Multi Select Dropdown" || type === "Multi Select Checkbox";
 
 /**
  * Seeds the dialog's react-hook-form defaultValues from a resolved stage
@@ -145,7 +151,7 @@ export function buildAttributeFormDefaults(
   for (const attribute of all) {
     if (!isEditable(attribute)) continue;
     const bucket = sections[attribute.system];
-    if (attribute.type === "Multi Select Dropdown") {
+    if (isMultiValueType(attribute.type)) {
       bucket[attribute.field] = attribute.value
         ? attribute.value.split(",").map((v) => v.trim()).filter(Boolean)
         : [];
@@ -197,7 +203,7 @@ export function buildAttributeSaveSections(
 
       hasField = true;
       const raw = formValues[system]?.[attribute.field];
-      if (attribute.type === "Multi Select Dropdown") {
+      if (isMultiValueType(attribute.type)) {
         section[attribute.field] = Array.isArray(raw) && raw.length ? raw.join(",") : null;
       } else if (attribute.type === "Date Time") {
         section[attribute.field] = fromDateTimeLocal((raw as string) ?? "");
@@ -213,10 +219,15 @@ export function buildAttributeSaveSections(
 }
 
 /**
- * Overall mandatory-field completion for the currently selected stage,
- * across Remedy + CAB + Cygnet - drives the header card's progress bar.
- * `liveValues` (react-hook-form's live watch) is preferred over the loaded
- * `.value` so the bar updates as the user types, before Save.
+ * Overall mandatory-field completion for the currently selected stage -
+ * drives the header card's progress bar. `liveValues` (react-hook-form's
+ * live watch) is preferred over the loaded `.value` so the bar updates as
+ * the user types, before Save.
+ *
+ * Counts Remedy + CAB only. The Cygnet (Planning Tool) section is hidden
+ * from the dialog (see WorkflowStageCardBody), so counting its mandatory
+ * fields would show a target the user has no field to fill - even though
+ * those values are still saved.
  */
 export function computeStageCompletion(
   stageView: StageAttributeView,
@@ -225,7 +236,6 @@ export function computeStageCompletion(
   const groups: Array<[TargetSystem, ResolvedAttribute[]]> = [
     ["remedy", stageView.remedyAttributes],
     ["cab", stageView.cabAttributes],
-    ["planningTool", stageView.planningToolVisible],
   ];
 
   let filled = 0;

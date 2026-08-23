@@ -12,7 +12,12 @@ import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
 import AssignmentOutlinedIcon from "@mui/icons-material/AssignmentOutlined";
 import EventNoteOutlinedIcon from "@mui/icons-material/EventNoteOutlined";
-import { useWatch, type Control, type FieldErrors } from "react-hook-form";
+import {
+  useWatch,
+  type Control,
+  type FieldErrors,
+  type UseFormSetValue,
+} from "react-hook-form";
 import type { Colors } from "../../../types/colorTypes";
 import type {
   ResolvedAttribute,
@@ -28,6 +33,8 @@ interface AttributeSectionProps {
   /** Backend-set Planning Tool fields, rendered in a dimmed sub-section. */
   backendAttributes?: ResolvedAttribute[];
   control: Control<AttributeFormValues>;
+  /** Forwarded to AttributeRow so a cascade parent can clear the levels below it. */
+  setValue?: UseFormSetValue<AttributeFormValues>;
   errors: FieldErrors<AttributeFormValues>;
   /** History/completed stage cards: every row renders read-only regardless
    * of its own flags, and the live mandatory-count watch is skipped. */
@@ -61,6 +68,7 @@ export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(func
   attributes,
   backendAttributes,
   control,
+  setValue,
   errors,
   viewOnly,
   colors,
@@ -176,6 +184,7 @@ export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(func
                 key={attribute.field}
                 attribute={attribute}
                 control={control}
+                setValue={setValue}
                 errors={errors}
                 viewOnly={viewOnly}
                 colors={colors}
@@ -211,6 +220,7 @@ export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(func
                   key={attribute.field}
                   attribute={attribute}
                   control={control}
+                  setValue={setValue}
                   errors={errors}
                   viewOnly={viewOnly}
                   colors={colors}

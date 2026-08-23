@@ -7,6 +7,10 @@ export type AttributeFieldType =
   | "Date Time"
   | "Dropdown"
   | "Multi Select Dropdown"
+  /** Same multi-value semantics as "Multi Select Dropdown" (string[] in the
+   * form, CSV on the wire) but rendered as an always-visible checkbox group
+   * rather than a collapsed select. */
+  | "Multi Select Checkbox"
   | "Radio Button";
 
 /** Normalized mandatory-ness bucket derived from the raw mandatory label. */
@@ -31,6 +35,29 @@ export type PlanningToolScope =
 /** Which runtime value an auto-set (read-only) attribute mirrors. */
 export type AutoSetSource = "cmsStage" | "remedyStatus" | "crqNo";
 
+/**
+ * Live lookup backing a dropdown's options, instead of a hardcoded `values`
+ * list. The three levels form a cascade: an organization is only valid within
+ * a company, a group only within a company + organization, so each level is
+ * fetched with the levels above it as parameters (see useAttributeOptions).
+ *
+ * Named after the GET_IMPL_*_DROPDOWN procedures behind them. Both the Change
+ * Coordinator and the Change Implementer trio read these same lists - they are
+ * one pool of support companies/organizations/groups, not two.
+ */
+export type AttributeOptionSource =
+  | "implCompany"
+  | "implOrganization"
+  | "implGroup";
+
+/** A sibling field whose current value parameterizes an attribute's lookup. */
+export interface AttributeDependency {
+  /** The sibling's `field` (same target system as the dependent attribute). */
+  field: string;
+  /** The sibling's display name, for the "Select X first." hint. */
+  label: string;
+}
+
 export interface StageAttribute {
   name: string;
   /** camelCase DTO property name - the join key into the live API values. */
@@ -39,6 +66,24 @@ export interface StageAttribute {
   /** Raw mandatory label from the source system, e.g. "Mandatory - if cancellation". */
   mandatory: string;
   values?: string[];
+  /**
+   * Fetches this dropdown's options from the backend rather than using
+   * `values`. `values` is still allowed alongside it and acts as the fallback
+   * list when the lookup fails.
+   */
+  optionSource?: AttributeOptionSource;
+  /**
+   * The levels above this one in a cascade, outermost first - their live values
+   * are what the lookup is parameterized by, and until they are all filled the
+   * lookup cannot run at all.
+   */
+  dependsOn?: AttributeDependency[];
+  /**
+   * Fields (same system, by `field`) cleared whenever this one changes - the
+   * downstream levels of a cascade, whose current selection stops being valid
+   * the moment their parent moves.
+   */
+  resets?: string[];
   readOnly?: boolean;
   autoSetFrom?: AutoSetSource;
 }
