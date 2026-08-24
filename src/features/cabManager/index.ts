@@ -40,3 +40,6 @@ export * from "./data/cabManager.mock";
 
 // Types
 export type * from "./types/types";
+
+// Cab Manager RBAC
+export { resolveCabScreens, CAB_SCREEN_SUB_MODULES } from "./rbac/cabScreens";

@@ -11,7 +11,8 @@ import PlayArrowOutlinedIcon from "@mui/icons-material/PlayArrowOutlined";
 import SettingsIcon from "@mui/icons-material/Settings";
 import { useNotifTokens } from "../../userMe/notification-manager/style/notificationTokens";
 import { useCabRole } from "../hooks/useCabRole";
-import { ROLE_SCREENS } from "../data/cabManager.mock";
+import { resolveCabScreens } from "../rbac/cabScreens";
+import { usePermission } from "../../../rbac/usePermission";
 import CommonContainer from "../../../components/common/CommonContainer";
 import { RouteFallback } from "../../../components/loading/PageLoader";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
@@ -88,15 +89,17 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
   const theme = useTheme();
   const tk = useNotifTokens(theme);
   const { role } = useCabRole();
+  const { hasSubModule } = usePermission();
 
   /* ================= ALLOWED TABS ================= */
 
   const tabs = useMemo(() => {
-    const allowedScreens = ROLE_SCREENS[role] ?? ROLE_SCREENS.cabMember;
-    return allowedScreens
+    // Same resolver the sidebar uses, so the tab strip and the sidebar can
+    // never disagree (assigned sub-modules first, persona table as fallback).
+    return resolveCabScreens(role, hasSubModule)
       .map((screen) => CAB_MANAGER_TAB_MAP[screen])
       .filter((tab): tab is CabTabMeta => Boolean(tab));
-  }, [role]);
+  }, [role, hasSubModule]);
 
   /* ================= ACTIVE TAB ================= */
 

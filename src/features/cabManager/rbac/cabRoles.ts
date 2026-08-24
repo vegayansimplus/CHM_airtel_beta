@@ -14,9 +14,10 @@ import type { Role } from "../types/types";
 //                         (the user's roleCode arrives at login).
 //
 //  This file is the single client-side mapping from the authenticated user's
-//  roleCode to the Cab Manager persona role. Which persona sees which screens
-//  is defined in data/cabManager.mock.ts (ROLE_SCREENS) and is not affected
-//  by this mapping.
+//  roleCode to the Cab Manager persona role. Which screens a user actually
+//  sees is resolved in ./cabScreens.ts — from the assigned sub-modules first,
+//  with the persona's ROLE_SCREENS list (data/cabManager.mock.ts) used only
+//  as a fallback for users whose module carries no sub-module rows.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** Module name exactly as returned by the login RBAC payload. */

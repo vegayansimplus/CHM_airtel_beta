@@ -14,9 +14,12 @@ export type RequiredAccess = AccessRequirement;
  * them (sidebar visibility is unaffected — this only concerns direct-URL
  * enforcement in PrivateRoute):
  *
- * - "Cab Manager": child visibility is governed entirely by the separate
- *   ROLE_SCREENS/useCabRole persona system (see useSidebarNav.tsx), not by
- *   WEB_* sub-module grants — those are not guaranteed to agree.
+ * - "Cab Manager": child visibility is resolved by resolveCabScreens()
+ *   (features/cabManager/rbac/cabScreens.ts), which prefers WEB_* sub-module
+ *   grants but falls back to the ROLE_SCREENS persona table when a user's
+ *   Cab Manager module carries no sub-module rows. Enforcing
+ *   requiredSubModule here has no equivalent fallback, so it would lock those
+ *   users out of every Cab Manager page on a direct URL.
  * - "SFTP Management": live WEB_SUB_MODULE rows are named
  *   "Dashboard/Files/Servers", not the "Windows/Linux" sub-module names
  *   referenced in navRegistry.ts, so enforcing requiredSubModule here would
