@@ -44,7 +44,7 @@ export const ASSIGN_STAGES: CrqStage[] = STAGES;
 
 // ── Personas / role switcher ────────────────────────────────────────────────
 export const ROLES: Record<Role, Persona> = {
-  admin:       { role: "admin",       name: "Amit Verma",     title: "CTO · All Domains",        shortTitle: "CTO",          olm: "amver01", initials: "AV", color: "#1565C0", home: "dashboard" },
+  admin:       { role: "admin",       name: "Amit Verma",     title: "CTO · All Domains",        shortTitle: "CTO",          olm: "amver01", initials: "AV", color: "#1565C0", home: "cabPlanning" },
   requester:   { role: "requester",   name: "Karan Mehta",    title: "NOC L2 · Requester",       shortTitle: "NOC L2",       olm: "karme07", initials: "KM", color: "#00796B", home: "mycrqs" },
   stakeholder: { role: "stakeholder", name: "Priya Deshmukh", title: "COH Optics · Stakeholder", shortTitle: "COH Optics",   olm: "prdes03", initials: "PD", color: "#C2185B", home: "mycrqs" },
   cabEngineer: { role: "cabEngineer", name: "Ravi Nair",      title: "NOC · CAB Engineer",       shortTitle: "CAB Engineer", olm: "ravna02", initials: "RN", color: "#5D4037", home: "cabPlanning" },
@@ -52,13 +52,16 @@ export const ROLES: Record<Role, Persona> = {
   se:          { role: "se",          name: "Arjun Rao",      title: "Field SE · Implementation",shortTitle: "Field SE",     olm: "arjra09", initials: "AR", color: "#E64A19", home: "implementation" },
 };
 
+// "dashboard" hidden for now (2026-08-24) — re-add to a role's list to bring
+// it back in both the sidebar and the tab strip (see useSidebarNav.tsx /
+// CabManagerMainPageTab.tsx, both of which key off this list).
 export const ROLE_SCREENS: Record<Role, string[]> = {
-  admin:       ["dashboard", "cabPlanning", "cabSessions", "allcrqs", "journey", "admin"],
-  requester:   ["dashboard", "cabSessions", "mycrqs", "journey"],
-  stakeholder: ["dashboard", "cabSessions", "mycrqs", "journey"],
-  cabEngineer: ["dashboard", "cabSessions", "allcrqs", "journey"],
-  cabMember:   ["dashboard", "cabSessions", "journey"],
-  se:          ["dashboard", "cabSessions", "implementation", "journey"],
+  admin:       ["cabPlanning", "cabSessions", "allcrqs", "journey", "admin"],
+  requester:   ["cabSessions", "mycrqs", "journey"],
+  stakeholder: ["cabSessions", "mycrqs", "journey"],
+  cabEngineer: ["cabSessions", "allcrqs", "journey"],
+  cabMember:   ["cabSessions", "journey"],
+  se:          ["cabSessions", "implementation", "journey"],
 };
 
 // ── Core CRQ dataset — mirrors backend CrqDto (post sp_get_cab_crqs / sp_get_my_crqs_rows update) ──

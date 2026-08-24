@@ -104,7 +104,7 @@ const CabManagerMainPageTab: React.FC<CabManagerMainPageTabProps> = ({
     const found = tabs.find((tab) =>
       location.pathname.includes(`/cabmanager/${tab.path}`)
     );
-    return found?.path ?? tabs[0]?.path ?? "dashboard";
+    return found?.path ?? tabs[0]?.path ?? "sessions";
   }, [location.pathname, tabs]);
 
   /* ================= HEADER CONTROL ================= */

@@ -331,7 +331,11 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
             />
           }
         >
-          <Route index element={<Navigate to="dashboard" replace />} />
+          {/* Dashboard hidden for now (2026-08-24) — see ROLE_SCREENS in
+              cabManager.mock.ts. Route kept mounted so a bookmark or direct
+              link still resolves; index redirect points at "sessions"
+              instead since it's common to every role's tab list. */}
+          <Route index element={<Navigate to="sessions" replace />} />
           <Route path="dashboard" element={<CabDashboardPage />} />
           <Route path="allcrqs" element={<AllCrqsPage />} />
           <Route path="mycrqs" element={<MyCrqsPage />} />
