@@ -36,14 +36,18 @@ export interface UpdateCellResponse {
 }
 
 // ── Daily Golden Set types ────────────────────────────────────────────────────
+// NB: lower-case "w" — DailyGoldenSetRequestDto's W1D1..W6D7 fields
+// deserialize under Jackson's mangled property names (w1D1..w6D7); the
+// upper-case form is rejected as an unrecognized property. See the note on
+// GoldenSetApiRow in goldenSet.types.ts.
 export interface DailyGoldenSetPayload {
   userId: number;
-  W1D1: string; W1D2: string; W1D3: string; W1D4: string; W1D5: string; W1D6: string; W1D7: string;
-  W2D1: string; W2D2: string; W2D3: string; W2D4: string; W2D5: string; W2D6: string; W2D7: string;
-  W3D1: string; W3D2: string; W3D3: string; W3D4: string; W3D5: string; W3D6: string; W3D7: string;
-  W4D1: string; W4D2: string; W4D3: string; W4D4: string; W4D5: string; W4D6: string; W4D7: string;
-  W5D1: string; W5D2: string; W5D3: string; W5D4: string; W5D5: string; W5D6: string; W5D7: string;
-  W6D1: string; W6D2: string; W6D3: string; W6D4: string; W6D5: string; W6D6: string; W6D7: string;
+  w1D1: string; w1D2: string; w1D3: string; w1D4: string; w1D5: string; w1D6: string; w1D7: string;
+  w2D1: string; w2D2: string; w2D3: string; w2D4: string; w2D5: string; w2D6: string; w2D7: string;
+  w3D1: string; w3D2: string; w3D3: string; w3D4: string; w3D5: string; w3D6: string; w3D7: string;
+  w4D1: string; w4D2: string; w4D3: string; w4D4: string; w4D5: string; w4D6: string; w4D7: string;
+  w5D1: string; w5D2: string; w5D3: string; w5D4: string; w5D5: string; w5D6: string; w5D7: string;
+  w6D1: string; w6D2: string; w6D3: string; w6D4: string; w6D5: string; w6D6: string; w6D7: string;
 }
 
 export interface DailyGoldenSetResponse {

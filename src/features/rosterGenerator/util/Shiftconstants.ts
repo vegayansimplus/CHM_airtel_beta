@@ -10,8 +10,10 @@ export const DOW_LONG = [
   "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
 ] as const;
 
+// Lower-case "w" to match FutureWeekRow's actual (Jackson-mangled) keys —
+// see the note on that type.
 export const DAY_KEYS = [
-  "W7D1", "W7D2", "W7D3", "W7D4", "W7D5", "W7D6", "W7D7",
+  "w7D1", "w7D2", "w7D3", "w7D4", "w7D5", "w7D6", "w7D7",
 ] as const;
 
 // ─── Shift display order ──────────────────────────────────────────────────────

@@ -21,7 +21,9 @@ export function transformApiRowToEmployee(
   const shifts: string[] = [];
   for (let week = 1; week <= 6; week++) {
     for (let day = 1; day <= 7; day++) {
-      const key = `W${week}D${day}` as keyof GoldenSetApiRow;
+      // Lower-case "w" to match the API's actual JSON keys — see the note
+      // on GoldenSetApiRow.
+      const key = `w${week}D${day}` as keyof GoldenSetApiRow;
       const shiftCode = row[key];
       shifts.push(typeof shiftCode === "string" ? shiftCode : "");
     }
@@ -50,7 +52,11 @@ export function buildDailyGoldenSetPayload(
     for (let d = 1; d <= 7; d++) {
       const idx = (w - 1) * 7 + (d - 1);
       const code = emp.shifts[idx] ?? "W";
-      fields[`W${w}D${d}`] = code;
+      // Lower-case "w" — DailyGoldenSetRequestDto's fields (W1D1 etc.)
+      // deserialize under the same mangled name (w1D1..w6D7); sending
+      // upper-case keys makes Jackson reject the request as an unknown
+      // property. See the note on GoldenSetApiRow.
+      fields[`w${w}D${d}`] = code;
     }
   }
   return { userId: emp.prefId, ...fields } as DailyGoldenSetPayload;
