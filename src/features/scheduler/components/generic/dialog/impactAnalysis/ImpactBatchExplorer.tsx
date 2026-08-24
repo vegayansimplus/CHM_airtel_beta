@@ -43,6 +43,10 @@ const ENTITY_ACCENTS = ["#1E6FD9", "#7C3AED", "#0E9F6E", "#D97706", "#DB2777", "
 interface ImpactBatchExplorerProps {
   crqNo: string | null;
   colors: Colors;
+  /** Host stage is frozen (cancelled, already reviewed, or view-only). The
+   * explorer still lists, drills and downloads - only "Refetch", which
+   * actually re-runs the impact analysis script server-side, is disabled. */
+  readOnly?: boolean;
 }
 
 function buildExcelFileName(crqNo: string, batchNo: number): string {
@@ -267,7 +271,7 @@ const EntityBreakdownCard: React.FC<{
   </Paper>
 );
 
-export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo, colors }) => {
+export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo, colors, readOnly = false }) => {
   // The user's explicit pick, if any - resolved against the step-1 listing
   // below, so it can never point at a batch the server didn't report.
   const [pickedBatchNo, setPickedBatchNo] = useState<number | null>(null);
@@ -408,14 +412,21 @@ export const ImpactBatchExplorer: React.FC<ImpactBatchExplorerProps> = ({ crqNo,
             }}
           />
           <Box sx={{ flex: 1 }} />
-          <Tooltip title="Run the impact analysis script for this batch" arrow>
+          <Tooltip
+            title={
+              readOnly
+                ? "This stage is closed - the impact analysis script can no longer be run for it"
+                : "Run the impact analysis script for this batch"
+            }
+            arrow
+          >
             <span>
               <Button
                 size="small"
                 variant="outlined"
                 startIcon={scriptRunning ? <CircularProgress size={12} color="inherit" /> : <RefreshRoundedIcon sx={{ fontSize: 14 }} />}
                 onClick={handleRunScript}
-                disabled={scriptRunning}
+                disabled={scriptRunning || readOnly}
                 sx={{ fontSize: 11, textTransform: "none", borderRadius: colors.radiusL, px: 1.25 }}
               >
                 {scriptRunning ? "Running…" : "Refetch"}

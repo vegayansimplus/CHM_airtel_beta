@@ -32,6 +32,7 @@ import { resolveDomainScope } from "../../util/orgScope";
 import {
   WORKFLOW_STAGES,
   classifyStatusValue,
+  isCanceledStatus,
   getStageSummaryFields,
   resolveCurrentStageIndex,
   type WorkflowStageId,
@@ -286,6 +287,16 @@ export const CrqDetailedView: React.FC = () => {
     (selectedCrq ? (selectedCrq as any)[WORKFLOW_STAGES[selectedStageIndex].statusField] : undefined);
   const isRunning = selectedStageStatus === "In Progress";
 
+  // A cancelled stage can no longer be driven: its outcome is final. Only
+  // Start/Pause is frozen by it (the same rule StageCard already applies on
+  // the list pages) - every record action stays clickable, because the dialogs
+  // they open drop their own action controls when cancelled and remain worth
+  // opening to read. Same status the stage rail renders as a red "Canceled"
+  // chip; see StageReviewDialog / PlanInvDialog / ValidateDialog for the
+  // read-only side.
+  const isStageCanceled =
+    isCanceledStatus(selectedStageStatus) || isCanceledStatus(selectedCrq?.crqStatus);
+
   // Seed the sidebar's expansion state and the selected stage from the
   // route's crqNo the first time its detail loads - independent of the
   // sidebar's paginated list, which may not even contain this CRQ on its
@@ -456,7 +467,11 @@ export const CrqDetailedView: React.FC = () => {
               key: "reschedule",
               label: "Reschedule",
               icon: <EventRepeatRoundedIcon sx={{ fontSize: 16 }} />,
-              disabled: !selectedCrq || stageMode !== "editable" || isCrqDone,
+              // The one record action a cancelled stage still blocks: the
+              // wizard exists only to book a new engineer slot, so there is no
+              // read-only version of it worth opening.
+              disabled:
+                !selectedCrq || stageMode !== "editable" || isCrqDone || isStageCanceled,
               onClick: () => setRescheduleOpen(true),
             } satisfies CRQAction,
           ]
@@ -468,6 +483,7 @@ export const CrqDetailedView: React.FC = () => {
       stageMode,
       selectedStageId,
       isCrqDone,
+      isStageCanceled,
       canEdit,
       canReschedule,
       handleShowPrevCrqStatus,
@@ -651,6 +667,7 @@ export const CrqDetailedView: React.FC = () => {
                 onReview={() => setReviewDialogOpen(true)}
                 isBusy={activeStageWorkflow?.isTogglingStatus}
                 readOnly={!canEdit}
+                isCanceled={isStageCanceled}
                 recordActions={crqActions}
                 colors={colors}
               />
@@ -720,6 +737,7 @@ export const CrqDetailedView: React.FC = () => {
             onClose={() => setValidateOpen(false)}
             crqNo={selectedCrq?.crqNo ?? null}
             colors={colors}
+            readOnly={isStageCanceled}
           />
         </Suspense>
       )}

@@ -37,6 +37,53 @@ export interface StageDonePayload extends StageActionParams {
   [key: string]: any;
 }
 
+/**
+ * Machine codes returned by a refused stage outcome
+ * (`StageActionErrorResponse.code`, HTTP 409/404/400). The stored procedure
+ * validates the transition itself and rolls back when a precondition fails;
+ * the backend translates its `error_message` into one of these so the UI can
+ * pick copy and a follow-up action without parsing the DB's wording.
+ *
+ * Today only Scheduling emits the CAB/Ops codes - they are the guards inside
+ * `Update_CRQ_Scheduling_To_Done_Or_Failed` - but the shape is stage-agnostic
+ * and every stage passes through the same alert.
+ */
+export type StageActionErrorCode =
+  /** No CRQ_MASTER_TBL row for that crqNo any more. */
+  | "CRQ_NOT_FOUND"
+  /** The CRQ has already left this stage - someone else actioned it. */
+  | "STAGE_MISMATCH"
+  /** Pass only: the Deployment & Operation task has not been closed. */
+  | "OPS_DEPLOY_TASK_OPEN"
+  /** Pass only: CAB has not decided yet. */
+  | "CAB_APPROVAL_PENDING"
+  /** Pass only: CAB rejected the request, so it can never advance. */
+  | "CAB_APPROVAL_REJECTED"
+  /** The outcome sent is not one this stage's procedure acts on. */
+  | "INVALID_OUTCOME"
+  /** Refused for a reason the backend did not recognise - `message` is the DB's own. */
+  | "STAGE_ACTION_FAILED";
+
+export interface StageActionError {
+  code: StageActionErrorCode;
+  /** What went wrong, already written for the user. */
+  message: string;
+  /** What to do about it, one sentence. */
+  hint?: string;
+  stage?: string;
+  crqNo?: string;
+}
+
+/**
+ * Result of a /done submission. `error` is present only for a refusal the
+ * backend could describe - a network/500 failure toasts and comes back with
+ * `success: false` alone.
+ */
+export interface StageSubmitResult {
+  success: boolean;
+  error?: StageActionError;
+}
+
 export interface StageFieldOption {
   label: string;
   value: string;

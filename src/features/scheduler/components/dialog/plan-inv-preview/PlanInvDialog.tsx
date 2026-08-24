@@ -6,7 +6,11 @@ import { FormPanel } from "./FormPanel";
 import { PreviewPanel } from "./PreviewPanel";
 import type { PlanInvDialogProps, ThemeColors } from "../../../types/crq.types";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
-import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
+import {
+  classifyStatusValue,
+  findHistoryEntry,
+  isCanceledStatus,
+} from "../../../constants/workflowStages";
 import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
 
 export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
@@ -27,9 +31,6 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   const crqNo = crq?.crqNo ?? null;
   const crqId = crq?.crqId ?? null;
   const crqStatus = crq?.crqStatus ?? crq?.status ?? null;
-  const isCancelled = ["canceled", "Cancel", "Canceled"].includes(
-    crqStatus ?? "",
-  );
   // Plan & Inventory review already recorded (Done), or the CRQ itself has
   // closed out entirely - either way, re-opening this dialog from a "view"
   // mode CrqActionPanel must let the user see what was submitted without
@@ -38,9 +39,18 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
   // for responses that don't carry history[], and can lag behind it once a
   // CRQ has migrated onto the new model.
   const reviewHistoryStatus = findHistoryEntry(crq, "review")?.status;
+  const reviewStatus = reviewHistoryStatus ?? crq?.crqReviewStatus;
   const isDone =
-    classifyStatusValue(reviewHistoryStatus ?? crq?.crqReviewStatus) === "completed" ||
+    classifyStatusValue(reviewStatus) === "completed" ||
     classifyStatusValue(crqStatus) === "completed";
+
+  // Cancelled freezes this dialog exactly like Done does: it still opens, so
+  // the recorded outcome stays inspectable, but nothing inside it can act.
+  // Same rule the other six stages get from StageReviewDialog - either the
+  // CRQ itself is cancelled, or only this stage is (the stage rail's red
+  // "Canceled" chip) - with its own alert copy per level.
+  const isCrqCancelled = isCanceledStatus(crqStatus);
+  const isCancelled = isCrqCancelled || isCanceledStatus(reviewStatus);
 
   // Safe color defaults mapping to theme
   const dialogColors: ThemeColors = {
@@ -91,6 +101,7 @@ export const PlanInvDialog: React.FC<PlanInvDialogProps> = ({
           crqNo={crqNo}
           crqId={crqId}
           isCancelled={isCancelled}
+          cancelledScope={isCrqCancelled ? "crq" : "stage"}
           isDone={isDone}
           readOnly={!canEdit}
           panelOpen={panelOpen}

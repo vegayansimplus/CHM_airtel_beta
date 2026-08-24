@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, alpha, Typography, Stack, Button, Alert, Collapse, CircularProgress } from "@mui/material";
+import { Box, alpha, Typography, Stack, Button, Alert, Collapse, CircularProgress, Tooltip } from "@mui/material";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
@@ -67,6 +67,10 @@ const EmptyState: React.FC<{ crqNo?: string | null; crqStatus?: string | null }>
 export const CheckPointSummaryPreview: React.FC<{
   crqNo?: string | null;
   crqStatus?: string | null;
+  /** The stage this preview belongs to is closed (cancelled or already
+   * reviewed). Covers every write on this panel - the checkpoint Pass/Fail
+   * toggles and "Data Refresh", which re-runs the validation script over SSH
+   * and rewrites the CRQ's JSON on SFTP. */
   disableActions?: boolean;
 }> = ({ crqNo, crqStatus, disableActions = false }) => {
   const { data, isLoading, isFetching, isError } = useGetCheckpointsByCrqNoQuery(
@@ -113,20 +117,35 @@ export const CheckPointSummaryPreview: React.FC<{
 
   return (
     <Box>
-      {/* Always available once a CRQ is selected - this is exactly the
-          action needed when the file below isn't found yet. */}
+      {/* Available whenever the stage is still open - it is exactly the
+          action needed when the file below isn't found yet. A closed stage
+          keeps it visible but inert: it re-runs the validation script and
+          rewrites the CRQ's JSON on SFTP, which a cancelled or already
+          reviewed CRQ has no business doing. The span carries the tooltip,
+          since a disabled button receives no pointer events of its own. */}
       <Stack direction="row" justifyContent="flex-end" sx={{ mb: 1.25 }}>
-        <Button
-          size="small"
-          variant="outlined"
-          color="inherit"
-          startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
-          disabled={busy}
-          onClick={handleDataRefresh}
-          sx={{ fontSize: 12, textTransform: "none", borderRadius: 1.5 }}
+        <Tooltip
+          title={
+            disableActions
+              ? "This CRQ's stage is closed — the checkpoint validation script can no longer be run for it."
+              : ""
+          }
+          arrow
         >
-          {busy ? "Refreshing…" : "Data Refresh"}
-        </Button>
+          <span>
+            <Button
+              size="small"
+              variant="outlined"
+              color="inherit"
+              startIcon={<RefreshRoundedIcon sx={{ fontSize: 15 }} />}
+              disabled={busy || disableActions}
+              onClick={handleDataRefresh}
+              sx={{ fontSize: 12, textTransform: "none", borderRadius: 1.5 }}
+            >
+              {busy ? "Refreshing…" : "Data Refresh"}
+            </Button>
+          </span>
+        </Tooltip>
       </Stack>
 
       <Collapse in={Boolean(refreshStatus)} unmountOnExit>

@@ -20,12 +20,23 @@ import WarningAmberRoundedIcon from "@mui/icons-material/WarningAmberRounded";
 import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { FieldRenderer } from "./FieldRenderer";
 import { AttributeUpdateGate, useAttributeUpdateGate } from "./AttributeUpdateGate";
-import type { StageConfig } from "../../../types/stageWorkflow.types";
+import { StageActionBlockedAlert } from "./StageActionBlockedAlert";
+import { useStageRefresh } from "../../../hook/useStageRefresh";
+import type {
+  StageActionError,
+  StageConfig,
+  StageSubmitResult,
+} from "../../../types/stageWorkflow.types";
 
 interface GenericFormPanelProps {
   crq: any;
   stageConfig: StageConfig;
+  /** The CRQ, or this stage on its own, is cancelled - every action in this
+   * form (Attribute Update, the outcome cards, every field, Submit) is inert.
+   * The dialog still opens so what was recorded stays readable. */
   isCancelled: boolean;
+  /** Which level the cancellation came from, so the alert names the right one. */
+  cancelledScope?: "crq" | "stage";
   /** This stage's outcome is already recorded (Done) - Pass/Failed/Cancelled
    * and Submit are disabled, same as isCancelled, but the CRQ itself is not
    * cancelled so it gets its own alert copy below. */
@@ -47,7 +58,7 @@ interface GenericFormPanelProps {
    * attributes again before an outcome is recorded silently. */
   open: boolean;
   onClose: () => void;
-  onSubmitDone: (values: Record<string, any>, crq: any) => Promise<{ success: boolean }>;
+  onSubmitDone: (values: Record<string, any>, crq: any) => Promise<StageSubmitResult>;
 }
 
 /**
@@ -60,6 +71,7 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   crq,
   stageConfig,
   isCancelled,
+  cancelledScope = "crq",
   isDone,
   readOnly = false,
   panelOpen,
@@ -71,6 +83,10 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   onSubmitDone,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // A refusal from the stage's stored procedure - it rolled back, so nothing
+  // changed and the dialog stays open with everything typed still in place.
+  const [blockedError, setBlockedError] = useState<StageActionError | null>(null);
+  const refreshStage = useStageRefresh(stageConfig.key);
   const isLocked = isCancelled || isDone || readOnly;
 
   // "Attribute Update" lives here, directly above the outcome selector,
@@ -117,7 +133,30 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
     setIsSubmitting(true);
     const result = await onSubmitDone(formValues, crq);
     setIsSubmitting(false);
+    setBlockedError(result.error ?? null);
     if (result.success) onClose();
+  };
+
+  // "Try again" - the blocker was external (an Ops task to close, a CAB
+  // decision to come). Resubmit exactly what's already in the form.
+  const handleRetry = () => {
+    setBlockedError(null);
+    handleSubmit(handleFormSubmit)();
+  };
+
+  // "Change outcome" - this outcome can never succeed for this CRQ. Drop the
+  // selection so the outcome cards read as unanswered again.
+  const handleChangeOutcome = () => {
+    setBlockedError(null);
+    setValue("status", undefined, { shouldDirty: true });
+  };
+
+  // "Refresh" - the row on screen is stale (the CRQ moved on, or is gone).
+  // Reload the listing and close, rather than acting on what's shown.
+  const handleRefresh = () => {
+    setBlockedError(null);
+    refreshStage();
+    onClose();
   };
 
   const paletteColor: Record<string, string> = {
@@ -175,7 +214,17 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
               <Stack spacing={2.5} sx={{ p: 2.5 }}>
                 <Collapse in={isCancelled} unmountOnExit>
                   <Alert severity="error" icon={<WarningAmberRoundedIcon fontSize="small" />}>
-                    This CRQ is <strong>Cancelled</strong>. All actions are disabled.
+                    {cancelledScope === "crq" ? (
+                      <>
+                        This CRQ is <strong>Cancelled</strong>. Its outcome is final, so there is
+                        nothing left to record here.
+                      </>
+                    ) : (
+                      <>
+                        This {stageConfig.label} stage is <strong>Cancelled</strong>. Its outcome is
+                        final, so there is nothing left to record here.
+                      </>
+                    )}
                   </Alert>
                 </Collapse>
 
@@ -185,139 +234,167 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
                   </Alert>
                 </Collapse>
 
-                <AttributeUpdateGate
-                  visited={attributeGate.visited}
-                  warned={attributeGate.warned}
-                  disabled={attributeGate.isDisabled}
-                  colors={colors}
-                  onOpen={attributeGate.openDialog}
-                />
+                {/* The stage's procedure refused this outcome. Kept inline
+                    rather than toasted: it describes a state that has to be
+                    resolved (CAB, Ops task, a CRQ that moved on), and it
+                    carries the actions that can resolve it. */}
+                {blockedError && (
+                  <StageActionBlockedAlert
+                    error={blockedError}
+                    busy={isSubmitting}
+                    onRetry={handleRetry}
+                    onReset={handleChangeOutcome}
+                    onRefresh={handleRefresh}
+                  />
+                )}
 
-                {/* Outcome selector, built from stageConfig.statusOptions */}
-                <Box>
-                  <Typography
-                    variant="caption"
-                    sx={{ fontWeight: 600, color: colors.textSecondary, fontSize: 12, mb: 1, display: "block" }}
-                  >
-                    Select outcome *
-                  </Typography>
-                  <Stack spacing={1} role="radiogroup">
-                    {stageConfig.statusOptions.map((opt) => {
-                      const color = paletteColor[opt.palette];
-                      const Icon = opt.icon;
-                      const selected = values.status === opt.value;
-                      return (
-                        <Box
-                          key={opt.value}
-                          role="radio"
-                          aria-checked={selected}
-                          onClick={() => {
-                            if (isLocked) return;
-                            setValue("status", opt.value, { shouldDirty: true, shouldValidate: true });
-                            attributeGate.warnIfPending();
-                          }}
-                          sx={{
-                            display: "flex",
-                            alignItems: "flex-start",
-                            gap: 1.5,
-                            p: 1.5,
-                            borderRadius: 2,
-                            border: "1.5px solid",
-                            borderColor: selected ? color : colors.border,
-                            bgcolor: selected ? alpha(color, 0.06) : colors.surface,
-                            cursor: isLocked ? "not-allowed" : "pointer",
-                            opacity: isLocked ? 0.5 : 1,
-                          }}
-                        >
-                          <Icon sx={{ fontSize: 18, color: selected ? color : colors.textSecondary }} />
-                          <Box>
-                            <Typography sx={{ fontSize: 13.5, fontWeight: selected ? 700 : 500, color: selected ? color : colors.textPrimary }}>
-                              {opt.label}
-                            </Typography>
-                            <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
-                              {opt.description}
-                            </Typography>
+                {!isCancelled && (
+                  <AttributeUpdateGate
+                    visited={attributeGate.visited}
+                    warned={attributeGate.warned}
+                    disabled={attributeGate.isDisabled}
+                    colors={colors}
+                    onOpen={attributeGate.openDialog}
+                  />
+                )}
+
+                {/* Outcome selector, built from stageConfig.statusOptions.
+                    A cancelled stage renders neither this nor the fields below
+                    it: nothing here can be submitted any more, so the whole
+                    action block goes rather than sitting there greyed out. */}
+                {!isCancelled && (
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      sx={{ fontWeight: 600, color: colors.textSecondary, fontSize: 12, mb: 1, display: "block" }}
+                    >
+                      Select outcome *
+                    </Typography>
+                    <Stack spacing={1} role="radiogroup">
+                      {stageConfig.statusOptions.map((opt) => {
+                        const color = paletteColor[opt.palette];
+                        const Icon = opt.icon;
+                        const selected = values.status === opt.value;
+                        return (
+                          <Box
+                            key={opt.value}
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => {
+                              if (isLocked) return;
+                              // The refusal belonged to the previous choice.
+                              setBlockedError(null);
+                              setValue("status", opt.value, { shouldDirty: true, shouldValidate: true });
+                              attributeGate.warnIfPending();
+                            }}
+                            sx={{
+                              display: "flex",
+                              alignItems: "flex-start",
+                              gap: 1.5,
+                              p: 1.5,
+                              borderRadius: 2,
+                              border: "1.5px solid",
+                              borderColor: selected ? color : colors.border,
+                              bgcolor: selected ? alpha(color, 0.06) : colors.surface,
+                              cursor: isLocked ? "not-allowed" : "pointer",
+                              opacity: isLocked ? 0.5 : 1,
+                            }}
+                          >
+                            <Icon sx={{ fontSize: 18, color: selected ? color : colors.textSecondary }} />
+                            <Box>
+                              <Typography sx={{ fontSize: 13.5, fontWeight: selected ? 700 : 500, color: selected ? color : colors.textPrimary }}>
+                                {opt.label}
+                              </Typography>
+                              <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
+                                {opt.description}
+                              </Typography>
+                            </Box>
                           </Box>
-                        </Box>
-                      );
-                    })}
-                  </Stack>
-                  {errors.status && (
-                    <Alert severity="warning" sx={{ mt: 1.5, py: 0.5, fontSize: 12 }}>
-                      {(errors.status as any)?.message}
-                    </Alert>
-                  )}
-                </Box>
+                        );
+                      })}
+                    </Stack>
+                    {errors.status && (
+                      <Alert severity="warning" sx={{ mt: 1.5, py: 0.5, fontSize: 12 }}>
+                        {(errors.status as any)?.message}
+                      </Alert>
+                    )}
+                  </Box>
+                )}
 
                 {/* Remaining config-driven fields (cancellation block, remarks, etc) */}
-                {stageConfig.fields.map((field) => (
-                  <FieldRenderer
-                    key={field.name}
-                    field={field}
-                    control={control}
-                    errors={errors}
-                    values={values}
-                    disabled={isLocked}
-                  />
-                ))}
+                {!isCancelled &&
+                  stageConfig.fields.map((field) => (
+                    <FieldRenderer
+                      key={field.name}
+                      field={field}
+                      control={control}
+                      errors={errors}
+                      values={values}
+                      disabled={isLocked}
+                    />
+                  ))}
               </Stack>
             </SmartScrollContainer>
           </DialogContent>
 
-          <DialogActions
-            sx={{
-              px: 2,
-              py: 1.5,
-              borderTop: `1px solid ${colors.border}`,
-              flexDirection: "column",
-              alignItems: "stretch",
-              gap: 1,
-            }}
-          >
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              disabled={isSubmitting || !isDirty || isLocked}
-              startIcon={
-                isSubmitting ? (
-                  <CircularProgress size={14} color="inherit" />
-                ) : (
-                  <CheckCircleOutlineIcon sx={{ fontSize: "17px !important" }} />
-                )
-              }
+          {(!isCancelled || hasPreviewPanel) && (
+            <DialogActions
               sx={{
-                textTransform: "none",
-                bgcolor: colors.accent,
-                fontSize: 13,
-                fontWeight: 600,
-                borderRadius: 2,
-                py: 1,
-                whiteSpace: "nowrap",
-                boxShadow: `0 2px 10px ${alpha(colors.accent, 0.35)}`,
-                "&:hover": { bgcolor: colors.accent, filter: "brightness(1.08)" },
+                px: 2,
+                py: 1.5,
+                borderTop: `1px solid ${colors.border}`,
+                flexDirection: "column",
+                alignItems: "stretch",
+                gap: 1,
               }}
             >
-              {isSubmitting ? "Submitting…" : `Submit ${stageConfig.label}`}
-            </Button>
-            {hasPreviewPanel && (
-              <Button
-                size="small"
-                onClick={() => setPanelOpen(false)}
-                startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
-                sx={{
-                  color: colors.textSecondary,
-                  textTransform: "none",
-                  alignSelf: "flex-start",
-                  fontSize: 12.5,
-                  px: 1,
-                  "&:hover": { bgcolor: alpha(colors.textSecondary, 0.07) },
-                }}
-              >
-                Hide Panel
-              </Button>
-            )}
-          </DialogActions>
+              {!isCancelled && (
+                <Button
+                  type="submit"
+                  variant="contained"
+                  fullWidth
+                  disabled={isSubmitting || !isDirty || isLocked}
+                  startIcon={
+                    isSubmitting ? (
+                      <CircularProgress size={14} color="inherit" />
+                    ) : (
+                      <CheckCircleOutlineIcon sx={{ fontSize: "17px !important" }} />
+                    )
+                  }
+                  sx={{
+                    textTransform: "none",
+                    bgcolor: colors.accent,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    borderRadius: 2,
+                    py: 1,
+                    whiteSpace: "nowrap",
+                    boxShadow: `0 2px 10px ${alpha(colors.accent, 0.35)}`,
+                    "&:hover": { bgcolor: colors.accent, filter: "brightness(1.08)" },
+                  }}
+                >
+                  {isSubmitting ? "Submitting…" : `Submit ${stageConfig.label}`}
+                </Button>
+              )}
+              {hasPreviewPanel && (
+                <Button
+                  size="small"
+                  onClick={() => setPanelOpen(false)}
+                  startIcon={<ChevronLeftIcon sx={{ fontSize: "16px !important" }} />}
+                  sx={{
+                    color: colors.textSecondary,
+                    textTransform: "none",
+                    alignSelf: "flex-start",
+                    fontSize: 12.5,
+                    px: 1,
+                    "&:hover": { bgcolor: alpha(colors.textSecondary, 0.07) },
+                  }}
+                >
+                  Hide Panel
+                </Button>
+              )}
+            </DialogActions>
+          )}
         </Box>
       )}
     </Box>

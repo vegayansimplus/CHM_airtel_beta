@@ -42,7 +42,13 @@ interface Props {
   crq: any;
   crqNo: string | null;
   crqId: string | null;
+  /** The CRQ, or the Plan & Inventory stage on its own, is cancelled - every
+   * action in this form (Attribute Update, the outcome cards, the
+   * cancellation block, Submit) is inert. The dialog still opens so what was
+   * recorded stays readable. */
   isCancelled: boolean;
+  /** Which level the cancellation came from, so the alert names the right one. */
+  cancelledScope?: "crq" | "stage";
   /** Review outcome for this CRQ is already recorded (Done) - Pass/Failed/
    * Cancelled and Submit are disabled, same as isCancelled, but this gets
    * its own alert copy since the CRQ itself isn't cancelled. */
@@ -68,6 +74,7 @@ export const FormPanel: React.FC<Props> = ({
   crqNo,
   crqId,
   isCancelled,
+  cancelledScope = "crq",
   isDone,
   readOnly = false,
   panelOpen,
@@ -243,8 +250,18 @@ export const FormPanel: React.FC<Props> = ({
                   icon={<WarningAmberRoundedIcon fontSize="small" />}
                   sx={{ borderRadius: 2, fontSize: 13 }}
                 >
-                  This CRQ is <strong>Cancelled</strong>. All actions are
-                  disabled.
+                  {cancelledScope === "crq" ? (
+                    <>
+                      This CRQ is <strong>Cancelled</strong>. Its outcome is
+                      final, so there is nothing left to record here.
+                    </>
+                  ) : (
+                    <>
+                      This Plan &amp; Inventory stage is{" "}
+                      <strong>Cancelled</strong>. Its outcome is final, so there
+                      is nothing left to record here.
+                    </>
+                  )}
                 </Alert>
               </Collapse>
 
@@ -267,166 +284,170 @@ export const FormPanel: React.FC<Props> = ({
                 </Alert>
               </Collapse>
 
-              <AttributeUpdateGate
-                visited={attributeGate.visited}
-                warned={attributeGate.warned}
-                disabled={attributeGate.isDisabled}
-                colors={colors}
-                onOpen={attributeGate.openDialog}
-              />
+              {!isCancelled && (
+                <AttributeUpdateGate
+                  visited={attributeGate.visited}
+                  warned={attributeGate.warned}
+                  disabled={attributeGate.isDisabled}
+                  colors={colors}
+                  onOpen={attributeGate.openDialog}
+                />
+              )}
 
               {/* ── Status selector ──────────────────────────────── */}
-              <Box>
-                <Stack
-                  direction="row"
-                  spacing={0.5}
-                  alignItems="center"
-                  sx={{ mb: 1.25 }}
-                >
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      fontWeight: 600,
-                      color: colors.textSecondary,
-                      fontSize: 12,
-                    }}
+              {!isCancelled && (
+                <Box>
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    alignItems="center"
+                    sx={{ mb: 1.25 }}
                   >
-                    Select outcome
-                  </Typography>
-                  <Box
-                    component="span"
-                    sx={{ color: "error.main", fontSize: 13, lineHeight: 1 }}
-                    aria-label="required"
-                  >
-                    *
-                  </Box>
-                </Stack>
-
-                <Controller
-                  name="status"
-                  control={control}
-                  rules={{ required: "Please select an outcome." }}
-                  render={({ field }) => (
-                    <Stack
-                      spacing={1}
-                      role="radiogroup"
-                      aria-label="Validation outcome"
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        fontWeight: 600,
+                        color: colors.textSecondary,
+                        fontSize: 12,
+                      }}
                     >
-                      {STATUS_OPTIONS.map((opt) => {
-                        const color = paletteColor[opt.palette];
-                        const selected = field.value === opt.value;
-                        const IconComp = opt.icon;
-                        return (
-                          <StatusCard
-                            key={opt.value}
-                            selected={selected}
-                            accent={color}
-                            isDisabled={isLocked}
-                            onClick={() => {
-                              if (isLocked) return;
-                              field.onChange(opt.value);
-                              attributeGate.warnIfPending();
-                            }}
-                            role="radio"
-                            aria-checked={selected}
-                            aria-disabled={isLocked}
-                            tabIndex={isLocked ? -1 : 0}
-                            onKeyDown={(e) => {
-                              if (
-                                (e.key === "Enter" || e.key === " ") &&
-                                !isLocked
-                              ) {
-                                e.preventDefault();
+                      Select outcome
+                    </Typography>
+                    <Box
+                      component="span"
+                      sx={{ color: "error.main", fontSize: 13, lineHeight: 1 }}
+                      aria-label="required"
+                    >
+                      *
+                    </Box>
+                  </Stack>
+
+                  <Controller
+                    name="status"
+                    control={control}
+                    rules={{ required: "Please select an outcome." }}
+                    render={({ field }) => (
+                      <Stack
+                        spacing={1}
+                        role="radiogroup"
+                        aria-label="Validation outcome"
+                      >
+                        {STATUS_OPTIONS.map((opt) => {
+                          const color = paletteColor[opt.palette];
+                          const selected = field.value === opt.value;
+                          const IconComp = opt.icon;
+                          return (
+                            <StatusCard
+                              key={opt.value}
+                              selected={selected}
+                              accent={color}
+                              isDisabled={isLocked}
+                              onClick={() => {
+                                if (isLocked) return;
                                 field.onChange(opt.value);
                                 attributeGate.warnIfPending();
-                              }
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: 27,
-                                height: 27,
-                                borderRadius: 1.25,
-                                bgcolor: selected
-                                  ? alpha(color, 0.14)
-                                  : alpha(colors.textSecondary, 0.06),
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "center",
-                                flexShrink: 0,
-                                transition: "background-color 180ms ease",
+                              }}
+                              role="radio"
+                              aria-checked={selected}
+                              aria-disabled={isLocked}
+                              tabIndex={isLocked ? -1 : 0}
+                              onKeyDown={(e) => {
+                                if (
+                                  (e.key === "Enter" || e.key === " ") &&
+                                  !isLocked
+                                ) {
+                                  e.preventDefault();
+                                  field.onChange(opt.value);
+                                  attributeGate.warnIfPending();
+                                }
                               }}
                             >
-                              <IconComp
-                                sx={{
-                                  fontSize: 15,
-                                  color: selected
-                                    ? color
-                                    : colors.textSecondary,
-                                }}
-                                aria-hidden="true"
-                              />
-                            </Box>
-                            <Box sx={{ flex: 1, minWidth: 0, pt: 0.1 }}>
-                              <Typography
-                                sx={{
-                                  fontSize: 13.5,
-                                  fontWeight: selected ? 700 : 500,
-                                  lineHeight: 1.25,
-                                  color: selected ? color : colors.textPrimary,
-                                  transition: "color 180ms ease",
-                                }}
-                              >
-                                {opt.label}
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                sx={{
-                                  fontSize: 11,
-                                  color: selected
-                                    ? alpha(color, 0.75)
-                                    : colors.textSecondary,
-                                  display: "block",
-                                  lineHeight: 1.4,
-                                  mt: 0.25,
-                                  transition: "color 180ms ease",
-                                }}
-                              >
-                                {opt.description}
-                              </Typography>
-                            </Box>
-                            <Fade in={selected}>
                               <Box
                                 sx={{
-                                  width: 7,
-                                  height: 7,
-                                  borderRadius: "50%",
-                                  bgcolor: color,
+                                  width: 27,
+                                  height: 27,
+                                  borderRadius: 1.25,
+                                  bgcolor: selected
+                                    ? alpha(color, 0.14)
+                                    : alpha(colors.textSecondary, 0.06),
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
                                   flexShrink: 0,
-                                  mt: 0.5,
+                                  transition: "background-color 180ms ease",
                                 }}
-                                aria-hidden="true"
-                              />
-                            </Fade>
-                          </StatusCard>
-                        );
-                      })}
-                    </Stack>
-                  )}
-                />
+                              >
+                                <IconComp
+                                  sx={{
+                                    fontSize: 15,
+                                    color: selected
+                                      ? color
+                                      : colors.textSecondary,
+                                  }}
+                                  aria-hidden="true"
+                                />
+                              </Box>
+                              <Box sx={{ flex: 1, minWidth: 0, pt: 0.1 }}>
+                                <Typography
+                                  sx={{
+                                    fontSize: 13.5,
+                                    fontWeight: selected ? 700 : 500,
+                                    lineHeight: 1.25,
+                                    color: selected ? color : colors.textPrimary,
+                                    transition: "color 180ms ease",
+                                  }}
+                                >
+                                  {opt.label}
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: 11,
+                                    color: selected
+                                      ? alpha(color, 0.75)
+                                      : colors.textSecondary,
+                                    display: "block",
+                                    lineHeight: 1.4,
+                                    mt: 0.25,
+                                    transition: "color 180ms ease",
+                                  }}
+                                >
+                                  {opt.description}
+                                </Typography>
+                              </Box>
+                              <Fade in={selected}>
+                                <Box
+                                  sx={{
+                                    width: 7,
+                                    height: 7,
+                                    borderRadius: "50%",
+                                    bgcolor: color,
+                                    flexShrink: 0,
+                                    mt: 0.5,
+                                  }}
+                                  aria-hidden="true"
+                                />
+                              </Fade>
+                            </StatusCard>
+                          );
+                        })}
+                      </Stack>
+                    )}
+                  />
 
-                <Collapse in={Boolean(errors.status)} unmountOnExit>
-                  <Alert
-                    severity="warning"
-                    sx={{ mt: 1.5, borderRadius: 1.5, py: 0.5, fontSize: 12 }}
-                  >
-                    {errors.status?.message}
-                  </Alert>
-                </Collapse>
-              </Box>
+                  <Collapse in={Boolean(errors.status)} unmountOnExit>
+                    <Alert
+                      severity="warning"
+                      sx={{ mt: 1.5, borderRadius: 1.5, py: 0.5, fontSize: 12 }}
+                    >
+                      {errors.status?.message}
+                    </Alert>
+                  </Collapse>
+                </Box>
+              )}
 
               {/* ── Cancellation details ──────────────────────────── */}
-              <Collapse in={statusValue === "canceled"} unmountOnExit>
+              <Collapse in={!isCancelled && statusValue === "canceled"} unmountOnExit>
                 <Paper
                   variant="outlined"
                   aria-label="Cancellation details"
@@ -696,54 +717,56 @@ export const FormPanel: React.FC<Props> = ({
 
             <Box sx={{ flex: 1 }} />
 
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={isSubmitting || !isDirty || isLocked}
-              aria-label={
-                isSubmitting ? "Submitting validation" : "Submit validation"
-              }
-              aria-busy={isSubmitting}
-              startIcon={
-                isSubmitting ? (
-                  <CircularProgress
-                    size={14}
-                    color="inherit"
-                    aria-hidden="true"
-                  />
-                ) : (
-                  <CheckCircleOutlineIcon
-                    sx={{ fontSize: "17px !important" }}
-                    aria-hidden="true"
-                  />
-                )
-              }
-              sx={{
-                fontSize: 13,
-                fontWeight: 600,
-                borderRadius: 2,
-                textTransform: "none",
-                px: 2.5,
-                py: 0.875,
-                bgcolor: colors.accent,
-                letterSpacing: "0.01em",
-                boxShadow: `0 2px 10px ${alpha(colors.accent, 0.4)}`,
-                "&:hover": {
+            {!isCancelled && (
+              <Button
+                type="submit"
+                variant="contained"
+                disabled={isSubmitting || !isDirty || isLocked}
+                aria-label={
+                  isSubmitting ? "Submitting validation" : "Submit validation"
+                }
+                aria-busy={isSubmitting}
+                startIcon={
+                  isSubmitting ? (
+                    <CircularProgress
+                      size={14}
+                      color="inherit"
+                      aria-hidden="true"
+                    />
+                  ) : (
+                    <CheckCircleOutlineIcon
+                      sx={{ fontSize: "17px !important" }}
+                      aria-hidden="true"
+                    />
+                  )
+                }
+                sx={{
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: "none",
+                  px: 2.5,
+                  py: 0.875,
                   bgcolor: colors.accent,
-                  filter: "brightness(1.08)",
-                  boxShadow: `0 4px 18px ${alpha(colors.accent, 0.5)}`,
-                },
-                "&:active": { filter: "brightness(0.96)" },
-                "&:disabled": {
-                  boxShadow: "none",
-                  bgcolor: alpha(colors.textSecondary, 0.12),
-                },
-                transition:
-                  "filter 150ms ease, box-shadow 150ms ease, background-color 150ms ease",
-              }}
-            >
-              {isSubmitting ? "Submitting…" : "Submit Validation"}
-            </Button>
+                  letterSpacing: "0.01em",
+                  boxShadow: `0 2px 10px ${alpha(colors.accent, 0.4)}`,
+                  "&:hover": {
+                    bgcolor: colors.accent,
+                    filter: "brightness(1.08)",
+                    boxShadow: `0 4px 18px ${alpha(colors.accent, 0.5)}`,
+                  },
+                  "&:active": { filter: "brightness(0.96)" },
+                  "&:disabled": {
+                    boxShadow: "none",
+                    bgcolor: alpha(colors.textSecondary, 0.12),
+                  },
+                  transition:
+                    "filter 150ms ease, box-shadow 150ms ease, background-color 150ms ease",
+                }}
+              >
+                {isSubmitting ? "Submitting…" : "Submit Validation"}
+              </Button>
+            )}
           </DialogActions>
         </Box>
       )}
