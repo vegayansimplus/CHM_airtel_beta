@@ -116,11 +116,25 @@ export type AttributeFormSection = Record<string, AttributeFormValue>;
 /** react-hook-form values shape for the dialog's single stage-wide form. */
 export type AttributeFormValues = Record<TargetSystem, AttributeFormSection>;
 
-/** "2026-07-24T10:15:30" (or with fractional/offset suffix) -> "2026-07-24T10:15" for <input type="datetime-local">. */
-const toDateTimeLocal = (value: string | null): string => (value ? value.slice(0, 16) : "");
-/** "2026-07-24T10:15" (no seconds) -> "2026-07-24T10:15:00" for the backend's LocalDateTime params. */
-const fromDateTimeLocal = (value: string): string | null =>
-  value ? (value.length === 16 ? `${value}:00` : value) : null;
+/**
+ * "2026-07-24T10:15:30" / "2026-07-24 10:15:30" (or with fractional/offset
+ * suffix) -> "2026-07-24T10:15" for <input type="datetime-local">, which only
+ * accepts the "T"-separated form. The read side sees both separators: the
+ * details response echoes ISO, while values written back by save round-trip
+ * as the space-separated form below.
+ */
+const toDateTimeLocal = (value: string | null): string =>
+  value ? value.slice(0, 16).replace(" ", "T") : "";
+/**
+ * "2026-07-24T10:15" (the datetime-local input's value) -> "2026-07-24 10:15:00".
+ * The backend's LocalDateTime fields are bound with a "yyyy-MM-dd HH:mm:ss"
+ * pattern, so an ISO "T" separator fails to deserialize.
+ */
+const fromDateTimeLocal = (value: string): string | null => {
+  if (!value) return null;
+  const withSeconds = value.length === 16 ? `${value}:00` : value;
+  return withSeconds.replace("T", " ");
+};
 
 const isEditable = (attribute: ResolvedAttribute) =>
   !attribute.readOnly && !attribute.isBackend && !attribute.autoSetFrom;
