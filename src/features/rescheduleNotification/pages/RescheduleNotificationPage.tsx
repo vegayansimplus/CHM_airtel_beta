@@ -48,10 +48,17 @@ export function RescheduleNotificationPage() {
   const hasActiveFilters =
     search.trim().length > 0 || readFilter !== "ALL" || actionFilter !== "ALL";
 
-  const handleApproveConfirm = (id: string) => {
-    approve(id);
-    setApproveTarget(null);
-    toast.success("Reschedule request approved successfully");
+  const handleApproveConfirm = async (id: string) => {
+    try {
+      await approve(id);
+      setApproveTarget(null);
+      toast.success("Reschedule request approved successfully");
+    } catch (error) {
+      const message =
+        (error as { data?: { message?: string } })?.data?.message ??
+        "Failed to approve the reschedule request.";
+      toast.error(message);
+    }
   };
 
   const handleRejectConfirm = (id: string, reason: string) => {

@@ -34,6 +34,7 @@ import {
   useShiftChangeNotificationActionMutation,
   useRosterLeaveActionMutation,
   useCabCrqNotificationActionMutation,
+  useCabRescheduleNotificationActionMutation,
   type NotificationItem,
 } from "../../features/inbox/api/inboxApiSlice";
 import { toast } from "react-toastify";
@@ -199,8 +200,9 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
   const [shiftChangeAction, { isLoading: isShiftChangeLoading }] = useShiftChangeNotificationActionMutation();
   const [leaveAction, { isLoading: isLeaveLoading }] = useRosterLeaveActionMutation();
   const [cabCrqAction, { isLoading: isCabLoading }] = useCabCrqNotificationActionMutation();
+  const [cabRescheduleAction, { isLoading: isCabRescheduleLoading }] = useCabRescheduleNotificationActionMutation();
   const isActionLoading =
-    isManagerLoading || isEmpLoading || isShiftChangeLoading || isLeaveLoading || isCabLoading;
+    isManagerLoading || isEmpLoading || isShiftChangeLoading || isLeaveLoading || isCabLoading || isCabRescheduleLoading;
 
   // Bell count: prefer API count, fall back to list length
   const badgeCount = countData?.notificationCount ?? apiNotifications.length;
@@ -293,6 +295,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
         await leaveAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
       } else if (meta.subModule === "CAB_APPROVER") {
         await cabCrqAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
+      } else if (meta.subModule === "RESCHEDULE") {
+        await cabRescheduleAction({ notificationId: n.notificationId, status: "APPROVED" }).unwrap();
       }
       toast.success("Approved successfully.");
       setExpanded(null);
@@ -323,6 +327,8 @@ export default function NotificationBell({ onViewAll }: NotificationBellProps) {
         await leaveAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", rejectReason: remark }).unwrap();
       } else if (meta.subModule === "CAB_APPROVER") {
         await cabCrqAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: reasonText, comment: remark }).unwrap();
+      } else if (meta.subModule === "RESCHEDULE") {
+        await cabRescheduleAction({ notificationId: rejectTarget.notificationId, status: "REJECTED", reason: remark, comment: remark }).unwrap();
       }
       toast.success("Rejected successfully.");
       setExpanded(null);

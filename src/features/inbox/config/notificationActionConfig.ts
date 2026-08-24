@@ -32,6 +32,7 @@ const SUB_MODULE_ACTIONS: Record<string, SubModuleActionMeta> = {
   SHIFT_CHANGE: { subModule: "SHIFT_CHANGE", rejectInput: "TEXT", rejectRequired: true },
   LEAVE: { subModule: "LEAVE", rejectInput: "TEXT", rejectRequired: true },
   CAB_APPROVER: { subModule: "CAB_APPROVER", rejectInput: "CAB_REASON_LIST", rejectRequired: true },
+  RESCHEDULE: { subModule: "RESCHEDULE", rejectInput: "TEXT", rejectRequired: true },
 };
 
 export function getSubModuleActionMeta(

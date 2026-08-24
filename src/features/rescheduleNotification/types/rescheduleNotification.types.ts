@@ -20,6 +20,8 @@ export interface RescheduleNotification {
   currentExecutionTime: string;
   /** ISO 8601 timestamp */
   rescheduledExecutionTime: string;
+  /** ISO 8601 timestamp - end of the proposed execution window, sent to the approve API as slotEnd */
+  rescheduledExecutionEndTime: string;
   readStatus: ReadStatus;
   actionStatus: ActionStatus;
   /** ISO 8601 timestamp */

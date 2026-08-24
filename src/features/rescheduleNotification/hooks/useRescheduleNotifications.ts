@@ -5,6 +5,7 @@ import {
   SEARCH_DEBOUNCE_MS,
 } from "../constants/rescheduleNotification.constants";
 import { rescheduleNotificationMockData } from "../mocks/rescheduleNotification.mock";
+import { useApproveCabRescheduleMutation } from "../api/rescheduleNotificationApiSlice";
 import {
   type ActionStatusFilter,
   type ReadStatusFilter,
@@ -26,6 +27,8 @@ export function useRescheduleNotifications() {
   const [notifications, setNotifications] = useState<RescheduleNotification[]>(
     () => [...rescheduleNotificationMockData],
   );
+
+  const [approveCabReschedule] = useApproveCabRescheduleMutation();
 
   const [searchInput, setSearchInput] = useState(DEFAULT_FILTERS.search);
   const [debouncedSearch, setDebouncedSearch] = useState(DEFAULT_FILTERS.search);
@@ -83,7 +86,16 @@ export function useRescheduleNotifications() {
     );
   };
 
-  const approve = (id: string) => {
+  const approve = async (id: string) => {
+    const target = notifications.find((n) => n.id === id);
+    if (!target) return;
+
+    await approveCabReschedule({
+      crqNo: target.crqNo,
+      slotStart: target.rescheduledExecutionTime,
+      slotEnd: target.rescheduledExecutionEndTime,
+    }).unwrap();
+
     setNotifications((prev) =>
       prev.map((n) =>
         n.id === id ? { ...n, actionStatus: "APPROVED", readStatus: "READ" } : n,
