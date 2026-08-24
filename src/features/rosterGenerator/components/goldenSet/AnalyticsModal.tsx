@@ -10,7 +10,6 @@ import {
   DialogContent,
   DialogTitle,
   LinearProgress,
-  Stack,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -98,13 +97,19 @@ export default function AnalyticsModal({
         <Typography variant="body2" sx={{ color: tk.textSecondary, mb: 2.5 }}>
           Full 42-day cycle · {emps.length} employees
         </Typography>
-        <Stack direction="row" gap={1.25} sx={{ mb: 3 }}>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(4,1fr)" },
+            gap: 1.25,
+            mb: 3,
+          }}
+        >
           {kpis.map((k) => (
             <Card
               key={k.label}
               variant="outlined"
               sx={{
-                flex: 1,
                 p: 1.5,
                 borderRadius: tk.radiusL,
                 borderColor: alpha(k.color, 0.2),
@@ -136,11 +141,11 @@ export default function AnalyticsModal({
               </Typography>
             </Card>
           ))}
-        </Stack>
+        </Box>
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: "repeat(3,1fr)",
+            gridTemplateColumns: { xs: "repeat(2,1fr)", sm: "repeat(3,1fr)" },
             gap: 1.25,
             mb: 2.5,
           }}

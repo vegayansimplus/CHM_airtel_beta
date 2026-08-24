@@ -6,6 +6,7 @@ import {
   useRosterLeaveActionMutation,
   useShiftChangeNotificationActionMutation,
   useCabCrqNotificationActionMutation,
+  useCabRescheduleNotificationActionMutation,
 } from "../api/inboxApiSlice";
 import type { InboxItem } from "../components/TaskInbox";
 import { getRoleTier, getSubModuleActionMeta } from "../config/notificationActionConfig";
@@ -26,6 +27,7 @@ export const useNotificationAction = () => {
   const [leaveAction, { isLoading: isLeaveLoading }] = useRosterLeaveActionMutation();
   const [shiftChangeAction, { isLoading: isShiftChangeLoading }] = useShiftChangeNotificationActionMutation();
   const [cabCrqAction, { isLoading: isCabLoading }] = useCabCrqNotificationActionMutation();
+  const [cabRescheduleAction, { isLoading: isCabRescheduleLoading }] = useCabRescheduleNotificationActionMutation();
 
   const isLoading =
     isManagerLoading ||
@@ -33,7 +35,8 @@ export const useNotificationAction = () => {
     isAckLoading ||
     isLeaveLoading ||
     isShiftChangeLoading ||
-    isCabLoading;
+    isCabLoading ||
+    isCabRescheduleLoading;
 
   const handleAction = async (
     item: InboxItem,
@@ -94,6 +97,14 @@ export const useNotificationAction = () => {
             notificationId,
             status: actionType,
             reason: extra?.reasonText,
+            comment: extra?.reason,
+          }).unwrap();
+
+        case "RESCHEDULE":
+          return await cabRescheduleAction({
+            notificationId,
+            status: actionType,
+            reason: extra?.reason,
             comment: extra?.reason,
           }).unwrap();
 

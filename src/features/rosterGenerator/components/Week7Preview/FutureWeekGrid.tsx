@@ -51,7 +51,11 @@ import { buildDayColumns, colDistribution, shiftSummary } from "../../util/Futur
 
 // ─── Layout constants ──────────────────────────────────────────────────────────
 
-const EMP_COL_WIDTH  = 232;
+// Sticky name column shrinks on narrow viewports (mirrors the Golden Set
+// grid's EMP_COL_W) — the 7 day-columns stay fixed-width and scroll
+// horizontally instead, since unlike the name column they can't usefully
+// reflow.
+const EMP_COL_WIDTH  = { xs: 152, sm: 188, md: 216, lg: 232 };
 const DAY_COL_WIDTH  = 62;
 const STAT_COL_WIDTH = 54;
 const TOTAL_DAY_COLS = 7;
@@ -1345,7 +1349,11 @@ export function FutureWeekGrid({
         sx={{
           flex: 1,
           minHeight: 0,
-          maxHeight: `calc(100vh - 300px)`,
+          // Floors the scroll area so it never collapses to near-nothing on
+          // short viewports (landscape phones, a keyboard eating vertical
+          // space) — the static 300px chrome estimate can outgrow 100vh
+          // there.
+          maxHeight: "max(280px, calc(100vh - 300px))",
           overflow: "auto",
           position: "relative",
           "&::-webkit-scrollbar": { width: 6, height: 6 },

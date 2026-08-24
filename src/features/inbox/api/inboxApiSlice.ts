@@ -126,6 +126,18 @@ export const inboxApiSlice = api.injectEndpoints({
     getCabRejectReasons: builder.query<CabRejectReason[], void>({
       query: () => `/cab/crqs/cabrejectreasons`,
     }),
+
+    // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq)
+    cabRescheduleNotificationAction: builder.mutation<
+      any,
+      { notificationId: number; status: string; reason?: string; comment?: string }
+    >({
+      query: ({ notificationId, status, reason, comment }) => ({
+        url: `/notification/cabreschedulenotificationaction?notificationId=${notificationId}&status=${status}&reason=${encodeURIComponent(reason || "")}&comment=${encodeURIComponent(comment || "")}`,
+        method: "POST",
+      }),
+      invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
+    }),
   }),
 });
 
@@ -139,4 +151,5 @@ export const {
   useRosterLeaveActionMutation,
   useCabCrqNotificationActionMutation,
   useGetCabRejectReasonsQuery,
+  useCabRescheduleNotificationActionMutation,
 } = inboxApiSlice;
