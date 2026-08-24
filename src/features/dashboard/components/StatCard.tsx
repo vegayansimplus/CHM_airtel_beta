@@ -38,6 +38,7 @@ export function StatCard({ config, colors }: StatCardProps) {
         cursor: "default",
         background: `linear-gradient(155deg, ${tone.light} 0%, ${colors.surface} 52%)`,
         height: "100%",
+        minHeight: { xs: 104, sm: 116 },
         display: "flex",
         flexDirection: "column",
         transition: "box-shadow .22s, border-color .22s, transform .22s",
@@ -66,13 +67,21 @@ export function StatCard({ config, colors }: StatCardProps) {
         }}
       />
 
-      <Box sx={{ p: "14px 16px 12px", flex: 1, display: "flex", flexDirection: "column" }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: "9px", mb: "12px" }}>
+      <Box
+        sx={{
+          p: { xs: "11px 12px 10px", sm: "14px 16px 12px" },
+          flex: 1,
+          minWidth: 0,
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: "7px", sm: "9px" }, mb: { xs: "8px", sm: "12px" } }}>
           <Box
             className="sc-icon"
             sx={{
-              width: 34,
-              height: 34,
+              width: { xs: 28, sm: 34 },
+              height: { xs: 28, sm: 34 },
               borderRadius: "10px",
               background: tone.light,
               border: `1px solid ${tone.border}`,
@@ -84,7 +93,7 @@ export function StatCard({ config, colors }: StatCardProps) {
               transition: "transform .25s",
             }}
           >
-            <Icon sx={{ fontSize: 17 }} />
+            <Icon sx={{ fontSize: { xs: 15, sm: 17 } }} />
           </Box>
           <Typography
             sx={{
@@ -121,13 +130,28 @@ export function StatCard({ config, colors }: StatCardProps) {
           )}
         </Box>
 
-        <Box sx={{ mt: "auto" }}>
-          <Typography sx={{ fontSize: 27, fontWeight: 900, color: colors.textPrimary, lineHeight: 1, letterSpacing: "-1px" }}>
+        {/* Sits directly under the header rather than pinned to the tile
+            floor: when a busy assignments list stretches this row, a bottom
+            pin opened a band of dead space above every value. The labels are
+            single-line by construction, so the four values still share a
+            baseline. */}
+        <Box sx={{ minWidth: 0 }}>
+          <Typography
+            sx={{
+              fontSize: { xs: 21, sm: 24, lg: 27 },
+              fontWeight: 900,
+              color: colors.textPrimary,
+              lineHeight: 1.05,
+              letterSpacing: "-1px",
+              // A long value ("42 days") wraps rather than overflowing the tile.
+              overflowWrap: "anywhere",
+            }}
+          >
             {typeof config.display === "number" ? <AnimatedNumber value={config.display} /> : config.display}
           </Typography>
           <Typography
             sx={{
-              fontSize: 11,
+              fontSize: { xs: 10, sm: 11 },
               color: tone.color,
               fontWeight: 600,
               mt: "4px",
@@ -141,7 +165,7 @@ export function StatCard({ config, colors }: StatCardProps) {
         </Box>
 
         {config.trend && (
-          <Box sx={{ mt: "10px", mx: "-4px" }}>
+          <Box sx={{ mt: "auto", pt: "10px", mx: "-4px" }}>
             <Sparkline data={config.trend} color={tone.color} height={26} />
           </Box>
         )}

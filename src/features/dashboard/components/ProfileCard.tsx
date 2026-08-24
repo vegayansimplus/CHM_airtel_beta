@@ -71,6 +71,10 @@ export function ProfileCard({
   mounted,
   delay,
 }: ProfileCardProps) {
+  const organizationLine = profile
+    ? [profile.verticalName, profile.functionName, profile.domainName].filter(Boolean).join(" · ")
+    : "";
+
   const statCells = stats
     ? [
         { v: stats.doneCount, l: "Done" },
@@ -84,6 +88,7 @@ export function ProfileCard({
       sx={{
         ...getCardSx(colors),
         overflow: "hidden",
+        minWidth: 0,
         ...fadeIn(mounted, delay),
       }}
     >
@@ -126,7 +131,7 @@ export function ProfileCard({
           <Box sx={{ pb: "14px" }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: "12px", position: "relative", zIndex: 1 }}>
               {showAvatar && (
-                <Box sx={{ position: "relative" }}>
+                <Box sx={{ position: "relative", flexShrink: 0 }}>
                   <Box
                     sx={{
                       width: 46,
@@ -165,15 +170,15 @@ export function ProfileCard({
                 <Typography sx={{ fontSize: 10, color: "rgba(199,210,254,.65)", mt: 0.3 }} noWrap>
                   {profile.designation ?? profile.functionName ?? "—"}
                 </Typography>
-                <Box sx={{ display: "inline-flex", alignItems: "center", gap: "4px", mt: "6px", background: "rgba(255,255,255,.1)", borderRadius: "20px", px: "8px", py: "2px" }}>
-                  <Box sx={{ width: 5, height: 5, borderRadius: "50%", background: profile.employeeStatus === "ACTIVE" ? colors.success : colors.danger }} />
-                  <Typography sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.8)", letterSpacing: ".4px" }}>
+                <Box sx={{ display: "inline-flex", alignItems: "center", maxWidth: "100%", gap: "4px", mt: "6px", background: "rgba(255,255,255,.1)", borderRadius: "20px", px: "8px", py: "2px" }}>
+                  <Box sx={{ width: 5, height: 5, borderRadius: "50%", flexShrink: 0, background: profile.employeeStatus === "ACTIVE" ? colors.success : colors.danger }} />
+                  <Typography sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.8)", letterSpacing: ".4px" }} noWrap>
                     {profile.employeeStatus} · {profile.olmid}
                   </Typography>
                 </Box>
               </Box>
               {stats && (
-                <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center" }}>
+                <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                   <RadialProgress value={stats.doneCount} max={stats.totalTasks} color={colors.accentLight} />
                   <Box sx={{ position: "absolute", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Typography sx={{ fontSize: 11, fontWeight: 900, color: "#fff", lineHeight: 1 }}>
@@ -184,9 +189,9 @@ export function ProfileCard({
               )}
             </Box>
 
-            {showOrganization && (
+            {showOrganization && organizationLine && (
               <Typography sx={{ fontSize: 10, color: "rgba(199,210,254,.5)", mt: "10px", position: "relative", zIndex: 1 }} noWrap>
-                {[profile.verticalName, profile.functionName, profile.domainName].filter(Boolean).join(" · ") || "—"}
+                {organizationLine}
               </Typography>
             )}
 
@@ -206,18 +211,34 @@ export function ProfileCard({
         )}
 
         {stats && (
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", borderTop: "1px solid rgba(255,255,255,.08)" }}>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              // Cancels the hero band's 16px side padding — the divider spans
+              // the full card width instead of stopping short of both edges.
+              mx: "-16px",
+              borderTop: "1px solid rgba(255,255,255,.08)",
+            }}
+          >
             {statCells.map((s, i) => (
               <Box
                 key={s.l}
                 sx={{
                   textAlign: "center",
                   py: "9px",
+                  px: "4px",
+                  minWidth: 0,
                   borderRight: i < statCells.length - 1 ? "1px solid rgba(255,255,255,.08)" : "none",
                 }}
               >
-                <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1 }}>{s.v}</Typography>
-                <Typography sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.5)", mt: "3px", letterSpacing: ".5px", textTransform: "uppercase" }}>
+                <Typography sx={{ fontSize: 15, fontWeight: 800, color: "#fff", lineHeight: 1 }} noWrap>
+                  {s.v}
+                </Typography>
+                <Typography
+                  sx={{ fontSize: 9, fontWeight: 700, color: "rgba(199,210,254,.5)", mt: "3px", letterSpacing: ".5px", textTransform: "uppercase" }}
+                  noWrap
+                >
                   {s.l}
                 </Typography>
               </Box>
