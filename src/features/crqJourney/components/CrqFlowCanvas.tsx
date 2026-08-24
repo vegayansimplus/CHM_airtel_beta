@@ -19,7 +19,7 @@ import CheckCircleOutlineRoundedIcon from "@mui/icons-material/CheckCircleOutlin
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import VisibilityRoundedIcon from "@mui/icons-material/VisibilityRounded";
 import VisibilityOffRoundedIcon from "@mui/icons-material/VisibilityOffRounded";
-import type { CrqJourneyFlow, StepStatus } from "../types/crqJourney.types";
+import type { CrqJourneyFlow, PendingApprovalView, StepStatus } from "../types/crqJourney.types";
 import {
   formatStageName,
   formatStatusLabel,
@@ -47,6 +47,28 @@ interface CrqFlowCanvasProps {
   flow: CrqJourneyFlow;
   showLegend: boolean;
   onToggleLegend?: () => void;
+  /**
+   * Service name / code → the approver who owes a decision on it (result set 2
+   * of sp_get_crq_journey_page). An approvals-lane card is ~90px wide, so the
+   * approver can only live in the card's tooltip; the full picture is the
+   * PendingApprovalsPanel above this canvas.
+   */
+  approverIndex?: Map<string, PendingApprovalView>;
+  /**
+   * Extra vertical space to leave free below the canvas, in CSS px — for
+   * whatever the page stacks underneath it (the pending-approvals panel).
+   *
+   * The canvas fits itself into the viewport height left below its own top
+   * edge, so without this it sizes as if it owned everything down to the fold
+   * and pushes the next block off-screen.
+   *
+   * Must be derived from state, never measured from the DOM. A measured height
+   * closes a loop at the window widths where the page sits right on the
+   * overflow boundary: bigger canvas → scrollbar → narrower page → the block
+   * below reflows taller → bigger reserve → smaller canvas → scrollbar goes →
+   * repeat. See pendingApprovalsReserve for the state-derived version.
+   */
+  bottomReserve?: number;
 }
 
 // ─── Connector styling per edge state ────────────────────────────────────────
@@ -227,7 +249,13 @@ const CANVAS_LAYER_SX = {
 
 const CANVAS_FRAME_SX = { position: "relative", mx: "auto" } as const;
 
-export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, onToggleLegend }) => {
+export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({
+  flow,
+  showLegend,
+  onToggleLegend,
+  approverIndex,
+  bottomReserve = 0,
+}) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   // noSsr: without it the first paint always answers "false" and renders the
@@ -290,8 +318,9 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
     // Everything the shell draws under the measured node — card padding +
     // border (~11px), the page column's bottom padding (8px), plus real
     // clearance. Fitting flush to the viewport instead makes the page overflow
-    // by a hair, which flips the app scrollbar on and off.
-    bottomGutter: 44,
+    // by a hair, which flips the app scrollbar on and off. Anything the page
+    // stacks below the canvas is added on top of that.
+    bottomGutter: 44 + bottomReserve,
   });
 
   const stepCfg = getStepStatusConfig(isDark);
@@ -370,7 +399,9 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
 
   // ── Narrow viewports get a stacked lane list instead of a shrunken diagram ──
   if (isCompactViewport) {
-    return shell(<CrqFlowStacked flow={flow} schedulingChain={schedulingChain} />);
+    return shell(
+      <CrqFlowStacked flow={flow} schedulingChain={schedulingChain} approverIndex={approverIndex} />
+    );
   }
 
   return shell(
@@ -476,6 +507,7 @@ export const CrqFlowCanvas: React.FC<CrqFlowCanvasProps> = ({ flow, showLegend, 
                 <ApprovalCard
                   key={`${a.stage}-${idx}`}
                   approval={a}
+                  approver={approverIndex?.get(a.stage.trim().toUpperCase()) ?? null}
                   width={layout.approvalCardW}
                   height={layout.approvalCardH}
                 />

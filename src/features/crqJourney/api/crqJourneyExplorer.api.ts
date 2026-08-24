@@ -1,7 +1,7 @@
 import { api } from "../../../service/api";
 import type {
   CrqJourneySearchRow,
-  CrqJourneyStageRow,
+  CrqJourneyPageResponse,
   CrqDetailsResponse,
 } from "../types/crqJourney.types";
 
@@ -29,7 +29,14 @@ export const crqJourneyExplorerApi = api.injectEndpoints({
           : [{ type: "CrqReview" as const, id: "JOURNEY-SEARCH-LIST" }],
     }),
 
-    getCrqJourneyStages: builder.query<CrqJourneyStageRow[], string>({
+    /**
+     * One call, three result sets: the journey stage rows, the pending CAB
+     * services with their configured approver, and the CRQ's domain scope.
+     * Returned a bare stage array until the proc was re-authored live on
+     * 2026-08-24 — the extra two result sets were reaching the backend and
+     * being discarded there.
+     */
+    getCrqJourneyStages: builder.query<CrqJourneyPageResponse, string>({
       query: (crqNo) => ({
         url: `/crqworkflow/journey-explorer/${encodeURIComponent(crqNo)}`,
         method: "GET",

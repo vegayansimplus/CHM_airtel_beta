@@ -14,9 +14,10 @@ import PersonRoundedIcon from "@mui/icons-material/PersonRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import CloseRoundedIcon from "@mui/icons-material/CloseRounded";
 import AccessTimeRoundedIcon from "@mui/icons-material/AccessTimeRounded";
-import type { ApprovalIconKey, CrqJourneyStageRow } from "../types/crqJourney.types";
+import type { ApprovalIconKey, CrqJourneyStageRow, PendingApprovalView } from "../types/crqJourney.types";
 import {
   getApprovalStatusConfig,
+  approverLabel,
   formatApprovalName,
   formatStatusLabel,
   normalizeApprovalStatus,
@@ -45,13 +46,20 @@ const BADGE_ICON = {
 
 interface ApprovalCardProps {
   approval: CrqJourneyStageRow;
+  /**
+   * The approver who owes a decision on this service, when it's still pending
+   * (result set 2 of sp_get_crq_journey_page). The card has no room to print a
+   * person's name, so it lands in the tooltip — the sortable, copyable,
+   * contactable version is the PendingApprovalsPanel.
+   */
+  approver?: PendingApprovalView | null;
   /** Canvas-driven width — the approvals lane divides its space between however many services the CRQ has. */
   width?: number | string;
   height?: number | string;
 }
 
 /** One service approval linked to the CRQ (CRQ_CAB_SERVICE_TBL) — count varies per CRQ. */
-export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, height }) => {
+export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, approver, width, height }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const status = normalizeApprovalStatus(approval.status);
@@ -62,8 +70,36 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, width, hei
   // Shortened for the card, full service name preserved in the tooltip.
   const displayName = formatApprovalName(approval.stage);
 
+  // Only a pending row has an approver still to act; an approved/rejected card
+  // showing "Awaiting X" would contradict its own badge. The lookup is keyed by
+  // service, so a CRQ with the same service both approved and pending resolves
+  // the same row for both cards — hence the status guard rather than a
+  // presence check alone.
+  const pendingApprover = status === "pending" && approver ? approver : null;
+  const approverLine = pendingApprover
+    ? pendingApprover.configured
+      ? `Awaiting ${approverLabel(pendingApprover)}${
+          pendingApprover.approverOlmId ? ` (${pendingApprover.approverOlmId})` : ""
+        }`
+      : "No approver configured"
+    : null;
+
   return (
-    <Tooltip title={`${approval.stage} — ${formatStatusLabel(approval.status)}`} arrow enterDelay={400}>
+    <Tooltip
+      title={
+        <>
+          {approval.stage} — {formatStatusLabel(approval.status)}
+          {approverLine && (
+            <>
+              <br />
+              {approverLine}
+            </>
+          )}
+        </>
+      }
+      arrow
+      enterDelay={400}
+    >
       <Box
         sx={{
           width: width ?? 92,

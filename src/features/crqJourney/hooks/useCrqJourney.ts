@@ -8,7 +8,12 @@ import {
   useGetCrqJourneyStagesQuery,
   useGetCrqDetailsQuery,
 } from "../api/crqJourneyExplorer.api";
-import { computeFlowProgress, groupJourneyStages } from "../utils/crqJourney.utils";
+import {
+  buildApproverIndex,
+  computeFlowProgress,
+  groupJourneyStages,
+  summarizePendingApprovals,
+} from "../utils/crqJourney.utils";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
 /**
@@ -81,14 +86,31 @@ export const useCrqJourney = () => {
   };
 
   const {
-    data: stageRows,
+    data: journey,
     isFetching: isLoadingJourney,
     isError: isJourneyError,
     refetch: refetchJourney,
   } = useGetCrqJourneyStagesQuery(selectedCrq?.crqNo ?? "", { skip: !selectedCrq });
 
-  const flow = useMemo(() => (stageRows ? groupJourneyStages(stageRows) : null), [stageRows]);
+  const flow = useMemo(
+    () => (journey?.stages ? groupJourneyStages(journey.stages) : null),
+    [journey?.stages]
+  );
   const progress = useMemo(() => (flow ? computeFlowProgress(flow) : null), [flow]);
+
+  // Result set 2 of the same call: which CAB services are still open and who
+  // has to decide them. It identifies services by code only, so the grouped
+  // flow's service rows are handed in as well — they carry the display names
+  // for exactly the services on this CRQ. The index then lets an approvals-lane
+  // card in the canvas name its own approver without a lookup per render.
+  const pendingApprovals = useMemo(
+    () => summarizePendingApprovals(journey?.pendingApprovals, flow?.approvals ?? []),
+    [journey?.pendingApprovals, flow?.approvals]
+  );
+  const approverIndex = useMemo(
+    () => buildApproverIndex(pendingApprovals.services),
+    [pendingApprovals.services]
+  );
 
   // Only the details belonging to the CRQ on screen — a stale response for the
   // previously selected CRQ must not leak into the header strip.
@@ -114,6 +136,9 @@ export const useCrqJourney = () => {
         : null,
     flow,
     progress,
+    pendingApprovals,
+    approverIndex,
+    scope: journey?.scope ?? null,
     details: selectedDetails,
     isLoadingDetails: isLoadingDetails && !selectedDetails,
     refetch: () => {

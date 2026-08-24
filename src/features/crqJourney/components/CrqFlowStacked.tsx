@@ -6,7 +6,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import DescriptionRoundedIcon from "@mui/icons-material/DescriptionRounded";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
-import type { CrqJourneyFlow, CrqJourneyStageRow, StepStatus } from "../types/crqJourney.types";
+import type { CrqJourneyFlow, CrqJourneyStageRow, PendingApprovalView, StepStatus } from "../types/crqJourney.types";
 import { formatStageName, formatStatusLabel, getStepStatusConfig, normalizeStepStatus } from "../utils/crqJourney.utils";
 import { StatusIcon } from "./StepStatusBadge";
 import { ApprovalCard } from "./ApprovalCard";
@@ -165,7 +165,9 @@ export const CrqFlowStacked: React.FC<{
   flow: CrqJourneyFlow;
   /** Built once by the canvas so both views label CAB / Conflict Check identically. */
   schedulingChain: SchedulingChainItem[];
-}> = ({ flow, schedulingChain }) => {
+  /** Service name / code → pending approver, so both views' cards name the same person. */
+  approverIndex?: Map<string, PendingApprovalView>;
+}> = ({ flow, schedulingChain, approverIndex }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { assignment, approvals, validate, impactAnalysis, mopCreate, mopValidate, implementation, closure } =
@@ -205,7 +207,13 @@ export const CrqFlowStacked: React.FC<{
             }}
           >
             {approvals.map((a, idx) => (
-              <ApprovalCard key={`${a.stage}-${idx}`} approval={a} width="100%" height={126} />
+              <ApprovalCard
+                key={`${a.stage}-${idx}`}
+                approval={a}
+                approver={approverIndex?.get(a.stage.trim().toUpperCase()) ?? null}
+                width="100%"
+                height={126}
+              />
             ))}
           </Box>
         ) : (
