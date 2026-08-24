@@ -3,7 +3,6 @@ import {
   Autocomplete,
   Box,
   Chip,
-  LinearProgress,
   Stack,
   TextField,
   Tooltip,
@@ -47,8 +46,6 @@ export interface ValidateTokenFieldProps {
   value: string;
   onChange: (next: string) => void;
   onBlur: () => void;
-  /** Column width - the same cap the procedure enforces. */
-  max: number;
   colors: Colors;
   placeholder: string;
   disabled?: boolean;
@@ -67,7 +64,6 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
   value,
   onChange,
   onBlur,
-  max,
   colors,
   placeholder,
   disabled,
@@ -79,28 +75,20 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
 }) => {
   const tokens = useMemo(() => splitTokens(value), [value]);
   const [inputValue, setInputValue] = useState("");
-  const [capError, setCapError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const used = joinTokens(tokens).length;
-  const pct = Math.min(100, Math.round((used / max) * 100));
 
   /**
-   * Guard the cap here rather than letting the form slice at `max`: slicing a
-   * joined string would cut the last entry in half and silently save a node
-   * that does not exist.
+   * No length ceiling any more - the columns behind both fields are TEXT and
+   * update_validation_details stores whatever is sent, so a list can grow to
+   * as many nodes as the CRQ actually touches.
    */
   const commit = useCallback(
     (next: string[]) => {
-      const joined = joinTokens(next);
-      if (joined.length > max) {
-        setCapError(`Not enough room - ${label} is capped at ${max} characters.`);
-        return;
-      }
-      setCapError(null);
-      onChange(joined);
+      onChange(joinTokens(next));
     },
-    [label, max, onChange],
+    [onChange],
   );
 
   const handleInputChange = useCallback(
@@ -130,9 +118,6 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
 
   const errorCount = issues.filter((issue) => issue?.severity === "error").length;
   const warnCount = issues.filter((issue) => issue?.severity === "warning").length;
-
-  const meterColor =
-    pct >= 100 ? colors.danger : pct >= 85 ? colors.warning : colors.accent;
 
   return (
     <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -197,7 +182,7 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
             size="small"
             inputRef={inputRef}
             onBlur={onBlur}
-            error={!!error || !!capError || errorCount > 0}
+            error={!!error || errorCount > 0}
             placeholder={tokens.length ? "Add another…" : placeholder}
             sx={{
               "& .MuiOutlinedInput-root": {
@@ -212,23 +197,11 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
         )}
       />
 
-      {/* Capacity + per-entry counters: the only feedback that used to exist
-          was a bare "0/120", which said nothing about what was wrong. */}
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mt: 0.7 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <LinearProgress
-            variant="determinate"
-            value={pct}
-            sx={{
-              height: 3,
-              borderRadius: 3,
-              bgcolor: colors.border,
-              "& .MuiLinearProgress-bar": { bgcolor: meterColor, borderRadius: 3 },
-            }}
-          />
-        </Box>
+      {/* Per-entry tally. There is no length ceiling left to report, so this
+          counts what has been entered instead of how much room is left. */}
+      <Stack direction="row" alignItems="center" justifyContent="flex-end" sx={{ mt: 0.7 }}>
         <Typography sx={{ fontSize: 10, fontWeight: 700, color: colors.textDim, flexShrink: 0 }}>
-          {tokens.length} {tokens.length === 1 ? "entry" : "entries"} · {used}/{max}
+          {tokens.length} {tokens.length === 1 ? "entry" : "entries"} · {used} chars
         </Typography>
       </Stack>
 
@@ -239,7 +212,7 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
           fontSize: 10.5,
           lineHeight: 1.5,
           color:
-            error || capError || errorCount
+            error || errorCount
               ? colors.danger
               : warnCount
                 ? colors.warning
@@ -247,7 +220,6 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
         }}
       >
         {error ??
-          capError ??
           (errorCount
             ? `${errorCount} ${errorCount > 1 ? "entries are" : "entry is"} not in the expected format.`
             : warnCount

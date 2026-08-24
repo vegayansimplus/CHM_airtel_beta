@@ -5,11 +5,7 @@ import {
   useGetCrqValidationDetailsQuery,
   useSaveCrqValidationDetailsMutation,
 } from "../../../api/crqValidationApiSlice";
-import {
-  NAME_INTERFACE_PAIR_MAX,
-  NODE_NAME_MAX,
-  type CrqValidationDetails,
-} from "../../../types/crqValidation.types";
+import { type CrqValidationDetails } from "../../../types/crqValidation.types";
 
 /** The two editable attributes - everything else on the form is read-only. */
 export interface ValidateFormValues {
@@ -19,27 +15,13 @@ export interface ValidateFormValues {
 
 export type ValidateFieldErrors = Partial<Record<keyof ValidateFormValues, string>>;
 
-const FIELD_LABEL: Record<keyof ValidateFormValues, string> = {
-  nodeName: "Node Name",
-  nameInterfacePair: "Node Interface Name",
-};
-
-const FIELD_MAX: Record<keyof ValidateFormValues, number> = {
-  nodeName: NODE_NAME_MAX,
-  nameInterfacePair: NAME_INTERFACE_PAIR_MAX,
-};
-
 /**
- * Both fields are optional - the only rule left to enforce client-side is the
- * column width, same as update_validation_details enforces server-side.
+ * Both fields are optional and free-length: the columns behind them are TEXT
+ * and update_validation_details no longer enforces a width, so there is
+ * nothing left to reject client-side.
  */
-const validateField = (field: keyof ValidateFormValues, raw: string): string | undefined => {
-  const value = raw.trim();
-  if (value.length > FIELD_MAX[field]) {
-    return `${FIELD_LABEL[field]} must not exceed ${FIELD_MAX[field]} characters.`;
-  }
-  return undefined;
-};
+const validateField = (_field: keyof ValidateFormValues, _raw: string): string | undefined =>
+  undefined;
 
 const toFormValues = (details?: CrqValidationDetails): ValidateFormValues => ({
   nodeName: details?.nodeName ?? "",
@@ -114,9 +96,7 @@ export const useValidateForm = (crqNo: string | null, open: boolean): ValidateFo
   }, [open]);
 
   const setValue = useCallback((field: keyof ValidateFormValues, value: string) => {
-    // Hard-cap at the column width so the field can never hold a value the
-    // procedure would reject.
-    setValues((prev) => ({ ...prev, [field]: value.slice(0, FIELD_MAX[field]) }));
+    setValues((prev) => ({ ...prev, [field]: value }));
     setSaveError(null);
   }, []);
 

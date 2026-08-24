@@ -107,12 +107,21 @@ export function AttendanceCard({
         : { label: "Not started", tone: colors.textDim, bg: colors.border };
 
   return (
-    <Card sx={{ ...getCardSx(colors), p: "16px", position: "relative", overflow: "hidden", ...fadeIn(mounted, delay) }}>
+    <Card
+      sx={{
+        ...getCardSx(colors),
+        p: { xs: "14px", sm: "16px" },
+        position: "relative",
+        overflow: "hidden",
+        minWidth: 0,
+        ...fadeIn(mounted, delay),
+      }}
+    >
       <SectionHeader
         title="Today's attendance"
         colors={colors}
         right={
-          <Box sx={{ display: "flex", alignItems: "center", gap: "6px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap", gap: "6px" }}>
             {(status === "ready" || status === "empty") && (
               <AnimatePresence mode="wait">
                 <motion.div
@@ -273,25 +282,29 @@ export function AttendanceCard({
             colors={colors}
           />
 
-          <Box sx={{ display: "flex", justifyContent: "space-between", pt: "4px", borderTop: `1px solid ${colors.border}` }}>
-            <Box>
-              <Typography sx={{ fontSize: 10, color: colors.textDim, fontWeight: 600 }}>CLOCK IN</Typography>
-              <Typography sx={{ fontSize: 13, color: colors.textPrimary, fontWeight: 700 }}>
-                {formatClock(attendance?.clockInTime)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 10, color: colors.textDim, fontWeight: 600 }}>CLOCK OUT</Typography>
-              <Typography sx={{ fontSize: 13, color: colors.textPrimary, fontWeight: 700 }}>
-                {formatClock(attendance?.clockOutTime)}
-              </Typography>
-            </Box>
-            <Box>
-              <Typography sx={{ fontSize: 10, color: colors.textDim, fontWeight: 600 }}>HOURS</Typography>
-              <Typography sx={{ fontSize: 13, color: colors.accent, fontWeight: 700 }}>
-                {formatMinutes(workedMinutes)}
-              </Typography>
-            </Box>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+              gap: "8px",
+              pt: "8px",
+              borderTop: `1px solid ${colors.border}`,
+            }}
+          >
+            {[
+              { label: "CLOCK IN", value: formatClock(attendance?.clockInTime), tone: colors.textPrimary, align: "left" as const },
+              { label: "CLOCK OUT", value: formatClock(attendance?.clockOutTime), tone: colors.textPrimary, align: "center" as const },
+              { label: "HOURS", value: formatMinutes(workedMinutes), tone: colors.accent, align: "right" as const },
+            ].map((cell) => (
+              <Box key={cell.label} sx={{ minWidth: 0, textAlign: cell.align }}>
+                <Typography sx={{ fontSize: 10, color: colors.textDim, fontWeight: 600, letterSpacing: ".3px" }} noWrap>
+                  {cell.label}
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: cell.tone, fontWeight: 700, mt: "2px" }} noWrap>
+                  {cell.value}
+                </Typography>
+              </Box>
+            ))}
           </Box>
         </Box>
       )}

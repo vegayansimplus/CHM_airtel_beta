@@ -5,8 +5,9 @@ import { format, parseISO } from "date-fns";
 import type { Colors } from "../types/colorTypes";
 import type { EngineerDailyAssignmentRow, ToneKey } from "../types/dashboard.types";
 import type { DashboardAssignmentsStatus } from "../hooks/useDashboardAssignments";
-import { fadeIn, getCardSx, getToneStyles } from "../constants/dashboard.styles";
+import { fadeIn, getCardSx, getInnerScrollSx, getToneStyles } from "../constants/dashboard.styles";
 import { RadialProgress } from "./RadialProgress";
+import { SectionHeader } from "./SectionHeader";
 
 interface TodaysAssignmentsCardProps {
   assignments: readonly EngineerDailyAssignmentRow[];
@@ -51,29 +52,30 @@ export function TodaysAssignmentsCard({
     <Card
       sx={{
         ...getCardSx(colors),
-        p: "16px",
+        p: { xs: "14px", sm: "16px" },
         height: "100%",
+        minHeight: { xs: 180, lg: 248 },
+        minWidth: 0,
         display: "flex",
         flexDirection: "column",
         ...fadeIn(mounted, delay),
       }}
     >
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: "12px" }}>
-        <Box>
-          <Typography sx={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>Today's assignments</Typography>
-          <Typography sx={{ fontSize: 11, color: colors.textSecondary, mt: 0.3 }}>
-            {totalCount === 0 ? "Nothing scheduled" : `${totalCount - doneCount} remaining · ${doneCount} done`}
-          </Typography>
-        </Box>
-        {totalCount > 0 && (
-          <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-            <RadialProgress value={doneCount} max={totalCount} size={40} stroke={4} color={colors.accent} trackColor={colors.surface2} />
-            <Typography sx={{ position: "absolute", fontSize: 10, fontWeight: 800, color: colors.textPrimary }}>
-              {pct}%
-            </Typography>
-          </Box>
-        )}
-      </Box>
+      <SectionHeader
+        title="Today's assignments"
+        subtitle={totalCount === 0 ? "Nothing scheduled" : `${totalCount - doneCount} remaining · ${doneCount} done`}
+        colors={colors}
+        right={
+          totalCount > 0 ? (
+            <Box sx={{ position: "relative", display: "inline-flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              <RadialProgress value={doneCount} max={totalCount} size={40} stroke={4} color={colors.accent} trackColor={colors.surface2} />
+              <Typography sx={{ position: "absolute", fontSize: 10, fontWeight: 800, color: colors.textPrimary }}>
+                {pct}%
+              </Typography>
+            </Box>
+          ) : undefined
+        }
+      />
 
       {status === "loading" && (
         <Box sx={{ display: "flex", flexDirection: "column", gap: "8px" }}>
@@ -100,7 +102,22 @@ export function TodaysAssignmentsCard({
       )}
 
       {status === "ready" && (
-        <Box sx={{ flex: 1, display: "flex", flexDirection: "column", gap: "6px", overflowY: "auto" }}>
+        <Box
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            // Capped so a busy day cannot stretch this card — and with it the
+            // KPI tiles sharing its grid row — into a wall of dead space.
+            maxHeight: 300,
+            display: "flex",
+            flexDirection: "column",
+            gap: "6px",
+            overflowY: "auto",
+            // Room for the hover nudge below, so the rows don't clip sideways.
+            pr: "2px",
+            ...getInnerScrollSx(colors),
+          }}
+        >
           {assignments.map((a, i) => {
             const tone = tones[toneForRemark(a.remark)];
             return (
@@ -109,12 +126,13 @@ export function TodaysAssignmentsCard({
                 sx={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "10px",
-                  p: "9px 10px",
+                  gap: { xs: "6px", sm: "10px" },
+                  p: { xs: "8px 9px", sm: "9px 10px" },
                   borderRadius: "10px",
                   background: colors.surface2,
                   border: `1.5px solid ${colors.border}`,
                   transition: "all .18s",
+                  flexShrink: 0,
                   "&:hover": { borderColor: colors.accentBorder, transform: "translateX(3px)" },
                 }}
               >
@@ -122,7 +140,7 @@ export function TodaysAssignmentsCard({
                   <Typography sx={{ fontSize: 12, fontWeight: 700, color: colors.textPrimary }} noWrap>
                     {a.crqNo ?? a.planNo} <span style={{ color: colors.textSecondary, fontWeight: 500 }}>· {a.stage}</span>
                   </Typography>
-                  <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px" }}>
+                  <Typography sx={{ fontSize: 10, color: colors.textSecondary, mt: "1px" }} noWrap>
                     {formatTime(a.startTime)} – {formatTime(a.endTime)}
                     {a.durationMins != null ? ` · ${a.durationMins}m` : ""}
                   </Typography>

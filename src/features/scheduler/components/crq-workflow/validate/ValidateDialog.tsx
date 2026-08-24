@@ -32,10 +32,6 @@ import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import type { Colors } from "../../../types/colorTypes";
 import {
-  NAME_INTERFACE_PAIR_MAX,
-  NODE_NAME_MAX,
-} from "../../../types/crqValidation.types";
-import {
   InfoTile,
   StatusChip,
   StepSection,
@@ -475,7 +471,6 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 onBlur={() => form.touch("nodeName")}
                 disabled={isSaving}
                 error={errors.nodeName}
-                max={NODE_NAME_MAX}
                 placeholder="HYD-T4-CR11.192"
                 inspect={inspectNode}
                 helper={`e.g. ${NODE_NAME_EXAMPLE}`}
@@ -488,7 +483,6 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 onBlur={() => form.touch("nameInterfacePair")}
                 disabled={isSaving}
                 error={errors.nameInterfacePair}
-                max={NAME_INTERFACE_PAIR_MAX}
                 placeholder="HYD-T4-CR11.192$TenGigE0/0/0/23"
                 inspect={inspectPair}
                 quickInserts={nodeTokens.map((node) => `${node}$`)}
