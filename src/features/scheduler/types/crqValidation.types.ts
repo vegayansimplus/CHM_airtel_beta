@@ -41,6 +41,3 @@ export interface CrqValidationSaveRequest {
   nameInterfacePair: string;
 }
 
-/** Server-side caps, mirrored by the dialog so the user sees them before saving. */
-export const NODE_NAME_MAX = 120;
-export const NAME_INTERFACE_PAIR_MAX = 255;

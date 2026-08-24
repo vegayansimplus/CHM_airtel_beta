@@ -19,6 +19,12 @@ import { WeeklyScheduleCard } from "../components/WeeklyScheduleCard";
 import { OnLeaveTodayCard } from "../components/OnLeaveTodayCard";
 import { usePageLoading } from "../../../components/loading/LoadingProvider";
 import { DashboardSkeleton } from "../components/DashboardSkeleton";
+import {
+  DASHBOARD_CONTENT_TOP_COLUMNS,
+  DASHBOARD_GRID_GAP,
+  DASHBOARD_MAIN_COLUMNS,
+  DASHBOARD_PAGE_PADDING,
+} from "../constants/dashboard.styles";
 
 export default function ModernHomeDashboard() {
   const theme = useTheme();
@@ -40,7 +46,7 @@ export default function ModernHomeDashboard() {
 
   // Page Loader covers only the *first* load of this page's 7 parallel
   // queries; once every widget has settled once (ready/empty/error), this
-  // flips permanently false so later background refetches never re-trigger
+  // flips permanently false so later background refetch never re-trigger
   // it — each card then relies on its own (now refetch-safe) status.
   const hasLoadedOnceRef = useRef(false);
   const anyStillLoading = [
@@ -71,21 +77,26 @@ export default function ModernHomeDashboard() {
         // Absorbs the 16px the retired Home shell used to add around this
         // page (pl/pr: 2). The merged shell pads nothing, so the Overview tab
         // keeps the exact gutters it had before the restructure.
-        p: { xs: "12px 20px 28px", md: "16px 24px 32px" },
+        p: DASHBOARD_PAGE_PADDING,
+        // The shell already hides horizontal overflow; this keeps any widget
+        // that outgrows its track (long CRQ ids, the 7-day strip) contained
+        // rather than silently clipped by an ancestor.
+        maxWidth: "100%",
+        overflowX: "hidden",
         fontFamily: (theme) => theme.typography.fontFamily,
       }}
     >
-      {/* ══ Main grid — fixed left rail + fluid right column ══ */}
+      {/* ══ Main grid — left rail + fluid content column ══ */}
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: { xs: "1fr", lg: "300px minmax(0, 1fr)" },
-          gap: "16px",
+          gridTemplateColumns: DASHBOARD_MAIN_COLUMNS,
+          gap: DASHBOARD_GRID_GAP,
           alignItems: "start",
         }}
       >
         {/* ── LEFT — Profile, Work location, Holidays, On leave ── */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: DASHBOARD_GRID_GAP, minWidth: 0 }}>
           <ProfileCard
             status={profileStatus}
             profile={profile}
@@ -134,12 +145,12 @@ export default function ModernHomeDashboard() {
         </Box>
 
         {/* ── RIGHT — Assignments + stats (equal height), schedule, notifications ── */}
-        <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: DASHBOARD_GRID_GAP, minWidth: 0 }}>
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-              gap: "16px",
+              gridTemplateColumns: DASHBOARD_CONTENT_TOP_COLUMNS,
+              gap: DASHBOARD_GRID_GAP,
               alignItems: "stretch",
             }}
           >

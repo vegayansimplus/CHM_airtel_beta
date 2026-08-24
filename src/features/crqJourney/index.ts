@@ -19,6 +19,7 @@ export { CrqSelector }       from "./components/CrqSelector";
 export { CrqFlowCanvas }     from "./components/CrqFlowCanvas";
 export { CrqFlowStacked }    from "./components/CrqFlowStacked";
 export { CrqFlowSkeleton }   from "./components/CrqFlowSkeleton";
+export { PendingApprovalsPanel, pendingApprovalsReserve } from "./components/PendingApprovalsPanel";
 export { CrqEmptyState }     from "./components/CrqEmptyState";
 export * from "./components/schedulingChain";
 export { StageCard }         from "./components/StageCard";

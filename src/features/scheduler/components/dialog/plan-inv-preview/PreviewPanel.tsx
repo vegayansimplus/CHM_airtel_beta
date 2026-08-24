@@ -65,13 +65,15 @@ export const PreviewPanel: React.FC<Props> = ({
         />
         <Box sx={{ flex: 1 }} />
 
+        {/* Collapse/expand is a view control, not an action, so it stays live
+            even on a frozen stage - on a small screen the form auto-collapses,
+            and disabling this was the only way back to it. */}
         <Tooltip title={panelOpen ? "Hide the validation form panel" : "Show the validation form panel"} arrow>
           <Button
             size="small"
             onClick={() => setPanelOpen((v) => !v)}
             aria-label={panelOpen ? "Hide validation panel" : "Show validation panel"}
             startIcon={panelOpen ? <ChevronLeftIcon sx={{ fontSize: "16px !important" }} /> : <ChevronRightIcon sx={{ fontSize: "16px !important" }} />}
-            disabled={isCancelled}
             sx={{
               color: colors.accent,
               border: `1px solid ${alpha(colors.accent, 0.28)}`,

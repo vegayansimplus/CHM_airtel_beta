@@ -4,8 +4,12 @@ import CloseIcon from "@mui/icons-material/Close";
 // import type { StageConfig } from "../../../types/stageWorkflow.types";
 import { GenericFormPanel } from "./GenericFormPanel";
 import { StagePreviewPanel } from "./StagePreviewPanel";
-import { classifyStatusValue, findHistoryEntry } from "../../../constants/workflowStages";
-import type { StageConfig } from "../../../types/stageWorkflow.types";
+import {
+  classifyStatusValue,
+  findHistoryEntry,
+  isCanceledStatus,
+} from "../../../constants/workflowStages";
+import type { StageConfig, StageSubmitResult } from "../../../types/stageWorkflow.types";
 import { useSchedulerAccess } from "../../../hook/useSchedulerAccess";
 
 interface StageReviewDialogProps {
@@ -14,10 +18,8 @@ interface StageReviewDialogProps {
   crq: any;
   colors: any;
   stageConfig: StageConfig;
-  onSubmitDone: (values: Record<string, any>, crq: any) => Promise<{ success: boolean }>;
+  onSubmitDone: (values: Record<string, any>, crq: any) => Promise<StageSubmitResult>;
 }
-
-const CANCELLED_STATUSES = ["canceled", "Cancel", "Canceled"];
 
 /**
  * Stage-agnostic replacement for `PlanInvDialog`. Every stage (Impact
@@ -42,7 +44,6 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
 
   const crqNo = crq?.crqNo ?? null;
   const crqStatus = crq?.crqStatus ?? crq?.status ?? null;
-  const isCancelled = CANCELLED_STATUSES.includes(crqStatus ?? "");
   // This stage's own outcome already recorded (Done), or the CRQ itself has
   // closed out entirely - either way, re-opening the Review dialog from a
   // "view" mode CrqActionPanel must let the user see what was submitted
@@ -51,9 +52,19 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
   // only a fallback for responses that don't carry history[], and can lag
   // behind it once a CRQ has migrated onto the new model.
   const stageHistoryStatus = findHistoryEntry(crq, stageConfig.key)?.status;
+  const stageStatus = stageHistoryStatus ?? crq?.[stageConfig.statusField];
   const isDone =
-    classifyStatusValue(stageHistoryStatus ?? crq?.[stageConfig.statusField]) === "completed" ||
+    classifyStatusValue(stageStatus) === "completed" ||
     classifyStatusValue(crqStatus) === "completed";
+
+  // Cancelled freezes this dialog exactly like Done does: it still opens, so
+  // the recorded outcome stays inspectable, but nothing inside it can act.
+  // Both levels count - the CRQ itself cancelled, or only this stage
+  // cancelled while the CRQ is still open (the stage rail's red "Canceled"
+  // chip) - and each gets its own alert copy so the form never claims the
+  // whole CRQ was cancelled when only the stage was.
+  const isCrqCancelled = isCanceledStatus(crqStatus);
+  const isCancelled = isCrqCancelled || isCanceledStatus(stageStatus);
 
   // Only Impact Analysis has a right panel (the live ImpactBatchExplorer) to
   // pair the form with - every other stage renders GenericFormPanel alone,
@@ -92,6 +103,7 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
       crq={crq}
       stageConfig={stageConfig}
       isCancelled={isCancelled}
+      cancelledScope={isCrqCancelled ? "crq" : "stage"}
       isDone={isDone}
       readOnly={!canEdit}
       panelOpen={panelOpen}
@@ -154,7 +166,7 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
         <StagePreviewPanel
           crqNo={crqNo}
           stageConfig={stageConfig}
-          isCancelled={isCancelled}
+          readOnly={isCancelled || isDone || !canEdit}
           panelOpen={panelOpen}
           setPanelOpen={setPanelOpen}
           colors={colors}

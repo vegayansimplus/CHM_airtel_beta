@@ -340,7 +340,7 @@ const Header: React.FC<HeaderProps> = ({
             sx={{ display: { xs: "none", md: "block" }, objectFit: "contain" }}
           />
 
-          <NotificationBell onViewAll={() => navigate("/notifications")} />
+          <NotificationBell onViewAll={() => navigate("/inbox/notifications")} />
 
           {/* User avatar / profile menu */}
           <Box

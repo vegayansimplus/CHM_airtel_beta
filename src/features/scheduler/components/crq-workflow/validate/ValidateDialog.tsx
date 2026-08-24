@@ -32,10 +32,6 @@ import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import type { Colors } from "../../../types/colorTypes";
 import {
-  NAME_INTERFACE_PAIR_MAX,
-  NODE_NAME_MAX,
-} from "../../../types/crqValidation.types";
-import {
   InfoTile,
   StatusChip,
   StepSection,
@@ -229,6 +225,12 @@ export interface ValidateDialogProps {
   colors: Colors;
   /** Fired after a successful save, so the cockpit can refresh if it needs to. */
   onSaved?: () => void;
+  /**
+   * The stage this was opened from is cancelled. The dialog still opens - the
+   * validation details it reads are worth seeing - but every control that
+   * writes ("Fill example", "Save") is dropped and the fields go inert.
+   */
+  readOnly?: boolean;
 }
 
 /**
@@ -250,6 +252,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
   crqNo,
   colors,
   onSaved,
+  readOnly = false,
 }) => {
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
@@ -278,12 +281,12 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
   /** Unsaved edits are worth one confirmation before they're thrown away. */
   const requestClose = useCallback(() => {
     if (isSaving) return;
-    if (isDirty) {
+    if (isDirty && !readOnly) {
       setConfirmDiscardOpen(true);
       return;
     }
     closeAndReset();
-  }, [isSaving, isDirty, closeAndReset]);
+  }, [isSaving, isDirty, readOnly, closeAndReset]);
 
   const handleSave = useCallback(async () => {
     const ok = await form.save();
@@ -374,7 +377,18 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             </Alert>
           )}
 
-          {isNeverValidated && !saveError && (
+          {readOnly && (
+            <Alert
+              severity="warning"
+              variant="outlined"
+              icon={<InfoOutlinedIcon sx={{ fontSize: 18 }} />}
+              sx={{ mb: 2, fontSize: 12.5, py: 0.4 }}
+            >
+              This CRQ's stage is cancelled — the validation details below are read-only.
+            </Alert>
+          )}
+
+          {isNeverValidated && !readOnly && !saveError && (
             <Alert
               severity="info"
               variant="outlined"
@@ -440,12 +454,15 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               useFlexGap
               sx={{ gap: 1, mb: 1.4 }}
             >
-              <Typography sx={{ fontSize: 11, color: colors.textDim, lineHeight: 1.65 }}>
-                Type an entry and press <KeyHint colors={colors}>Enter</KeyHint> or{" "}
-                <KeyHint colors={colors}>,</KeyHint> to add it. Pair a node with its
-                interface using <KeyHint colors={colors}>$</KeyHint>.
-              </Typography>
+              {!readOnly && (
+                <Typography sx={{ fontSize: 11, color: colors.textDim, lineHeight: 1.65 }}>
+                  Type an entry and press <KeyHint colors={colors}>Enter</KeyHint> or{" "}
+                  <KeyHint colors={colors}>,</KeyHint> to add it. Pair a node with its
+                  interface using <KeyHint colors={colors}>$</KeyHint>.
+                </Typography>
+              )}
               <Box sx={{ flex: 1 }} />
+              {!readOnly && (
               <Button
                 size="small"
                 variant="text"
@@ -459,6 +476,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               >
                 Fill example
               </Button>
+              )}
             </Stack>
 
             <Stack
@@ -473,9 +491,8 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 value={values.nodeName}
                 onChange={(next) => form.setValue("nodeName", next)}
                 onBlur={() => form.touch("nodeName")}
-                disabled={isSaving}
+                disabled={isSaving || readOnly}
                 error={errors.nodeName}
-                max={NODE_NAME_MAX}
                 placeholder="HYD-T4-CR11.192"
                 inspect={inspectNode}
                 helper={`e.g. ${NODE_NAME_EXAMPLE}`}
@@ -486,9 +503,8 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 value={values.nameInterfacePair}
                 onChange={(next) => form.setValue("nameInterfacePair", next)}
                 onBlur={() => form.touch("nameInterfacePair")}
-                disabled={isSaving}
+                disabled={isSaving || readOnly}
                 error={errors.nameInterfacePair}
-                max={NAME_INTERFACE_PAIR_MAX}
                 placeholder="HYD-T4-CR11.192$TenGigE0/0/0/23"
                 inspect={inspectPair}
                 quickInserts={nodeTokens.map((node) => `${node}$`)}
@@ -599,7 +615,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             disabled={isSaving}
             sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px" }}
           >
-            Cancel
+            {readOnly ? "Close" : "Cancel"}
           </Button>
           <Box sx={{ flex: 1 }} />
           {/* Live count of what is about to be saved, plus an unsaved-edits dot -
@@ -624,6 +640,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               </Typography>
             </Stack>
           )}
+          {!readOnly && (
           <Tooltip
             title={
               !canSave && !isSaving && !isFetching
@@ -651,6 +668,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               </Button>
             </span>
           </Tooltip>
+          )}
         </DialogActions>
       </Dialog>
 

@@ -75,7 +75,6 @@ export const MY_DASHBOARD_TABS: MyDashboardTab[] = [
     icon: <CalendarMonthOutlinedIcon />,
     requiredModule: "Me",
     legacyPaths: ["/me/monthlyview"],
-    hidden: true,
   },
   {
     segment: "leave",

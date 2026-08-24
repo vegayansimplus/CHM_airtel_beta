@@ -5,6 +5,8 @@ import type {
   ApprovalIconKey,
   CrqJourneyStageRow,
   CrqJourneyFlow,
+  CrqPendingApproval,
+  PendingApprovalView,
 } from "../types/crqJourney.types";
 
 // ─── Shared status hues ────────────────────────────────────────────────────────
@@ -307,6 +309,245 @@ export const computeFlowProgress = (
     pct: total ? Math.round((completed / total) * 100) : 0,
     activeStage: active ? active.stage : null,
   };
+};
+
+// ─── Pending service approvals (result set 2) ────────────────────────────────
+//
+// sp_get_crq_journey_page is read-only for this feature, so everything the UI
+// needs beyond its three raw columns is derived here:
+//
+//   • result set 2 identifies services by CODE ("MOB") while result set 1 names
+//     the very same services by their master name ("Mobility (RAN/Core)") — one
+//     page showing both labels for one service reads as two different things,
+//     so codes are resolved to names below;
+//   • the proc emits one row per PENDING CRQ_CAB_SERVICE_TBL row, so a service
+//     with six open rows arrives six times — those collapse into one line
+//     carrying the count;
+//   • 'NO SERVICES' / 'NO SERVICES PENDING' arrive through the service-code
+//     column, so the "nothing is pending" answer has to be told apart from the
+//     name of a real service.
+//
+// The whole thing happens on the rows already in hand — no extra round trip,
+// and nothing here depends on the ORDER the proc returns rows in, which it does
+// not guarantee for this result set.
+
+/** The proc's sentinel values, which arrive in place of a service code. */
+const SENTINEL_NO_SERVICES = "NO SERVICES";
+const SENTINEL_NO_PENDING = "NO SERVICES PENDING";
+
+/**
+ * CRQ_CAB_SERVICE_MASTER (Service_Code → Service_Name) — the same table result
+ * set 1 already reads its labels from, mirrored here because result set 2 emits
+ * only the code. Refresh with:
+ *   SELECT Service_Code, Service_Name FROM CRQ_CAB_SERVICE_MASTER ORDER BY Sort_Order;
+ *
+ * Deliberately not the only resolution path: a code an admin adds after this
+ * list was written is still resolved from result set 1 below, and an
+ * unresolvable code renders as itself rather than as a blank.
+ */
+const SERVICE_CODE_NAMES: Record<string, string> = {
+  RAN: "Radio Access Network",
+  TX: "Transmission",
+  MOB: "Mobility (RAN/Core)",
+  B2B: "Enterprise / B2B",
+  TEL: "Telemedia",
+  CORE: "Core Services",
+};
+
+export type PendingApprovalsVerdict = "awaiting" | "all_decided" | "no_services" | "unknown";
+
+export interface PendingApprovalsSummary {
+  verdict: PendingApprovalsVerdict;
+  /** One entry per pending service, de-duplicated and named. Never a sentinel. */
+  services: PendingApprovalView[];
+  /** How many CRQ_CAB_SERVICE_TBL rows are open in total, across those services. */
+  totalPending: number;
+  /** Services with no approver configured — a reportable gap, not a lookup bug. */
+  unconfigured: PendingApprovalView[];
+}
+
+const clean = (value: string | null | undefined): string => (value ?? "").trim();
+
+/**
+ * Resolves each pending service CODE to its display name.
+ *
+ * Two independent sources, so neither being incomplete loses the name:
+ *   1. SERVICE_CODE_NAMES, mirroring the service master;
+ *   2. the PENDING service rows of result set 1, which are already labelled with
+ *      the master name for exactly the services on this CRQ.
+ *
+ * Source 2 is matched by content, never by position — the two result sets are
+ * built by different queries and only one of them has an ORDER BY, so pairing
+ * them by index would mislabel services the moment either query is touched.
+ * As a last step, a single leftover code and a single unclaimed name can only
+ * be each other, so they are paired; anything more ambiguous stays unresolved
+ * and shows the raw code.
+ */
+const resolveServiceNames = (
+  codes: string[],
+  pendingServiceRows: CrqJourneyStageRow[]
+): Map<string, string> => {
+  const resolved = new Map<string, string>();
+
+  // Names result set 1 reports as still pending, de-duplicated.
+  const unclaimedNames = new Set(
+    pendingServiceRows
+      .filter((r) => normalizeApprovalStatus(r.status) === "pending")
+      .map((r) => clean(r.stage))
+      .filter(Boolean)
+  );
+
+  const claim = (name: string) => {
+    unclaimedNames.delete(name);
+    return name;
+  };
+
+  for (const code of codes) {
+    const fromMaster = SERVICE_CODE_NAMES[code.toUpperCase()];
+    if (fromMaster) {
+      // Claim the matching result-set-1 name when it's there, so it can't also
+      // be handed to a different, unmapped code further down.
+      const corroborated = [...unclaimedNames].find((n) => n.toUpperCase() === fromMaster.toUpperCase());
+      resolved.set(code, corroborated ? claim(corroborated) : fromMaster);
+      continue;
+    }
+
+    // Unmapped code: a master name that spells the code out ("B2B" inside
+    // "Enterprise / B2B") is a safe match.
+    const byToken = [...unclaimedNames].find((n) => n.toUpperCase().includes(code.toUpperCase()));
+    if (byToken) resolved.set(code, claim(byToken));
+  }
+
+  const leftover = codes.filter((c) => !resolved.has(c));
+  if (leftover.length === 1 && unclaimedNames.size === 1) {
+    resolved.set(leftover[0], [...unclaimedNames][0]);
+  }
+
+  return resolved;
+};
+
+/**
+ * Raw result set 2 → what the UI renders.
+ *
+ * `pendingServiceRows` are the service rows of result set 1 (i.e. the grouped
+ * flow's `approvals`), used only to put proper names on the codes.
+ */
+export const summarizePendingApprovals = (
+  rows: CrqPendingApproval[] | null | undefined,
+  pendingServiceRows: CrqJourneyStageRow[] = []
+): PendingApprovalsSummary => {
+  const all = rows ?? [];
+
+  // An older database, or a backend that only forwarded the journey rows: there
+  // is nothing to report and no gap to flag.
+  if (!all.length) {
+    return { verdict: "unknown", services: [], totalPending: 0, unconfigured: [] };
+  }
+
+  const codes = all.map((r) => clean(r.serviceCode).toUpperCase());
+  if (codes.includes(SENTINEL_NO_PENDING)) {
+    return { verdict: "all_decided", services: [], totalPending: 0, unconfigured: [] };
+  }
+  if (codes.includes(SENTINEL_NO_SERVICES)) {
+    return { verdict: "no_services", services: [], totalPending: 0, unconfigured: [] };
+  }
+
+  // One line per (service, approver). Keyed on the approver too, because the
+  // approval config is per circle: the same service really can be waiting on
+  // two different people, and collapsing on the code alone would hide one.
+  const grouped = new Map<string, PendingApprovalView>();
+
+  for (const row of all) {
+    const code = clean(row.serviceCode);
+    if (!code) continue;
+
+    const olmId = clean(row.approverOlmId);
+    const key = `${code.toUpperCase()}|${olmId.toUpperCase()}`;
+
+    const existing = grouped.get(key);
+    if (existing) {
+      existing.pendingCount += 1;
+      continue;
+    }
+
+    grouped.set(key, {
+      serviceCode: code,
+      serviceName: code, // replaced below once every code is known
+      nameResolved: false,
+      pendingCount: 1,
+      approverOlmId: olmId || null,
+      approverName: clean(row.approverName) || null,
+      configured: !!olmId,
+    });
+  }
+
+  const services = [...grouped.values()];
+  const names = resolveServiceNames(
+    [...new Set(services.map((s) => s.serviceCode))],
+    pendingServiceRows
+  );
+
+  for (const service of services) {
+    const name = names.get(service.serviceCode);
+    if (name) {
+      service.serviceName = name;
+      service.nameResolved = true;
+    }
+  }
+
+  // Same order the approvals lane uses, so the panel and the canvas read alike;
+  // an unresolved code sorts last rather than interleaving oddly.
+  const laneOrder = pendingServiceRows.map((r) => clean(r.stage).toUpperCase());
+  const rank = (s: PendingApprovalView) => {
+    const i = laneOrder.indexOf(s.serviceName.toUpperCase());
+    return i === -1 ? Number.MAX_SAFE_INTEGER : i;
+  };
+  services.sort((a, b) => rank(a) - rank(b) || a.serviceName.localeCompare(b.serviceName));
+
+  return {
+    verdict: services.length ? "awaiting" : "unknown",
+    services,
+    totalPending: services.reduce((sum, s) => sum + s.pendingCount, 0),
+    unconfigured: services.filter((s) => !s.configured),
+  };
+};
+
+/**
+ * Approver display name, with the OLM ID as the fallback identity: an approver
+ * whose config row carries an ID but no name is still a real person to chase,
+ * and showing the ID beats showing "—".
+ */
+export const approverLabel = (row: PendingApprovalView): string =>
+  row.approverName ?? row.approverOlmId ?? "Not assigned";
+
+/** Two-letter avatar seed — from the name if there is one, else the OLM ID. */
+export const approverInitials = (row: PendingApprovalView): string => {
+  const source = row.approverName ?? row.approverOlmId ?? "";
+  const words = source.split(/[\s._-]+/).filter(Boolean);
+  if (!words.length) return "?";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return (words[0][0] + words[words.length - 1][0]).toUpperCase();
+};
+
+/**
+ * Lookup from an approvals-lane card in the canvas back to its approver.
+ *
+ * Keyed on both the resolved name (which is what a lane card holds) and the raw
+ * code, upper-cased, so either spelling finds the row.
+ */
+export const buildApproverIndex = (
+  services: PendingApprovalView[]
+): Map<string, PendingApprovalView> => {
+  const index = new Map<string, PendingApprovalView>();
+  for (const service of services) {
+    for (const key of [service.serviceName, service.serviceCode]) {
+      const k = key.trim().toUpperCase();
+      // First writer wins: a lane card can't tell two circles of the same
+      // service apart, so don't let a later row swap the first one out.
+      if (k && !index.has(k)) index.set(k, service);
+    }
+  }
+  return index;
 };
 
 // ─── get_crq_details stage codes → friendly labels (Feature 2) ──────────────

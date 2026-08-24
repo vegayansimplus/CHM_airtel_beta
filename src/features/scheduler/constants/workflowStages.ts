@@ -141,6 +141,17 @@ export function classifyStatusValue(status: string | null | undefined): StageRun
   return "not_started";
 }
 
+/**
+ * True when a status string means "cancelled" - in any of the spellings the
+ * backend uses (raw CRQ_MASTER_TBL enum `CANCELLED`, the Get_CRQ_Stage_History
+ * label `Canceled`, the legacy per-stage `canceled`). Callers that need to
+ * freeze a cancelled stage's UI use this rather than their own literal list,
+ * so a spelling the classifier already knows can't slip past one of them.
+ */
+export function isCanceledStatus(status: string | null | undefined): boolean {
+  return classifyStatusValue(status) === "canceled";
+}
+
 /** Run-state of a single stage, given the CRQ's current stage index. */
 export function resolveStageState(
   crq: Crq | null | undefined,

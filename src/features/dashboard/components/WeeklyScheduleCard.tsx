@@ -11,7 +11,7 @@ import BusinessIcon from "@mui/icons-material/Business";
 import type { Colors } from "../types/colorTypes";
 import type { WeekDay } from "../types/dashboard.types";
 import type { DashboardRosterStatus } from "../hooks/useDashboardRoster";
-import { fadeIn, getCardSx } from "../constants/dashboard.styles";
+import { fadeIn, getCardSx, getInnerScrollSx } from "../constants/dashboard.styles";
 import { SectionHeader } from "./SectionHeader";
 import { ShiftLegend } from "./ShiftLegend";
 import { MY_DASHBOARD_VISIBLE_TABS } from "../../myDashboard/config/dashboardTabs";
@@ -23,6 +23,20 @@ import { MY_DASHBOARD_VISIBLE_TABS } from "../../myDashboard/config/dashboardTab
 const MONTHLY_VIEW_PATH = MY_DASHBOARD_VISIBLE_TABS.find(
   (t) => t.segment === "monthly-view",
 )?.to;
+
+/** Floor for one day column — below this the times stop fitting, so the strip
+ *  scrolls horizontally rather than crushing all seven. */
+const DAY_MIN_WIDTH = 62;
+const DAY_GRID = {
+  display: "grid",
+  gridTemplateColumns: `repeat(7, minmax(${DAY_MIN_WIDTH}px, 1fr))`,
+  gap: { xs: "6px", sm: "10px" },
+  minWidth: "fit-content",
+} as const;
+
+/** Both the shift tile and the "Off" placeholder use this, so every column in
+ *  the week ends on the same line. */
+const TILE_MIN_HEIGHT = { xs: 62, sm: 66 };
 
 interface WeeklyScheduleCardProps {
   week: readonly WeekDay[];
@@ -55,13 +69,13 @@ export function WeeklyScheduleCard({
   const navigate = useNavigate();
 
   return (
-    <Card sx={{ ...getCardSx(colors), p: "16px", ...fadeIn(mounted, delay) }}>
+    <Card sx={{ ...getCardSx(colors), p: { xs: "14px", sm: "16px" }, minWidth: 0, ...fadeIn(mounted, delay) }}>
       <SectionHeader
         title="My roster"
         subtitle={rangeLabel}
         colors={colors}
         right={
-          <Box sx={{ display: "flex", alignItems: "center", gap: "2px" }}>
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", flexWrap: "nowrap", gap: "2px" }}>
             <IconButton size="small" onClick={onPrev} aria-label="Previous week" sx={{ p: "4px" }}>
               <ChevronLeftIcon sx={{ fontSize: 16, color: colors.textSecondary }} />
             </IconButton>
@@ -89,7 +103,8 @@ export function WeeklyScheduleCard({
       />
 
       {status === "loading" && (
-        <Box sx={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: { xs: "6px", sm: "10px" } }}>
+        <Box sx={{ overflowX: "auto", pb: "2px", ...getInnerScrollSx(colors) }}>
+        <Box sx={DAY_GRID}>
           {Array.from({ length: 7 }, (_, i) => (
             <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
               <Skeleton variant="text" width={20} height={14} />
@@ -97,6 +112,7 @@ export function WeeklyScheduleCard({
               <Skeleton variant="rounded" width="100%" height={66} sx={{ borderRadius: "10px" }} />
             </Box>
           ))}
+        </Box>
         </Box>
       )}
 
@@ -120,13 +136,8 @@ export function WeeklyScheduleCard({
 
       {status === "ready" && (
         <>
-          <Box
-            sx={{
-              display: "grid",
-              gridTemplateColumns: "repeat(7, minmax(0, 1fr))",
-              gap: { xs: "6px", sm: "10px" },
-            }}
-          >
+          <Box sx={{ overflowX: "auto", pb: "2px", ...getInnerScrollSx(colors) }}>
+          <Box sx={DAY_GRID}>
             {week.map((d) => {
               const tileColors = d.shift?.colors;
               return (
@@ -170,7 +181,7 @@ export function WeeklyScheduleCard({
                           py: "7px",
                           px: "3px",
                           flex: 1,
-                          minHeight: 66,
+                          minHeight: TILE_MIN_HEIGHT,
                           display: "flex",
                           flexDirection: "column",
                           alignItems: "center",
@@ -208,22 +219,26 @@ export function WeeklyScheduleCard({
                         </Typography>
                         <Typography sx={{ fontSize: 9, color: colors.textSecondary, lineHeight: 1.5 }}>{d.shift.start}</Typography>
                         <Typography sx={{ fontSize: 9, color: colors.textSecondary }}>{d.shift.end}</Typography>
-                        {d.isToday && (
-                          <Chip
-                            label="Today"
-                            size="small"
-                            sx={{
-                              fontSize: 8,
-                              fontWeight: 800,
-                              color: "#fff",
-                              background: colors.accent,
-                              borderRadius: "20px",
-                              mt: "3px",
-                              height: "auto",
-                              "& .MuiChip-label": { px: "6px", py: "1px" },
-                            }}
-                          />
-                        )}
+                        {/* Reserved in every tile — rendering the chip only on
+                            today would push that one column's times out of line
+                            with the rest of the week. */}
+                        <Box sx={{ height: 14, mt: "3px", display: "flex", alignItems: "center" }}>
+                          {d.isToday && (
+                            <Chip
+                              label="Today"
+                              size="small"
+                              sx={{
+                                fontSize: 8,
+                                fontWeight: 800,
+                                color: "#fff",
+                                background: colors.accent,
+                                borderRadius: "20px",
+                                height: "auto",
+                                "& .MuiChip-label": { px: "6px", py: "1px" },
+                              }}
+                            />
+                          )}
+                        </Box>
                       </Box>
                     </Tooltip>
                   ) : (
@@ -231,7 +246,7 @@ export function WeeklyScheduleCard({
                       sx={{
                         borderRadius: "10px",
                         flex: 1,
-                        minHeight: 66,
+                        minHeight: TILE_MIN_HEIGHT,
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -245,6 +260,7 @@ export function WeeklyScheduleCard({
                 </Box>
               );
             })}
+          </Box>
           </Box>
           <ShiftLegend colors={colors} />
         </>

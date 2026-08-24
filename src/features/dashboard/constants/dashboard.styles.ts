@@ -54,3 +54,54 @@ export const pulseGlowSx = (color: string) => ({
   animation: "dashboardPulseGlow 2.6s ease-in-out infinite",
   background: `radial-gradient(circle, ${color} 0%, transparent 70%)`,
 });
+
+/* ══════════════ Shared layout metrics ══════════════
+ * One source of truth for the Overview tab's outer box and grid tracks, used
+ * by both <ModernHomeDashboard> and <DashboardSkeleton> so the placeholder
+ * occupies the exact slots the real widgets land in — nothing shifts when the
+ * data arrives, at any width.
+ */
+
+/** Page gutters. The 32px sides are not arbitrary: the shared module tab strip
+ *  pads its <Tabs> by 16px and MUI pads each <Tab> by another 16px, so every
+ *  tab label starts 32px in. Matching it puts the cards on the same vertical
+ *  line as "Overview" above them. Phones trade that alignment for the width. */
+export const DASHBOARD_PAGE_PADDING = {
+  xs: "12px 14px 24px",
+  sm: "16px 32px 32px",
+} as const;
+
+/** Gap between every dashboard card, tightened on small screens. */
+export const DASHBOARD_GRID_GAP = { xs: "12px", sm: "14px", md: "16px" } as const;
+
+/** Outer grid: single column on phones, fluid rail + content from "md" up.
+ *  The rail only becomes a hard 300px at "lg" — between 900px and 1200px it
+ *  shrinks with the viewport instead of squeezing the content column. */
+export const DASHBOARD_MAIN_COLUMNS = {
+  xs: "1fr",
+  md: "clamp(220px, 24vw, 280px) minmax(0, 1fr)",
+  lg: "300px minmax(0, 1fr)",
+  xl: "320px minmax(0, 1fr)",
+} as const;
+
+/** Assignments + KPI tiles sit side by side only from "lg": at "md" the outer
+ *  rail has already taken its share, so splitting again would leave two
+ *  ~250px columns with nowhere to put their content. */
+export const DASHBOARD_CONTENT_TOP_COLUMNS = {
+  xs: "1fr",
+  lg: "minmax(0, 1fr) minmax(0, 1fr)",
+} as const;
+
+/** Thin, theme-aware scrollbar for the widgets that scroll inside themselves
+ *  (assignment list, week strip on narrow screens). */
+export const getInnerScrollSx = (c: Colors) => ({
+  scrollbarWidth: "thin" as const,
+  scrollbarColor: `${c.border} transparent`,
+  "&::-webkit-scrollbar": { width: 6, height: 6 },
+  "&::-webkit-scrollbar-track": { background: "transparent" },
+  "&::-webkit-scrollbar-thumb": {
+    background: c.border,
+    borderRadius: "99px",
+    "&:hover": { background: c.borderHover },
+  },
+});

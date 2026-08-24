@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Button, Chip, Divider, Stack, Tooltip, Typography } from "@mui/material";
+import { toast } from "react-toastify";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import PauseRoundedIcon from "@mui/icons-material/PauseRounded";
 import VisibilityIcon from "@mui/icons-material/Visibility";
@@ -31,6 +32,13 @@ interface CrqActionPanelProps {
    * fields off the same flag.
    */
   readOnly?: boolean;
+  /**
+   * The selected stage (or the whole CRQ) was cancelled. Start/Pause is the
+   * single control this freezes - everything else stays live, since the
+   * dialogs they open drop their own action controls when cancelled and are
+   * still worth opening to read.
+   */
+  isCanceled?: boolean;
   /** Record-level actions that apply regardless of the selected stage
    * (Attribute Update, Show Prev CRQ Status, ...). Adding a future action is
    * a one-line addition to this array - no changes needed here. */
@@ -97,17 +105,25 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
   onReview,
   isBusy,
   readOnly = false,
+  isCanceled = false,
   recordActions,
   colors,
 }) => {
-  const copy = readOnly
+  const copy = isCanceled
     ? {
-        badge: "Read only",
-        note: "You have view access to the Scheduler — acting on this stage requires the Scheduler module's Update permission.",
+        badge: "Canceled",
+        note: "This stage was cancelled — its outcome is final. Everything here still opens, read-only; only starting the stage again is blocked.",
       }
-    : MODE_COPY[mode];
-  const badgePalette =
-    mode === "editable" && !readOnly
+    : readOnly
+      ? {
+          badge: "Read only",
+          note: "You have view access to the Scheduler — acting on this stage requires the Scheduler module's Update permission.",
+        }
+      : MODE_COPY[mode];
+  const canceledStartHint = `${stageLabel} was cancelled, so it can't be started again. Open "Review ${stageLabel}" to read the recorded outcome, or raise a new CRQ to redo this work.`;
+  const badgePalette = isCanceled
+    ? { bg: colors.dangerDim, fg: colors.danger }
+    : mode === "editable" && !readOnly
       ? { bg: colors.successDim, fg: colors.success }
       : { bg: colors.trackOff, fg: colors.textDim };
 
@@ -208,34 +224,46 @@ export const CrqActionPanel: React.FC<CrqActionPanelProps> = ({
                 sx={{ borderColor: colors.border, my: 0.5, display: { xs: "none", sm: "block" } }}
               />
               {mode === "editable" && !readOnly && (
-                <Button
-                  variant="contained"
-                  size="small"
-                  disabled={isBusy}
-                  onClick={onStartPause}
-                  startIcon={
-                    isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
-                  }
-                  sx={{
-                    height: 34,
-                    textTransform: "none",
-                    fontWeight: 700,
-                    fontSize: 13,
-                    borderRadius: "8px",
-                    px: 2.2,
-                    boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
-                    border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
-                    background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
-                    color: isRunning ? colors.danger : "#fff",
-                    "&:hover": {
-                      boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
-                      background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
-                      transform: "translateY(-1px)",
-                    },
-                  }}
-                >
-                  {isRunning ? "Pause" : "Start Stage"}
-                </Button>
+                <Tooltip title={isCanceled ? canceledStartHint : ""} arrow>
+                  <Box
+                    component="span"
+                    onClick={() => {
+                      if (!isCanceled) return;
+                      // toastId de-dupes an impatient double-click into one toast.
+                      toast.info(canceledStartHint, { toastId: "stage-canceled-start" });
+                    }}
+                    sx={{ display: "inline-flex" }}
+                  >
+                    <Button
+                      variant="contained"
+                      size="small"
+                      disabled={isBusy || isCanceled}
+                      onClick={onStartPause}
+                      startIcon={
+                        isRunning ? <PauseRoundedIcon sx={{ fontSize: 16 }} /> : <PlayArrowRoundedIcon sx={{ fontSize: 16 }} />
+                      }
+                      sx={{
+                        height: 34,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        fontSize: 13,
+                        borderRadius: "8px",
+                        px: 2.2,
+                        boxShadow: isRunning ? "none" : "0 4px 12px rgba(15,115,80,0.28)",
+                        border: isRunning ? `1.5px solid ${colors.dangerBorder}` : "none",
+                        background: isRunning ? "transparent" : "linear-gradient(135deg,#15a06b,#0f7350)",
+                        color: isRunning ? colors.danger : "#fff",
+                        "&:hover": {
+                          boxShadow: isRunning ? "none" : "0 6px 16px rgba(15,115,80,0.36)",
+                          background: isRunning ? colors.dangerDim : "linear-gradient(135deg,#15a06b,#0f7350)",
+                          transform: "translateY(-1px)",
+                        },
+                      }}
+                    >
+                      {isRunning ? "Pause" : "Start Stage"}
+                    </Button>
+                  </Box>
+                </Tooltip>
               )}
               {/* Stays clickable on a completed (view-mode) stage too, so the
                   outcome that was already recorded can still be opened -

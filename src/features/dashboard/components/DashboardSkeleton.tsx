@@ -2,7 +2,13 @@ import type { ReactNode } from "react";
 import { Box, Skeleton, useTheme } from "@mui/material";
 import { useTabColorTokens } from "../../../style/theme";
 import { useShimmerSx } from "../../../components/loading/Skeletons";
-import { getCardSx } from "../constants/dashboard.styles";
+import {
+  DASHBOARD_CONTENT_TOP_COLUMNS,
+  DASHBOARD_GRID_GAP,
+  DASHBOARD_MAIN_COLUMNS,
+  DASHBOARD_PAGE_PADDING,
+  getCardSx,
+} from "../constants/dashboard.styles";
 
 /** `getCardSx` minus the hover lift — a placeholder isn't interactive. */
 function useSkeletonCardSx() {
@@ -58,16 +64,19 @@ export function DashboardSkeleton() {
     <Box
       aria-hidden
       sx={{
-        p: { xs: "12px 4px 28px", md: "16px 8px 32px" },
-        // Mirrors ModernHomeDashboard's own grid.
+        p: DASHBOARD_PAGE_PADDING,
+        // Mirrors ModernHomeDashboard's own grid — same tokens, so the two can
+        // no longer drift apart and make the page jump as data lands.
         display: "grid",
-        gridTemplateColumns: { xs: "1fr", lg: "300px minmax(0, 1fr)" },
-        gap: "16px",
+        gridTemplateColumns: DASHBOARD_MAIN_COLUMNS,
+        gap: DASHBOARD_GRID_GAP,
         alignItems: "start",
+        maxWidth: "100%",
+        overflowX: "hidden",
       }}
     >
-      {/* ── LEFT rail — profile, attendance, holidays, on-leave ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+      {/* ── LEFT rail — profile, attendance ── */}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: DASHBOARD_GRID_GAP, minWidth: 0 }}>
         {/* Profile card leads with a dark hero band, so it shimmers light-on-dark. */}
         <Box sx={{ ...cardSx, height: 208, overflow: "hidden" }}>
           <Box
@@ -101,18 +110,18 @@ export function DashboardSkeleton() {
           </Box>
         </Box>
 
-        <SkeletonCard height={196} lines={2} />
-        <SkeletonCard height={212} lines={3} />
-        <SkeletonCard height={168} lines={2} />
+        {/* Attendance. If the commented-out holidays / on-leave cards are put
+            back in ModernHomeDashboard, add their placeholders here too. */}
+        <SkeletonCard height={300} lines={3} />
       </Box>
 
-      {/* ── RIGHT column — assignments + stats, notifications, weekly schedule ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: "16px", minWidth: 0 }}>
+      {/* ── RIGHT column — assignments + stats, weekly schedule ── */}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: DASHBOARD_GRID_GAP, minWidth: 0 }}>
         <Box
           sx={{
             display: "grid",
-            gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
-            gap: "16px",
+            gridTemplateColumns: DASHBOARD_CONTENT_TOP_COLUMNS,
+            gap: DASHBOARD_GRID_GAP,
             alignItems: "stretch",
           }}
         >
@@ -122,10 +131,11 @@ export function DashboardSkeleton() {
           <Box
             sx={{
               display: "grid",
-              gridTemplateColumns: "1fr 1fr",
+              gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
               gridAutoRows: "1fr",
-              gap: "16px",
-              height: 296,
+              gap: DASHBOARD_GRID_GAP,
+              height: { xs: "auto", lg: 296 },
+              minHeight: { xs: 232, lg: 296 },
             }}
           >
             {Array.from({ length: 4 }).map((_, i) => (
@@ -141,15 +151,9 @@ export function DashboardSkeleton() {
           </Box>
         </Box>
 
-        {/* Reschedule-notification strip */}
-        <Box sx={{ ...cardSx, p: "16px", display: "flex", alignItems: "center", gap: "12px" }}>
-          <Skeleton variant="rounded" width={34} height={34} sx={{ borderRadius: "10px", ...shimmerSx }} />
-          <Skeleton variant="text" width="30%" height={16} sx={shimmerSx} />
-        </Box>
-
         {/* Weekly schedule — 7 day columns */}
         <SkeletonCard height={272}>
-          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "8px", flex: 1 }}>
+          <Box sx={{ display: "grid", gridTemplateColumns: "repeat(7, minmax(0, 1fr))", gap: { xs: "6px", sm: "10px" }, flex: 1 }}>
             {Array.from({ length: 7 }).map((_, i) => (
               <Skeleton key={i} variant="rounded" sx={{ height: "100%", borderRadius: "12px", ...shimmerSx }} />
             ))}

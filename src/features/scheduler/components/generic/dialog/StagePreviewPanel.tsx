@@ -10,7 +10,10 @@ import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
 interface StagePreviewPanelProps {
   crqNo: string | null;
   stageConfig: StageConfig;
-  isCancelled: boolean;
+  /** Cancelled / already-reviewed / view-only stage - the explorer stays
+   * readable (batches, drill-downs, Delta, Excel download) but the one
+   * side-effecting control in it, "Refetch", is inert. */
+  readOnly?: boolean;
   panelOpen: boolean;
   colors: any;
   setPanelOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -26,7 +29,7 @@ interface StagePreviewPanelProps {
 export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   crqNo,
   stageConfig,
-  isCancelled,
+  readOnly = false,
   panelOpen,
   colors,
   setPanelOpen,
@@ -60,12 +63,14 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
         sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: alpha(colors.accent, 0.1), color: colors.accent }}
       />
       <Box sx={{ flex: 1 }} />
+      {/* Collapse/expand is a view control, not an action, so it stays live
+          even on a frozen stage - on a small screen the form auto-collapses,
+          and disabling this was the only way back to it. */}
       <Tooltip title={panelOpen ? "Collapse" : "Expand"} arrow>
         <Button
           size="small"
           onClick={() => setPanelOpen((v) => !v)}
           startIcon={panelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          disabled={isCancelled}
           sx={{ color: colors.accent, border: `1px solid ${alpha(colors.accent, 0.28)}` }}
         >
           {panelOpen ? "Hide Validation" : "Show Validation"}
@@ -76,7 +81,7 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
     <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
       <SmartScrollContainer fill>
         <Box sx={{ p: 2.5 }}>
-          <ImpactBatchExplorer crqNo={crqNo} colors={colors} />
+          <ImpactBatchExplorer crqNo={crqNo} colors={colors} readOnly={readOnly} />
         </Box>
       </SmartScrollContainer>
     </Box>

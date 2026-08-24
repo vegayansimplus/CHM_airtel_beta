@@ -3,6 +3,8 @@ import {
   Box,
   Button,
   Chip,
+  IconButton,
+  InputAdornment,
   MenuItem,
   Paper,
   Stack,
@@ -10,6 +12,8 @@ import {
   Typography,
   useTheme,
 } from "@mui/material";
+import ClearRoundedIcon from "@mui/icons-material/ClearRounded";
+import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { alpha } from "@mui/material/styles";
 import {
   MaterialReactTable,
@@ -21,7 +25,7 @@ import { useNavigate } from "react-router";
 import { useGetAllCrqsQuery ,useGetCabServicesQuery} from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
-import { SlaBar, StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
+import { StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
 import type {
@@ -72,6 +76,18 @@ export function AllCrqsPage() {
 
   const setF = <K extends keyof CrqFilters>(k: K, v: CrqFilters[K]) =>
     setFilters((f) => ({ ...f, [k]: v }));
+
+  const searchTerm = filters.search && filters.search !== "All Search" ? filters.search : "";
+
+  const totalRowCount = data?.length ?? 0;
+
+  const rowsPerPageOptions = useMemo(() => {
+    const baseOptions = [5, 10, 15, 20, 25, 30, 50, 100];
+    if (totalRowCount > 0 && !baseOptions.includes(totalRowCount)) {
+      return [...baseOptions, totalRowCount].sort((a, b) => a - b);
+    }
+    return baseOptions;
+  }, [totalRowCount]);
 
   const hasActiveFilters = useMemo(
     () =>
@@ -130,12 +146,6 @@ export function AllCrqsPage() {
             variant="outlined"
           />
         ),
-      },
-      {
-        accessorKey: "slaPercentage",
-        header: "SLA",
-        size: 130,
-        Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
       },
       {
         accessorKey: "serviceCode",
@@ -212,6 +222,7 @@ export function AllCrqsPage() {
     muiPaginationProps: {
       shape: "rounded",
       size: "small",
+      rowsPerPageOptions,
       sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
     },
   });
@@ -266,7 +277,48 @@ export function AllCrqsPage() {
               <MenuItem key={s.serviceCode} value={s.serviceCode}>{s.serviceCode}</MenuItem>
             ))}
           </TextField>
-          <TextField size="small" placeholder="Search CRQ, hostname, approver…" value={filters.search ?? "All Search"} onChange={(e) => setF("search", e.target.value)} sx={{ minWidth: 240, flex: 1 }} />
+          <TextField
+            size="small"
+            placeholder="Search by CRQ ID, hostname or approver…"
+            value={searchTerm}
+            onChange={(e) => setF("search", e.target.value.trim() ? e.target.value : "All Search")}
+            aria-label="Search CRQs"
+            sx={{
+              minWidth: 260,
+              flex: 1,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                backgroundColor: isDark ? alpha(theme.palette.common.white, 0.03) : theme.palette.grey[50],
+                transition: "background-color 120ms ease, box-shadow 120ms ease",
+                "&:hover": {
+                  backgroundColor: isDark ? alpha(theme.palette.common.white, 0.05) : theme.palette.grey[100],
+                },
+                "&.Mui-focused": {
+                  backgroundColor: isDark ? alpha(theme.palette.common.white, 0.06) : theme.palette.common.white,
+                  boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.15)}`,
+                },
+              },
+            }}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchRoundedIcon fontSize="small" sx={{ color: "text.secondary" }} />
+                </InputAdornment>
+              ),
+              endAdornment: searchTerm ? (
+                <InputAdornment position="end">
+                  <IconButton
+                    size="small"
+                    aria-label="Clear search"
+                    onClick={() => setF("search", "All Search")}
+                    edge="end"
+                  >
+                    <ClearRoundedIcon fontSize="small" />
+                  </IconButton>
+                </InputAdornment>
+              ) : undefined,
+            }}
+          />
           {hasActiveFilters && (
             <Button size="small" onClick={() => setFilters(DEFAULT_FILTERS)}>Clear</Button>
           )}
