@@ -103,7 +103,7 @@ export default function GoldenGridToolbar({
           borderRadius: tk.radius,
           px: 1.25,
           py: 0.5,
-          width: 200,
+          width: { xs: "100%", sm: 200 },
           transition: "border-color 0.2s,box-shadow 0.2s",
           "&:focus-within": {
             borderColor: tk.accent,
