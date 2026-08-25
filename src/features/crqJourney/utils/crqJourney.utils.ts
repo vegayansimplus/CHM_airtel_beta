@@ -7,6 +7,7 @@ import type {
   CrqJourneyFlow,
   CrqPendingApproval,
   PendingApprovalView,
+  CrqDetailsStage,
 } from "../types/crqJourney.types";
 
 // ─── Shared status hues ────────────────────────────────────────────────────────
@@ -222,6 +223,25 @@ export const formatDateTime = (raw: string | null | undefined): string => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+/**
+ * When the CRQ entered the stage it is sitting in now.
+ *
+ * `CRQ_MASTER_TBL.entered_current_stage_at` only reaches the UI through
+ * GetCRQBySubDomainId (the Sub Domain browse list) — result set 1 of
+ * get_crq_details has no such column. Result set 2 does carry per-stage
+ * timestamps, so the row flagged `Is_Current` supplies the value for a CRQ that
+ * was typed straight into the selector instead of picked from that list.
+ *
+ * `stageStartDate` (CRQ_STAGE_ASSIGN_TBL.actual_start_time) is the stage's real
+ * start; `assignStart` is the fallback for a stage that has been assigned but
+ * not yet picked up. Both are null on a CRQ with no stage-assign history — a
+ * common case on this dataset — so null is a legitimate answer, not a failure.
+ */
+export const currentStageEnteredAt = (stages: CrqDetailsStage[] | undefined): string | null => {
+  const current = stages?.find((s) => s.isCurrent);
+  return current?.stageStartDate ?? current?.assignStart ?? null;
 };
 
 // ─── sp_get_crq_journey_page flat rows → grouped flow (Feature 1) ────────────
