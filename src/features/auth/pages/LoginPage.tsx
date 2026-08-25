@@ -9,7 +9,7 @@ import {
 } from "@mui/icons-material";
 
 import {
-  useForceLogoutMutation,
+  useTerminateSessionMutation,
   useLazyGetLoggedUserQuery,
   useLoginMutation,
 } from "../api/auth.api";
@@ -238,7 +238,7 @@ const LoginPage: React.FC = () => {
 
   const [login, { isLoading }] = useLoginMutation();
   const [fetchUser] = useLazyGetLoggedUserQuery();
-  const [forceLogout] = useForceLogoutMutation();
+  const [terminateSession] = useTerminateSessionMutation();
 
   useEffect(() => {
     injectGlobalCss();
@@ -392,16 +392,30 @@ const LoginPage: React.FC = () => {
     navigate(landing, { replace: true });
   };
 
+  // The password typed for the login attempt that came back "Already Logged"
+  // is still in state here, and the backend re-verifies it before ending
+  // anything — terminating a session now requires proving you own the account.
   const handleForceLogout = async () => {
+    if (!password) {
+      setError("Enter your password to end the previous session");
+      setShakeKey((k) => k + 1);
+      return;
+    }
+
     try {
-      await forceLogout({ olmId: olmId.trim() }).unwrap();
+      await terminateSession({ olmId: olmId.trim(), password }).unwrap();
       toast.success("Previous session terminated");
       setIsAlreadyLogged(false);
       setPassword("");
       setError("");
       captcha.refresh();
-    } catch {
-      toast.error("Force logout failed");
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      toast.error(
+        status === 401
+          ? "Incorrect password — cannot end the previous session"
+          : "Could not end the previous session",
+      );
     }
   };
 

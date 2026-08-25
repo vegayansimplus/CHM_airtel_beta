@@ -26,8 +26,14 @@ const rawBaseQuery = fetchBaseQuery({
 
 // Endpoints where a 401/403 is an expected outcome of the call itself
 // (bad credentials, already logged in elsewhere) rather than a signal
-// that a previously-valid session has gone stale.
-const AUTH_LIFECYCLE_PATHS = ["/auth/v1/signin", "/auth/v1/logout"];
+// that a previously-valid session has gone stale. /session/terminate
+// answers 401 for a wrong password, which says nothing about the caller's
+// own session — they don't have one yet, that's why they're on this page.
+const AUTH_LIFECYCLE_PATHS = [
+  "/auth/v1/signin",
+  "/auth/v1/logout",
+  "/auth/v1/session/terminate",
+];
 
 const isAuthLifecycleRequest = (args: string | FetchArgs): boolean => {
   const url = typeof args === "string" ? args : args.url;

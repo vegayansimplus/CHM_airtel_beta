@@ -17,13 +17,21 @@ export const authApi = api.injectEndpoints({
       query: () => "/users/v2/getloggeduserdetails",
     }),
 
-    forceLogout: builder.mutation<void, { olmId: string }>({
-      query: (body) => ({
-        url: `/auth/v1/logout`,
-        method: "POST",
-        body,
-      }),
-    }),
+    // Ends a stranded session for an account the caller can prove they own, so
+    // they can sign in after a 403 "Already Logged". This used to POST a bare
+    // { olmId } to /auth/v1/logout — an endpoint that required no credentials
+    // at all, so knowing someone's OLM ID was enough to end their session, and
+    // they saw it as "Invalid session" mid-work. The backend now re-checks the
+    // account password before terminating anything.
+    terminateSession: builder.mutation<void, { olmId: string; password: string }>(
+      {
+        query: (body) => ({
+          url: "/auth/v1/session/terminate",
+          method: "POST",
+          body,
+        }),
+      },
+    ),
 
     logout: builder.mutation<void, { olmId: string }>({
       query: (body) => ({
@@ -38,6 +46,6 @@ export const authApi = api.injectEndpoints({
 export const {
   useLoginMutation,
   useLazyGetLoggedUserQuery,
-  useForceLogoutMutation,
+  useTerminateSessionMutation,
   useLogoutMutation,
 } = authApi;
