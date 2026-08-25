@@ -23,6 +23,7 @@ export { AdminAuditTab }            from "./pages/admin/AuditTab";
 // Shared
 export { MyCrqDetailDrawer }       from "./components/shared/MyCrqDetailDrawer";
 export { AllCrqDetailDrawer }      from "./components/shared/AllCrqDetailDrawer";
+export { CrqImpactAnalysisPanel }  from "./components/shared/CrqImpactAnalysisPanel";
 export { ImpactChip, SlaBar, StageChip, StatusChip } from "./components/shared/Chips";
 
 // Modals

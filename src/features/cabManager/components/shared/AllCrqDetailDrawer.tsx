@@ -2,9 +2,11 @@ import {
   Alert,
   Box,
   Button,
+  Collapse,
   Divider,
   Drawer,
   IconButton,
+  Paper,
   Skeleton,
   Stack,
   Typography,
@@ -15,6 +17,8 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
+import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
+import InsightsRoundedIcon from "@mui/icons-material/InsightsRounded";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetCrqByIdQuery } from "../../api/cabManagerApiSlice";
@@ -22,6 +26,7 @@ import { ApproveCrqModal } from "../modals/ApproveCrqModal";
 import { RejectCrqModal } from "../modals/RejectCrqModal";
 import { RescheduleCrqModal } from "../modals/RescheduleCrqModal";
 import { ConflictCrqModal } from "../modals/ConflictCrqModal";
+import { CrqImpactAnalysisPanel } from "./CrqImpactAnalysisPanel";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -50,6 +55,14 @@ export function AllCrqDetailDrawer({
   const [rejectOpen, setRejectOpen] = useState(false);
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
+
+  // Impact analysis is collapsed by default and only mounted once expanded, so
+  // opening the drawer for a CRQ nobody wants the impact for costs no calls.
+  // The expansion is stored as *which* approval it belongs to rather than a
+  // bare flag, so it collapses by itself on the next CRQ instead of carrying
+  // one CRQ's open state (and its fetched batches) into another.
+  const [impactOpenFor, setImpactOpenFor] = useState<number | null>(null);
+  const impactOpen = impactOpenFor !== null && impactOpenFor === serviceApprovalId;
 
   return (
     <Drawer
@@ -172,6 +185,67 @@ export function AllCrqDetailDrawer({
                 </Box>
               ))}
             </Box>
+
+            {/* Impact Analysis — same batch/summary/Excel flow as the
+                scheduler's Impact Analysis review, laid out for the drawer. */}
+            <Paper
+              variant="outlined"
+              sx={{ borderRadius: 2, overflow: "hidden", mb: 3 }}
+            >
+              <Stack
+                direction="row"
+                alignItems="center"
+                spacing={1}
+                onClick={() =>
+                  setImpactOpenFor(impactOpen ? null : serviceApprovalId)
+                }
+                sx={{
+                  px: 1.75,
+                  py: 1.25,
+                  cursor: "pointer",
+                  userSelect: "none",
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <InsightsRoundedIcon
+                  sx={{ fontSize: 17, color: "primary.main" }}
+                />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    flex: 1,
+                    fontWeight: 700,
+                    letterSpacing: 0.5,
+                    textTransform: "uppercase",
+                    color: "text.secondary",
+                  }}
+                >
+                  Impact Analysis Summary
+                </Typography>
+                <ExpandMoreRoundedIcon
+                  sx={{
+                    fontSize: 20,
+                    color: "text.secondary",
+                    transition: "transform 0.2s",
+                    transform: impactOpen ? "rotate(180deg)" : "none",
+                  }}
+                />
+              </Stack>
+
+              <Collapse in={impactOpen} unmountOnExit>
+                <Box
+                  sx={{
+                    px: 1.75,
+                    pb: 1.75,
+                    borderTop: "1px solid",
+                    borderColor: "divider",
+                    pt: 1.75,
+                  }}
+                >
+                  <CrqImpactAnalysisPanel crqNo={data.crqNo} />
+                </Box>
+              </Collapse>
+            </Paper>
 
             <Divider sx={{ mb: 2 }} />
 
