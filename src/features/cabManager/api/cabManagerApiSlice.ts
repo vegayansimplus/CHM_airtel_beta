@@ -1170,6 +1170,12 @@ getImplementation: builder.query<ImplementationDetail, void>({
         { type: "CabCrq", id: "LIST" },
         { type: "CabCrq", id: "MINE" },
         "CabDashboard",
+        // The CRQ Journey Explorer caches under CrqReview, not CabCrq — without
+        // this it keeps serving the pre-approval stages/details for this CRQ,
+        // both on a direct search and via the drawer's "View full CRQ journey".
+        // Bare type = every CrqReview entry, which is what the scheduler-side
+        // stage mutations already do; the payload has no crqNo to narrow it to.
+        "CrqReview",
       ],
     }),
 
@@ -1189,6 +1195,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
         { type: "CabCrq", id: "LIST" },
         { type: "CabCrq", id: "MINE" },
         "CabDashboard",
+        "CrqReview",
       ],
     }),
 
@@ -1206,6 +1213,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.serviceApprovalId },
         { type: "CabCrq", id: "LIST" },
+        "CrqReview",
       ],
     }),
 
@@ -1223,6 +1231,9 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.crqId },
         { type: "CabCrq", id: "MINE" },
+        // Assignment writes CRQ_STAGE_ASSIGN_TBL, which is where the journey's
+        // stage timeline (and "Entered Stage At") is read from.
+        "CrqReview",
       ],
     }),
 
@@ -1240,6 +1251,9 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: (_r, _e, b) => [
         { type: "CabCrq", id: b.crqId },
         { type: "CabCrq", id: "MINE" },
+        // Assignment writes CRQ_STAGE_ASSIGN_TBL, which is where the journey's
+        // stage timeline (and "Entered Stage At") is read from.
+        "CrqReview",
       ],
     }),
 
@@ -1265,7 +1279,13 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => await mockDelay({ status: "Success", message: `Conflict decision "${body.flag}" recorded.` })
         ),
-      invalidatesTags: (_r, _e, b) => [{ type: "CabCrq" as const, id: `CONFLICTS-${b.crqNo}` }],
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabCrq" as const, id: `CONFLICTS-${b.crqNo}` },
+        // Flips the journey canvas's CONFLICT CHECK node. This payload does
+        // carry the crqNo, so only that CRQ's journey needs dropping.
+        { type: "CrqReview" as const, id: `JOURNEY-STAGES-${b.crqNo}` },
+        { type: "CrqReview" as const, id: `JOURNEY-DETAILS-${b.crqNo}` },
+      ],
     }),
   }),
   overrideExisting: false,
