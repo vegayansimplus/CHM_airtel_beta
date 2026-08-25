@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from "react";
 import { Box, Skeleton, Stack, Typography } from "@mui/material";
+import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "react-toastify";
 
@@ -124,24 +125,57 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
           />
         )}
 
-        <AttributeSection
-          system="remedy"
-          attributes={stageView.remedyAttributes}
-          control={control}
-          setValue={setValue}
-          errors={errors}
-          viewOnly={!isEditable}
-          colors={colors}
-        />
-        <AttributeSection
-          system="cab"
-          attributes={stageView.cabAttributes}
-          control={control}
-          setValue={setValue}
-          errors={errors}
-          viewOnly={!isEditable}
-          colors={colors}
-        />
+        {stageView.collectsAttributes ? (
+          <>
+            <AttributeSection
+              system="remedy"
+              attributes={stageView.remedyAttributes}
+              control={control}
+              setValue={setValue}
+              errors={errors}
+              viewOnly={!isEditable}
+              colors={colors}
+            />
+            <AttributeSection
+              system="cab"
+              attributes={stageView.cabAttributes}
+              control={control}
+              setValue={setValue}
+              errors={errors}
+              viewOnly={!isEditable}
+              colors={colors}
+            />
+          </>
+        ) : (
+          // Status-only sub-status: nothing to fill, so nothing is rendered.
+          // Saving here posts the Status alone (resolveStageView has already
+          // stripped the editable fields out of the payload sections).
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.25}
+            sx={{
+              px: 2,
+              py: 1.5,
+              mb: 1.75,
+              borderRadius: colors.radiusL,
+              border: `1px dashed ${colors.border}`,
+              bgcolor: colors.surface2,
+            }}
+          >
+            <InfoOutlinedIcon sx={{ fontSize: 17, color: colors.textDim, flexShrink: 0 }} />
+            <Typography sx={{ fontSize: 12.5, color: colors.textSecondary }}>
+              <Box component="span" sx={{ fontWeight: 600, color: colors.textPrimary }}>
+                {stageView.activeRemedyStatus}
+              </Box>{" "}
+              updates the Remedy status only — no attributes are collected here. Select{" "}
+              <Box component="span" sx={{ fontWeight: 600, color: colors.textPrimary }}>
+                {(stageView.stage.attributeStatuses ?? []).join(" or ")}
+              </Box>{" "}
+              to fill this stage&apos;s fields.
+            </Typography>
+          </Stack>
+        )}
         {/* The Planning Tool (Cygnet) section is deliberately not rendered at
             any stage - it is hidden from the UI, not dropped from the flow.
             Its fields stay in the form state (buildAttributeFormDefaults still

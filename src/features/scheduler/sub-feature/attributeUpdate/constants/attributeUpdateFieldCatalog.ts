@@ -589,6 +589,11 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
       "Scheduled",
       "Implementation in Progress",
     ],
+    // The three "Scheduled*" sub-statuses are pure Remedy transitions - the
+    // activity hasn't run yet, so there are no actual start/end times, no
+    // pre/post checks and no implementer to record. Only "Implementation in
+    // Progress" collects the fields below; the others save the Status alone.
+    attributeStatuses: ["Implementation in Progress"],
     planningToolScopes: ["execution"],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,

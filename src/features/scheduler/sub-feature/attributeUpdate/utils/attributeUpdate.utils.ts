@@ -80,9 +80,21 @@ export function resolveStageView(
     crqNo,
   };
 
-  const planningToolVisible = PLANNING_TOOL_ATTRIBUTES.filter(
-    (a) => a.scope === "always" || stage.planningToolScopes.includes(a.scope),
-  ).map((a) => resolveAttribute(a, "planningTool", context, details?.cygnet));
+  // A stage may declare that only some of its Remedy statuses collect
+  // attributes (Network Execution: only "Implementation in Progress"). At any
+  // other status this is a status-only transition, so every field the user
+  // would have to fill is stripped out and only the auto-set ones (Status,
+  // CMS Status, Remedy Status) remain - which is exactly what Save then posts.
+  const collectsAttributes =
+    !stage.attributeStatuses || stage.attributeStatuses.includes(activeRemedyStatus);
+  const collected = (attributes: ResolvedAttribute[]): ResolvedAttribute[] =>
+    collectsAttributes ? attributes : attributes.filter((a) => !!a.autoSetFrom);
+
+  const planningToolVisible = collected(
+    PLANNING_TOOL_ATTRIBUTES.filter(
+      (a) => a.scope === "always" || stage.planningToolScopes.includes(a.scope),
+    ).map((a) => resolveAttribute(a, "planningTool", context, details?.cygnet)),
+  );
   const planningToolBackend = PLANNING_TOOL_ATTRIBUTES.filter(
     (a) => a.scope === "backend",
   ).map((a) => resolveAttribute(a, "planningTool", context, details?.cygnet, true));
@@ -91,11 +103,12 @@ export function resolveStageView(
     stage,
     stageIndex,
     activeRemedyStatus,
-    remedyAttributes: stage.remedy.map((a) =>
-      resolveAttribute(a, "remedy", context, details?.remedy),
+    collectsAttributes,
+    remedyAttributes: collected(
+      stage.remedy.map((a) => resolveAttribute(a, "remedy", context, details?.remedy)),
     ),
-    cabAttributes: stage.cab.map((a) =>
-      resolveAttribute(a, "cab", context, details?.cab),
+    cabAttributes: collected(
+      stage.cab.map((a) => resolveAttribute(a, "cab", context, details?.cab)),
     ),
     planningToolVisible,
     planningToolBackend,

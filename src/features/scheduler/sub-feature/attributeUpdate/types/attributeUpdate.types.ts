@@ -103,6 +103,17 @@ export interface AttributeStageSchema {
   planningToolPhase: string;
   /** Remedy statuses the CRQ can be in at this stage (>1 renders the sub-status bar). */
   remedyStatuses: string[];
+  /**
+   * Subset of `remedyStatuses` at which this stage actually collects its
+   * attribute fields. Every *other* status is a status-only transition: the
+   * card renders no fields and Save posts just the auto-set Status, so a
+   * "Scheduled" -> "Scheduled For Approval" hop doesn't demand execution data
+   * the activity hasn't produced yet (Network Execution collects only at
+   * "Implementation in Progress").
+   *
+   * Omit to keep the default - every status collects the full field set.
+   */
+  attributeStatuses?: string[];
   /** Extra Planning Tool scopes unlocked at this stage (besides "always"). */
   planningToolScopes: PlanningToolScope[];
   remedy: StageAttribute[];
@@ -181,6 +192,13 @@ export interface StageAttributeView {
   stage: AttributeStageSchema;
   stageIndex: number;
   activeRemedyStatus: string;
+  /**
+   * False when `activeRemedyStatus` is one of the stage's status-only
+   * sub-statuses (see AttributeStageSchema.attributeStatuses). The attribute
+   * arrays below are then stripped to their auto-set entries, so the card has
+   * nothing to render and Save carries only the Status.
+   */
+  collectsAttributes: boolean;
   remedyAttributes: ResolvedAttribute[];
   cabAttributes: ResolvedAttribute[];
   planningToolVisible: ResolvedAttribute[];
