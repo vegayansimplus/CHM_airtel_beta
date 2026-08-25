@@ -10,8 +10,11 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { toast } from "react-toastify";
-import { useAddServiceRuleMutation, useGetServicesDropdownQuery } from "../../api/cabManagerApiSlice";
-import { SERVICE_CIRCLES } from "../../data/cabManager.mock";
+import {
+  useAddServiceRuleMutation,
+  useGetCircleDropdownQuery,
+  useGetServicesDropdownQuery,
+} from "../../api/cabManagerApiSlice";
 
 type AddServiceRuleModalProps = {
   open: boolean;
@@ -25,6 +28,9 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
   const [form, setForm] = useState(EMPTY_FORM);
   const [addServiceRule, { isLoading }] = useAddServiceRuleMutation();
   const { data: services = [], isFetching: isLoadingServices } = useGetServicesDropdownQuery(undefined, {
+    skip: !open,
+  });
+  const { data: circles = [], isFetching: isLoadingCircles } = useGetCircleDropdownQuery(undefined, {
     skip: !open,
   });
 
@@ -86,9 +92,10 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
             InputLabelProps={{ shrink: true }}
             value={form.circle}
             onChange={(e) => setForm((f) => ({ ...f, circle: e.target.value }))}
+            disabled={isLoadingCircles}
           >
-            {SERVICE_CIRCLES.map((c) => (
-              <MenuItem key={c} value={c}>{c}</MenuItem>
+            {circles.map((c) => (
+              <MenuItem key={c.circleCode} value={c.circleCode}>{c.circleCode}</MenuItem>
             ))}
           </TextField>
           <TextField

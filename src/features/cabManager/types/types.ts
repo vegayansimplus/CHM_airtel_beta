@@ -57,6 +57,17 @@ export interface CabService {
   serviceCode: string;
 }
 
+/**
+ * One row of GET /cab/admin/circledropdown, normalised to the single code the
+ * dropdown renders and submits. The backend column is read tolerantly in the
+ * API slice (circleCode / circleName / circle / name, or a bare string), so a
+ * rename on the proc side degrades to "no match" for that row rather than a
+ * silently blank list.
+ */
+export interface CircleDropdown {
+  circleCode: string;
+}
+
 // ── Filters used by All CRQs ─────────────────────────────────────────────────
 export interface CrqFilters {
   stage?: CrqStage | "All Stages";

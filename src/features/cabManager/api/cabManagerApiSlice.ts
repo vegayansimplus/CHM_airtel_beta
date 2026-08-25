@@ -593,6 +593,7 @@ import {
   MOCK_ASSIGN_RULES,
   MOCK_AUDIT_LOG,
   MOCK_CAB_REJECT_REASONS,
+  MOCK_CAB_CIRCLES,
   MOCK_CAB_SERVICES,
   MOCK_CAB_SESSIONS,
   MOCK_CRQS,
@@ -619,6 +620,7 @@ import type {
   CabService,
   CabSession,
   CabSessionDetail,
+  CircleDropdown,
   Crq,
   CrqActionResult,
   CrqConflictDecisionPayload,
@@ -670,6 +672,23 @@ const networkOrMock = async <T>(
 };
 
 // ── helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pulls the circle code out of one /cab/admin/circledropdown row. The endpoint
+ * returns List<CircleDropdown>, whose single column has been named a few
+ * different ways across the CAB procs (circleCode / circleName / circle /
+ * name), and a plain List<String> is possible too - so the code is read from
+ * whichever of those the row actually carries instead of hard-binding to one
+ * property and rendering a list of blank menu items if it ever differs.
+ */
+const toCircleCode = (row: unknown): string => {
+  if (typeof row === "string") return row.trim();
+  if (!row || typeof row !== "object") return "";
+  const r = row as Record<string, unknown>;
+  const value = r.circleCode ?? r.circleName ?? r.circle ?? r.name ?? r.code;
+  return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+};
+
 const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
   return rows.filter((r) => {
     if (f.domain && f.domain !== "All Domains" && r.domainName !== f.domain) return false;
@@ -1019,6 +1038,30 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAdmin"],
     }),
 
+    // ── Admin "Add Service Approval" modal — Circle dropdown ──
+    //    GET /cab/admin/circledropdown -> List<CircleDropdown>.
+    //    Rows are normalised to { circleCode } here rather than via
+    //    transformResponse, which RTK Query does not apply to queryFn
+    //    endpoints (see toCircleCode).
+    getCircleDropdown: builder.query<CircleDropdown[], void>({
+      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) => {
+        const result = await networkOrMock<unknown[]>(
+          { url: "/cab/admin/circledropdown", method: "GET" },
+          baseQuery,
+          async () => await mockDelay(MOCK_CAB_CIRCLES)
+        );
+        if (result.error) return { error: result.error, meta: result.meta };
+        const rows = Array.isArray(result.data) ? result.data : [];
+        return {
+          data: rows
+            .map((row) => ({ circleCode: toCircleCode(row) }))
+            .filter((c) => !!c.circleCode),
+          meta: result.meta,
+        };
+      },
+      providesTags: ["CabAdmin"],
+    }),
+
     getAdminUsers: builder.query<AdminUser[], void>({
       queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
         networkOrMock({ url: "/cab/admin/users", method: "GET" }, baseQuery, async () =>
@@ -1250,6 +1293,7 @@ export const {
   useGetCabRejectReasonsQuery,
   useGetCabServicesQuery,
   useGetServicesDropdownQuery,
+  useGetCircleDropdownQuery,
   useGetEscalationMatrixQuery,
   useGetAdminUsersQuery,
   useGetAuditLogQuery,

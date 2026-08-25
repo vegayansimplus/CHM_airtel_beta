@@ -10,6 +10,7 @@ import type {
   CabRejectReason,
   CabService,
   CabSession,
+  CircleDropdown,
   Crq,
   CrqJourney,
   CrqStage,
@@ -182,6 +183,8 @@ export const MOCK_ASSIGN_RULES: AssignRule[] = [
 export const SERVICE_TYPES = ["Enterprise Services (B2B)", "Mobility", "Telemedia", "Core Services"];
 export const SERVICE_IMPACTS: ImpactCode[] = ["SA", "NSA"];
 export const SERVICE_CIRCLES = ["All", "MH", "KA", "GJ", "DL", "TN", "AP", "WB", "UP-E", "RJ", "MP"];
+/** Mock stand-in for GET /cab/admin/circledropdown (VITE_CAB_USE_MOCK=true). */
+export const MOCK_CAB_CIRCLES: CircleDropdown[] = SERVICE_CIRCLES.map((circleCode) => ({ circleCode }));
 export const APPROVAL_AUTHORITIES = ["GSMC", "RAN Head", "COH", "Core Head", "NOC Head", "Domain Head", "Duty Manager", "CTO"];
 
 export const MOCK_SERVICE_RULES: ServiceApprovalRule[] = [
