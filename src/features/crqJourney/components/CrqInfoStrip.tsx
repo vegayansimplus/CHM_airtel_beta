@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   CircularProgress,
@@ -15,9 +15,7 @@ import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
 import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
-import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import type { CrqDetailsInfo, CrqJourneySearchRow } from "../types/crqJourney.types";
 import { formatDateTime, formatStatusLabel, statusChipColor } from "../utils/crqJourney.utils";
 
@@ -101,17 +99,6 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const chip = statusChipColor(info.currentStatus, isDark);
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    void navigator.clipboard?.writeText(info.crqNo).then(
-      () => {
-        setCopied(true);
-        window.setTimeout(() => setCopied(false), 1600);
-      },
-      () => undefined
-    );
-  };
 
   const remark = details?.remark?.trim();
 
@@ -149,16 +136,6 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
         >
           {info.crqNo}
         </Typography>
-
-        <Tooltip title={copied ? "Copied" : "Copy CRQ number"} arrow>
-          <IconButton size="small" onClick={handleCopy} sx={{ color: "text.secondary", p: "3px" }}>
-            {copied ? (
-              <CheckRoundedIcon sx={{ fontSize: 15, color: theme.palette.success.main }} />
-            ) : (
-              <ContentCopyRoundedIcon sx={{ fontSize: 14 }} />
-            )}
-          </IconButton>
-        </Tooltip>
 
         <Box
           sx={{
@@ -288,11 +265,22 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
           gap: { xs: 1.25, md: 1.5 },
         }}
       >
-        <MetaItem icon={TimelineRoundedIcon} label="Current Stage">
+        {/* These two are absent from the search row when the CRQ was typed in
+            rather than browsed to, and only arrive with the details call — so
+            they wait on the same skeleton as the details-only fields below. */}
+        <MetaItem
+          icon={TimelineRoundedIcon}
+          label="Current Stage"
+          loading={isLoadingDetails && !info.currentStage}
+        >
           <Truncated value={info.currentStage || "—"} />
         </MetaItem>
 
-        <MetaItem icon={AccessTimeRoundedIcon} label="Entered Stage At">
+        <MetaItem
+          icon={AccessTimeRoundedIcon}
+          label="Entered Stage At"
+          loading={isLoadingDetails && !info.enteredCurrentStageAt}
+        >
           <Truncated value={formatDateTime(info.enteredCurrentStageAt)} />
         </MetaItem>
 

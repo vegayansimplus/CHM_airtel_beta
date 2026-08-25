@@ -11,6 +11,7 @@ import {
 import {
   buildApproverIndex,
   computeFlowProgress,
+  currentStageEnteredAt,
   groupJourneyStages,
   summarizePendingApprovals,
 } from "../utils/crqJourney.utils";
@@ -69,7 +70,9 @@ export const useCrqJourney = () => {
         crqNo: crqDetails.info.crqNo,
         currentStage: crqDetails.info.currentStage,
         currentStatus: crqDetails.info.currentStatus,
-        enteredCurrentStageAt: crqDetails.info.createdDate,
+        // The CRQ's creation date is not when it entered its current stage —
+        // result set 2's current-stage row is.
+        enteredCurrentStageAt: currentStageEnteredAt(crqDetails.stages),
       });
       setRouteCrqConsumed(true);
     }
@@ -117,6 +120,24 @@ export const useCrqJourney = () => {
   const selectedDetails =
     crqDetails?.info && crqDetails.info.crqNo === selectedCrq?.crqNo ? crqDetails.info : null;
 
+  // The header strip's stage / status / entered-at come from GetCRQBySubDomainId,
+  // i.e. only from rows the user picked out of the Sub Domain browse list. A CRQ
+  // typed straight into the selector never passes through that list — CrqSelector
+  // hands over a stub row carrying just the crqNo — so those three fields would
+  // render as dashes next to a fully populated Team Function / Created On.
+  // get_crq_details already covers all three; fill in whatever the row lacks.
+  const info = useMemo<CrqJourneySearchRow | null>(() => {
+    if (!selectedCrq) return null;
+    if (!selectedDetails) return selectedCrq;
+    return {
+      crqNo: selectedCrq.crqNo,
+      currentStage: selectedCrq.currentStage || selectedDetails.currentStage || "",
+      currentStatus: selectedCrq.currentStatus || selectedDetails.currentStatus || "",
+      enteredCurrentStageAt:
+        selectedCrq.enteredCurrentStageAt ?? currentStageEnteredAt(crqDetails?.stages),
+    };
+  }, [selectedCrq, selectedDetails, crqDetails?.stages]);
+
   return {
     roleName,
     values,
@@ -125,6 +146,8 @@ export const useCrqJourney = () => {
     crqOptions,
     isLoadingCrqs,
     selectedCrq,
+    /** `selectedCrq` with anything the search row was missing filled in from get_crq_details. */
+    info,
     handleSelectCrq,
     showLegend,
     handleToggleLegend: () => setShowLegend((v) => !v),

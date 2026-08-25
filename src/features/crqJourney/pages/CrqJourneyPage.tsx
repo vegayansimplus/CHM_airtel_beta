@@ -21,6 +21,7 @@ export const CrqJourneyPage: React.FC = () => {
     crqOptions,
     isLoadingCrqs,
     selectedCrq,
+    info,
     handleSelectCrq,
     showLegend,
     handleToggleLegend,
@@ -88,10 +89,10 @@ export const CrqJourneyPage: React.FC = () => {
       )}
 
       {/* ── Journey ── */}
-      {selectedCrq && !isLoading && !error && (
+      {info && !isLoading && !error && (
         <>
           <CrqInfoStrip
-            info={selectedCrq}
+            info={info}
             details={details}
             isLoadingDetails={isLoadingDetails}
             progress={progress}
