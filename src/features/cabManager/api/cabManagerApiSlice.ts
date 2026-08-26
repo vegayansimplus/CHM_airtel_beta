@@ -600,6 +600,7 @@ import {
   MOCK_ESCALATION_MATRIX,
   MOCK_REJECTION_REASONS,
   MOCK_SERVICE_RULES,
+  MOCK_SPOC_FE_DETAILS,
   mockDelay,
 } from "../data/cabManager.mock";
 import type {
@@ -639,6 +640,7 @@ import type {
   RejectionReason,
   ReschedulePayload,
   ServiceApprovalRule,
+  SpocFeDetails,
 } from "../types/types";
 import { api } from "../../../service/api";
 
@@ -1257,6 +1259,29 @@ getImplementation: builder.query<ImplementationDetail, void>({
       ],
     }),
 
+    // ── SPOC / FIELD ENGINEER DETAILS ─────────────────────────────────────
+    // GET /cab/crqs/{crqNo}/spoc-fe-details -> sp_get_SPOC_FE_details(crqNo).
+    // The proc returns at most one row; `null` here means "no assignment row
+    // for this CRQ", which the dialog renders as an empty state rather than an
+    // error. A single-object body and a one-element array body are both
+    // accepted, the same defensive unwrap getCrqById/getMyCrqById already do.
+    getSpocFeDetails: builder.query<SpocFeDetails | null, string>({
+      queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) => {
+        const result = await networkOrMock<SpocFeDetails | SpocFeDetails[] | null>(
+          {
+            url: `/cab/crqs/${encodeURIComponent(crqNo)}/spoc-fe-details`,
+            method: "GET",
+          },
+          baseQuery,
+          async () => await mockDelay(MOCK_SPOC_FE_DETAILS(crqNo))
+        );
+        if (result.error) return { error: result.error, meta: result.meta };
+        const row = Array.isArray(result.data) ? (result.data[0] ?? null) : (result.data ?? null);
+        return { data: row, meta: result.meta };
+      },
+      providesTags: (_r, _e, crqNo) => [{ type: "CabCrq" as const, id: `SPOCFE-${crqNo}` }],
+    }),
+
     // ── CONFLICT CHECK ────────────────────────────────────────────────────
     getCrqConflicts: builder.query<CrqConflictDetail[], string>({
       queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) =>
@@ -1318,6 +1343,7 @@ export const {
   useGetAdminUsersQuery,
   useGetAuditLogQuery,
   useGetCrqConflictsQuery,
+  useGetSpocFeDetailsQuery,
   // mutations
   usePlanCabMutation,
   useCreateCrqMutation,

@@ -1,35 +1,51 @@
 import {
   Alert,
   Box,
-  Button,
+  Chip,
   Paper,
   Skeleton,
   Stack,
-  TextField,
   Typography,
 } from "@mui/material";
 import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 import PhoneInTalkIcon from "@mui/icons-material/PhoneInTalk";
-import PlayArrowIcon from "@mui/icons-material/PlayArrow";
-import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { useState } from "react";
-import {
-  useBlockRingMutation,
-  useGetImplementationQuery,
-  useProceedRingMutation,
-} from "../api/cabManagerApiSlice";
+import { useGetImplementationQuery } from "../api/cabManagerApiSlice";
 import { errMsg } from "../components/shared/errMsg";
+import type { SeRing } from "../types/types";
+
+/**
+ * Field Execution — a read-only view.
+ *
+ * Every control has been removed: no "Call NOC-NS", no per-ring
+ * Proceed / Do Not Proceed, no blocker comment box, no Save / Start Execution.
+ * The page reports what the backend holds and nothing on it mutates state, so
+ * the ring decisions and the NOC contact flag are rendered straight from
+ * GET /cab/implementation rather than from local component state.
+ */
+
+/**
+ * Read-only presentation of a ring's recorded decision. "pending" has no entry
+ * on purpose - an unvalidated ring shows no chip at all rather than a
+ * "Not validated" label.
+ */
+const DECISION_CHIP: Partial<
+  Record<SeRing["decision"], { label: string; color: "success" | "error" }>
+> = {
+  proceed: { label: "Proceed", color: "success" },
+  block: { label: "Do Not Proceed", color: "error" },
+};
 
 export function ImplementationPage() {
+  const { data, isLoading, isError, error } = useGetImplementationQuery();
 
-  const { data, isLoading, isError, error, refetch } = useGetImplementationQuery();
-  const [proceed] = useProceedRingMutation();
-  const [block]   = useBlockRingMutation();
-  const [nocCalled, setNocCalled] = useState(false);
-  const [blockComment, setBlockComment] = useState<Record<string, string>>({});
-
-  if (isError) return <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void refetch()}>Retry</Button>}>{errMsg(error)}</Alert>;
-  if (isLoading || !data) return <Stack spacing={2}><Skeleton variant="rounded" height={120} /><Skeleton variant="rounded" height={400} /></Stack>;
+  if (isError) return <Alert severity="error">{errMsg(error)}</Alert>;
+  if (isLoading || !data)
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="rounded" height={120} />
+        <Skeleton variant="rounded" height={400} />
+      </Stack>
+    );
 
   const { crq, noc, rings } = data;
 
@@ -38,7 +54,7 @@ export function ImplementationPage() {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h4" sx={{ fontWeight: 500, letterSpacing: "-0.3px" }}>Field Execution — {crq.crqNo}</Typography>
         <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5 }}>
-          {crq.domainName} · Circle {crq.circleCode}. Validate readiness with NOC-NS before starting execution.
+          {crq.domainName} · Circle {crq.circleCode}. Readiness recorded with NOC-NS before execution.
         </Typography>
       </Box>
 
@@ -85,29 +101,21 @@ export function ImplementationPage() {
               </Box>
             </Stack>
           </Stack>
-          <Button fullWidth variant={nocCalled ? "outlined" : "contained"} startIcon={<PhoneInTalkIcon />} onClick={() => setNocCalled(true)}>
-            {nocCalled ? "NOC-NS contacted" : "Call NOC-NS"}
-          </Button>
-          <Typography variant="caption" sx={{ color: "text.secondary", display: "block", textAlign: "center", mt: 1 }}>
-            Calling unlocks ring-level impact validation below.
-          </Typography>
+          {/* Reported, not triggered - the flag comes from the backend row.
+              Shown only once contact has happened; "not contacted" renders
+              nothing rather than a negative label. */}
+          {noc.called && (
+            <Chip size="small" variant="outlined" color="success" label="NOC-NS contacted" />
+          )}
         </Paper>
       </Box>
 
       {/* Ring validation */}
       <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider", mb: 2 }} elevation={0}>
         <Typography sx={{ fontWeight: 500, mb: 2 }}>Impact Validation</Typography>
-        {!nocCalled && (
-          <Box sx={{ display: "flex", gap: 1.5, p: 1.5, bgcolor: "#FFF8E1", border: "1px solid #FFE7A0", borderRadius: 1.5, mb: 2 }}>
-            <LockOutlinedIcon sx={{ color: "#A06800" }} />
-            <Typography variant="body2" sx={{ color: "#7A5200" }}>
-              Impact validation is locked until you contact NOC-NS. Tap "Call NOC-NS" above to begin.
-            </Typography>
-          </Box>
-        )}
         <Stack spacing={1.5}>
           {rings.map((r) => (
-            <Paper key={r.id} sx={{ p: 2, border: "1px solid", borderColor: "divider", opacity: nocCalled ? 1 : 0.5, pointerEvents: nocCalled ? "auto" : "none" }} elevation={0}>
+            <Paper key={r.id} sx={{ p: 2, border: "1px solid", borderColor: "divider" }} elevation={0}>
               <Stack direction="row" justifyContent="space-between" alignItems="center" flexWrap="wrap" gap={2}>
                 <Box sx={{ minWidth: 0 }}>
                   <Typography sx={{ fontWeight: 500 }}>{r.ring}</Typography>
@@ -115,60 +123,25 @@ export function ImplementationPage() {
                     {r.locA} → {r.locB} · {r.type} · {r.slotStart}–{r.slotEnd}
                   </Typography>
                 </Box>
-                <Stack direction="row" spacing={1}>
-                  <Button
+                {DECISION_CHIP[r.decision] && (
+                  <Chip
                     size="small"
-                    variant={r.decision === "proceed" ? "contained" : "outlined"}
-                    color="success"
-                    onClick={() => void proceed({ crqId: crq.crqNo, ringId: r.id })}
-                  >
-                    Proceed
-                  </Button>
-                  <Button
-                    size="small"
-                    variant={r.decision === "block" ? "contained" : "outlined"}
-                    color="error"
-                    onClick={() => void block({ crqId: crq.crqNo, ringId: r.id, comment: blockComment[r.id] })}
-                  >
-                    Do Not Proceed
-                  </Button>
-                </Stack>
-              </Stack>
-              {r.decision === "block" && (
-                <Box sx={{ mt: 2, pt: 2, borderTop: "1px dashed", borderColor: "divider" }}>
-                  <Typography variant="caption" color="error" sx={{ fontWeight: 500 }}>Work info required to record the blocker</Typography>
-                  <TextField
-                    fullWidth
-                    size="small"
-                    placeholder="Comment (optional)"
-                    value={blockComment[r.id] ?? ""}
-                    onChange={(e) => setBlockComment((s) => ({ ...s, [r.id]: e.target.value }))}
-                    sx={{ mt: 1 }}
+                    color={DECISION_CHIP[r.decision]!.color}
+                    label={DECISION_CHIP[r.decision]!.label}
                   />
-                </Box>
-              )}
+                )}
+              </Stack>
             </Paper>
           ))}
         </Stack>
       </Paper>
 
-      <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }} elevation={0}>
+      <Paper sx={{ p: 2.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           {rings.every((r) => r.decision === "proceed")
             ? "All rings cleared. Ready to start execution."
-            : "Validate every ring before starting execution."}
+            : "Not every ring has been validated yet."}
         </Typography>
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined">Save</Button>
-          <Button
-            variant="contained"
-            color="success"
-            startIcon={<PlayArrowIcon />}
-            disabled={!rings.every((r) => r.decision === "proceed")}
-          >
-            Start Execution
-          </Button>
-        </Stack>
       </Paper>
     </Box>
   );

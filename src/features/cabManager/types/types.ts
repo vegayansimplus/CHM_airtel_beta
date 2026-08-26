@@ -335,6 +335,26 @@ export interface CrqConflictDetail {
 }
 
 export type CrqConflictFlag = "YES" | "NO";
+
+/**
+ * GET /cab/crqs/{crqNo}/spoc-fe-details — one row of sp_get_SPOC_FE_details.
+ *
+ * Every column except Crq_No is nullable in the proc: a CRQ can have a SPOC
+ * with no FE yet (or neither), and even an assigned person may have no email
+ * on record. The UI must treat each field as independently missing rather than
+ * assuming "SPOC exists" implies the whole SPOC block is populated.
+ */
+export interface SpocFeDetails {
+  crqNo: string;
+  spocOlmId: string | null;
+  spocName: string | null;
+  spocNumber: string | null;
+  spocEmail: string | null;
+  feOlmId: string | null;
+  feName: string | null;
+  feNumber: string | null;
+  feEmail: string | null;
+}
 export interface CrqConflictDecisionPayload { crqNo: string; flag: CrqConflictFlag; }
 
 // ── Reject reasons (AllCRQs reject dropdown) ────────────────────────────────

@@ -22,12 +22,16 @@ import {
 } from "material-react-table";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import { useGetAllCrqsQuery ,useGetCabServicesQuery} from "../api/cabManagerApiSlice";
+import {
+  useGetAllCrqsQuery,
+  useGetCabServicesQuery,
+  useGetCircleDropdownQuery,
+} from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
 import { StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
-import { ASSIGN_CIRCLES, STAGES } from "../data/cabManager.mock";
+import { STAGES } from "../data/cabManager.mock";
 import type {
   Circle, Crq, CrqFilters, CrqStage, Domain, ImpactCode,
 } from "../types/types";
@@ -54,6 +58,9 @@ const DEFAULT_FILTERS: CrqFilters = {
 export function AllCrqsPage() {
 
   const { data: services } = useGetCabServicesQuery();
+  // Same source as the Admin "Add Service Approval" circle dropdown:
+  // GET /cab/admin/circledropdown.
+  const { data: circles } = useGetCircleDropdownQuery();
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -264,7 +271,9 @@ export function AllCrqsPage() {
           </TextField>
           <TextField select size="small" label="Circle" value={filters.circle ?? "All Circles"} onChange={(e) => setF("circle", e.target.value as Circle)} sx={{ minWidth: 130 }}>
             <MenuItem value="All Circles">All Circles</MenuItem>
-            {ASSIGN_CIRCLES.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
+            {(circles ?? []).map((c) => (
+              <MenuItem key={c.circleCode} value={c.circleCode}>{c.circleCode}</MenuItem>
+            ))}
           </TextField>
           <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
             <MenuItem value="All Impact">All Impact</MenuItem>

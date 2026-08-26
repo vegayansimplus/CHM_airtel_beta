@@ -11,15 +11,13 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
-import PersonAddAlt1OutlinedIcon from "@mui/icons-material/PersonAddAlt1Outlined";
-import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import ReportProblemOutlinedIcon from "@mui/icons-material/ReportProblemOutlined";
 import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useGetMyCrqByIdQuery } from "../../api/cabManagerApiSlice";
-import { AssignSpocModal } from "../modals/AssignSpocModal";
-import { AssignFeModal } from "../modals/AssignFeModal";
 import { ConflictCrqModal } from "../modals/ConflictCrqModal";
+import { SpocFeDetailsModal } from "../modals/SpocFeDetailsModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
 
@@ -28,8 +26,7 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
   const navigate = useNavigate();
   const { data, isLoading, isError, error } = useGetMyCrqByIdQuery(crqId ?? "", { skip: !crqId });
 
-  const [assignSpocOpen, setAssignSpocOpen] = useState(false);
-  const [assignFeOpen, setAssignFeOpen] = useState(false);
+  const [spocFeOpen, setSpocFeOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
 
   return (
@@ -95,16 +92,13 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
               Assignment
             </Typography>
             <Stack spacing={1.5} sx={{ mb: 3 }}>
+              {/* Re-assignment was removed here: SPOC / Field Engineer are now
+                  read-only, viewed through sp_get_SPOC_FE_details rather than
+                  changed from this drawer. */}
               <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>SPOC assignment</Typography>
-                <Button size="small" variant="outlined" startIcon={<PersonAddAlt1OutlinedIcon />} onClick={() => setAssignSpocOpen(true)}>
-                  Re-assign SPOC
-                </Button>
-              </Stack>
-              <Stack direction="row" alignItems="center" justifyContent="space-between">
-                <Typography variant="body2" sx={{ color: "text.secondary" }}>Field Engineer assignment</Typography>
-                <Button size="small" variant="outlined" startIcon={<EngineeringOutlinedIcon />} onClick={() => setAssignFeOpen(true)}>
-                  Re-assign FE
+                <Typography variant="body2" sx={{ color: "text.secondary" }}>SPOC &amp; Field Engineer</Typography>
+                <Button size="small" variant="outlined" startIcon={<VisibilityOutlinedIcon />} onClick={() => setSpocFeOpen(true)}>
+                  View
                 </Button>
               </Stack>
               <Stack direction="row" alignItems="center" justifyContent="space-between">
@@ -118,23 +112,10 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
         )}
       </Box>
 
-      <AssignSpocModal
-        open={assignSpocOpen}
-        crqId={crqId}
-        onClose={() => setAssignSpocOpen(false)}
-        onSuccess={() => {
-          setAssignSpocOpen(false);
-          onClose();
-        }}
-      />
-      <AssignFeModal
-        open={assignFeOpen}
-        crqId={crqId}
-        onClose={() => setAssignFeOpen(false)}
-        onSuccess={() => {
-          setAssignFeOpen(false);
-          onClose();
-        }}
+      <SpocFeDetailsModal
+        open={spocFeOpen}
+        crqNo={crqId}
+        onClose={() => setSpocFeOpen(false)}
       />
 
       <ConflictCrqModal

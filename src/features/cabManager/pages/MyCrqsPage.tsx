@@ -19,7 +19,6 @@ import { useEffect, useMemo, useState } from "react";
 import { useTabColorTokens } from "../../../style/theme";
 import { useGetMyCrqsQuery} from "../api/cabManagerApiSlice";
 import { MyCrqDetailDrawer } from "../components/shared/MyCrqDetailDrawer";
-import { SlaBar, StageChip, StatusChip } from "../components/shared/Chips";
 import { CabKpiCard } from "../components/dashboard/CabKpiCard";
 import { errMsg } from "../components/shared/errMsg";
 import type { Crq, DashboardKpi } from "../types/types";
@@ -123,12 +122,6 @@ export function MyCrqsPage() {
             variant="outlined"
           />
         ),
-      },
-      {
-        accessorKey: "slaPercentage",
-        header: "SLA",
-        size: 130,
-        Cell: ({ cell }) => <SlaBar sla={cell.getValue<number>()} />,
       },
       {
         accessorKey: "serviceCode",

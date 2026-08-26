@@ -24,6 +24,7 @@ import type {
   Role,
   SeRing,
   ServiceApprovalRule,
+  SpocFeDetails,
 } from "../types/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -185,6 +186,23 @@ export const SERVICE_IMPACTS: ImpactCode[] = ["SA", "NSA"];
 export const SERVICE_CIRCLES = ["All", "MH", "KA", "GJ", "DL", "TN", "AP", "WB", "UP-E", "RJ", "MP"];
 /** Mock stand-in for GET /cab/admin/circledropdown (VITE_CAB_USE_MOCK=true). */
 export const MOCK_CAB_CIRCLES: CircleDropdown[] = SERVICE_CIRCLES.map((circleCode) => ({ circleCode }));
+
+/**
+ * Mock stand-in for GET /cab/crqs/{crqNo}/spoc-fe-details. Mirrors the real
+ * proc's common shape: a SPOC assigned with no email on record, and no Field
+ * Engineer yet - so the dialog's partial/empty states get exercised.
+ */
+export const MOCK_SPOC_FE_DETAILS = (crqNo: string): SpocFeDetails => ({
+  crqNo,
+  spocOlmId: "A1SMCYAO",
+  spocName: "KUSH GAUTAM",
+  spocNumber: "9990009990",
+  spocEmail: null,
+  feOlmId: null,
+  feName: null,
+  feNumber: null,
+  feEmail: null,
+});
 export const APPROVAL_AUTHORITIES = ["GSMC", "RAN Head", "COH", "Core Head", "NOC Head", "Domain Head", "Duty Manager", "CTO"];
 
 export const MOCK_SERVICE_RULES: ServiceApprovalRule[] = [
