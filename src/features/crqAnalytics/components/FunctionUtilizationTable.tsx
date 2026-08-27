@@ -1,6 +1,13 @@
-import { useMemo } from "react";
-import { Box, LinearProgress, Typography } from "@mui/material";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { useMemo, useState } from "react";
+import { Box, LinearProgress, Typography, useTheme } from "@mui/material";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_PaginationState,
+} from "material-react-table";
+import { buildRowsPerPageOptions } from "../utils/paginationOptions";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
 
 export interface FunctionUtilizationRow {
@@ -24,6 +31,15 @@ const utilizationColor = (pct: number): "success" | "warning" | "error" => (pct 
  * a separate table from EngineerUtilizationTable rather than the same columns
  * with different rows, since that's what the old "Bin/Team" view actually was. */
 export function FunctionUtilizationTable({ rows, isLoading, isError }: Props) {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const [pagination, setPagination] = useState<MRT_PaginationState>({ pageIndex: 0, pageSize: 10 });
+
+  const rowsPerPageOptions = useMemo(
+    () => buildRowsPerPageOptions(rows.length, pagination.pageSize),
+    [rows.length, pagination.pageSize],
+  );
+
   const columns = useMemo<MRT_ColumnDef<FunctionUtilizationRow>[]>(
     () => [
       { accessorKey: "teamFunction", header: "Function", size: 160 },
@@ -67,11 +83,33 @@ export function FunctionUtilizationTable({ rows, isLoading, isError }: Props) {
   const table = useMaterialReactTable({
     columns,
     data: rows,
-    state: { isLoading },
+    onPaginationChange: setPagination,
+    state: { isLoading, pagination },
     enableColumnFilters: false,
     enableDensityToggle: false,
     enableFullScreenToggle: false,
-    enablePagination: rows.length > 10,
+    enablePagination: true,
+    enableStickyHeader: true,
+    paginationDisplayMode: "pages",
+    muiTableContainerProps: {
+      sx: { maxHeight: { xs: 300, md: 380, lg: 440, xl: 520 }, minHeight: 200 },
+    },
+    muiTableHeadCellProps: {
+      sx: { backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50] },
+    },
+    muiBottomToolbarProps: {
+      sx: {
+        borderTop: `1px solid ${theme.palette.divider}`,
+        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
+        px: 1,
+      },
+    },
+    muiPaginationProps: {
+      shape: "rounded",
+      size: "small",
+      rowsPerPageOptions,
+      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
+    },
     renderEmptyRowsFallback: () => (
       <Box sx={{ py: 4 }}>
         <EmptyOrErrorState kind={isError ? "error" : "empty"} />

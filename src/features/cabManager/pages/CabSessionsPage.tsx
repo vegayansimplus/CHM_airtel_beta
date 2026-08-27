@@ -9,7 +9,12 @@ import {
   Typography,
 } from "@mui/material";
 import VideoCameraFrontOutlinedIcon from "@mui/icons-material/VideoCameraFrontOutlined";
+import EventBusyOutlinedIcon from "@mui/icons-material/EventBusyOutlined";
+import TouchAppOutlinedIcon from "@mui/icons-material/TouchAppOutlined";
+import PlaylistRemoveOutlinedIcon from "@mui/icons-material/PlaylistRemoveOutlined";
+import InboxOutlinedIcon from "@mui/icons-material/InboxOutlined";
 import { useEffect, useState } from "react";
+import type { ReactNode } from "react";
 import {
   useGetCabSessionDetailQuery,
   useGetCabSessionsQuery,
@@ -23,10 +28,61 @@ const STATUS_COLOR = {
   completed: { bg: "#F4F5F7", fg: "rgba(0,0,0,0.55)", label: "Completed" },
 };
 
+/** Centred icon + message block used wherever a list comes back empty. */
+function EmptyState({
+  icon,
+  title,
+  hint,
+  action,
+  compact = false,
+}: {
+  icon: ReactNode;
+  title: string;
+  hint?: string;
+  action?: ReactNode;
+  compact?: boolean;
+}) {
+  return (
+    <Box
+      sx={{
+        flex: 1,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        textAlign: "center",
+        gap: 0.75,
+        px: 3,
+        py: compact ? 3 : 6,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex", alignItems: "center", justifyContent: "center",
+          width: compact ? 48 : 60, height: compact ? 48 : 60,
+          borderRadius: "50%", bgcolor: "action.hover", color: "text.disabled", mb: 0.5,
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography variant="subtitle2" sx={{ fontWeight: 600 }}>{title}</Typography>
+      {hint && (
+        <Typography variant="caption" sx={{ color: "text.secondary", maxWidth: 320, lineHeight: 1.6 }}>
+          {hint}
+        </Typography>
+      )}
+      {action && <Box sx={{ mt: 1.25 }}>{action}</Box>}
+    </Box>
+  );
+}
+
 export function CabSessionsPage() {
   const sessions = useGetCabSessionsQuery();
   const [activeId, setActiveId] = useState<string | null>(null);
   const detail = useGetCabSessionDetailQuery(activeId ?? "", { skip: !activeId });
+
+  const sessionList = sessions.data ?? [];
+  const noSessions = !sessions.isLoading && !sessions.isError && sessionList.length === 0;
 
   // Auto-select first session
   useEffect(() => {
@@ -54,10 +110,28 @@ export function CabSessionsPage() {
             </>
           ) : sessions.isError ? (
             <Alert severity="error" action={<Button color="inherit" size="small" onClick={() => void sessions.refetch()}>Retry</Button>}>{errMsg(sessions.error)}</Alert>
+          ) : noSessions ? (
+            <Paper
+              elevation={0}
+              sx={{ border: "1px dashed", borderColor: "divider", bgcolor: "background.default", flexShrink: 0 }}
+            >
+              <EmptyState
+                compact
+                icon={<EventBusyOutlinedIcon sx={{ fontSize: 26 }} />}
+                title="No CAB sessions"
+                hint="You have no CAB sessions scheduled right now. New sessions appear here as soon as the CAB Engineer plans one."
+                action={
+                  <Button size="small" variant="outlined" onClick={() => void sessions.refetch()}>
+                    Refresh
+                  </Button>
+                }
+              />
+            </Paper>
           ) : (
-            sessions.data?.map((s) => {
+            sessionList.map((s) => {
               const sc = STATUS_COLOR[s.status];
               const isActive = s.id === activeId;
+              const crqCount = s.crqIds?.length ?? 0;
               return (
                 <Paper
                   key={s.id}
@@ -76,7 +150,9 @@ export function CabSessionsPage() {
                   </Stack>
                   <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
                     <Chip size="small" label={s.type} />
-                    <Typography variant="caption" sx={{ color: "text.secondary" }}>{s.crqIds?.length ?? 0} CRQs</Typography>
+                    <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                      {crqCount === 0 ? "No CRQs yet" : crqCount + " CRQs"}
+                    </Typography>
                   </Stack>
                   <Typography variant="body2">{s.date} · {s.time}</Typography>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>Hosted by {s.host}</Typography>
@@ -97,7 +173,41 @@ export function CabSessionsPage() {
 
         {/* Right: detail */}
         <Paper sx={{ border: "1px solid", borderColor: "divider", display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden" }} elevation={0}>
-          {!activeId || detail.isLoading || !detail.data ? (
+          {sessions.isLoading ? (
+            <Box sx={{ p: 3 }}><Skeleton variant="rounded" height={400} /></Box>
+          ) : sessions.isError ? (
+            <EmptyState
+              icon={<InboxOutlinedIcon sx={{ fontSize: 30 }} />}
+              title="Session details unavailable"
+              hint="Your CAB sessions could not be loaded, so there is nothing to show here yet."
+              action={
+                <Button size="small" variant="outlined" onClick={() => void sessions.refetch()}>
+                  Retry
+                </Button>
+              }
+            />
+          ) : noSessions ? (
+            <EmptyState
+              icon={<InboxOutlinedIcon sx={{ fontSize: 30 }} />}
+              title="Nothing to display"
+              hint="Session details, the agenda and the CRQs under discussion will show up here once a CAB session is scheduled for you."
+            />
+          ) : !activeId ? (
+            <EmptyState
+              icon={<TouchAppOutlinedIcon sx={{ fontSize: 30 }} />}
+              title="Select a session"
+              hint="Pick a CAB session from the list on the left to see its agenda and the CRQs under discussion."
+            />
+          ) : detail.isError ? (
+            <Box sx={{ p: 3 }}>
+              <Alert
+                severity="error"
+                action={<Button color="inherit" size="small" onClick={() => void detail.refetch()}>Retry</Button>}
+              >
+                {errMsg(detail.error)}
+              </Alert>
+            </Box>
+          ) : detail.isLoading || !detail.data ? (
             <Box sx={{ p: 3 }}><Skeleton variant="rounded" height={400} /></Box>
           ) : (
             <>
@@ -106,7 +216,7 @@ export function CabSessionsPage() {
                   <Stack direction="row" spacing={1.5} alignItems="center">
                     <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{detail.data.session.id}</Typography>
                     <Typography variant="caption" sx={{ color: "text.secondary" }}>
-                      {detail.data.session.type} CAB · {detail.data.agenda.length} CRQs
+                      {detail.data.session.type} CAB · {detail.data.agenda.length === 0 ? "No CRQs" : detail.data.agenda.length + " CRQs"}
                     </Typography>
                   </Stack>
                   <Typography variant="caption" sx={{ color: "text.secondary" }}>
@@ -118,26 +228,39 @@ export function CabSessionsPage() {
                 )}
               </Box>
 
-              <Box sx={{ flex: 1, overflowY: "auto", p: 2.5, minHeight: 0 }}>
+              <Box sx={{ flex: 1, overflowY: "auto", p: 2.5, minHeight: 0, display: "flex", flexDirection: "column" }}>
                 <Typography variant="caption" sx={{ color: "text.secondary", letterSpacing: 0.5, textTransform: "uppercase", mb: 1.5, display: "block" }}>
                   CRQs under discussion
                 </Typography>
-                <Stack spacing={1.5}>
-                  {detail.data.agenda.map((a) => (
-                    <Paper key={a.id} sx={{ p: 1.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
-                      <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
-                        <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500, fontSize: 12.5 }}>{a.id}</Typography>
-                        <StageChip stage={a.stage} />
-                      </Stack>
-                      <Typography variant="body2">{a.activity}</Typography>
-                      <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }}>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.domain}</Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.impact}</Typography>
-                        <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{a.hostname}</Typography>
-                      </Stack>
-                    </Paper>
-                  ))}
-                </Stack>
+                {detail.data.agenda.length === 0 ? (
+                  <Paper
+                    elevation={0}
+                    sx={{ flex: 1, display: "flex", border: "1px dashed", borderColor: "divider", bgcolor: "background.default" }}
+                  >
+                    <EmptyState
+                      icon={<PlaylistRemoveOutlinedIcon sx={{ fontSize: 30 }} />}
+                      title="No CRQs on the agenda"
+                      hint="No change requests have been added to this session yet. They will appear here once the CAB Engineer adds them."
+                    />
+                  </Paper>
+                ) : (
+                  <Stack spacing={1.5}>
+                    {detail.data.agenda.map((a) => (
+                      <Paper key={a.id} sx={{ p: 1.5, border: "1px solid", borderColor: "divider" }} elevation={0}>
+                        <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
+                          <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500, fontSize: 12.5 }}>{a.id}</Typography>
+                          <StageChip stage={a.stage} />
+                        </Stack>
+                        <Typography variant="body2">{a.activity}</Typography>
+                        <Stack direction="row" spacing={1.5} sx={{ mt: 0.5 }}>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.domain}</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary" }}>{a.impact}</Typography>
+                          <Typography variant="caption" sx={{ color: "text.secondary", fontFamily: "'Roboto Mono', monospace" }}>{a.hostname}</Typography>
+                        </Stack>
+                      </Paper>
+                    ))}
+                  </Stack>
+                )}
               </Box>
             </>
           )}

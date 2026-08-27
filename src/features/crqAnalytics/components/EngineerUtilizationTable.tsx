@@ -1,7 +1,15 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Box, LinearProgress, Typography, useMediaQuery, useTheme } from "@mui/material";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_VisibilityState } from "material-react-table";
+import { alpha } from "@mui/material/styles";
+import {
+  MaterialReactTable,
+  useMaterialReactTable,
+  type MRT_ColumnDef,
+  type MRT_PaginationState,
+  type MRT_VisibilityState,
+} from "material-react-table";
 import type { EngineerUtilizationDto } from "../types/crqAnalytics.types";
+import { buildRowsPerPageOptions } from "../utils/paginationOptions";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
 
 interface Props {
@@ -14,8 +22,15 @@ const utilizationColor = (pct: number): "success" | "warning" | "error" => (pct 
 
 export function EngineerUtilizationTable({ rows, isLoading, isError }: Props) {
   const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
   const isDownMd = useMediaQuery(theme.breakpoints.down("md"));
   const isDownLg = useMediaQuery(theme.breakpoints.down("lg"));
+  const [pagination, setPagination] = useState<MRT_PaginationState>({ pageIndex: 0, pageSize: 10 });
+
+  const rowsPerPageOptions = useMemo(
+    () => buildRowsPerPageOptions(rows.length, pagination.pageSize),
+    [rows.length, pagination.pageSize],
+  );
 
   const columnVisibility = useMemo<MRT_VisibilityState>(
     () => ({
@@ -70,11 +85,35 @@ export function EngineerUtilizationTable({ rows, isLoading, isError }: Props) {
   const table = useMaterialReactTable({
     columns,
     data: rows,
-    state: { columnVisibility, isLoading },
+    onPaginationChange: setPagination,
+    state: { columnVisibility, isLoading, pagination },
     enableColumnFilters: false,
     enableDensityToggle: false,
     enableFullScreenToggle: false,
-    enablePagination: rows.length > 10,
+    enablePagination: true,
+    enableStickyHeader: true,
+    paginationDisplayMode: "pages",
+    // The card grows with its content, so the table body has to be what
+    // scrolls — otherwise picking "show every row" stretches the dashboard.
+    muiTableContainerProps: {
+      sx: { maxHeight: { xs: 300, md: 380, lg: 440, xl: 520 }, minHeight: 200 },
+    },
+    muiTableHeadCellProps: {
+      sx: { backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50] },
+    },
+    muiBottomToolbarProps: {
+      sx: {
+        borderTop: `1px solid ${theme.palette.divider}`,
+        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
+        px: 1,
+      },
+    },
+    muiPaginationProps: {
+      shape: "rounded",
+      size: "small",
+      rowsPerPageOptions,
+      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
+    },
     renderEmptyRowsFallback: () => (
       <Box sx={{ py: 4 }}>
         <EmptyOrErrorState kind={isError ? "error" : "empty"} />

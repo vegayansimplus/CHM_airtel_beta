@@ -8,7 +8,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
-import AddRoundedIcon from "@mui/icons-material/AddRounded";
+// import AddRoundedIcon from "@mui/icons-material/AddRounded"; // quick-insert suggestions are commented out below
 import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 
 import type { Colors } from "../../../types/colorTypes";
@@ -53,7 +53,11 @@ export interface ValidateTokenFieldProps {
   error?: string;
   /** Per-entry check, drives the chip colour and its tooltip. */
   inspect?: (token: string) => TokenIssue | undefined;
-  /** Click-to-insert prefixes, e.g. `HYD-T4-CR11.192$` from the node list. */
+  /**
+   * Click-to-insert prefixes, e.g. `HYD-T4-CR11.192$` from the node list.
+   * Kept on the contract, but the strip that rendered them is commented out -
+   * see the block at the end of this component.
+   */
   quickInserts?: string[];
   quickInsertLabel?: string;
   helper?: React.ReactNode;
@@ -69,8 +73,8 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
   disabled,
   error,
   inspect,
-  quickInserts = [],
-  quickInsertLabel = "Insert",
+  // quickInserts = [],
+  // quickInsertLabel = "Insert",
   helper,
 }) => {
   const tokens = useMemo(() => splitTokens(value), [value]);
@@ -227,6 +231,10 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
               : helper)}
       </Typography>
 
+      {/* Quick-insert suggestions ("From nodes: HYD-T4-CR11.192$ …") - commented
+          out on request. Restore this block, the AddRoundedIcon import and the
+          two destructured props above to bring the strip back.
+
       {quickInserts.length > 0 && (
         <Stack
           direction="row"
@@ -268,6 +276,7 @@ export const ValidateTokenField: React.FC<ValidateTokenFieldProps> = ({
           ))}
         </Stack>
       )}
+      */}
     </Box>
   );
 };

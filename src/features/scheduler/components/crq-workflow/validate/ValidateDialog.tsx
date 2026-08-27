@@ -10,7 +10,9 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
   Fade,
+  Grow,
   IconButton,
   LinearProgress,
   Stack,
@@ -27,7 +29,7 @@ import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import HubRoundedIcon from "@mui/icons-material/HubRounded";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import AccountTreeRoundedIcon from "@mui/icons-material/AccountTreeRounded";
-import AutoFixHighRoundedIcon from "@mui/icons-material/AutoFixHighRounded";
+import TipsAndUpdatesRoundedIcon from "@mui/icons-material/TipsAndUpdatesRounded";
 
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import type { Colors } from "../../../types/colorTypes";
@@ -48,14 +50,23 @@ import {
 } from "./ValidateTokenField";
 
 /**
- * Shown as placeholder and as a persistent hint under each field: the
- * procedure stores both columns as free text, so the expected shape
- * (comma-separated nodes, `node$interface` for the pairs) only exists as a
- * convention and has to be spelled out for whoever is typing.
+ * Shown as a persistent hint under each field: the procedure stores both
+ * columns as free text, so the expected shape (comma-separated nodes,
+ * `node$interface` for the pairs) only exists as a convention and has to be
+ * spelled out for whoever is typing.
  */
 const NODE_NAME_EXAMPLE = "HYD-T4-CR11.192,MUM-T5-CR11.15";
 const NAME_INTERFACE_PAIR_EXAMPLE =
   "HYD-T4-CR11.192$TenGigE0/0/0/23,MUM-T5-CR11.15$HundGigE0/0/0/23";
+
+/**
+ * Saving here is not a private note on the CRQ - the two columns are read back
+ * by the Plan & Inventory validation run and by Impact Analysis. That
+ * consequence used to be invisible, so it is now spelled out on the way out.
+ */
+const SAVE_IMPACT_NOTE_LEAD = "This data will be used for";
+/** The two consumers, highlighted in the danger tone inside the sentence. */
+const SAVE_IMPACT_CONSUMERS = ["Plan & Inventory validation", "Impact Analysis"] as const;
 
 /** Inline keycap, so the "press Enter / , / $" instruction reads as a key. */
 const KeyHint: React.FC<{ colors: Colors; children: React.ReactNode }> = ({
@@ -193,7 +204,7 @@ const MappingPreview: React.FC<{
             <Typography
               sx={{ fontSize: 10.5, fontWeight: 700, color: colors.warning, mr: 0.4 }}
             >
-              Unlisted node:
+              Listed Post:
             </Typography>
             {orphans.map((token) => (
               <Chip
@@ -218,6 +229,102 @@ const MappingPreview: React.FC<{
   );
 };
 
+/**
+ * Marker-pen treatment for the two consumers named in the note: danger tone on
+ * a danger tint, so they read as the part of the sentence that carries risk.
+ * `box-decoration-break: clone` keeps the tint square on both halves when the
+ * sentence wraps mid-phrase.
+ */
+const highlightSx = (colors: Colors) => ({
+  px: 0.6,
+  py: 0.15,
+  borderRadius: "5px",
+  color: colors.danger,
+  bgcolor: colors.dangerDim,
+  border: `1px solid ${colors.dangerBorder}`,
+  fontWeight: 900,
+  whiteSpace: "nowrap" as const,
+  WebkitBoxDecorationBreak: "clone",
+  boxDecorationBreak: "clone",
+});
+
+/**
+ * The consequence notice for a save, and the loudest element in the
+ * confirmation on purpose: one sentence, with the two runs that read these
+ * rows back marked in the danger tone, so nobody saves a typo thinking it
+ * stays local to the dialog. The pulse fires a few times and stops - it is a
+ * nudge, not a siren.
+ */
+const SaveImpactCallout: React.FC<{ colors: Colors }> = ({ colors }) => (
+  <Box
+    sx={{
+      position: "relative",
+      overflow: "hidden",
+      p: 1.8,
+      pl: 2.2,
+      borderRadius: colors.radiusL,
+      border: `1px solid ${colors.accentBorder}`,
+      bgcolor: colors.accentDim,
+      "@keyframes validateNotePulse": {
+        "0%": { boxShadow: `0 0 0 0 ${colors.accentBorder}` },
+        "70%": { boxShadow: "0 0 0 9px rgba(0,0,0,0)" },
+        "100%": { boxShadow: "0 0 0 0 rgba(0,0,0,0)" },
+      },
+    }}
+  >
+    <Box
+      sx={{
+        position: "absolute",
+        left: 0,
+        top: 0,
+        bottom: 0,
+        width: 3,
+        bgcolor: colors.accent,
+      }}
+    />
+
+    <Stack direction="row" spacing={1.3} alignItems="flex-start">
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 30,
+          height: 30,
+          flexShrink: 0,
+          borderRadius: "50%",
+          bgcolor: colors.surface,
+          border: `1px solid ${colors.accentBorder}`,
+          animation: "validateNotePulse 2.2s ease-out 3",
+        }}
+      >
+        <TipsAndUpdatesRoundedIcon sx={{ fontSize: 17, color: colors.accent }} />
+      </Box>
+
+      <Box sx={{ minWidth: 0 }}>
+        <Typography
+          sx={{
+            fontSize: 14,
+            fontWeight: 800,
+            lineHeight: 1.75,
+            color: colors.textPrimary,
+          }}
+        >
+          {SAVE_IMPACT_NOTE_LEAD}{" "}
+          <Box component="span" sx={highlightSx(colors)}>
+            {SAVE_IMPACT_CONSUMERS[0]}
+          </Box>{" "}
+          and{" "}
+          <Box component="span" sx={highlightSx(colors)}>
+            {SAVE_IMPACT_CONSUMERS[1]}
+          </Box>
+          .
+        </Typography>
+      </Box>
+    </Stack>
+  </Box>
+);
+
 export interface ValidateDialogProps {
   open: boolean;
   onClose: () => void;
@@ -228,7 +335,7 @@ export interface ValidateDialogProps {
   /**
    * The stage this was opened from is cancelled. The dialog still opens - the
    * validation details it reads are worth seeing - but every control that
-   * writes ("Fill example", "Save") is dropped and the fields go inert.
+   * writes ("Save") is dropped and the fields go inert.
    */
   readOnly?: boolean;
 }
@@ -257,6 +364,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
   const [confirmDiscardOpen, setConfirmDiscardOpen] = useState(false);
+  const [confirmSaveOpen, setConfirmSaveOpen] = useState(false);
 
   const form = useValidateForm(crqNo, open);
   const {
@@ -274,6 +382,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
   } = form;
 
   const closeAndReset = useCallback(() => {
+    setConfirmSaveOpen(false);
     form.reset();
     onClose();
   }, [form, onClose]);
@@ -288,8 +397,20 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
     closeAndReset();
   }, [isSaving, isDirty, readOnly, closeAndReset]);
 
+  /**
+   * Save is a two-step now: the click opens the confirmation that states where
+   * the data goes, and only its own button writes. Cheap to dismiss, and it is
+   * the last moment the note can still change what gets stored.
+   */
+  const requestSave = useCallback(() => {
+    if (!canSave) return;
+    setConfirmSaveOpen(true);
+  }, [canSave]);
+
   const handleSave = useCallback(async () => {
     const ok = await form.save();
+    // On failure drop back to the form - saveError renders there, not here.
+    setConfirmSaveOpen(false);
     if (!ok) return;
     onSaved?.();
     // Matches the rest of the cockpit's dialogs: a successful submit closes.
@@ -300,6 +421,15 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
   const pairTokens = useMemo(
     () => splitTokens(values.nameInterfacePair),
     [values.nameInterfacePair],
+  );
+
+  /** Legal to save, but the one thing worth re-reading before it goes downstream. */
+  const unmappedNodes = useMemo(
+    () =>
+      nodeTokens.filter(
+        (node) => !pairTokens.some((pair) => splitPair(pair).node === node),
+      ),
+    [nodeTokens, pairTokens],
   );
 
   /**
@@ -447,37 +577,15 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
               ) : undefined
             }
           >
-            <Stack
-              direction="row"
-              alignItems="center"
-              flexWrap="wrap"
-              useFlexGap
-              sx={{ gap: 1, mb: 1.4 }}
-            >
-              {!readOnly && (
-                <Typography sx={{ fontSize: 11, color: colors.textDim, lineHeight: 1.65 }}>
-                  Type an entry and press <KeyHint colors={colors}>Enter</KeyHint> or{" "}
-                  <KeyHint colors={colors}>,</KeyHint> to add it. Pair a node with its
-                  interface using <KeyHint colors={colors}>$</KeyHint>.
-                </Typography>
-              )}
-              <Box sx={{ flex: 1 }} />
-              {!readOnly && (
-              <Button
-                size="small"
-                variant="text"
-                disabled={isSaving}
-                startIcon={<AutoFixHighRoundedIcon sx={{ fontSize: 15 }} />}
-                onClick={() => {
-                  form.setValue("nodeName", NODE_NAME_EXAMPLE);
-                  form.setValue("nameInterfacePair", NAME_INTERFACE_PAIR_EXAMPLE);
-                }}
-                sx={{ textTransform: "none", fontWeight: 700, fontSize: 11 }}
+            {!readOnly && (
+              <Typography
+                sx={{ fontSize: 11, color: colors.textDim, lineHeight: 1.65, mb: 1.4 }}
               >
-                Fill example
-              </Button>
-              )}
-            </Stack>
+                Type an entry and press <KeyHint colors={colors}>Enter</KeyHint> or{" "}
+                <KeyHint colors={colors}>,</KeyHint> to add it. Pair a node with its
+                interface using <KeyHint colors={colors}>$</KeyHint>.
+              </Typography>
+            )}
 
             <Stack
               direction={{ xs: "column", md: "row" }}
@@ -507,8 +615,8 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
                 error={errors.nameInterfacePair}
                 placeholder="HYD-T4-CR11.192$TenGigE0/0/0/23"
                 inspect={inspectPair}
-                quickInserts={nodeTokens.map((node) => `${node}$`)}
-                quickInsertLabel="From nodes:"
+                // quickInserts={nodeTokens.map((node) => `${node}$`)}
+                // quickInsertLabel="From nodes:"
                 helper={`e.g. ${NAME_INTERFACE_PAIR_EXAMPLE}`}
               />
             </Stack>
@@ -653,7 +761,7 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             <span>
               <Button
                 variant="contained"
-                onClick={handleSave}
+                onClick={requestSave}
                 disabled={!canSave}
                 startIcon={
                   isSaving ? (
@@ -669,6 +777,112 @@ export const ValidateDialog: React.FC<ValidateDialogProps> = ({
             </span>
           </Tooltip>
           )}
+        </DialogActions>
+      </Dialog>
+
+      {/* Save confirmation: states where the data lands, then writes. */}
+      <Dialog
+        open={confirmSaveOpen}
+        onClose={() => {
+          if (!isSaving) setConfirmSaveOpen(false);
+        }}
+        maxWidth="sm"
+        fullWidth
+        TransitionComponent={Grow}
+        PaperProps={{
+          elevation: 0,
+          sx: {
+            borderRadius: colors.radiusXL,
+            border: `1px solid ${colors.border}`,
+            bgcolor: colors.bg,
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            px: 2.5,
+            py: 1.5,
+            bgcolor: colors.surface,
+            borderBottom: `1px solid ${colors.border}`,
+          }}
+        >
+          <Stack direction="row" alignItems="center" spacing={1.1}>
+            <SaveRoundedIcon sx={{ fontSize: 18, color: colors.accent }} />
+            <Typography sx={{ fontSize: 14.5, fontWeight: 800, color: colors.textPrimary }}>
+              Save validation details?
+            </Typography>
+          </Stack>
+        </DialogTitle>
+
+        <Box sx={{ height: 3, bgcolor: colors.surface }}>
+          {isSaving && <LinearProgress sx={{ height: 3 }} />}
+        </Box>
+
+        <DialogContent sx={{ px: 2.5, py: 2, bgcolor: colors.bg }}>
+          <SaveImpactCallout colors={colors} />
+
+          <Divider sx={{ my: 1.8, borderColor: colors.border }} />
+
+          <Stack direction="row" flexWrap="wrap" useFlexGap sx={{ gap: 1 }}>
+            <InfoTile
+              label="CRQ Number"
+              value={details?.crqNo ?? crqNo ?? "—"}
+              colors={colors}
+              mono
+            />
+            <InfoTile
+              label="Nodes"
+              value={String(nodeTokens.length)}
+              colors={colors}
+              icon={<AccountTreeRoundedIcon sx={{ fontSize: 12 }} />}
+            />
+            <InfoTile
+              label="Interfaces"
+              value={String(pairTokens.length)}
+              colors={colors}
+              icon={<HubRoundedIcon sx={{ fontSize: 12 }} />}
+            />
+          </Stack>
+
+          {unmappedNodes.length > 0 && (
+            <Alert
+              severity="warning"
+              variant="outlined"
+              icon={<InfoOutlinedIcon sx={{ fontSize: 18 }} />}
+              sx={{ mt: 1.6, fontSize: 12, py: 0.2 }}
+            >
+              {unmappedNodes.length}{" "}
+              {unmappedNodes.length === 1 ? "node has" : "nodes have"} no interface mapped
+              ({unmappedNodes.join(", ")}). Saving is still allowed — anything unmapped simply
+              carries no interface downstream.
+            </Alert>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ px: 2.5, py: 1.5, bgcolor: colors.surface, gap: 1 }}>
+          <Button
+            onClick={() => setConfirmSaveOpen(false)}
+            disabled={isSaving}
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px" }}
+          >
+            Back to editing
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            variant="contained"
+            onClick={handleSave}
+            disabled={isSaving}
+            startIcon={
+              isSaving ? (
+                <CircularProgress size={15} color="inherit" />
+              ) : (
+                <SaveRoundedIcon sx={{ fontSize: 17 }} />
+              )
+            }
+            sx={{ textTransform: "none", fontWeight: 700, borderRadius: "8px", px: 2.2 }}
+          >
+            {isSaving ? "Saving…" : "Confirm & Save"}
+          </Button>
         </DialogActions>
       </Dialog>
 
