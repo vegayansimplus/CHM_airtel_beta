@@ -1,11 +1,12 @@
 import {
-  Alert,
   Box,
   Button,
   Chip,
+  IconButton,
   Paper,
   Skeleton,
   Stack,
+  Tooltip,
   Typography,
   useTheme,
 } from "@mui/material";
@@ -17,13 +18,15 @@ import {
   type MRT_RowSelectionState,
 } from "material-react-table";
 import EventNoteIcon from "@mui/icons-material/EventNote";
-import { useMemo, useState } from "react";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import { useEffect, useMemo, useState } from "react";
 import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useGetCabPlanDatesQuery, useGetCabQueueQuery } from "../api/cabManagerApiSlice";
 import { PlanCabModal } from "../components/modals/PlanCabModal";
+import { CabQueueState } from "../components/shared/CabQueueState";
 import { ImpactChip } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import type { CabQueueRow } from "../types/types";
@@ -32,7 +35,7 @@ export function CabPlanningPage() {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const roleCode = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange, resetAll } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
 
   const shouldFetch = Boolean(values.domain && values.subDomain);
@@ -47,6 +50,28 @@ export function CabPlanningPage() {
     () => Object.keys(rowSelection).filter((k) => rowSelection[k]),
     [rowSelection]
   );
+
+  // The scope this screen is currently looking at, spelled out for the user.
+  // Rows, counts and empty-state copy are all labelled with it so a stale-looking
+  // table can always be traced back to the Domain / Sub Domain it belongs to.
+  const scopeLabel = useMemo(() => {
+    const domain = options.domain.find((o) => o.value === values.domain)?.label;
+    const subDomain = options.subDomain.find((o) => o.value === values.subDomain)?.label;
+    return domain && subDomain ? `${domain} › ${subDomain}` : undefined;
+  }, [options.domain, options.subDomain, values.domain, values.subDomain]);
+
+  // Row selection is keyed by CRQ number. Without this, CRQs ticked under one
+  // Sub Domain stayed selected after switching scope and would have been planned
+  // into a CAB session the user could no longer see.
+  useEffect(() => {
+    setRowSelection({});
+  }, [values.domain, values.subDomain]);
+
+  // `queue.data` is RTK Query's "last successful result for ANY arg", so it keeps
+  // serving the previous Sub Domain's CRQs while the new scope loads or fails.
+  // `currentData` is scoped to the current arg — the table must only ever read it.
+  const rows = queue.currentData ?? [];
+  const isEmptyForScope = shouldFetch && !queue.isFetching && !queue.isError && rows.length === 0;
 
   const columns = useMemo<MRT_ColumnDef<CabQueueRow>[]>(
     () => [
@@ -84,7 +109,7 @@ export function CabPlanningPage() {
 
   const table = useMaterialReactTable({
     columns,
-    data: queue.data ?? [],
+    data: rows,
     getRowId: (row) => row.crqNo,
     state: { isLoading: queue.isFetching, rowSelection },
     onRowSelectionChange: setRowSelection,
@@ -123,7 +148,7 @@ export function CabPlanningPage() {
     },
     renderEmptyRowsFallback: () => (
       <Box sx={{ py: 6, textAlign: "center", color: "text.secondary", width: "100%" }}>
-        No CRQs awaiting CAB review.
+        No CRQs match the current table filters.
       </Box>
     ),
   });
@@ -148,28 +173,62 @@ export function CabPlanningPage() {
 
       {/* Waiting Queue */}
       <Paper sx={{ mb: 3, border: "1px solid", borderColor: "divider", overflow: "hidden" }} elevation={0}>
-        <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography sx={{ fontWeight: 500 }}>CAB Waiting Queue</Typography>
-          {selected.length > 0 && (
-            <Button variant="contained" startIcon={<EventNoteIcon />} onClick={() => setOpenPlan(true)}>
-              Plan CAB · {selected.length} selected
-            </Button>
-          )}
+        <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 2 }}>
+          <Stack direction="row" spacing={1.25} alignItems="center" sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontWeight: 500, flexShrink: 0 }}>CAB Waiting Queue</Typography>
+            {scopeLabel && (
+              <Chip
+                size="small"
+                variant="outlined"
+                label={scopeLabel}
+                sx={{ maxWidth: 320, fontSize: 11.5 }}
+              />
+            )}
+            {shouldFetch && !queue.isFetching && !queue.isError && (
+              <Typography variant="caption" sx={{ color: "text.secondary", flexShrink: 0 }}>
+                {rows.length} CRQ{rows.length === 1 ? "" : "s"}
+              </Typography>
+            )}
+          </Stack>
+
+          <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+            {shouldFetch && (
+              <Tooltip title="Refresh queue">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => void queue.refetch()}
+                    disabled={queue.isFetching}
+                  >
+                    <RefreshRoundedIcon fontSize="small" />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            )}
+            {selected.length > 0 && (
+              <Button variant="contained" startIcon={<EventNoteIcon />} onClick={() => setOpenPlan(true)}>
+                Plan CAB · {selected.length} selected
+              </Button>
+            )}
+          </Stack>
         </Box>
 
-        {queue.isError && (
-          <Alert
-            severity="error"
-            action={<Button color="inherit" size="small" onClick={() => void queue.refetch()}>Retry</Button>}
-          >
-            {errMsg(queue.error)}
-          </Alert>
-        )}
-
         {!shouldFetch ? (
-          <Box sx={{ p: 6, textAlign: "center", color: "text.secondary" }}>
-            <Typography variant="body2">Select a Domain and Sub Domain to load the CAB waiting queue.</Typography>
-          </Box>
+          <CabQueueState kind="idle" />
+        ) : queue.isError ? (
+          <CabQueueState
+            kind="error"
+            scopeLabel={scopeLabel}
+            message={errMsg(queue.error)}
+            onRetry={() => void queue.refetch()}
+          />
+        ) : isEmptyForScope ? (
+          <CabQueueState
+            kind="empty"
+            scopeLabel={scopeLabel}
+            onRetry={() => void queue.refetch()}
+            onChangeScope={resetAll}
+          />
         ) : (
           <MaterialReactTable table={table} />
         )}
@@ -185,6 +244,23 @@ export function CabPlanningPage() {
 
       {dates.isLoading ? (
         <Skeleton variant="rounded" height={180} />
+      ) : dates.isError ? (
+        <Paper sx={{ p: 3, border: "1px solid", borderColor: "divider" }} elevation={0}>
+          <Stack direction="row" spacing={1.5} alignItems="center" justifyContent="space-between">
+            <Typography variant="body2" sx={{ color: "error.main" }}>
+              {errMsg(dates.error)}
+            </Typography>
+            <Button size="small" startIcon={<RefreshRoundedIcon />} onClick={() => void dates.refetch()}>
+              Retry
+            </Button>
+          </Stack>
+        </Paper>
+      ) : (dates.data?.length ?? 0) === 0 ? (
+        <Paper sx={{ p: 3, border: "1px dashed", borderColor: "divider" }} elevation={0}>
+          <Typography variant="body2" sx={{ color: "text.secondary", fontStyle: "italic" }}>
+            No CAB meeting dates are on the calendar yet.
+          </Typography>
+        </Paper>
       ) : (
         <Stack spacing={1.5}>
           {dates.data?.map((d) => {

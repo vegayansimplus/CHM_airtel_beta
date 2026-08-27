@@ -643,6 +643,7 @@ import type {
   SpocFeDetails,
 } from "../types/types";
 import { api } from "../../../service/api";
+import { isEmptyResultError } from "../components/shared/errMsg";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -671,6 +672,25 @@ const networkOrMock = async <T>(
   }
 
   return result as QueryReturnValue<T, FetchBaseQueryError, FetchBaseQueryMeta>;
+};
+
+/**
+ * Collapses the procs' "no rows matched" sentinel back into an empty list.
+ *
+ * The CAB procedures report an empty result by selecting an `error_message`
+ * column ("No CRQs Found"), which the backend turns into an HTTP 500. For a
+ * list endpoint that is not a failure — it is the zero-row answer — so it is
+ * normalised here, once, instead of in every screen that renders the list.
+ * Genuine errors (timeouts, 4xx/5xx with a real message) pass straight through.
+ */
+const emptyListOnNoRows = async <T>(
+  result: Promise<QueryReturnValue<T[], FetchBaseQueryError, FetchBaseQueryMeta>>
+): Promise<QueryReturnValue<T[], FetchBaseQueryError, FetchBaseQueryMeta>> => {
+  const settled = await result;
+  if ("error" in settled && isEmptyResultError(settled.error)) {
+    return { data: [] as T[] };
+  }
+  return settled;
 };
 
 // ── helpers ─────────────────────────────────────────────────────────────────
@@ -823,18 +843,28 @@ export const cabPortalApi = api.injectEndpoints({
     // ── CAB PLANNING ──────────────────────────────────────────────────────
     getCabQueue: builder.query<CabQueueRow[], CabQueueParams>({
       queryFn: async ({ domainId, subDomainId }, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          { url: "/cab/planning/queue", method: "GET", params: { domainId, subDomainId } },
-          baseQuery,
-          async () => await mockDelay(buildCabQueue())
+        emptyListOnNoRows(
+          networkOrMock(
+            { url: "/cab/planning/queue", method: "GET", params: { domainId, subDomainId } },
+            baseQuery,
+            async () => await mockDelay(buildCabQueue())
+          )
         ),
-      providesTags: ["CabQueue"],
+      // Scoped per domain/sub-domain so switching scope can never serve another
+      // scope's cached rows, and so invalidating the queue refetches only what
+      // is actually mounted.
+      providesTags: (_r, _e, { domainId, subDomainId }) => [
+        "CabQueue",
+        { type: "CabQueue" as const, id: `${domainId}-${subDomainId}` },
+      ],
     }),
 
     getCabPlanDates: builder.query<CabPlanDate[], void>({
       queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock({ url: "/cab/planning/dates", method: "GET" }, baseQuery, async () =>
-          await mockDelay(buildCabPlanDates())
+        emptyListOnNoRows(
+          networkOrMock({ url: "/cab/planning/dates", method: "GET" }, baseQuery, async () =>
+            await mockDelay(buildCabPlanDates())
+          )
         ),
       providesTags: ["CabQueue"],
     }),
