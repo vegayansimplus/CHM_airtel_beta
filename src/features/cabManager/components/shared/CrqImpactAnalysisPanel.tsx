@@ -4,7 +4,6 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Collapse,
   Paper,
   Stack,
   Tooltip,
@@ -14,36 +13,35 @@ import {
 } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import FileDownloadRoundedIcon from "@mui/icons-material/FileDownloadRounded";
-import StorageRoundedIcon from "@mui/icons-material/StorageRounded";
-import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FolderZipTwoToneIcon from "@mui/icons-material/FolderZipTwoTone";
 import FolderOpenTwoToneIcon from "@mui/icons-material/FolderOpenTwoTone";
 import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
+import { toast } from "react-toastify";
 import { useTabColorTokens } from "../../../../style/theme";
 import {
-  buildImpactBatchFileNames,
   errorMessage,
   formatImpactModifiedDate,
 } from "../../../scheduler/types/impactBatch.types";
-import {
-  useGetImpactBatchStatusQuery,
-  useGetImpactAnalysisSummaryQuery,
-  useLazyDownloadImpactBatchExcelQuery,
-} from "../../../scheduler/api/impactBatchApiSlice";
+import { useGetImpactBatchStatusQuery } from "../../../scheduler/api/impactBatchApiSlice";
+import { useLazyDownloadServiceCsvExcelQuery } from "../../api/cabManagerApiSlice";
 
-// One accent per batch slot / entity row, purely presentational (theme
-// independent so slots stay visually distinct in both light and dark mode).
+// One accent per batch slot, purely presentational (theme independent so slots
+// stay visually distinct in both light and dark mode).
 const SLOT_ACCENTS = ["#1E6FD9", "#7C3AED", "#0891B2", "#0E9F6E"];
-const ENTITY_ACCENTS = ["#1E6FD9", "#7C3AED", "#0E9F6E", "#D97706", "#DB2777", "#0891B2", "#EA580C", "#059669"];
 
 type Colors = ReturnType<typeof useTabColorTokens>;
 
 interface CrqImpactAnalysisPanelProps {
   crqNo: string | null;
+  /** CRQ's service code (the drawer's Overview "Service" row) - second argument
+   *  to getCSVasperService.py, so Export Excel is disabled without it. */
+  service?: string | null;
 }
 
-function buildExcelFileName(crqNo: string, batchNo: number): string {
-  return `Impact_Data_${crqNo}_Batch_${batchNo}.xlsx`;
+/** Matches the Content-Disposition name the backend sets, so the saved file is
+ *  named the same whether the browser honours the header or this attribute. */
+function buildExcelFileName(crqNo: string, service: string): string {
+  return `Service_Impact_${crqNo}_${service}.xlsx`;
 }
 
 // ─────────────────────────────────────────────
@@ -119,118 +117,35 @@ const BatchPill: React.FC<{
   </Paper>
 );
 
-// ─────────────────────────────────────────────
-// METRIC ROW — the scheduler's metric card re-laid out as a full-width row,
-// which is what fits a 480px drawer. Its drilldown nests underneath it
-// instead of pushing a separate "Details for:" section further down.
-// ─────────────────────────────────────────────
-const MetricRow: React.FC<{
-  entity: string;
-  count: number;
-  pct: number;
-  isActive: boolean;
-  colorMain: string;
-  colors: Colors;
-  onClick: () => void;
-}> = ({ entity, count, pct, isActive, colorMain, colors, onClick }) => (
-  <Paper
-    elevation={0}
-    onClick={onClick}
-    sx={{
-      px: 1.25,
-      py: 0.9,
-      cursor: "pointer",
-      borderRadius: colors.radiusL,
-      border: `1.5px solid ${isActive ? colorMain : colors.border}`,
-      bgcolor: isActive ? alpha(colorMain, colors.isDark ? 0.14 : 0.06) : colors.surface,
-      transition: "all 0.2s cubic-bezier(0.4,0,0.2,1)",
-      "&:hover": { borderColor: colorMain, boxShadow: `0 3px 10px ${alpha(colorMain, 0.13)}` },
-    }}
-  >
-    <Stack direction="row" alignItems="center" spacing={1}>
-      <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: colorMain, flexShrink: 0 }} />
-      <Typography
-        noWrap
-        sx={{ flex: 1, fontSize: "0.7rem", fontWeight: 800, letterSpacing: 0.4, textTransform: "uppercase", color: colors.textPrimary }}
-      >
-        {entity}
-      </Typography>
-      <Typography sx={{ fontSize: "0.85rem", fontWeight: 800, letterSpacing: -0.3, color: isActive ? colorMain : colors.textPrimary }}>
-        {count.toLocaleString()}
-      </Typography>
-      <ExpandMoreRoundedIcon
-        sx={{
-          fontSize: 16,
-          color: colors.textDim,
-          transition: "transform 0.2s",
-          transform: isActive ? "rotate(180deg)" : "none",
-        }}
-      />
-    </Stack>
-    <Box sx={{ mt: 0.6, height: 3, borderRadius: 3, bgcolor: alpha(colorMain, 0.12), overflow: "hidden" }}>
-      <Box sx={{ width: `${pct}%`, height: "100%", bgcolor: colorMain, borderRadius: 3, opacity: 0.85, transition: "width 1.1s cubic-bezier(0.4,0,0.2,1)" }} />
-    </Box>
-  </Paper>
-);
-
-// ─────────────────────────────────────────────
-// BREAKDOWN ROW — one sub-entity inside an expanded category.
-// ─────────────────────────────────────────────
-const BreakdownRow: React.FC<{
-  entity: string;
-  count: number;
-  pct: number;
-  colorMain: string;
-  colors: Colors;
-}> = ({ entity, count, pct, colorMain, colors }) => (
-  <Box sx={{ px: 1.25, py: 0.7, borderRadius: colors.radius, bgcolor: colors.surface2 }}>
-    <Stack direction="row" alignItems="center" spacing={0.8}>
-      <StorageRoundedIcon sx={{ fontSize: 11, color: colorMain, flexShrink: 0 }} />
-      <Typography noWrap sx={{ flex: 1, fontSize: "0.62rem", fontWeight: 700, letterSpacing: 0.3, color: colors.textSecondary }}>
-        {entity}
-      </Typography>
-      <Typography sx={{ fontSize: "0.7rem", fontWeight: 800, color: colors.textPrimary }}>{count.toLocaleString()}</Typography>
-    </Stack>
-    <Box sx={{ mt: 0.45, height: 2.5, borderRadius: 3, bgcolor: alpha(colorMain, 0.12), overflow: "hidden" }}>
-      <Box sx={{ width: `${pct}%`, height: "100%", bgcolor: colorMain, borderRadius: 3, opacity: 0.8 }} />
-    </Box>
-  </Box>
-);
-
 /**
- * Impact Analysis summary for the All-CRQs drawer.
+ * Impact Analysis batches for the All-CRQs drawer.
  *
- * Same two-step contract as the scheduler's Impact Analysis review panel, and
- * the same endpoints - nothing new was added on the API side:
+ *   GET /impact/statuscsv/batch?crqNo=   -> which batches exist and each
+ *   batch's SFTP `modifiedDate`.
  *
- *   1. GET /impact/statuscsv/batch?crqNo=          -> which batches exist and
- *      each batch's SFTP `modifiedDate`.
- *   2. GET /crqworkflow/impactanalysis/batch?...   -> summary rows for that
- *      batchNo *and* that modifiedDate (flag="Main"; the category name as
- *      `flag` drills into its sub-entities).
+ * Export Excel posts the file names that listing reported to
+ * /excel/impact-batchwise and saves the returned blob. Batches scroll
+ * horizontally rather than wrapping into a grid, because the drawer is ~440px
+ * of usable width instead of a half-screen dialog panel.
  *
- * Export Excel posts the file names step 1 reported to /excel/impact-batchwise
- * and saves the returned blob. Only the layout differs from the scheduler
- * version: batches scroll horizontally and metrics are rows, because the
- * drawer is ~440px of usable width instead of a half-screen dialog panel.
+ * The Key Impact Metrics block (per-category counts off
+ * /crqworkflow/impactanalysis/batch, with a click-to-expand sub-entity
+ * breakdown) used to sit between the batch strip and the export button. It was
+ * dropped from this drawer on request; the scheduler's own Impact Analysis
+ * review panel still has it, and that endpoint is untouched.
  *
  * This is a read-only view of what the scheduler produced: no "Refetch" (which
  * re-runs the script server-side) and no "Delta" compare - CAB reviews the
- * numbers here, it does not generate them.
+ * output here, it does not generate it.
  */
-export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ crqNo }) => {
+export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ crqNo, service }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
 
-  // The user's explicit pick, if any - resolved against the step-1 listing
-  // below, so it can never point at a batch the server didn't report.
+  // The user's explicit pick, if any - resolved against the listing below, so
+  // it can never point at a batch the server didn't report.
   const [pickedBatchNo, setPickedBatchNo] = useState<number | null>(null);
-  // Drilldown is scoped to the CRQ + batch it was opened from, so switching
-  // either one drops it automatically instead of showing another batch's
-  // category as if it were this one's.
-  const [drill, setDrill] = useState<{ crqNo: string; batchNo: number; entity: string } | null>(null);
 
-  // ── STEP 1 ──
   const {
     data: batchStatus,
     isFetching: batchesLoading,
@@ -248,77 +163,33 @@ export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ 
 
   const selectedBatchNo = selectedBatch?.batchNo ?? null;
 
-  const drillEntity =
-    drill && drill.crqNo === crqNo && drill.batchNo === selectedBatchNo ? drill.entity : null;
-
-  // ── STEP 2 ── batchNo *and* modifiedDate both come from the step-1 row, so
-  // the query never fires with a guessed date (which matches zero rows).
-  const {
-    data: summaryRows,
-    isFetching: summaryLoading,
-    error: summaryError,
-  } = useGetImpactAnalysisSummaryQuery(
-    {
-      crqNo: crqNo as string,
-      batchNo: selectedBatch?.batchNo as number,
-      modifiedDate: selectedBatch?.modifiedDate as string,
-      flag: "Main",
-    },
-    { skip: !crqNo || !selectedBatch },
-  );
-
-  // Drilldown re-issues step 2 for the same batch/date with the category as flag.
-  const {
-    data: drillRows,
-    isFetching: drillLoading,
-    error: drillError,
-  } = useGetImpactAnalysisSummaryQuery(
-    {
-      crqNo: crqNo as string,
-      batchNo: selectedBatch?.batchNo as number,
-      modifiedDate: selectedBatch?.modifiedDate as string,
-      flag: drillEntity as string,
-    },
-    { skip: !crqNo || !selectedBatch || !drillEntity },
-  );
-
-  const [triggerDownload, { isFetching: downloading }] = useLazyDownloadImpactBatchExcelQuery();
+  const [triggerDownload, { isFetching: downloading }] = useLazyDownloadServiceCsvExcelQuery();
 
   const handleDownload = async () => {
-    if (!crqNo || !selectedBatch) return;
+    if (!crqNo || !service) return;
     try {
-      // Real names from step 1; the constructed candidate set is only a
-      // fallback for a batch whose listing came back without files.
-      const fileNames = selectedBatch.files.length
-        ? selectedBatch.files
-        : buildImpactBatchFileNames(crqNo, selectedBatch.batchNo);
-      const blob = await triggerDownload({ fileNames }).unwrap();
+      // One call: the backend runs getCSVasperService.py for this CRQ + service
+      // and streams back the workbook built from its stdout. Nothing is stored
+      // remotely, so there is no generate-then-fetch handshake to do here.
+      const blob = await triggerDownload({ crqNo, service }).unwrap();
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = buildExcelFileName(crqNo, selectedBatch.batchNo);
+      a.download = buildExcelFileName(crqNo, service);
       a.click();
       URL.revokeObjectURL(url);
-    } catch {
-      // RTK Query surfaces the failure via isError on the same hook; a failed
-      // download simply means no file gets saved, nothing else to clean up.
+      toast.success("Service impact Excel downloaded.");
+    } catch (err) {
+      // The script can legitimately return no rows (404) - that is worth saying
+      // out loud, otherwise the button just looks broken.
+      const status = (err as { status?: number })?.status;
+      toast.error(
+        status === 404
+          ? `No impacted circuits found for ${crqNo} / ${service}.`
+          : "Failed to generate the service impact Excel.",
+      );
     }
   };
-
-  const maxSummaryCount = useMemo(
-    () => ((summaryRows && summaryRows.length) ? Math.max(...summaryRows.map((d) => d.cnt)) : 0),
-    [summaryRows],
-  );
-  const maxDrillCount = useMemo(
-    () => ((drillRows && drillRows.length) ? Math.max(...drillRows.map((d) => d.cnt)) : 0),
-    [drillRows],
-  );
-
-  // The metrics block is shown only when step 2 actually returned categories.
-  // A failed step 2 (e.g. "Impact analysis status not SUCCESS for the given
-  // date") and an empty one are the same thing here: nothing to render.
-  const hasSummaryRows =
-    !!selectedBatch && !summaryLoading && !summaryError && (summaryRows ?? []).length > 0;
 
   if (!crqNo) return null;
 
@@ -392,106 +263,10 @@ export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ 
               isActive={selectedBatchNo === batch.batchNo}
               colorMain={SLOT_ACCENTS[index % SLOT_ACCENTS.length]}
               colors={colors}
-              onSelect={() => {
-                setPickedBatchNo(batch.batchNo);
-                setDrill(null);
-              }}
+              onSelect={() => setPickedBatchNo(batch.batchNo)}
             />
           ))}
         </Stack>
-      )}
-
-      {/* ── Key Impact Metrics ──
-          The whole block - heading, run chip, drill hint and rows - only
-          renders when the batch actually has categories to show. A batch whose
-          run never reached SUCCESS ("Impact analysis status not SUCCESS for
-          the given date") has nothing to drill into, so the drawer stays on
-          the batch strip and the export rather than showing an empty heading
-          over a backend error string. */}
-      {summaryLoading ? (
-        <Stack alignItems="center" py={2.5} spacing={0.75}>
-          <CircularProgress size={20} sx={{ color: colors.accent }} />
-          <Typography sx={{ fontSize: 11.5, color: colors.textSecondary }}>Loading summary…</Typography>
-        </Stack>
-      ) : !hasSummaryRows ? null : (
-        <>
-          <Box>
-            <Stack direction="row" alignItems="center" spacing={0.75} sx={{ flexWrap: "wrap", rowGap: 0.5 }}>
-              <Typography sx={{ fontSize: 12, fontWeight: 800, color: colors.textPrimary }}>Key Impact Metrics</Typography>
-              {selectedBatch && (
-                <Chip
-                  label={`Run ${formatImpactModifiedDate(selectedBatch.modifiedDate)}`}
-                  size="small"
-                  sx={{ height: 18, fontSize: 9.5, fontWeight: 700, bgcolor: colors.surface2, color: colors.textSecondary }}
-                />
-              )}
-            </Stack>
-            <Typography sx={{ fontSize: 10.5, color: colors.textDim, mt: 0.25 }}>Tap a category to drill down</Typography>
-          </Box>
-
-          <Stack spacing={0.75}>
-          {(summaryRows ?? []).map((row, i) => {
-            const accent = ENTITY_ACCENTS[i % ENTITY_ACCENTS.length];
-            const isActive = drillEntity === row.entity;
-            return (
-              <Box key={row.entity}>
-                <MetricRow
-                  entity={row.entity}
-                  count={row.cnt}
-                  pct={maxSummaryCount > 0 ? Math.max((row.cnt / maxSummaryCount) * 100, 2) : 0}
-                  isActive={isActive}
-                  colorMain={accent}
-                  colors={colors}
-                  onClick={() =>
-                    setDrill(
-                      isActive || !selectedBatch ? null : { crqNo, batchNo: selectedBatch.batchNo, entity: row.entity },
-                    )
-                  }
-                />
-
-                {/* Drilldown nests under the row it came from - in a drawer that
-                    reads better than a detached "Details for:" block. */}
-                <Collapse in={isActive} unmountOnExit>
-                  <Box
-                    sx={{
-                      mt: 0.6,
-                      ml: 1.25,
-                      pl: 1.25,
-                      borderLeft: `2px solid ${alpha(accent, 0.35)}`,
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 0.6,
-                    }}
-                  >
-                    {drillLoading ? (
-                      <Stack alignItems="center" py={1.5}>
-                        <CircularProgress size={16} sx={{ color: colors.accent }} />
-                      </Stack>
-                    ) : drillError ? (
-                      <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>
-                        {errorMessage(drillError, "No breakdown data found for this category.")}
-                      </Typography>
-                    ) : (drillRows ?? []).length === 0 ? (
-                      <Typography sx={{ fontSize: 11, color: colors.textSecondary }}>No rows found for this category.</Typography>
-                    ) : (
-                      (drillRows ?? []).map((sub, j) => (
-                        <BreakdownRow
-                          key={sub.entity}
-                          entity={sub.entity}
-                          count={sub.cnt}
-                          pct={maxDrillCount > 0 ? Math.max((sub.cnt / maxDrillCount) * 100, 2) : 0}
-                          colorMain={ENTITY_ACCENTS[j % ENTITY_ACCENTS.length]}
-                          colors={colors}
-                        />
-                      ))
-                    )}
-                  </Box>
-                </Collapse>
-              </Box>
-            );
-          })}
-          </Stack>
-        </>
       )}
 
       {/* ── Active batch breadcrumb + export ── */}
@@ -517,16 +292,6 @@ export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ 
               {formatImpactModifiedDate(selectedBatch.modifiedDate)})
             </Box>
           )}
-          {drillEntity && (
-            <>
-              <Box component="span" sx={{ color: colors.textDim, mx: 0.6 }}>
-                ›
-              </Box>
-              <Box component="span" sx={{ color: colors.textPrimary, fontWeight: 800 }}>
-                {drillEntity}
-              </Box>
-            </>
-          )}
         </Typography>
         <Button
           fullWidth
@@ -534,7 +299,9 @@ export const CrqImpactAnalysisPanel: React.FC<CrqImpactAnalysisPanelProps> = ({ 
           variant="contained"
           startIcon={downloading ? <CircularProgress size={13} color="inherit" /> : <FileDownloadRoundedIcon sx={{ fontSize: 15 }} />}
           onClick={handleDownload}
-          disabled={downloading || !selectedBatch}
+          // Gated on the service, not the batch - the export runs the script
+          // for this CRQ + service and no longer reads the selected batch.
+          disabled={downloading || !service}
           sx={{ fontSize: 11.5, textTransform: "none", bgcolor: colors.accent, borderRadius: colors.radiusL }}
         >
           {downloading ? "Preparing…" : "Export Excel"}

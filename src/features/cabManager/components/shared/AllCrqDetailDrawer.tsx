@@ -242,7 +242,7 @@ export function AllCrqDetailDrawer({
                     pt: 1.75,
                   }}
                 >
-                  <CrqImpactAnalysisPanel crqNo={data.crqNo} />
+                  <CrqImpactAnalysisPanel crqNo={data.crqNo} service={data.serviceCode} />
                 </Box>
               </Collapse>
             </Paper>

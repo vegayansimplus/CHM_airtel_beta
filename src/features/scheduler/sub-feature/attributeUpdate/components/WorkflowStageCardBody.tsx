@@ -77,7 +77,32 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
       const sections = buildAttributeSaveSections(stageView, values);
       try {
         const response = await saveAttributeUpdate({ crqNo, cmsStage, ...sections }).unwrap();
-        toast.success(response?.message || "Attributes saved.");
+        // /attributeupdate/save answers 200 even when a section failed - Remedy,
+        // CAB and Cygnet each succeed or fail on their own. One toast summarising
+        // every success, then one per failure: failure text is long enough that
+        // concatenating three of them is unreadable, while a toast per section
+        // would be pure noise on the (common) all-succeeded path.
+        const results = response?.sections ?? [];
+
+        if (results.length === 0) {
+          // No per-section detail - the request failed before any section ran.
+          toast.error(response?.message || "Failed to save attributes. Please try again.");
+          return;
+        }
+
+        const ok = results.filter((r) => r.status === "Success");
+        const bad = results.filter((r) => r.status !== "Success");
+
+        if (ok.length > 0) {
+          toast.success(`${ok.map((r) => r.section).join(" & ")} updated.`);
+        }
+        bad.forEach((r) => {
+          // The container's global autoClose is 2s - fine for "Remedy updated.",
+          // far too quick for a failure reason someone has to read and act on.
+          toast.error(r.message ? `${r.section} failed — ${r.message}` : `${r.section} failed.`, {
+            autoClose: 8000,
+          });
+        });
       } catch (err) {
         toast.error(
           (err as any)?.data?.message || "Failed to save attributes. Please try again.",

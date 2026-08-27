@@ -175,10 +175,18 @@ export function AdminReasonsTab() {
     layoutMode: "grid",
     initialState: { density: "comfortable" },
     enableTopToolbar: false,
+    enableStickyHeader: true,
+    // Scroll-only, no paging: every reason renders and the container scrolls.
+    // enablePagination defaults to true, so leaving it on while the bottom
+    // toolbar is hidden would cap the list at 10 rows with no way to reach the
+    // rest. This list stays short and is edited inline, so paging it would just
+    // get in the way.
+    enablePagination: false,
     enableBottomToolbar: false,
     enableColumnActions: false,
     enableSorting: false,
     muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 360px)", minHeight: 240 } },
     muiTableHeadCellProps: {
       sx: {
         fontSize: 10,

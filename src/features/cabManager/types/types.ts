@@ -256,6 +256,22 @@ export interface ServiceApprovalRule {
   active: boolean;
 }
 
+/** Mirrors backend common/dto/PageResponseDto.java */
+export interface CabPageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+/** Spring Pageable query params — pageNumber is 0-based, matching MRT's pageIndex. */
+export interface CabPageParams {
+  page?: number;
+  size?: number;
+}
+
 export interface RejectionReason {
   reason: string;
   active: boolean;

@@ -614,6 +614,8 @@ import type {
   AssignSpocPayload,
   AuditEntry,
   BlockRingPayload,
+  CabPageParams,
+  CabPageResponse,
   CabPlanDate,
   CabQueueParams,
   CabQueueRow,
@@ -689,6 +691,24 @@ const toCircleCode = (row: unknown): string => {
   const r = row as Record<string, unknown>;
   const value = r.circleCode ?? r.circleName ?? r.circle ?? r.name ?? r.code;
   return typeof value === "string" || typeof value === "number" ? String(value).trim() : "";
+};
+
+/**
+ * Slices a mock array into the same shape the paged endpoints return, so a
+ * VITE_CAB_USE_MOCK run drives the table's pagination exactly like the server
+ * does instead of handing back every row at once.
+ */
+const mockPage = <T>(rows: T[], page: number, size: number): CabPageResponse<T> => {
+  const safeSize = size > 0 ? size : 10;
+  const totalPages = Math.ceil(rows.length / safeSize);
+  return {
+    content: rows.slice(page * safeSize, page * safeSize + safeSize),
+    pageNumber: page,
+    pageSize: safeSize,
+    totalElements: rows.length,
+    totalPages,
+    last: page + 1 >= totalPages,
+  };
 };
 
 const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
@@ -928,13 +948,17 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAdmin"],
     }),
 
-    getServiceRules: builder.query<ServiceApprovalRule[], void>({
-      queryFn: async (_arg, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          { url: "/cab/admin/service-rules", method: "GET" },
+    // Server-paged (Spring Pageable): page is 0-based, matching MRT's pageIndex.
+    getServiceRules: builder.query<CabPageResponse<ServiceApprovalRule>, CabPageParams | void>({
+      queryFn: async (args, _apiArg, _extraOptions, baseQuery) => {
+        const page = args?.page ?? 0;
+        const size = args?.size ?? 10;
+        return networkOrMock(
+          { url: "/cab/admin/service-rules", method: "GET", params: { page, size } },
           baseQuery,
-          async () => await mockDelay(MOCK_SERVICE_RULES)
-        ),
+          async () => await mockDelay(mockPage(MOCK_SERVICE_RULES, page, size))
+        );
+      },
       providesTags: ["CabAdmin"],
     }),
 
@@ -1282,6 +1306,21 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: (_r, _e, crqNo) => [{ type: "CabCrq" as const, id: `SPOCFE-${crqNo}` }],
     }),
 
+    // ── SERVICE IMPACT EXPORT ─────────────────────────────────────────────
+    // GET /cab/crqs/service-csv/export - runs getCSVasperService.py for this
+    // CRQ + service on the SSH host and streams back the .xlsx built from its
+    // stdout. Not cached (no providesTags): it re-runs the script every time,
+    // which is the point - the caller wants today's rows, not a replay.
+    downloadServiceCsvExcel: builder.query<Blob, { crqNo: string; service: string }>({
+      query: ({ crqNo, service }) => ({
+        url: "/cab/crqs/service-csv/export",
+        method: "GET",
+        params: { crqNo, service },
+        responseHandler: (response: Response) => response.blob(),
+        cache: "no-cache",
+      }),
+    }),
+
     // ── CONFLICT CHECK ────────────────────────────────────────────────────
     getCrqConflicts: builder.query<CrqConflictDetail[], string>({
       queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) =>
@@ -1344,6 +1383,7 @@ export const {
   useGetAuditLogQuery,
   useGetCrqConflictsQuery,
   useGetSpocFeDetailsQuery,
+  useLazyDownloadServiceCsvExcelQuery,
   // mutations
   usePlanCabMutation,
   useCreateCrqMutation,

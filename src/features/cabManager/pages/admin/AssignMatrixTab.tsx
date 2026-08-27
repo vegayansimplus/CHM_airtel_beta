@@ -38,8 +38,17 @@ export function AdminAssignMatrixTab() {
   const isDark = theme.palette.mode === "dark";
   const matrix      = useGetAssignMatrixQuery();
   const rules       = useGetAssignRulesQuery();
-  const serviceRules = useGetServiceRulesQuery();
   const [addServiceOpen, setAddServiceOpen] = useState(false);
+
+  // Server-side paging: pageIndex is 0-based both here and in Spring's Pageable,
+  // so it goes over the wire as-is.
+  const [pagination, setPagination] = useState({ pageIndex: 0, pageSize: 10 });
+  const serviceRules = useGetServiceRulesQuery({
+    page: pagination.pageIndex,
+    size: pagination.pageSize,
+  });
+  const serviceRuleRows = serviceRules.data?.content ?? [];
+  const serviceRuleTotal = serviceRules.data?.totalElements ?? 0;
 
   const matrixByStage = useMemo(() => {
     const map: Record<string, Record<string, string>> = {};
@@ -78,15 +87,25 @@ export function AdminAssignMatrixTab() {
 
   const serviceRuleTable = useMaterialReactTable({
     columns: serviceRuleColumns,
-    data: serviceRules.data ?? [],
+    data: serviceRuleRows,
     getRowId: (row) => row.id,
-    state: { isLoading: serviceRules.isLoading },
+    state: {
+      isLoading: serviceRules.isLoading,
+      showProgressBars: serviceRules.isFetching && !serviceRules.isLoading,
+      pagination,
+    },
     initialState: { density: "compact" },
+    manualPagination: true,
+    rowCount: serviceRuleTotal,
+    onPaginationChange: setPagination,
+    paginationDisplayMode: "pages",
     enableTopToolbar: false,
-    enableBottomToolbar: false,
+    enableStickyHeader: true,
+    enableBottomToolbar: true,
     enableColumnActions: false,
     enableSorting: false,
     muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
+    muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 } },
     muiTableHeadCellProps: {
       sx: {
         fontSize: 10,
@@ -195,7 +214,10 @@ export function AdminAssignMatrixTab() {
       <Paper sx={{ border: "1px solid", borderColor: "divider" }} elevation={0}>
         <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <Box>
-            <Typography sx={{ fontWeight: 500 }}>Impacted Party Approval Flow <Typography component="span" variant="caption" sx={{ color: "text.secondary", ml: 1 }}>— {serviceRules.data?.filter((r) => r.active).length ?? 0} active</Typography></Typography>
+            {/* Count is the server total, not an active-only tally — with the list
+                server-paged we only ever hold one page here, so filtering client
+                side would report "active on this page" and drift as you page. */}
+            <Typography sx={{ fontWeight: 500 }}>Impacted Party Approval Flow <Typography component="span" variant="caption" sx={{ color: "text.secondary", ml: 1 }}>— {serviceRuleTotal} rules</Typography></Typography>
             <Typography variant="caption" sx={{ color: "text.secondary" }}>L1 is the primary impacted-party approver; L2/L3 are escalation tiers.</Typography>
           </Box>
           <Button size="small" variant="contained" startIcon={<AddIcon />} onClick={() => setAddServiceOpen(true)}>
@@ -210,6 +232,10 @@ export function AdminAssignMatrixTab() {
         onClose={() => setAddServiceOpen(false)}
         onSuccess={() => {
           setAddServiceOpen(false);
+          // Back to the first page — a new rule can land on any page once the
+          // list is server-paged, and refetch alone would leave you looking at
+          // a stale offset.
+          setPagination((p) => ({ ...p, pageIndex: 0 }));
           serviceRules.refetch();
         }}
       />

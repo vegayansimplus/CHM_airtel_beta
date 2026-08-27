@@ -14,6 +14,27 @@ export interface AttributeUpdateSavePayload {
   cygnet?: AttributeUpdateSaveSection;
 }
 
+/** One section's outcome. `message` is set only when `status` is "Error". */
+export interface AttributeUpdateSaveSectionResult {
+  /** "Remedy" | "CAB" | "Cygnet" */
+  section: string;
+  status: "Success" | "Error";
+  message?: string | null;
+}
+
+/**
+ * Mirrors backend AttributeUpdateSaveResponseDto.
+ *
+ * `status` rolls the sections up: "Success" (all ok), "Partial" (some ok),
+ * "Error" (none ok). `message` is the same joined summary the endpoint always
+ * returned - kept for logs and as the fallback when `sections` is empty.
+ */
+export interface AttributeUpdateSaveResponse {
+  status?: string;
+  message?: string;
+  sections?: AttributeUpdateSaveSectionResult[];
+}
+
 export const attributeUpdateApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     // GET /attributeupdate/details?crqNo=&cmsStage= - latest saved Remedy /
@@ -62,9 +83,12 @@ export const attributeUpdateApiSlice = api.injectEndpoints({
     }),
 
     // POST /attributeupdate/save - saves whichever of remedy/cab/cygnet the
-    // caller includes for the current stage.
+    // caller includes for the current stage. Each section succeeds or fails on
+    // its own, so the response carries a per-section breakdown alongside the
+    // rolled-up status/message; `sections` is empty only when the request blew
+    // up before any section ran.
     saveAttributeUpdate: builder.mutation<
-      { status?: string; message?: string },
+      AttributeUpdateSaveResponse,
       AttributeUpdateSavePayload
     >({
       query: (payload) => ({
