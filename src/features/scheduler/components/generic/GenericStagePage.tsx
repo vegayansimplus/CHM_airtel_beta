@@ -56,6 +56,13 @@ interface GenericStagePageProps {
    */
   domainId?: number | null;
   subDomainId?: number;
+  /**
+   * CRQ number the Global CRQ Search sent the user here for. When set, this
+   * page's existing global-search filter is seeded with it so only that CRQ
+   * is listed instead of every CRQ in the plan. Undefined during normal
+   * navigation, which leaves the page behaving exactly as before.
+   */
+  focusCrqNo?: string;
 }
 
 /**
@@ -74,6 +81,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
   stageKey,
   domainId,
   subDomainId,
+  focusCrqNo,
 }) => {
   const theme = useTheme();
   const colors = useTabColorTokens(theme);
@@ -127,6 +135,17 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     const t = setTimeout(() => setGlobalSearch(globalSearchInput), 300);
     return () => clearTimeout(t);
   }, [globalSearchInput]);
+
+  // Arriving from the Global CRQ Search: narrow the listing to just that CRQ.
+  // Both the input and the debounced value are set so the filter applies on
+  // arrival rather than 300ms later. The user can clear the search box to see
+  // the rest of the stage's CRQs again - it is an ordinary search term, not a
+  // separate mode.
+  useEffect(() => {
+    if (!focusCrqNo) return;
+    setGlobalSearchInput(focusCrqNo);
+    setGlobalSearch(focusCrqNo);
+  }, [focusCrqNo]);
 
   const handleStartPause = async (crq: any) => {
     const result = await toggleStartPause(crq);

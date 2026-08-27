@@ -1,3 +1,4 @@
+import { useCallback, useState } from "react";
 import { Box, useTheme } from "@mui/material";
 import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
@@ -22,6 +23,9 @@ import SchedulingPage from "./SchedulingPage";
 import ActivityImplementPage from "./ActivityImplementPage";
 import CloserPage from "./CloserPage";
 import { resolveDomainScope } from "../util/orgScope";
+import GlobalCrqSearch, {
+  type GlobalCrqSearchResolved,
+} from "../components/crq-workflow/GlobalCrqSearch";
 
 const WORKFLOW_STEPS: IStep[] = [
   {
@@ -61,7 +65,7 @@ export const PlanAndInventoryMain = () => {
   // Existing Hook Logic
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, setValues, handleChange } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
   // A TEAM_MEMBER is never shown a Domain picker (ORG_FILTER_VISIBILITY), so
   // there is no domain to send for them - null, not a defaulted-to-1 guess.
@@ -74,15 +78,70 @@ export const PlanAndInventoryMain = () => {
   // Initialize Stepper (Setting default to 1 -> "Plan & inventory")
   const { activeStep, goToStep } = useStepper(0, WORKFLOW_STEPS.length);
 
+  // CRQ the Global CRQ Search last routed to. Passed to whichever stage page
+  // is showing so it lists only that CRQ instead of every CRQ in the plan;
+  // undefined during normal navigation, leaving the stages untouched.
+  const [focusCrqNo, setFocusCrqNo] = useState<string | undefined>(undefined);
+
+  /**
+   * Global CRQ Search landed on a CRQ. Point the org filters at the scope the
+   * CRQ actually lives in, then switch to the step matching its real
+   * current_stage. Both come from the backend response (see
+   * util/crqStageRouting.ts) - nothing here is assumed about the destination.
+   *
+   * This reuses the same two pieces of state normal navigation already uses -
+   * the filter values and the stepper index - so a jump leaves the workflow in
+   * exactly the state the user would have reached by picking those filters and
+   * that step by hand.
+   */
+  const handleCrqResolved = useCallback(
+    (resolved: GlobalCrqSearchResolved) => {
+      setValues(resolved.filters);
+      goToStep(resolved.stepIndex);
+      setFocusCrqNo(resolved.hit.crqNo);
+    },
+    [setValues, goToStep],
+  );
+
+  /**
+   * Manual navigation cancels the search focus. Clicking a different stage, or
+   * changing an org filter, is the user deliberately going somewhere else -
+   * carrying the previous CRQ's filter into that view would show them an empty
+   * stage and look like a bug. Both wrap the existing handlers rather than
+   * replacing them, so ordinary navigation is unchanged.
+   */
+  const handleStepClick = useCallback(
+    (stepIndex: number) => {
+      setFocusCrqNo(undefined);
+      goToStep(stepIndex);
+    },
+    [goToStep],
+  );
+
+  const handleFilterChange = useCallback<typeof handleChange>(
+    (key, value) => {
+      setFocusCrqNo(undefined);
+      handleChange(key, value);
+    },
+    [handleChange],
+  );
+
   return (
     <Box sx={{ p: { xs: 1, md: 0 } }}>
       {/* Top Stepper Card */}
+      {/* Global CRQ Search rides in the filter bar's existing `children` slot,
+          so it shares that one row instead of adding another. Additive: the
+          filters, stepper and stage pages below are unchanged. */}
       <OrgHierarchyFilters
         role={roleName}
         values={values}
         options={options}
-        onChange={handleChange}
-      />
+        onChange={handleFilterChange}
+      >
+        <Box sx={{ ml: "auto", flexShrink: 0 }}>
+          <GlobalCrqSearch onResolved={handleCrqResolved} />
+        </Box>
+      </OrgHierarchyFilters>
 
       <Box
         sx={{
@@ -98,7 +157,7 @@ export const PlanAndInventoryMain = () => {
           // sx={{}}
           steps={WORKFLOW_STEPS}
           activeStep={activeStep}
-          onStepClick={goToStep}
+          onStepClick={handleStepClick}
         />
       </Box>
 
@@ -107,40 +166,50 @@ export const PlanAndInventoryMain = () => {
         <PlanAndInventoryPage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 1 && (
         <ImpactAnalysisPage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 2 && (
         <MopCreatePage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 3 && (
         <MopValidatePage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 4 && (
         <SchedulingPage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 5 && (
         <ActivityImplementPage
           domainId={domainId}
           subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
         />
       )}
       {activeStep === 6 && (
-        <CloserPage domainId={domainId} subDomainId={values.subDomain} />
+        <CloserPage
+          domainId={domainId}
+          subDomainId={values.subDomain}
+          focusCrqNo={focusCrqNo}
+        />
       )}
     </Box>
   );
