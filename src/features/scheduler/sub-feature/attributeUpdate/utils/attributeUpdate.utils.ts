@@ -1,6 +1,7 @@
 import type {
   AttributeFieldType,
   AttributeUpdateDetailsResponse,
+  AutoSetSource,
   MandatoryLevel,
   ResolvedAttribute,
   StageAttribute,
@@ -24,7 +25,28 @@ interface StageResolutionContext {
   stageLabel: string;
   remedyStatus: string;
   crqNo: string;
+  /** OLM ID of the signed-in user, stamped into the "...Done By" fields. */
+  currentUserOlmId: string;
+  /** "now" when the card resolved, in the backend's datetime shape. */
+  now: string;
 }
+
+/**
+ * Local wall-clock time as "yyyy-MM-dd HH:mm:ss" - the same shape
+ * GET /attributeupdate/details returns and fromDateTimeLocal sends back.
+ *
+ * Built from the local getters rather than toISOString(), which would shift the
+ * value into UTC and stamp a "Done By Time" hours away from when the work
+ * actually happened.
+ */
+const nowForBackend = (): string => {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}` +
+    ` ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`
+  );
+};
 
 function resolveAttribute(
   attribute: StageAttribute,
@@ -33,14 +55,20 @@ function resolveAttribute(
   liveRow: Record<string, string | null> | null | undefined,
   isBackend = false,
 ): ResolvedAttribute {
-  const autoSetValue =
-    attribute.autoSetFrom === "cmsStage"
+  const fromSource = (source: AutoSetSource | undefined): string | undefined =>
+    source === "cmsStage"
       ? context.stageLabel
-      : attribute.autoSetFrom === "remedyStatus"
+      : source === "remedyStatus"
         ? context.remedyStatus
-        : attribute.autoSetFrom === "crqNo"
+        : source === "crqNo"
           ? context.crqNo
-          : undefined;
+          : source === "currentUserOlmId"
+            ? context.currentUserOlmId || undefined
+            : source === "currentDateTime"
+              ? context.now
+              : undefined;
+
+  const autoSetValue = fromSource(attribute.autoSetFrom);
 
   return {
     ...attribute,
@@ -48,7 +76,11 @@ function resolveAttribute(
     mandatoryLevel: getMandatoryLevel(attribute.mandatory),
     autoSetValue,
     isBackend,
-    value: autoSetValue ?? liveRow?.[attribute.field] ?? null,
+    // Order matters: an auto-set field ignores everything else, otherwise a
+    // value already saved for this CRQ wins, and only a still-empty field falls
+    // back to its prefill seed.
+    value:
+      autoSetValue ?? liveRow?.[attribute.field] ?? fromSource(attribute.prefillFrom) ?? null,
   };
 }
 
@@ -64,6 +96,7 @@ export function resolveStageView(
   remedyStatusIndex: number,
   details: AttributeUpdateDetailsResponse | null | undefined,
   crqNo: string,
+  currentUserOlmId = "",
 ): StageAttributeView | null {
   const stageIndex = CMS_STAGE_SCHEMAS.findIndex((s) => s.id === stageId);
   if (stageIndex < 0) return null;
@@ -78,6 +111,8 @@ export function resolveStageView(
     stageLabel: stage.label,
     remedyStatus: activeRemedyStatus,
     crqNo,
+    currentUserOlmId,
+    now: nowForBackend(),
   };
 
   // A stage may declare that only some of its Remedy statuses collect

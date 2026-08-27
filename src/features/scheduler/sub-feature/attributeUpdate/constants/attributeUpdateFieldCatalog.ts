@@ -89,6 +89,9 @@ const MOP_METHOD_VALUES = [
 
 const YES_NO_VALUES = ["Yes", "No"];
 
+/** Who carried out the activity - an organization, not a person, which is why
+ * "Activity Executed By*" stays a dropdown while the "...Done By" fields around
+ * it default to the signed-in user's OLM ID. */
 const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 
 /** Circle codes offered by the numbered CAB circle slots (circle1..circle19).
@@ -138,19 +141,62 @@ const IMPACTED_PARTIES_VALUES = [
 
 // ─── Shared attribute blocks ─────────────────────────────────────────────────
 
+/**
+ * A "who did this step" field - CRQ Validated By, MOP Created By and friends.
+ *
+ * Defaults to the signed-in user's OLM ID, since that is normally who performed
+ * the step, but stays editable so it can be corrected when somebody else did it
+ * or when one person records another's work.
+ *
+ * `prefillFrom` and not `autoSetFrom`: auto-set would render the row as a
+ * greyed-out display and ignore anything typed. The prefill only fills a field
+ * that is still empty - a value already saved for this CRQ always wins, so
+ * reopening a completed stage shows who actually did it, not who is looking.
+ */
+const OLM_PREFILL_ATTRIBUTE = (name: string, field: string): StageAttribute => ({
+  name,
+  field,
+  type: "Text",
+  mandatory: "Mandatory",
+  prefillFrom: "currentUserOlmId",
+});
+
+/**
+ * The "...Time" partner of an OLM_PREFILL_ATTRIBUTE - CRQ Validated Time,
+ * MOP Created By Time and so on.
+ *
+ * Defaults to the moment the stage card was opened, which is normally when the
+ * step was done, and stays editable for the cases where it wasn't. Like the OLM
+ * prefill, a time already saved for this CRQ wins over the seed, so reopening a
+ * completed stage never rewrites its timestamp to "now".
+ */
+const NOW_PREFILL_ATTRIBUTE = (name: string, field: string): StageAttribute => ({
+  name,
+  field,
+  type: "Date Time",
+  mandatory: "Mandatory",
+  prefillFrom: "currentDateTime",
+});
+
 /** How many numbered circle slots the CAB form stores (circle1..circle19 and
- * their matching impactedPartiesCab1..impactedPartiesCab19). */
-const CAB_CIRCLE_SLOT_COUNT = 19;
+ * their matching impactedPartiesCab1..impactedPartiesCab19). Derived from
+ * CIRCLE_VALUES, since each slot is now pinned to one entry of that list by
+ * position - adding a circle there adds its slot here automatically, and the
+ * two can never fall out of step. */
+const CAB_CIRCLE_SLOT_COUNT = CIRCLE_VALUES.length;
 
 /**
  * The CAB form's 19 numbered circle / impacted-parties pairs, as flat fields.
  *
- * Which circle sits in which slot is backend-driven, not fixed: the API sends
- * whatever circle1..circle19 hold for this CRQ, so both halves of each pair are
- * editable rather than hardcoded labels. That also matters for saving - a
- * read-only attribute is skipped entirely by buildAttributeSaveSections, so
- * marking the circle fields read-only would drop them from the payload instead
- * of echoing them back untouched.
+ * Each slot is fixed to one circle by position - circle1 is always AP, circle2
+ * always BH&J, through circle19 = WB - so a slot's dropdown offers only its own
+ * circle. The real input is the Impacted Parties half of the pair: which parties
+ * are hit in that circle.
+ *
+ * The circle half stays a Dropdown rather than becoming a read-only label
+ * because buildAttributeSaveSections skips read-only attributes entirely, which
+ * would drop circle1..19 from the payload - and INSERT_CAB_UPDATE_ATTR writes
+ * the CAB row whole, so anything not sent comes back null.
  */
 const CAB_CIRCLE_SLOT_ATTRIBUTES: StageAttribute[] = Array.from(
   { length: CAB_CIRCLE_SLOT_COUNT },
@@ -161,7 +207,8 @@ const CAB_CIRCLE_SLOT_ATTRIBUTES: StageAttribute[] = Array.from(
     field: `circle${slot}`,
     type: "Dropdown" as const,
     mandatory: "Optional",
-    values: CIRCLE_VALUES,
+    // Only this slot's own circle - see the block comment above.
+    values: [CIRCLE_VALUES[slot - 1]],
   },
   {
     name: `Impacted Parties ${slot}`,
@@ -313,19 +360,16 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolPhase: "Planning",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
+    // Business Justification is collected at exactly two stages: here and
+    // Scheduling & Approvals. Every other stage omits it.
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
       BUSINESS_JUSTIFICATION_ATTRIBUTE,
       ...COORDINATOR_IMPLEMENTER_ATTRIBUTES,
     ],
     cab: [
-      { name: "CRQ Validated By", field: "crqValidatedBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "CRQ Validated Time",
-        field: "crqValidatedTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("CRQ Validated By", "crqValidatedBy"),
+      NOW_PREFILL_ATTRIBUTE("CRQ Validated Time", "crqValidatedTime"),
       { name: "Host Name**", field: "hostName", type: "Text", mandatory: "Mandatory" },
       {
         name: "Layer",
@@ -346,7 +390,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
-      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "Impacted Segment",
         field: "impactedSegment",
@@ -385,73 +428,14 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: ["BRAS", "CEN", "EPT", "ISP", "MPLS", "NPT", "OTN"],
       },
-      {
-        name: "Impact Analysis Done By",
-        field: "impactAnalysisDoneBy",
-        type: "Text",
-        mandatory: "Mandatory",
-      },
-      {
-        name: "Impact Analysis Done By Time",
-        field: "impactAnalysisDoneByTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("Impact Analysis Done By", "impactAnalysisDoneBy"),
+      NOW_PREFILL_ATTRIBUTE("Impact Analysis Done By Time", "impactAnalysisDoneByTime"),
       {
         name: "B2B Impacted*",
         field: "b2bImpacted",
         type: "Dropdown",
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
-      },
-      {
-        name: "Impacted Circle(s)**",
-        field: "impactedCircles",
-        type: "Multi Select Dropdown",
-        mandatory: "Mandatory",
-        values: [
-          "WB",
-          "UPW",
-          "UPE",
-          "TN",
-          "RJ",
-          "OR",
-          "NESA",
-          "NCR",
-          "MUM",
-          "MPCG",
-          "ROMH",
-          "KL",
-          "KK",
-          "J&K",
-          "ITMC",
-          "HPHP",
-          "GI",
-          "BH&J",
-          "AP",
-          "All",
-        ],
-      },
-      {
-        name: "Impacted Parties*",
-        field: "impactedParties",
-        type: "Multi Select Dropdown",
-        mandatory: "Mandatory",
-        values: [
-          "Core/MPBN",
-          "TWAMP-Accedian",
-          "B2B",
-          "NOC_DCN_&_Tool",
-          "Telemedia",
-          "Switch",
-          "NOC_IM",
-          "NOC_NS",
-          "TWAMP-Exfo",
-          "Mobility-RAN",
-          "DC",
-          "NA",
-          "IWAN",
-        ],
       },
       { name: "MSAN Count", field: "msanCount", type: "Text", mandatory: "Optional" },
     ],
@@ -465,7 +449,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
-      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "MOP Creation Method",
         field: "mopCreationMethod",
@@ -489,13 +472,8 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
       },
     ],
     cab: [
-      { name: "MOP Created By", field: "mopCreatedBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "MOP Created By Time",
-        field: "mopCreatedByTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("MOP Created By", "mopCreatedBy"),
+      NOW_PREFILL_ATTRIBUTE("MOP Created By Time", "mopCreatedByTime"),
     ],
   },
   {
@@ -505,15 +483,10 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolPhase: "MOP Validation",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [REMEDY_STATUS_ATTRIBUTE, BUSINESS_JUSTIFICATION_ATTRIBUTE],
+    remedy: [REMEDY_STATUS_ATTRIBUTE],
     cab: [
-      { name: "MOP Validated By", field: "mopValidatedBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "MOP Validated By Time",
-        field: "mopValidatedByTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("MOP Validated By", "mopValidatedBy"),
+      NOW_PREFILL_ATTRIBUTE("MOP Validated By Time", "mopValidatedByTime"),
       {
         name: "MOP Validation Remark",
         field: "mopValidationRemark",
@@ -561,13 +534,8 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         type: "Text",
         mandatory: "Optional",
       },
-      { name: "CRQ Scheduled By", field: "crqScheduledBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "CRQ Scheduled By Time",
-        field: "crqScheduledByTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("CRQ Scheduled By", "crqScheduledBy"),
+      NOW_PREFILL_ATTRIBUTE("CRQ Scheduled By Time", "crqScheduledByTime"),
       {
         name: "Activity Executed By*",
         field: "activityExecutedBy",
@@ -597,7 +565,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: ["execution"],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
-      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       {
         name: "Actual Start Date*+",
         field: "actualStartDate",
@@ -652,13 +619,8 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "Pre - Checks Done By", field: "preChecksDoneBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "Pre-Check Done Time",
-        field: "preCheckDoneTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("Pre - Checks Done By", "preChecksDoneBy"),
+      NOW_PREFILL_ATTRIBUTE("Pre-Check Done Time", "preCheckDoneTime"),
       {
         name: "Post Check Done**",
         field: "postCheckDone",
@@ -666,13 +628,8 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: YES_NO_VALUES,
       },
-      { name: "Post - Checks Done By", field: "postChecksDoneBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "Post-Check Done Time",
-        field: "postCheckDoneTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("Post - Checks Done By", "postChecksDoneBy"),
+      NOW_PREFILL_ATTRIBUTE("Post-Check Done Time", "postCheckDoneTime"),
       {
         name: "Requested Date Deviation Reason",
         field: "requestedDateDeviationReason",
@@ -745,7 +702,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: ["closure"],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
-      BUSINESS_JUSTIFICATION_ATTRIBUTE,
       { name: "Completed Date", field: "completedDate", type: "Date Time", mandatory: "Mandatory" },
     ],
     cab: [
@@ -762,29 +718,41 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         type: "Date Time",
         mandatory: "Mandatory",
       },
-      { name: "CRQ Closed By", field: "crqClosedBy", type: "Text", mandatory: "Mandatory" },
-      {
-        name: "CRQ Closed By Time",
-        field: "crqClosedByTime",
-        type: "Date Time",
-        mandatory: "Mandatory",
-      },
+      OLM_PREFILL_ATTRIBUTE("CRQ Closed By", "crqClosedBy"),
+      NOW_PREFILL_ATTRIBUTE("CRQ Closed By Time", "crqClosedByTime"),
     ],
   },
 ];
 
 /**
- * The stage schemas, with the 19 numbered circle / impacted-parties pairs
- * appended to every stage's CAB section.
+ * The only stage that carries the numbered circle / impacted-parties pairs.
  *
- * They are not stage-specific: GET /attributeupdate/details returns the whole
- * CAB row whatever the stage, and INSERT_CAB_UPDATE_ATTR writes it back whole,
- * so a stage that omitted these columns would blank whatever the previous stage
- * had saved in them. Appended here rather than spread into each stage's `cab`
- * array so no stage can be forgotten.
+ * Impact Analysis is where the per-circle impact is actually assessed, so it is
+ * the one stage that collects circle1..19 / impactedPartiesCab1..19. Written as
+ * an allow-list rather than six exclusions: a stage added later gets them only
+ * if someone opts it in here.
+ *
+ * ⚠ Saving at any OTHER stage BLANKS whatever Impact Analysis put in those 38
+ * columns. GET /attributeupdate/details returns the whole CAB row and
+ * INSERT_CAB_UPDATE_ATTR writes it back whole, so columns a stage does not send
+ * come back as nulls. Re-saving Impact Analysis restores them; any later stage
+ * that saves afterwards wipes them again. If that becomes a problem, the fix is
+ * the "hidden but preserved" treatment Planning Tool already uses - keep the
+ * fields in every stage's schema, render them nowhere, still echo them back.
  */
-export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = CMS_STAGE_SCHEMAS_BASE.map(
-  (stage) => ({ ...stage, cab: [...stage.cab, ...CAB_CIRCLE_SLOT_ATTRIBUTES] }),
+const STAGES_WITH_CAB_CIRCLE_SLOTS = new Set<AttributeStageSchema["id"]>(["impactanalysis"]);
+
+/**
+ * The stage schemas, with the 19 numbered circle / impacted-parties pairs
+ * appended to the CAB section of the stages listed above.
+ *
+ * Appended here rather than spread into each stage's `cab` array so the rule
+ * lives in a single visible place.
+ */
+export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = CMS_STAGE_SCHEMAS_BASE.map((stage) =>
+  STAGES_WITH_CAB_CIRCLE_SLOTS.has(stage.id)
+    ? { ...stage, cab: [...stage.cab, ...CAB_CIRCLE_SLOT_ATTRIBUTES] }
+    : stage,
 );
 
 // ─── Planning Tool (Cygnet) master field list, filtered per stage via scopes ─

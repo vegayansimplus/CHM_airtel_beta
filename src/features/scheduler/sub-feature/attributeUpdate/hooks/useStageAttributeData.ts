@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAppSelector } from "../../../../../app/hooks";
 import { STAGE_ID_TO_ENUM, type WorkflowStageId } from "../../../constants/workflowStages";
 import { resolveStageView } from "../utils/attributeUpdate.utils";
 import { useGetAttributeUpdateDetailsQuery } from "../api/attributeUpdateApiSlice";
@@ -16,6 +17,10 @@ export function useStageAttributeData(stageId: WorkflowStageId, crqNo: string) {
   const cmsStage = STAGE_ID_TO_ENUM[stageId];
   const [remedyStatusIndex, setRemedyStatusIndex] = useState(0);
 
+  // Stamped into the "...Done By" / "...Executed By" fields: whoever is signed
+  // in is who performed the step, so those are auto-set rather than typed.
+  const currentUserOlmId = useAppSelector((s) => s.auth.user?.olmId ?? "");
+
   const {
     data: details,
     isFetching,
@@ -23,8 +28,8 @@ export function useStageAttributeData(stageId: WorkflowStageId, crqNo: string) {
   } = useGetAttributeUpdateDetailsQuery({ crqNo, cmsStage });
 
   const stageView = useMemo(
-    () => resolveStageView(stageId, remedyStatusIndex, details, crqNo),
-    [stageId, remedyStatusIndex, details, crqNo],
+    () => resolveStageView(stageId, remedyStatusIndex, details, crqNo, currentUserOlmId),
+    [stageId, remedyStatusIndex, details, crqNo, currentUserOlmId],
   );
 
   return {

@@ -33,7 +33,13 @@ export type PlanningToolScope =
   | "closure";
 
 /** Which runtime value an auto-set (read-only) attribute mirrors. */
-export type AutoSetSource = "cmsStage" | "remedyStatus" | "crqNo";
+export type AutoSetSource =
+  | "cmsStage"
+  | "remedyStatus"
+  | "crqNo"
+  | "currentUserOlmId"
+  /** Wall-clock time at which the stage card was opened. */
+  | "currentDateTime";
 
 /**
  * Live lookup backing a dropdown's options, instead of a hardcoded `values`
@@ -86,6 +92,16 @@ export interface StageAttribute {
   resets?: string[];
   readOnly?: boolean;
   autoSetFrom?: AutoSetSource;
+  /**
+   * Seeds an EMPTY field from the same sources as `autoSetFrom`, then gets out
+   * of the way - unlike `autoSetFrom` the field stays editable, and a value
+   * already saved for the CRQ always wins over the seed.
+   *
+   * Used by the "...Done By" fields: they default to whoever is signed in,
+   * because that is normally who did the step, but can be corrected when it
+   * was somebody else.
+   */
+  prefillFrom?: AutoSetSource;
 }
 
 export interface PlanningToolAttribute extends StageAttribute {

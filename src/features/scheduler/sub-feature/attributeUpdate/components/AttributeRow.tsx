@@ -218,7 +218,9 @@ export const AttributeRow: React.FC<AttributeRowProps> = React.memo(function Att
         ? "Auto-set from Remedy status"
         : attribute.autoSetFrom === "crqNo"
           ? "Auto-set from CRQ number"
-          : undefined;
+          : attribute.autoSetFrom === "currentUserOlmId"
+            ? "Auto-set from signed-in user"
+            : undefined;
 
   return (
     <Box
