@@ -67,8 +67,9 @@ const ConfirmDeleteDialog = ({
           <Typography
             sx={{ fontSize: 13, color: "text.secondary", lineHeight: 1.6 }}
           >
-            All role alerts for this event will stop. This action can't be
-            undone.
+            All role alerts for this event will stop immediately. The rule is
+            deactivated, not erased — you can bring it back later with Bulk
+            Enable under the Inactive filter.
           </Typography>
           {rule && (
             <Box

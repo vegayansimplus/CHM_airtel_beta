@@ -4,7 +4,10 @@ import {
   Button,
   Chip,
   CircularProgress,
+  FormControl,
   IconButton,
+  MenuItem,
+  Select,
   Stack,
   Tooltip,
   Typography,
@@ -12,19 +15,28 @@ import {
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import {
+  Close,
   DeleteOutline,
+  EditOutlined,
   ErrorOutlineOutlined,
   NotificationsNoneOutlined,
   RefreshOutlined,
+  ToggleOffOutlined,
+  ToggleOnOutlined,
 } from "@mui/icons-material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
   MRT_GlobalFilterTextField,
   type MRT_ColumnDef,
+  type MRT_RowSelectionState,
 } from "material-react-table";
 import { getNotifTokens } from "../style/notificationTokens";
+<<<<<<< Updated upstream
 import { NOTIFY_ROLES } from "../constants/notifyRoles";
+=======
+import { NOTIFY_ROLES, STATUS_COLUMN } from "../constants/notifyRoles";
+>>>>>>> Stashed changes
 import NotifSwitch from "./NotifSwitch";
 import StatusBadge from "./StatusBadge";
 import ConfirmDeleteDialog from "./ConfirmDeleteDialog";
@@ -36,7 +48,13 @@ import {
   type NotificationBooleanField,
 } from "../api/notificationApiSlice";
 
-const NotificationManagementTable = () => {
+type StatusFilter = "All" | "Active" | "Inactive";
+
+interface NotificationManagementTableProps {
+  onEdit: (rule: ApiNotificationSetting) => void;
+}
+
+const NotificationManagementTable = ({ onEdit }: NotificationManagementTableProps) => {
   const theme = useTheme();
   // Memoized so the `columns` memo below only rebuilds on a real theme change.
   const tk = useMemo(() => getNotifTokens(theme), [theme]);
@@ -48,9 +66,17 @@ const NotificationManagementTable = () => {
     isError,
     refetch,
   } = useGetNotificationConfigsQuery();
+<<<<<<< Updated upstream
   const [updateNotificationField] = useUpdateNotificationFieldMutation();
+=======
+  const [updateField] = useUpdateNotificationFieldMutation();
+>>>>>>> Stashed changes
   const [deleteNotification, { isLoading: isDeleting }] =
     useDeleteNotificationMutation();
+
+  const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
+  const [moduleFilter, setModuleFilter] = useState<string>("All");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("All");
 
   // The rule stays set while the confirm dialog animates closed, so its
   // content doesn't flash empty — only `confirmOpen` drives visibility.
@@ -58,9 +84,27 @@ const NotificationManagementTable = () => {
     useState<ApiNotificationSetting | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
+  // Dynamic filter options — derived from the fetched rows, never hardcoded.
+  const moduleOptions = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.moduleCode))).sort(),
+    [rows],
+  );
+
+  const filteredRows = useMemo(
+    () =>
+      rows.filter((r) => {
+        if (moduleFilter !== "All" && r.moduleCode !== moduleFilter) return false;
+        if (statusFilter === "Active" && !r.isActive) return false;
+        if (statusFilter === "Inactive" && r.isActive) return false;
+        return true;
+      }),
+    [rows, moduleFilter, statusFilter],
+  );
+
   // Toggles patch the RTK Query cache optimistically (see notificationApiSlice),
   // so switches flip instantly and no global "busy" lock is needed.
   const handleToggle = useCallback(
+<<<<<<< Updated upstream
     (rule: ApiNotificationSetting, field: NotificationBooleanField) => {
       updateNotificationField({
         configId: rule.configId,
@@ -69,6 +113,19 @@ const NotificationManagementTable = () => {
       });
     },
     [updateNotificationField],
+=======
+    (rule: ApiNotificationSetting, role: (typeof NOTIFY_ROLES)[number]) => {
+      updateField({ configId: rule.configId, column: role.column, value: !rule[role.field] });
+    },
+    [updateField],
+  );
+
+  const handleStatusToggle = useCallback(
+    (rule: ApiNotificationSetting) => {
+      updateField({ configId: rule.configId, column: STATUS_COLUMN, value: !rule.isActive });
+    },
+    [updateField],
+>>>>>>> Stashed changes
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -81,6 +138,30 @@ const NotificationManagementTable = () => {
       setConfirmOpen(false);
     }
   }, [deleteNotification, ruleToDelete]);
+
+  const selectedRules = useMemo(
+    () => filteredRows.filter((r) => rowSelection[String(r.configId)]),
+    [filteredRows, rowSelection],
+  );
+
+  const handleBulkSetActive = useCallback(
+    async (active: boolean) => {
+      await Promise.all(
+        selectedRules.map((r) =>
+          updateField({ configId: r.configId, column: STATUS_COLUMN, value: active }),
+        ),
+      );
+      setRowSelection({});
+    },
+    [selectedRules, updateField],
+  );
+
+  const handleBulkDelete = useCallback(async () => {
+    await Promise.all(
+      selectedRules.map((r) => deleteNotification({ configId: r.configId })),
+    );
+    setRowSelection({});
+  }, [selectedRules, deleteNotification]);
 
   const columns = useMemo<MRT_ColumnDef<ApiNotificationSetting>[]>(() => {
     const centered = {
@@ -167,6 +248,7 @@ const NotificationManagementTable = () => {
         id: "status",
         accessorKey: "isActive",
         header: "Status",
+<<<<<<< Updated upstream
         size: 112,
         enableSorting: false,
         enableGlobalFilter: false,
@@ -212,49 +294,118 @@ const NotificationManagementTable = () => {
         id: "delete",
         header: "",
         size: 52,
+=======
+        size: 116,
+        enableGlobalFilter: false,
+        accessorFn: (row) => (row.isActive ? "Active" : "Inactive"),
+        ...centered,
+        Cell: ({ row }) => (
+          <Tooltip title={row.original.isActive ? "Click to deactivate" : "Click to reactivate"}>
+            <Box
+              component="button"
+              onClick={() => handleStatusToggle(row.original)}
+              sx={{
+                all: "unset",
+                cursor: "pointer",
+                display: "inline-flex",
+                borderRadius: "999px",
+              }}
+            >
+              <StatusBadge active={row.original.isActive} />
+            </Box>
+          </Tooltip>
+        ),
+      },
+      ...NOTIFY_ROLES.map<MRT_ColumnDef<ApiNotificationSetting>>((role) => ({
+        accessorKey: role.field,
+        header: role.label,
+        size: 104,
+        enableSorting: false,
+        enableGlobalFilter: false,
+        ...centered,
+        Cell: ({ cell, row }) => (
+          <NotifSwitch
+            checked={cell.getValue<boolean>()}
+            onChange={() => handleToggle(row.original, role)}
+            inputProps={{
+              "aria-label": `${role.label} notifications for ${row.original.actionCode}`,
+            }}
+          />
+        ),
+      })),
+      {
+        id: "actions",
+        header: "Actions",
+        size: 100,
+>>>>>>> Stashed changes
         enableSorting: false,
         enableGlobalFilter: false,
         ...centered,
         Cell: ({ row }) => (
-          <Tooltip title="Delete rule">
-            <IconButton
-              size="small"
-              onClick={() => {
-                setRuleToDelete(row.original);
-                setConfirmOpen(true);
-              }}
-              sx={{
-                width: 32,
-                height: 32,
-                borderRadius: tk.radius,
-                color: tk.danger,
-                bgcolor: tk.dangerDim,
-                border: `1px solid ${tk.dangerBorder}`,
-                transition: "background 0.15s, transform 0.15s",
-                "&:hover": {
-                  bgcolor: alpha(tk.danger, tk.isDark ? 0.25 : 0.16),
-                  transform: "scale(1.06)",
-                },
-              }}
-            >
-              <DeleteOutline sx={{ fontSize: 17 }} />
-            </IconButton>
-          </Tooltip>
+          <Stack direction="row" gap={0.75} justifyContent="center">
+            <Tooltip title="Edit rule">
+              <IconButton
+                size="small"
+                onClick={() => onEdit(row.original)}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: tk.radius,
+                  color: tk.accent,
+                  bgcolor: tk.accentDim,
+                  border: `1px solid ${tk.accentBorder}`,
+                  transition: "background 0.15s, transform 0.15s",
+                  "&:hover": {
+                    bgcolor: alpha(tk.accent, tk.isDark ? 0.25 : 0.16),
+                    transform: "scale(1.06)",
+                  },
+                }}
+              >
+                <EditOutlined sx={{ fontSize: 16 }} />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Delete rule">
+              <IconButton
+                size="small"
+                onClick={() => {
+                  setRuleToDelete(row.original);
+                  setConfirmOpen(true);
+                }}
+                sx={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: tk.radius,
+                  color: tk.danger,
+                  bgcolor: tk.dangerDim,
+                  border: `1px solid ${tk.dangerBorder}`,
+                  transition: "background 0.15s, transform 0.15s",
+                  "&:hover": {
+                    bgcolor: alpha(tk.danger, tk.isDark ? 0.25 : 0.16),
+                    transform: "scale(1.06)",
+                  },
+                }}
+              >
+                <DeleteOutline sx={{ fontSize: 17 }} />
+              </IconButton>
+            </Tooltip>
+          </Stack>
         ),
       },
     ];
-  }, [tk, handleToggle]);
+  }, [tk, handleToggle, handleStatusToggle, onEdit]);
 
   const table = useMaterialReactTable({
     columns,
-    data: rows,
+    data: filteredRows,
     getRowId: (row) => String(row.configId),
-    state: { isLoading },
+    state: { isLoading, rowSelection },
+    onRowSelectionChange: setRowSelection,
     initialState: { showGlobalFilter: true },
     enableColumnActions: false,
     enableColumnFilters: false,
-    enablePagination: false,
-    enableBottomToolbar: false,
+    enableRowSelection: true,
+    enablePagination: true,
+    enableBottomToolbar: true,
     enableStickyHeader: true,
 
     muiTablePaperProps: {
@@ -284,6 +435,7 @@ const NotificationManagementTable = () => {
         },
       },
     },
+<<<<<<< Updated upstream
 
     renderTopToolbar: ({ table }) => (
       <Box
@@ -310,35 +462,150 @@ const NotificationManagementTable = () => {
           <Chip
             label={rows.length}
             size="small"
+=======
+    muiTableContainerProps: { sx: { maxHeight: "68vh" } },
+
+    renderTopToolbar: ({ table }) => {
+      const selectedCount = table.getSelectedRowModel().rows.length;
+
+      if (selectedCount > 0) {
+        return (
+          <Box
+>>>>>>> Stashed changes
             sx={{
-              height: 19,
-              fontSize: 11,
-              fontWeight: 700,
-              bgcolor: tk.accentDim,
-              color: tk.accentLight,
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 1,
+              px: 2,
+              py: 1.1,
+              borderBottom: `1px solid ${tk.border}`,
+              bgcolor: alpha(tk.accent, tk.isDark ? 0.1 : 0.06),
             }}
-          />
-        </Stack>
-        <Stack direction="row" alignItems="center" gap={1}>
-          <MRT_GlobalFilterTextField table={table} />
-          <Tooltip title="Refresh">
-            <span>
-              <IconButton
+          >
+            <Stack direction="row" alignItems="center" gap={1}>
+              <Chip
+                label={`${selectedCount} selected`}
                 size="small"
-                onClick={() => refetch()}
-                disabled={isFetching}
+                sx={{ fontWeight: 700, bgcolor: tk.accentDim, color: tk.accentLight }}
+              />
+              <Button
+                size="small"
+                startIcon={<ToggleOnOutlined sx={{ fontSize: 17 }} />}
+                onClick={() => handleBulkSetActive(true)}
               >
-                {isFetching ? (
-                  <CircularProgress size={16} />
-                ) : (
-                  <RefreshOutlined sx={{ fontSize: 18 }} />
-                )}
+                Enable
+              </Button>
+              <Button
+                size="small"
+                color="inherit"
+                startIcon={<ToggleOffOutlined sx={{ fontSize: 17 }} />}
+                onClick={() => handleBulkSetActive(false)}
+              >
+                Disable
+              </Button>
+              <Button
+                size="small"
+                color="error"
+                startIcon={<DeleteOutline sx={{ fontSize: 16 }} />}
+                onClick={handleBulkDelete}
+              >
+                Delete
+              </Button>
+            </Stack>
+            <Tooltip title="Clear selection">
+              <IconButton size="small" onClick={() => setRowSelection({})}>
+                <Close sx={{ fontSize: 16 }} />
               </IconButton>
-            </span>
-          </Tooltip>
-        </Stack>
-      </Box>
-    ),
+            </Tooltip>
+          </Box>
+        );
+      }
+
+      return (
+        <Box
+          sx={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+            px: 2,
+            py: 1.25,
+            borderBottom: `1px solid ${tk.border}`,
+          }}
+        >
+          <Stack direction="row" alignItems="center" gap={0.75}>
+            <NotificationsNoneOutlined
+              sx={{ fontSize: 18, color: "text.secondary" }}
+            />
+            <Typography
+              sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}
+            >
+              Notification Rules
+            </Typography>
+            <Chip
+              label={filteredRows.length}
+              size="small"
+              sx={{
+                height: 19,
+                fontSize: 11,
+                fontWeight: 700,
+                bgcolor: tk.accentDim,
+                color: tk.accentLight,
+              }}
+            />
+          </Stack>
+          <Stack direction="row" alignItems="center" gap={1} flexWrap="wrap">
+            <FormControl size="small" sx={{ minWidth: 130 }}>
+              <Select
+                value={moduleFilter}
+                onChange={(e) => setModuleFilter(e.target.value)}
+                displayEmpty
+                sx={{ fontSize: 12.5, "& .MuiSelect-select": { py: 0.6 } }}
+              >
+                <MenuItem value="All" sx={{ fontSize: 12.5 }}>
+                  All Modules
+                </MenuItem>
+                {moduleOptions.map((m) => (
+                  <MenuItem key={m} value={m} sx={{ fontSize: 12.5 }}>
+                    {m}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <FormControl size="small" sx={{ minWidth: 120 }}>
+              <Select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+                sx={{ fontSize: 12.5, "& .MuiSelect-select": { py: 0.6 } }}
+              >
+                <MenuItem value="All" sx={{ fontSize: 12.5 }}>All Statuses</MenuItem>
+                <MenuItem value="Active" sx={{ fontSize: 12.5 }}>Active</MenuItem>
+                <MenuItem value="Inactive" sx={{ fontSize: 12.5 }}>Inactive</MenuItem>
+              </Select>
+            </FormControl>
+            <MRT_GlobalFilterTextField table={table} />
+            <Tooltip title="Refresh">
+              <span>
+                <IconButton
+                  size="small"
+                  onClick={() => refetch()}
+                  disabled={isFetching}
+                >
+                  {isFetching ? (
+                    <CircularProgress size={16} />
+                  ) : (
+                    <RefreshOutlined sx={{ fontSize: 18 }} />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
+          </Stack>
+        </Box>
+      );
+    },
     muiSearchTextFieldProps: {
       placeholder: "Search rules…",
       size: "small",
@@ -424,14 +691,18 @@ const NotificationManagementTable = () => {
         >
           {isError
             ? "Couldn't load notification rules"
-            : "No notification rules yet"}
+            : rows.length > 0
+              ? "No rules match these filters"
+              : "No notification rules yet"}
         </Typography>
         <Typography
           sx={{ fontSize: 12.5, color: "text.secondary", maxWidth: 340 }}
         >
           {isError
             ? "Something went wrong while fetching the configuration. Check your connection and try again."
-            : "Rules you create will show up here with per-role delivery toggles."}
+            : rows.length > 0
+              ? "Try clearing the module or status filter."
+              : "Rules you create will show up here with per-role delivery toggles."}
         </Typography>
         {isError && (
           <Button
