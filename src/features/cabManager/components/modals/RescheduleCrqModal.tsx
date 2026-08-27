@@ -103,6 +103,14 @@ import { useState } from "react";
 import { toast } from "react-toastify";
 import { useRescheduleCrqMutation } from "../../api/cabManagerApiSlice";
 
+/** Local (not UTC) yyyy-MM-dd for "today" - the earliest selectable date. */
+const todayIso = () => {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+};
+
 type RescheduleCrqModalProps = {
   open: boolean;
   serviceApprovalId: number | null;
@@ -124,12 +132,17 @@ export function RescheduleCrqModal({
 
   const [reschedule, { isLoading }] = useRescheduleCrqMutation();
 
+  const minDate = todayIso();
+  // Also guards typed/pasted values - the input's `min` only constrains the picker.
+  const isPastDate = !!newDate && newDate < minDate;
+
   const submit = async () => {
     if (
       serviceApprovalId == null ||
       !newDate ||
       !newWindow ||
-      !reason
+      !reason ||
+      isPastDate
     ) {
       return;
     }
@@ -209,9 +222,12 @@ export function RescheduleCrqModal({
           type="date"
           label="New date"
           InputLabelProps={{ shrink: true }}
+          inputProps={{ min: minDate }}
+          error={isPastDate}
+          helperText={isPastDate ? "Pick today or a future date." : " "}
           value={newDate}
           onChange={(e) => setNewDate(e.target.value)}
-          sx={{ mb: 2 }}
+          sx={{ mb: 1 }}
         />
 
         <TextField
@@ -248,7 +264,8 @@ export function RescheduleCrqModal({
             serviceApprovalId == null ||
             !newDate ||
             !newWindow ||
-            !reason
+            !reason ||
+            isPastDate
           }
         >
           {isLoading ? "Scheduling..." : "Confirm"}
