@@ -1,16 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, type CSSProperties } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useNotifTokens, buildToggleCss } from "../style/notificationTokens";
-<<<<<<< Updated upstream
 import { useCreateNotificationMutation } from "../api/notificationApiSlice";
-=======
-import { NOTIFY_ROLES } from "../constants/notifyRoles";
-import {
-  useCreateNotificationMutation,
-  useUpdateNotificationFieldMutation,
-  type ApiNotificationSetting,
-} from "../api/notificationApiSlice";
->>>>>>> Stashed changes
 
 // ─── Animations CSS ───────────────────────────────────────────────────────────
 const BASE_CSS = `
@@ -38,18 +29,6 @@ const BASE_CSS = `
   .ntf-shake { animation: ntfShake .35s ease; }
 `;
 
-/** Pulls the backend's real proc-level message out of a rejected RTK Query mutation. */
-const extractErrorMessage = (err: unknown): string | null => {
-  if (err && typeof err === "object" && "data" in err) {
-    const data = (err as { data?: unknown }).data;
-    if (data && typeof data === "object" && "message" in data) {
-      const message = (data as { message?: unknown }).message;
-      if (typeof message === "string") return message;
-    }
-  }
-  return null;
-};
-
 // ─── Field Component ──────────────────────────────────────────────────────────
 const Field: React.FC<{
   label: string;
@@ -57,12 +36,11 @@ const Field: React.FC<{
   placeholder: string;
   error?: string;
   hint?: string;
-  disabled?: boolean;
   inputRef?: React.Ref<HTMLInputElement>;
   onChange: (v: string) => void;
   onEnter?: () => void;
   tk: ReturnType<typeof useNotifTokens>;
-}> = ({ label, value, placeholder, error, hint, disabled, inputRef, onChange, onEnter, tk }) => {
+}> = ({ label, value, placeholder, error, hint, inputRef, onChange, onEnter, tk }) => {
   const [focused, setFocused] = useState(false);
 
   const borderColor = error
@@ -101,7 +79,6 @@ const Field: React.FC<{
           ref={inputRef}
           value={value}
           placeholder={placeholder}
-          disabled={disabled}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter" && onEnter) onEnter(); }}
           onFocus={() => setFocused(true)}
@@ -109,14 +86,13 @@ const Field: React.FC<{
           style={{
             width: "100%",
             padding: "9px 12px",
-            background: disabled ? tk.trackOff : tk.surface2,
+            background: tk.surface2,
             border: `1.5px solid ${borderColor}`,
             borderRadius: tk.radius,
-            color: disabled ? tk.textSecondary : tk.textPrimary,
+            color: tk.textPrimary,
             fontSize: 13.5,
             fontFamily: "inherit",
             outline: "none",
-            cursor: disabled ? "not-allowed" : "text",
             transition: "border-color .18s, box-shadow .18s",
             boxShadow: focused ? `0 0 0 3px ${ringColor}` : "none",
             boxSizing: "border-box",
@@ -226,82 +202,41 @@ const StepIndicator: React.FC<{
 interface NotificationDialogProps {
   open: boolean;
   onClose: () => void;
-  /** "edit" prefills and locks the identity fields (module/sub-module/action are
-   * the table's unique key — the generic update proc can only patch boolean
-   * columns, so renaming a rule after creation isn't supported). */
-  mode?: "create" | "edit";
-  initialRule?: ApiNotificationSetting | null;
 }
 
-const EMPTY_ROLE_STATE: Record<string, boolean> = Object.fromEntries(
-  NOTIFY_ROLES.map((r) => [r.field, false]),
-);
-
-const NotificationDialog: React.FC<NotificationDialogProps> = ({
-  open,
-  onClose,
-  mode = "create",
-  initialRule = null,
-}) => {
+const NotificationDialog: React.FC<NotificationDialogProps> = ({ open, onClose }) => {
   const theme = useTheme();
   const tk = useNotifTokens(theme);
-  const isEdit = mode === "edit" && !!initialRule;
 
-<<<<<<< Updated upstream
   const [addNotification, { isLoading, isError, reset: resetMutation }] =
     useCreateNotificationMutation();
-=======
-  const [createNotification, { isLoading: isCreating, error: createError, reset: resetCreate }] =
-    useCreateNotificationMutation();
-  const [updateField] = useUpdateNotificationFieldMutation();
->>>>>>> Stashed changes
 
   // Form state
   const [module, setModule]     = useState("");
   const [subModule, setSubModule] = useState("");
   const [action, setAction]     = useState("");
-  const [active, setActive]     = useState(true);
-  const [roles, setRoles]       = useState<Record<string, boolean>>(EMPTY_ROLE_STATE);
+  const [status, setStatus]     = useState(true);
+  const [self, setSelf]         = useState(false);
+  const [manager, setManager]   = useState(false);
+  const [team, setTeam]         = useState(false);
   const [errors, setErrors]     = useState<Record<string, string>>({});
   const [shakeForm, setShakeForm] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [editError, setEditError] = useState<string | null>(null);
 
   const firstRef = useRef<HTMLInputElement>(null);
 
   const reset = useCallback(() => {
     setModule(""); setSubModule(""); setAction("");
-    setActive(true); setRoles(EMPTY_ROLE_STATE);
-    setErrors({}); setEditError(null);
-    resetCreate?.();
-  }, [resetCreate]);
+    setStatus(true); setSelf(false); setManager(false); setTeam(false);
+    setErrors({});
+    resetMutation?.();
+  }, [resetMutation]);
 
   // Every close path resets the form, so reopening always starts fresh.
   const handleClose = useCallback(() => { reset(); onClose(); }, [reset, onClose]);
 
-  // Prefill from the rule being edited (or blank out for create) whenever the
-  // dialog opens or the target rule changes.
   useEffect(() => {
-    if (!open) return;
-    if (isEdit && initialRule) {
-      setModule(initialRule.moduleCode);
-      setSubModule(initialRule.subModuleCode);
-      setAction(initialRule.actionCode);
-      setActive(initialRule.isActive);
-      setRoles(
-        Object.fromEntries(NOTIFY_ROLES.map((r) => [r.field, Boolean(initialRule[r.field])])),
-      );
-    } else {
-      setModule(""); setSubModule(""); setAction("");
-      setActive(true); setRoles(EMPTY_ROLE_STATE);
-    }
-    setErrors({}); setEditError(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, isEdit, initialRule?.configId]);
-
-  useEffect(() => {
-    if (open && !isEdit) setTimeout(() => firstRef.current?.focus(), 90);
-  }, [open, isEdit]);
+    if (open) setTimeout(() => firstRef.current?.focus(), 90);
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -311,13 +246,13 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
   }, [open, handleClose]);
 
   const validate = () => {
-    if (isEdit) return true; // identity fields are read-only/prefilled in edit mode
     const e: Record<string, string> = {};
     if (!module.trim())    e.module    = "Module name is required";
     if (!subModule.trim()) e.subModule = "Sub-module is required";
     if (!action.trim())    e.action    = "Action code is required";
     setErrors(e);
     if (Object.keys(e).length > 0) {
+      // Shake the form to signal errors
       setShakeForm(true);
       setTimeout(() => setShakeForm(false), 400);
     }
@@ -326,36 +261,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
   const handleSave = async () => {
     if (!validate()) return;
-
-    if (isEdit && initialRule) {
-      setEditError(null);
-      setIsSaving(true);
-      try {
-        const changes: Array<{ column: string; value: boolean }> = [];
-        NOTIFY_ROLES.forEach((r) => {
-          if (roles[r.field] !== Boolean(initialRule[r.field])) {
-            changes.push({ column: r.column, value: roles[r.field] });
-          }
-        });
-        if (active !== initialRule.isActive) {
-          changes.push({ column: "is_active", value: active });
-        }
-        await Promise.all(
-          changes.map((c) =>
-            updateField({ configId: initialRule.configId, column: c.column, value: c.value }).unwrap(),
-          ),
-        );
-        handleClose();
-      } catch (err) {
-        setEditError(extractErrorMessage(err) ?? "Save failed. Please try again.");
-      } finally {
-        setIsSaving(false);
-      }
-      return;
-    }
-
     try {
-<<<<<<< Updated upstream
       // The dialog's Self/Manager channels have no API counterpart yet;
       // only Team and the master Active switch map to real columns.
       await addNotification({
@@ -369,30 +275,15 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
         notifyTeamMember: team,
         notifyVerticalHead: false,
         isActive: status,
-=======
-      await createNotification({
-        moduleCode: module.trim(),
-        subModuleCode: subModule.trim(),
-        actionCode: action.trim(),
-        notifySuperAdmin: roles.notifySuperAdmin,
-        notifyVerticalHead: roles.notifyVerticalHead,
-        notifyFunctionHead: roles.notifyFunctionHead,
-        notifyDomainHead: roles.notifyDomainHead,
-        notifySubDomainHead: roles.notifySubDomainHead,
-        notifyTeamMember: roles.notifyTeamMember,
->>>>>>> Stashed changes
       }).unwrap();
       reset();
       onClose();
     } catch {
-      // isError/createError from the mutation hook drives the banner below.
+      // isError from the mutation hook drives the banner above.
     }
   };
 
-  const isLoading = isEdit ? isSaving : isCreating;
-  const bannerMessage = isEdit ? editError : extractErrorMessage(createError) ?? (createError ? "Save failed. Please check your inputs and try again." : null);
-
-  // How many of 3 identity fields are filled — for the create-mode step indicator
+  // How many of 3 fields are filled — for step indicator
   const filledFields = [module, subModule, action].filter(Boolean).length;
 
   if (!open) return null;
@@ -425,7 +316,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
             border: `1px solid ${tk.border}`,
             borderRadius: tk.radiusXL,
             width: "100%",
-            maxWidth: 480,
+            maxWidth: 440,
             boxShadow: tk.isDark
               ? "0 32px 72px rgba(0,0,0,0.72)"
               : "0 20px 56px rgba(15,23,42,0.20)",
@@ -467,10 +358,10 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
 
               <div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: tk.textPrimary, letterSpacing: "-0.2px" }}>
-                  {isEdit ? "Edit notification rule" : "Create notification"}
+                  Create notification
                 </div>
                 <div style={{ fontSize: 11.5, color: tk.textSecondary, marginTop: 1 }}>
-                  {isEdit ? "Update recipients and status" : "Configure event-based alerts"}
+                  Configure event-based alerts
                 </div>
               </div>
             </div>
@@ -512,26 +403,24 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
             </button>
           </div>
 
-          {/* ── Progress indicator (create mode only) ── */}
-          {!isEdit && (
-            <div
-              style={{
-                padding: "10px 22px 0",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <span style={{ fontSize: 11, color: tk.textSecondary }}>
-                {filledFields === 0
-                  ? "Fill in the details below"
-                  : filledFields < 3
-                  ? `${3 - filledFields} field${3 - filledFields > 1 ? "s" : ""} remaining`
-                  : "Ready to create"}
-              </span>
-              <StepIndicator step={filledFields - 1} total={3} tk={tk} />
-            </div>
-          )}
+          {/* ── Progress indicator ── */}
+          <div
+            style={{
+              padding: "10px 22px 0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <span style={{ fontSize: 11, color: tk.textSecondary }}>
+              {filledFields === 0
+                ? "Fill in the details below"
+                : filledFields < 3
+                ? `${3 - filledFields} field${3 - filledFields > 1 ? "s" : ""} remaining`
+                : "Ready to create"}
+            </span>
+            <StepIndicator step={filledFields - 1} total={3} tk={tk} />
+          </div>
 
           {/* ── Body ── */}
           <div
@@ -544,7 +433,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
             }}
           >
             {/* Error banner */}
-            {bannerMessage && (
+            {isError && (
               <div
                 style={{
                   display: "flex",
@@ -563,18 +452,20 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                   <circle cx="12" cy="12" r="9" />
                   <path d="M12 8v4M12 16h.01" />
                 </svg>
-                <div>{bannerMessage}</div>
+                <div>
+                  <strong style={{ fontWeight: 700 }}>Save failed.</strong>{" "}
+                  Please check your inputs and try again.
+                </div>
               </div>
             )}
 
-            {/* Identity fields */}
+            {/* Fields */}
             <Field
               label="Module"
               value={module}
               placeholder="e.g. Rostering"
               error={errors.module}
-              hint={isEdit ? "Locked after creation" : "e.g. HR, Finance"}
-              disabled={isEdit}
+              hint="e.g. HR, Finance"
               inputRef={firstRef}
               tk={tk}
               onChange={(v) => {
@@ -588,8 +479,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
               value={subModule}
               placeholder="e.g. Leave Approved"
               error={errors.subModule}
-              hint={isEdit ? undefined : "Specific event area"}
-              disabled={isEdit}
+              hint="Specific event area"
               tk={tk}
               onChange={(v) => {
                 setSubModule(v);
@@ -602,8 +492,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
               value={action}
               placeholder="e.g. Leave request approved by manager"
               error={errors.action}
-              hint={isEdit ? undefined : "Press Enter to save"}
-              disabled={isEdit}
+              hint="Press Enter to save"
               onEnter={handleSave}
               tk={tk}
               onChange={(v) => {
@@ -630,7 +519,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
               <div style={{ flex: 1, height: 1, background: tk.border }} />
             </div>
 
-            {/* Channel Cards — 2x2 grid, real DB-backed roles + Active status */}
+            {/* Channel Cards — 2x2 grid */}
             <div
               style={{
                 display: "grid",
@@ -640,21 +529,32 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
             >
               <ChannelCard
                 label="Active"
-                description="Rule sends alerts"
-                checked={active}
-                onChange={setActive}
+                description="Enable this rule"
+                checked={status}
+                onChange={setStatus}
                 tk={tk}
               />
-              {NOTIFY_ROLES.map((role) => (
-                <ChannelCard
-                  key={role.field}
-                  label={role.label}
-                  description={`Notify ${role.label.toLowerCase()}`}
-                  checked={roles[role.field]}
-                  onChange={(v) => setRoles((p) => ({ ...p, [role.field]: v }))}
-                  tk={tk}
-                />
-              ))}
+              <ChannelCard
+                label="Self"
+                description="Notify originator"
+                checked={self}
+                onChange={setSelf}
+                tk={tk}
+              />
+              <ChannelCard
+                label="Manager"
+                description="Notify line manager"
+                checked={manager}
+                onChange={setManager}
+                tk={tk}
+              />
+              <ChannelCard
+                label="Team"
+                description="Notify all team members"
+                checked={team}
+                onChange={setTeam}
+                tk={tk}
+              />
             </div>
           </div>
 
@@ -672,9 +572,9 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                 : "rgba(15,23,42,0.018)",
             }}
           >
-            {/* Recipients summary */}
+            {/* Channels summary */}
             <span style={{ fontSize: 11.5, color: tk.textSecondary }}>
-              {[active && "Active", ...NOTIFY_ROLES.filter((r) => roles[r.field]).map((r) => r.label)]
+              {[status && "Active", self && "Self", manager && "Manager", team && "Team"]
                 .filter(Boolean)
                 .join(", ") || "No recipients selected"}
             </span>
@@ -764,7 +664,7 @@ const NotificationDialog: React.FC<NotificationDialogProps> = ({
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                       <path d="M5 13l4 4L19 7" />
                     </svg>
-                    {isEdit ? "Save" : "Create"}
+                    Create
                   </>
                 )}
               </button>

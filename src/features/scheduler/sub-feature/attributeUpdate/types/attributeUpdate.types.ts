@@ -66,7 +66,11 @@ export interface AttributeDependency {
 
 export interface StageAttribute {
   name: string;
-  /** camelCase DTO property name - the join key into the live API values. */
+  /**
+   * The join key into the live API values - Remedy/CAB use their camelCase DTO
+   * property name, Planning Tool (Cygnet) uses the CYGNET_UPDATE_ATTR_TBL
+   * column name verbatim, spaces and all (see PLANNING_TOOL_ATTRIBUTES).
+   */
   field: string;
   type: AttributeFieldType;
   /** Raw mandatory label from the source system, e.g. "Mandatory - if cancellation". */
@@ -138,8 +142,9 @@ export interface AttributeStageSchema {
 
 /**
  * Raw system row as returned by GET /attributeupdate/details, keyed by
- * camelCase DTO property name (matches StageAttribute["field"]). Values are
- * plain strings (ISO datetime strings for Date Time fields), or null.
+ * StageAttribute["field"] - the camelCase DTO property for Remedy/CAB, the DB
+ * column name for Cygnet. Values are plain strings ("yyyy-MM-dd HH:mm:ss" or
+ * ISO for Date Time fields), or null.
  */
 export type AttributeValueRow = Record<string, string | null>;
 

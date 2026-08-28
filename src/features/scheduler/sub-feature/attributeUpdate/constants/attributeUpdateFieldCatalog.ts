@@ -756,11 +756,29 @@ export const CMS_STAGE_SCHEMAS: AttributeStageSchema[] = CMS_STAGE_SCHEMAS_BASE.
 );
 
 // ─── Planning Tool (Cygnet) master field list, filtered per stage via scopes ─
+//
+// `field` here is the CYGNET_UPDATE_ATTR_TBL column name, spelled exactly as
+// the DB spells it - that table names its columns after the Remedy attributes
+// they mirror ("Impacted Circle(s)", "Type of CR", "ChgImpCpy", "cms_stage"),
+// not in camelCase like the Remedy and CAB attribute tables.
+// GET_CYGNET_DETAILS_BY_CHANGE_ID returns those labels untouched and
+// INSERT_CYGNET_UPDATE_ATTR matches the keys it is handed back against them, so
+// this list is the one place the Cygnet column names are written down on either
+// side of the wire - rename a column in the DB and this is the only file that
+// has to follow.
+
+/**
+ * CYGNET_UPDATE_ATTR_TBL's key column. Never sent as a Cygnet save field: the
+ * CRQ travels as the save payload's top-level `crqNo`, which is what
+ * INSERT_CYGNET_UPDATE_ATTR identifies the row by - it drops this key from the
+ * JSON it is handed.
+ */
+export const CYGNET_CHANGE_ID_FIELD = "Infrastructure Change ID";
 
 export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   {
     name: "Change ID",
-    field: "changeId",
+    field: CYGNET_CHANGE_ID_FIELD,
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
@@ -769,7 +787,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "CMS Function",
-    field: "cmsFunction",
+    field: "CMS_FUNCTION",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
@@ -777,17 +795,17 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "CMS Sub Function",
-    field: "cmsSubFunction",
+    field: "CMS_SUB_FUNCTION",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
     readOnly: true,
   },
-  { name: "Plan ID", field: "planId", type: "Text", mandatory: "Mandatory", scope: "backend" },
-  { name: "Task ID", field: "taskId", type: "Text", mandatory: "Mandatory", scope: "backend" },
+  { name: "Plan ID", field: "PLAN_ID", type: "Text", mandatory: "Mandatory", scope: "backend" },
+  { name: "Task ID", field: "TASK_ID", type: "Text", mandatory: "Mandatory", scope: "backend" },
   {
     name: "Requestor Type",
-    field: "requestorType",
+    field: "REQUESTOR_TYPE",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -795,14 +813,14 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Requestor Name",
-    field: "requestorName",
+    field: "REQUESTOR_NAME",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
-    name: "Circle",
-    field: "circle",
+    name: "Impacted Circle(s)",
+    field: "Impacted Circle(s)",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -831,7 +849,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Vendor",
-    field: "vendor",
+    field: "VENDOR",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -850,7 +868,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Domain",
-    field: "domain",
+    field: "Domain",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -872,7 +890,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Opcat Level 1",
-    field: "opcatLevel1",
+    field: "OPCAT_LEVEL_1",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -880,7 +898,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Opcat Level 2",
-    field: "opcatLevel2",
+    field: "OPCAT_LEVEL_2",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -888,7 +906,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Opcat Level 3",
-    field: "opcatLevel3",
+    field: "OPCAT_LEVEL_3",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -902,8 +920,8 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "Change Type",
-    field: "changeType",
+    name: "Type of CR",
+    field: "Type of CR",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -911,7 +929,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Change Impact",
-    field: "changeImpact",
+    field: "ChangeImpact",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -919,105 +937,105 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Activity Window",
-    field: "activityWindow",
+    field: "ACTIVITY_WINDOW",
     type: "Text",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
     name: "Requested Start Time",
-    field: "requestedStartTime",
+    field: "REQUESTED_START_TIME",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
     name: "Requested End Time",
-    field: "requestedEndTime",
+    field: "REQUESTED_END_TIME",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "Scheduled Start Time",
-    field: "scheduledStartTime",
+    name: "Scheduled Start Date",
+    field: "Scheduled Start Date",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
-    name: "Scheduled End Time",
-    field: "scheduledEndTime",
+    name: "Scheduled End Date",
+    field: "Scheduled End Date",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "scheduling",
   },
   {
     name: "Coordinator Company",
-    field: "coordinatorCompany",
+    field: "ASCPY",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
     name: "Coordinator Organization",
-    field: "coordinatorOrganization",
+    field: "ASORG",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
     name: "Coordinator Group",
-    field: "coordinatorGroup",
+    field: "ASGRP",
     type: "Text",
     mandatory: "Mandatory",
     scope: "always",
   },
   {
     name: "Implementer Company",
-    field: "implementerCompany",
+    field: "ChgImpCpy",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
     name: "Implementer Organization",
-    field: "implementerOrganization",
+    field: "ChgImpOrg",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
     name: "Implementer Group",
-    field: "implementerGroup",
+    field: "ChgImpGrp",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "Execution Engineer Name",
-    field: "executionEngineerName",
+    name: "Actual Implementer Name",
+    field: "Actual Implementer Name",
     type: "Text",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
-    name: "Execution Engineer Contact",
-    field: "executionEngineerContact",
+    name: "Actual Implementer Phone No",
+    field: "Actual Implementer Phone No",
     type: "Numbers",
     mandatory: "Mandatory",
     scope: "execution",
   },
   {
     name: "Execution Engineer Details",
-    field: "executionEngineerDetails",
+    field: "EXECUTION_ENGINEER_DETAILS",
     type: "Text",
     mandatory: "Optional",
     scope: "execution",
   },
   {
     name: "CMS Status",
-    field: "cmsStatus",
+    field: "cms_stage",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -1035,8 +1053,8 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
     ],
   },
   {
-    name: "Approval Status",
-    field: "approvalStatus",
+    name: "CRQ Approval Status",
+    field: "CRQ approval status",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "scheduling",
@@ -1044,7 +1062,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Remedy Status",
-    field: "remedyStatus",
+    field: "Change Request Status",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "always",
@@ -1065,36 +1083,36 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Task Closure Status",
-    field: "taskClosureStatus",
+    field: "TASK_CLOSURE_STATUS",
     type: "Dropdown",
     mandatory: "Mandatory",
     scope: "closure",
     values: ["Open", "In Progress", "Success", "Failed", "Closed"],
   },
   {
-    name: "Completion Time",
-    field: "completionTime",
+    name: "Completed Date",
+    field: "Completed Date",
     type: "Date Time",
     mandatory: "Mandatory",
     scope: "closure",
   },
   {
     name: "Cancellation Time",
-    field: "cancellationTime",
+    field: "CANCELLATION_TIME",
     type: "Date Time",
     mandatory: "Optional",
     scope: "backend",
   },
   {
     name: "Rejection Time",
-    field: "rejectionTime",
+    field: "REJECTION_TIME",
     type: "Date Time",
     mandatory: "Optional",
     scope: "backend",
   },
   {
-    name: "Closure Reason",
-    field: "closureReason",
+    name: "Status Reason",
+    field: "Status Reason",
     type: "Dropdown",
     mandatory: "Optional",
     scope: "closure",
@@ -1102,7 +1120,7 @@ export const PLANNING_TOOL_ATTRIBUTES: PlanningToolAttribute[] = [
   },
   {
     name: "Failure Remarks",
-    field: "failureRemarks",
+    field: "FAILURE_REMARKS",
     type: "Text",
     mandatory: "Optional",
     scope: "backend",

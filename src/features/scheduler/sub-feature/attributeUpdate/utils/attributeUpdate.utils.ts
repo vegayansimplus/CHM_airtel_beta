@@ -11,6 +11,7 @@ import type {
 import type { WorkflowStageId } from "../../../constants/workflowStages";
 import {
   CMS_STAGE_SCHEMAS,
+  CYGNET_CHANGE_ID_FIELD,
   PLANNING_TOOL_ATTRIBUTES,
 } from "../constants/attributeUpdateFieldCatalog";
 
@@ -230,10 +231,19 @@ export function buildAttributeFormDefaults(
 /**
  * Builds the POST /attributeupdate/save sections (remedy/cab/cygnet) for the
  * current stage: editable fields come from the submitted form values,
- * auto-set fields (cms_status, remedy_status, ...) are re-derived from the
- * stage view rather than trusted from the form, and read-only/backend-set
- * fields with no known value (cms_function, plan_id, ...) are omitted so the
+ * auto-set fields (cms_stage, Change Request Status, ...) are re-derived from
+ * the stage view rather than trusted from the form, and read-only/backend-set
+ * fields with no known value (CMS_FUNCTION, PLAN_ID, ...) are omitted so the
  * save doesn't overwrite them with nulls.
+ *
+ * The Cygnet section drops its empty fields on top of that. Remedy and CAB are
+ * append-only tables where each save writes a fresh row, so a null there just
+ * means "not collected at this stage"; INSERT_CYGNET_UPDATE_ATTR instead
+ * updates the CRQ's one row in place, column by column, and only for the keys
+ * it is given - so sending an empty field would blank a value some earlier
+ * stage saved. The Planning Tool card isn't rendered anywhere (see
+ * WorkflowStageCardBody), which means most of its fields are empty on every
+ * save and would otherwise wipe the row down to just the auto-set columns.
  */
 export function buildAttributeSaveSections(
   stageView: StageAttributeView,
@@ -252,9 +262,12 @@ export function buildAttributeSaveSections(
     const section: Record<string, string | null> = {};
     let hasField = false;
 
+    // Only Cygnet is written in place; see this function's doc comment.
+    const dropsEmptyFields = system === "planningTool";
+
     for (const attribute of attributes) {
-      // changeId is carried as the top-level crqNo, not a Cygnet save field.
-      if (attribute.field === "changeId") continue;
+      // The Change ID is carried as the top-level crqNo, not a Cygnet save field.
+      if (attribute.field === CYGNET_CHANGE_ID_FIELD) continue;
 
       if (attribute.autoSetFrom) {
         section[attribute.field] = attribute.autoSetValue ?? null;
@@ -263,15 +276,20 @@ export function buildAttributeSaveSections(
       }
       if (attribute.readOnly || attribute.isBackend) continue;
 
-      hasField = true;
       const raw = formValues[system]?.[attribute.field];
+      let value: string | null;
       if (isMultiValueType(attribute.type)) {
-        section[attribute.field] = Array.isArray(raw) && raw.length ? raw.join(",") : null;
+        value = Array.isArray(raw) && raw.length ? raw.join(",") : null;
       } else if (attribute.type === "Date Time") {
-        section[attribute.field] = fromDateTimeLocal((raw as string) ?? "");
+        value = fromDateTimeLocal((raw as string) ?? "");
       } else {
-        section[attribute.field] = (raw as string) || null;
+        value = (raw as string) || null;
       }
+
+      if (value === null && dropsEmptyFields) continue;
+
+      hasField = true;
+      section[attribute.field] = value;
     }
 
     if (hasField) sections[payloadKey] = section;
