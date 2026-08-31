@@ -131,5 +131,6 @@ export const api = createApi({
     "DataAgentHistory",
     "ImpactBatch",
     "Checkpoints",
+    "CabRejectReasons"
   ],
 });

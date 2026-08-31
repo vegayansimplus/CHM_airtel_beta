@@ -17,7 +17,7 @@ import {
 } from "@mui/material";
 import CancelOutlinedIcon from "@mui/icons-material/CancelOutlined";
 import type { RejectInputKind } from "../config/notificationActionConfig";
-import { useGetCabRejectReasonsQuery } from "../api/inboxApiSlice";
+import { useGetCabRejectReasonsQuery } from "../../cabManager/api/cabManagerApiSlice";
 
 interface RejectRemarksDialogProps {
   open: boolean;

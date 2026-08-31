@@ -277,8 +277,6 @@ export function AllCrqsPage() {
           </TextField>
           <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
             <MenuItem value="All Impact">All Impact</MenuItem>
-            <MenuItem value="SA">SA — Service Affecting</MenuItem>
-            <MenuItem value="NSA">NSA — Non Service Affecting</MenuItem>
           </TextField>
           <TextField select size="small" label="Service" value={filters.serviceCode ?? "All Services"} onChange={(e) => setF("serviceCode", e.target.value)} sx={{ minWidth: 160 }}>
             <MenuItem value="All Services">All Services</MenuItem>
