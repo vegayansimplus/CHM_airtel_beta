@@ -156,6 +156,16 @@ export interface AttributeUpdateDetailsResponse {
   cab: AttributeValueRow | null;
   /** Latest saved Cygnet row for this CRQ, or null if never saved. */
   cygnet: AttributeValueRow | null;
+  /**
+   * The CRQ's live Remedy status (GET_CHANGE_REQUEST_STATUS), e.g.
+   * "Scheduled For Review" - null when the procedure returned no row.
+   *
+   * Where the CRQ actually stands, which is what the sub-status bar opens on
+   * and will not step back before. Distinct from the status the last save
+   * wrote, and from `StageAttributeView.activeRemedyStatus`, which is the one
+   * the user currently has selected.
+   */
+  remedyStatus: string | null;
 }
 
 /** Lightweight CRQ header context captured from the selected CRQ row. */

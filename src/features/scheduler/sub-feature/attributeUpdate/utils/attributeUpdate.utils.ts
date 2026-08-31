@@ -86,6 +86,28 @@ function resolveAttribute(
 }
 
 /**
+ * Where the CRQ's live Remedy status sits in a stage's own status list - the
+ * floor the sub-status bar starts on and will not go back before.
+ *
+ * Returns 0 when the status is missing or belongs to some other stage
+ * (Network Execution's bar has no "Planning In Progress" chip, say): an
+ * unrecognised status is no evidence the CRQ has moved past anything, so the
+ * whole list stays open rather than locking the user out of it.
+ */
+export function findRemedyStatusFloor(
+  stageId: WorkflowStageId,
+  remedyStatus: string | null | undefined,
+): number {
+  if (!remedyStatus) return 0;
+  const stage = CMS_STAGE_SCHEMAS.find((s) => s.id === stageId);
+  if (!stage) return 0;
+  const index = stage.remedyStatuses.findIndex(
+    (s) => s.toLowerCase() === remedyStatus.trim().toLowerCase(),
+  );
+  return index < 0 ? 0 : index;
+}
+
+/**
  * Builds the fully resolved view-model for one stage: Remedy/CAB attributes
  * plus the Planning Tool (Cygnet) master list filtered by the stage's
  * scopes, each overlaid with its live value from GET /attributeupdate/details

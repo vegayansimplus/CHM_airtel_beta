@@ -42,7 +42,7 @@ const EMPTY_FORM_DEFAULTS: AttributeFormValues = { remedy: {}, cab: {}, planning
  */
 export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React.memo(
   function WorkflowStageCardBody({ stageId, crqNo, isEditable, colors }) {
-    const { cmsStage, isLoading, error, stageView, setRemedyStatusIndex } =
+    const { cmsStage, isLoading, error, stageView, remedyStatusFloor, setRemedyStatusIndex } =
       useStageAttributeData(stageId, crqNo);
 
     const [saveAttributeUpdate, { isLoading: isSaving }] = useSaveAttributeUpdateMutation();
@@ -145,6 +145,7 @@ export const WorkflowStageCardBody: React.FC<WorkflowStageCardBodyProps> = React
           <RemedySubStatusBar
             statuses={stageView.stage.remedyStatuses}
             activeIndex={stageView.stage.remedyStatuses.indexOf(stageView.activeRemedyStatus)}
+            floorIndex={remedyStatusFloor}
             onSelect={setRemedyStatusIndex}
             colors={colors}
           />
