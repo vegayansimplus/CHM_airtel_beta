@@ -24,11 +24,6 @@ export interface NotificationItem {
   subject: string | null;
 }
 
-export interface CabRejectReason {
-  reasonId: number;
-  reasonText: string;
-}
-
 const notificationListTags = (result?: NotificationItem[]) =>
   result
     ? [
@@ -123,9 +118,6 @@ export const inboxApiSlice = api.injectEndpoints({
       }),
       invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
     }),
-    getCabRejectReasons: builder.query<CabRejectReason[], void>({
-      query: () => `/cab/crqs/cabrejectreasons`,
-    }),
 
     // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq)
     cabRescheduleNotificationAction: builder.mutation<
@@ -150,6 +142,5 @@ export const {
   useShiftChangeNotificationActionMutation,
   useRosterLeaveActionMutation,
   useCabCrqNotificationActionMutation,
-  useGetCabRejectReasonsQuery,
   useCabRescheduleNotificationActionMutation,
 } = inboxApiSlice;

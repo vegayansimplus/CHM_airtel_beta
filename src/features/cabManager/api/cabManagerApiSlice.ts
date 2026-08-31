@@ -1038,7 +1038,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => await mockDelay(MOCK_CAB_REJECT_REASONS)
         ),
-      providesTags: ["CabAdmin"],
+      providesTags: ["CabAdmin", "CabRejectReasons"],
     }),
 
     addCabRejectReason: builder.mutation<CrqActionResult, { reasonText: string }>({
@@ -1048,7 +1048,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => await mockDelay({ status: "Success", message: "Rejection reason added successfully." })
         ),
-      invalidatesTags: ["CabAdmin"],
+      invalidatesTags: ["CabAdmin", "CabRejectReasons"],
     }),
 
     updateCabRejectReason: builder.mutation<CrqActionResult, { reasonId: number; reasonText: string }>({
@@ -1058,7 +1058,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => await mockDelay({ status: "Success", message: "Rejection reason updated successfully." })
         ),
-      invalidatesTags: ["CabAdmin"],
+      invalidatesTags: ["CabAdmin", "CabRejectReasons"],
     }),
 
     deleteCabRejectReason: builder.mutation<CrqActionResult, number>({
@@ -1068,7 +1068,7 @@ getImplementation: builder.query<ImplementationDetail, void>({
           baseQuery,
           async () => await mockDelay({ status: "Success", message: "Rejection reason deleted successfully." })
         ),
-      invalidatesTags: ["CabAdmin"],
+      invalidatesTags: ["CabAdmin", "CabRejectReasons"],
     }),
 
     // ── AllCRQs "Service" filter (mirrors CRQ_CAB_SERVICE_MASTER) ──────────
