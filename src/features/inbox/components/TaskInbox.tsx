@@ -39,9 +39,24 @@ export default function DynamicTaskInbox() {
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
 
-  const { data: notifications, isLoading } = useGetUnreadNotificationsQuery({
-    readFlag: 0,
-  });
+  // Kept live the same way the bell's badge is: poll while the tab is in the
+  // foreground, and refetch the moment it regains focus or the connection comes
+  // back. Approving or rejecting also invalidates NotificationList, so an
+  // actioned item leaves the list straight away rather than waiting for a tick.
+  const {
+    data: notifications,
+    isLoading,
+    isFetching,
+  } = useGetUnreadNotificationsQuery(
+    { readFlag: 0 },
+    {
+      pollingInterval: 60000,
+      skipPollingIfUnfocused: true,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMountOrArgChange: true,
+    },
+  );
 
   const inboxData: InboxItem[] = useMemo(() => {
     if (!notifications) return [];
@@ -245,6 +260,7 @@ export default function DynamicTaskInbox() {
             setSearchQuery={setSearchQuery}
             filteredData={filteredData}
             isLoading={isLoading}
+            isFetching={isFetching}
             selectedItemId={selectedItemId}
             setSelectedItemId={setSelectedItemId}
             onOpenMenu={() => setMobileDrawerOpen(true)}
