@@ -129,7 +129,7 @@ export interface AttributeStageSchema {
    * card renders no fields and Save posts just the auto-set Status, so a
    * "Scheduled" -> "Scheduled For Approval" hop doesn't demand execution data
    * the activity hasn't produced yet (Network Execution collects only at
-   * "Implementation in Progress").
+   * "Implementation In Progress").
    *
    * Omit to keep the default - every status collects the full field set.
    */

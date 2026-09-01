@@ -139,7 +139,7 @@ export function resolveStageView(
   };
 
   // A stage may declare that only some of its Remedy statuses collect
-  // attributes (Network Execution: only "Implementation in Progress"). At any
+  // attributes (Network Execution: only "Implementation In Progress"). At any
   // other status this is a status-only transition, so every field the user
   // would have to fill is stripped out and only the auto-set ones (Status,
   // CMS Status, Remedy Status) remain - which is exactly what Save then posts.
