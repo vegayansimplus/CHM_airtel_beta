@@ -24,6 +24,7 @@ export const NotificationList = ({
   setSearchQuery,
   filteredData,
   isLoading,
+  isFetching,
   selectedItemId,
   setSelectedItemId,
   onOpenMenu,
@@ -121,7 +122,7 @@ export const NotificationList = ({
       </Box>
 
       {/* Loading bar */}
-      {isLoading && <LinearProgress sx={{ height: 1.5 }} />}
+      {(isLoading || isFetching) && <LinearProgress sx={{ height: 1.5 }} />}
 
       {/* List */}
       <AppScrollView

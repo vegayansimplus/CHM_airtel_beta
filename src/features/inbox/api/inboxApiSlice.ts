@@ -37,13 +37,38 @@ const notificationActionTags = [
   { type: "NotificationList" as const, id: "LIST" },
 ];
 
+// An empty inbox is not a failure. The stored procedure behind /notification/unread
+// answers "nothing pending" with an error row, and older backends hand that back as
+// a 500 - which RTK Query records as an error while KEEPING the last good list, so
+// the notification just approved never left the screen. The backend now answers 200
+// with [], and this maps the legacy 500 to the same thing, so the inbox clears
+// against either build. Anything else is a real error and still surfaces as one.
+const EMPTY_INBOX_MESSAGE = /no\s+pending\s+notification/i;
+
+const isEmptyInboxError = (error: unknown): boolean => {
+  const message = (error as { data?: { message?: string } })?.data?.message;
+  return typeof message === "string" && EMPTY_INBOX_MESSAGE.test(message);
+};
+
 export const inboxApiSlice = api.injectEndpoints({
   endpoints: (builder) => ({
     getUnreadNotifications: builder.query<
       NotificationItem[],
       { readFlag: number }
     >({
-      query: ({ readFlag }) => `/notification/unread?readFlag=${readFlag}`,
+      queryFn: async ({ readFlag }, _api, _extraOptions, baseQuery) => {
+        const result = await baseQuery(
+          `/notification/unread?readFlag=${readFlag}`,
+        );
+
+        if (result.error) {
+          return isEmptyInboxError(result.error)
+            ? { data: [] }
+            : { error: result.error };
+        }
+
+        return { data: (result.data as NotificationItem[] | null) ?? [] };
+      },
       providesTags: notificationListTags,
     }),
 
@@ -119,16 +144,36 @@ export const inboxApiSlice = api.injectEndpoints({
       invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
     }),
 
-    // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq)
+    // CAB reschedule requests (Requested_Start/End proposed by sp_reschedule_cab_crq).
+    // Blank reason/comment are left off the query string rather than sent as "":
+    // the reject procedure files the remark as COALESCE(comment, reason, 'Rejected'),
+    // and an empty string is not null, so sending one stored a blank remark where
+    // the default belonged.
     cabRescheduleNotificationAction: builder.mutation<
       any,
       { notificationId: number; status: string; reason?: string; comment?: string }
     >({
-      query: ({ notificationId, status, reason, comment }) => ({
-        url: `/notification/cabreschedulenotificationaction?notificationId=${notificationId}&status=${status}&reason=${encodeURIComponent(reason || "")}&comment=${encodeURIComponent(comment || "")}`,
-        method: "POST",
-      }),
-      invalidatesTags: [...notificationActionTags, "CabCrq", "CabQueue", "CabDashboard"],
+      query: ({ notificationId, status, reason, comment }) => {
+        const params = new URLSearchParams({
+          notificationId: String(notificationId),
+          status,
+        });
+        if (reason?.trim()) params.set("reason", reason.trim());
+        if (comment?.trim()) params.set("comment", comment.trim());
+
+        return {
+          url: `/notification/cabreschedulenotificationaction?${params.toString()}`,
+          method: "POST",
+        };
+      },
+      invalidatesTags: [
+        ...notificationActionTags,
+        "CabCrq",
+        "CabQueue",
+        "CabDashboard",
+        "CrqReschedule",
+        "RosterVIew",
+      ],
     }),
   }),
 });

@@ -1,4 +1,3 @@
-import { toast } from "react-toastify";
 import {
   useAcknowledgeNotificationMutation,
   useEmployeeShiftSwapActionMutation,
@@ -38,6 +37,12 @@ export const useNotificationAction = () => {
     isCabLoading ||
     isCabRescheduleLoading;
 
+  // Every failure - a rejected mutation or one of the guards below - leaves
+  // here as a throw and is reported by the caller, which has the server's own
+  // message ("This reschedule request was already approved.", "CRQ not found
+  // for given crq_no"). This hook deliberately toasts nothing: when it also
+  // toasted a generic "Failed to process your action", that second, emptier
+  // line was the one the user read.
   const handleAction = async (
     item: InboxItem,
     actionType: "APPROVED" | "REJECTED" | "ACKNOWLEDGE",
@@ -46,75 +51,70 @@ export const useNotificationAction = () => {
   ): Promise<any> => {
     const { notificationId, subModule } = item.originalData;
 
-    try {
-      if (actionType === "ACKNOWLEDGE") {
-        return await acknowledge({ notificationId }).unwrap();
-      }
+    if (actionType === "ACKNOWLEDGE") {
+      return await acknowledge({ notificationId }).unwrap();
+    }
 
-      const meta = getSubModuleActionMeta(subModule);
-      if (!meta) {
-        toast.error("This type of notification cannot be processed.");
-        throw new Error(`No API mapping found for submodule: ${subModule}`);
-      }
+    const meta = getSubModuleActionMeta(subModule);
+    if (!meta) {
+      throw new Error("This type of notification cannot be processed.");
+    }
 
-      switch (meta.subModule) {
-        case "SHIFT_SWAP": {
-          const tier = getRoleTier(userRole);
-          if (tier === "MANAGER") {
-            return await managerAction({
-              notificationId,
-              status: actionType,
-              reason: extra?.reason,
-            }).unwrap();
-          }
-          if (userRole === "TEAM_MEMBER") {
-            return await employeeAction({
-              notificationId,
-              status: actionType,
-              reason: extra?.reason,
-            }).unwrap();
-          }
-          toast.error("You do not have permission to perform this action.");
-          throw new Error("Unauthorized role");
-        }
-
-        case "SHIFT_CHANGE":
-          return await shiftChangeAction({
-            notificationId,
-            status: actionType,
-            rejectReason: extra?.reason,
-          }).unwrap();
-
-        case "LEAVE":
-          return await leaveAction({
-            notificationId,
-            status: actionType,
-            rejectReason: extra?.reason,
-          }).unwrap();
-
-        case "CAB_APPROVER":
-          return await cabCrqAction({
-            notificationId,
-            status: actionType,
-            reason: extra?.reasonText,
-            comment: extra?.reason,
-          }).unwrap();
-
-        case "RESCHEDULE":
-          return await cabRescheduleAction({
+    switch (meta.subModule) {
+      case "SHIFT_SWAP": {
+        const tier = getRoleTier(userRole);
+        if (tier === "MANAGER") {
+          return await managerAction({
             notificationId,
             status: actionType,
             reason: extra?.reason,
-            comment: extra?.reason,
           }).unwrap();
-
-        default:
-          toast.error("This type of notification cannot be processed.");
-          throw new Error(`No API mapping found for submodule: ${subModule}`);
+        }
+        if (userRole === "TEAM_MEMBER") {
+          return await employeeAction({
+            notificationId,
+            status: actionType,
+            reason: extra?.reason,
+          }).unwrap();
+        }
+        throw new Error("You do not have permission to perform this action.");
       }
-    } catch (error) {
-      toast.error("Failed to process your action. Please try again.");
-      throw error;
+
+      case "SHIFT_CHANGE":
+        return await shiftChangeAction({
+          notificationId,
+          status: actionType,
+          rejectReason: extra?.reason,
+        }).unwrap();
+
+      case "LEAVE":
+        return await leaveAction({
+          notificationId,
+          status: actionType,
+          rejectReason: extra?.reason,
+        }).unwrap();
+
+      case "CAB_APPROVER":
+        return await cabCrqAction({
+          notificationId,
+          status: actionType,
+          reason: extra?.reasonText,
+          comment: extra?.reason,
+        }).unwrap();
+
+      // Same shape as CAB_APPROVER: `reason` is the structured label when the
+      // dialog offers one, `comment` the free-text remark. The reschedule
+      // dialog is TEXT-only today, so only the remark travels.
+      case "RESCHEDULE":
+        return await cabRescheduleAction({
+          notificationId,
+          status: actionType,
+          reason: extra?.reasonText,
+          comment: extra?.reason,
+        }).unwrap();
+
+      default:
+        throw new Error("This type of notification cannot be processed.");
     }
   };
 
