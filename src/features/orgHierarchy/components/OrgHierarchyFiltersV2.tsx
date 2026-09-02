@@ -1,6 +1,6 @@
 import { Box } from "@mui/material";
 import { useMemo } from "react";
-import { ORG_FILTER_VISIBILITY } from "../config/orgFilterVisibility";
+import { getOrgFilterVisibility } from "../config/orgFilterVisibility";
 import { ORG_FILTER_DEPENDENCY } from "../config/orgFilterDependency";
 import type {
   OrgFilterKey,
@@ -32,7 +32,9 @@ const OrgHierarchyFilters = ({
   onChange,
   children,
 }: Props) => {
-  const visible = useMemo(() => ORG_FILTER_VISIBILITY[role] ?? [], [role]);
+  // Driven by the user's real "Organization Hierarchy" sub-module grants, with
+  // the legacy per-role table as fallback - see getOrgFilterVisibility.
+  const visible = useMemo(() => getOrgFilterVisibility(role), [role]);
 
   return (
     <Box display="flex" gap={2} alignItems="center">

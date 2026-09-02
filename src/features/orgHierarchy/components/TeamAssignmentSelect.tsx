@@ -4,7 +4,7 @@ import { authStorage } from "../../../app/store/auth.storage";
 import { useGetOrgHierarchyByUserQuery } from "../api/orgHierarchy.api";
 import { useOrgHierarchyState } from "../hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../hooks/useOrgHierarchyFilters";
-import { ORG_FILTER_VISIBILITY } from "../config/orgFilterVisibility";
+import { getOrgFilterVisibility } from "../config/orgFilterVisibility";
 import { ORG_FILTER_DEPENDENCY } from "../config/orgFilterDependency";
 import type { OrgFilterKey } from "../types/orgHierarchy.types";
 import OrgFilterSelect from "./OrgFilterSelect";
@@ -27,16 +27,17 @@ interface Props {
 /**
  * Vertical → Team Function → Domain → Sub Domain cascading picker for
  * "Assign Team". Which levels render is driven entirely by the logged-in
- * user's role via ORG_FILTER_VISIBILITY, and the options at every level are
- * already scoped server-side to that user by GET /users/V1/getOrgHierarchyByUser
- * — nothing here is hardcoded per role or per screen.
+ * user's "Organization Hierarchy" grants (see getOrgFilterVisibility), and the
+ * options at every level are already scoped server-side to that user by
+ * GET /users/V1/getOrgHierarchyByUser — nothing here is hardcoded per role or
+ * per screen.
  */
 const TeamAssignmentSelect = ({ value, onChange, disabled }: Props) => {
   const roleName = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
-  const rawVisible = ORG_FILTER_VISIBILITY[roleName] ?? ["subDomain"];
+  const rawVisible = getOrgFilterVisibility(roleName);
   // "Team" is always stored as a sub-domain id, so the cascade must always be
   // able to reach that leaf even if a role's search-filter visibility list
-  // (ORG_FILTER_VISIBILITY, shared with the plan list's filter bar) stops short.
+  // (shared with the plan list's filter bar) stops short.
   const visible = rawVisible.includes("subDomain")
     ? rawVisible
     : [...rawVisible, "subDomain"];

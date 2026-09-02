@@ -1,15 +1,20 @@
-import { ORG_FILTER_VISIBILITY } from "../../orgHierarchy/config/orgFilterVisibility";
+import { getOrgFilterVisibility } from "../../orgHierarchy/config/orgFilterVisibility";
 
 /**
- * Whether the role is even offered a Domain picker in the org-hierarchy
- * filter bar (see ORG_FILTER_VISIBILITY).
+ * Whether the user is even offered a Domain picker in the org-hierarchy
+ * filter bar.
  *
- * TEAM_MEMBER and TEAM_LEAD are not: their scope is not something they
- * choose, it is whatever the backend resolves from their own user id, so
+ * This asks the same resolver the filter bar itself renders from, so the two
+ * can never disagree: a user who has just been granted "Organization Domain"
+ * gets a Domain picker AND has the domain they pick actually sent, instead of
+ * picking one that a role-only lookup here would have thrown away.
+ *
+ * TEAM_MEMBER and TEAM_LEAD are not offered one: their scope is not something
+ * they choose, it is whatever the backend resolves from their own user id, so
  * there is no domain for them to pick and none for us to send.
  */
 export const roleHasDomainScope = (role?: string | null): boolean =>
-  !!role && (ORG_FILTER_VISIBILITY[role] ?? []).includes("domain");
+  getOrgFilterVisibility(role).includes("domain");
 
 /**
  * The `domainId` a Scheduler screen should query with. Three distinct

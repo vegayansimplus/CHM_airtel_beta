@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { ORG_FILTER_VISIBILITY } from "../config/orgFilterVisibility";
+import { getOrgFilterVisibility } from "../config/orgFilterVisibility";
 import type {
   OrgFilterKey,
   OrgFilterValues,
@@ -29,7 +29,7 @@ const OrgHierarchyFilters = ({
   onChange,
   children,
 }: Props) => {
-  const visible = ORG_FILTER_VISIBILITY[role] ?? [];
+  const visible = getOrgFilterVisibility(role);
 
   return (
     <Box display="flex" gap={2} alignItems="center" sx={{ mt: 0 }}>
