@@ -20,11 +20,21 @@ import { ConflictCrqModal } from "../modals/ConflictCrqModal";
 import { SpocFeDetailsModal } from "../modals/SpocFeDetailsModal";
 import { StageChip, StatusChip } from "./Chips";
 import { errMsg } from "./errMsg";
+import type { Crq } from "../../types/types";
 
-export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; onClose: () => void }) {
-  const open = !!crqId;
+/**
+ * Takes the whole My CRQs row rather than an id: sp_get_cab_my_crq_by_id is
+ * keyed on Service_Approval_Id and no longer returns Service_Approval_Status,
+ * so the header chip and the CRQ-number-keyed modals read from the list row
+ * while the rest of the panel comes from the detail fetch.
+ */
+export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: () => void }) {
+  const open = !!crq;
   const navigate = useNavigate();
-  const { data, isLoading, isError, error } = useGetMyCrqByIdQuery(crqId ?? "", { skip: !crqId });
+  const { data, isLoading, isError, error } = useGetMyCrqByIdQuery(
+    crq?.serviceApprovalId ?? 0,
+    { skip: !crq },
+  );
 
   const [spocFeOpen, setSpocFeOpen] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -35,10 +45,10 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
       <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider" }}>
         <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1.5}>
           <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            {data && (
+            {crq && (
               <>
-                <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{data.crqNo}</Typography>
-                <StatusChip status={data.serviceApprovalStatus} />
+                <Typography sx={{ fontFamily: "'Roboto Mono', monospace", color: "primary.main", fontWeight: 500 }}>{crq.crqNo}</Typography>
+                <StatusChip status={crq.serviceApprovalStatus} />
               </>
             )}
           </Stack>
@@ -77,6 +87,7 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
                 ["Stage",      <StageChip key="s" stage={data.currentStage} />],
                 ["Service",    data.serviceCode],
                 ["Stage Status", data.stageStatus],
+                ["SLA",        data.slaPercentage == null ? "" : `${data.slaPercentage}%`],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>
@@ -114,13 +125,13 @@ export function MyCrqDetailDrawer({ crqId, onClose }: { crqId: string | null; on
 
       <SpocFeDetailsModal
         open={spocFeOpen}
-        crqNo={crqId}
+        crqNo={crq?.crqNo ?? null}
         onClose={() => setSpocFeOpen(false)}
       />
 
       <ConflictCrqModal
         open={conflictOpen}
-        crqNo={crqId}
+        crqNo={crq?.crqNo ?? null}
         onClose={() => setConflictOpen(false)}
         onSuccess={() => setConflictOpen(false)}
       />

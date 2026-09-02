@@ -52,6 +52,26 @@ export interface Crq {
   raisedBy?: string;
 }
 
+/**
+ * Row detail behind GET /cab/crqs/mine/{serviceApprovalId} (sp_get_cab_my_crq_by_id).
+ *
+ * A strict subset of `Crq`: the proc keys off Service_Approval_Id and no longer
+ * returns the approver / impact / service-approval-status columns, so anything
+ * the drawer needs beyond this comes from the My CRQs list row it was opened
+ * from (`serviceApprovalStatus` in particular).
+ */
+export interface MyCrqDetail {
+  serviceApprovalId: number;
+  crqNo: string;
+  planId: string;
+  domainName: Domain;
+  circleCode: Circle;
+  currentStage: CrqStage;
+  serviceCode: string;
+  stageStatus: string;
+  slaPercentage: number;
+}
+
 // ── CAB services (AllCRQs "Service" filter) ─────────────────────────────────
 export interface CabService {
   serviceCode: string;
@@ -329,8 +349,8 @@ export interface AddServiceRulePayload {
   service: string;
   circle: string;
   l1: string;
-  l2?: string;
-  l3?: string;
+  l2: string;
+  l3: string;
   active: boolean;
 }
 

@@ -15,4 +15,7 @@ export interface UpdateEmployeeRequest {
   dateOfLeaving: string | null;
   replacementEmpOlmid: string | null;
   replacementEmpName: string | null;
+  /** Optional. Omit/null to keep the user's current role; the backing
+   *  procedure validates the code against ROLE_MASTER. */
+  roleCode?: string | null;
 }

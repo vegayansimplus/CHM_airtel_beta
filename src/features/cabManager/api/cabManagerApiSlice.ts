@@ -633,6 +633,7 @@ import type {
   DashboardData,
   EscalationRow,
   ImplementationDetail,
+  MyCrqDetail,
   MyCrqsResponse,
   NewCrqPayload,
   PlanCabPayload,
@@ -820,14 +821,22 @@ export const cabPortalApi = api.injectEndpoints({
       providesTags: [{ type: "CabCrq", id: "MINE" }],
     }),
 
-    getMyCrqById: builder.query<Crq, string>({
-      queryFn: async (crqNo, _apiArg, _extraOptions, baseQuery) => {
+    /**
+     * Keyed on Service_Approval_Id (the `serviceApprovalId` on the My CRQs list
+     * row), not the CRQ number: sp_get_cab_my_crq_by_id now looks the row up by
+     * CRQ_CAB_SERVICE_TBL.Id, so a CRQ with more than one service-approval row
+     * resolves to the exact one that was clicked.
+     */
+    getMyCrqById: builder.query<MyCrqDetail, number>({
+      queryFn: async (serviceApprovalId, _apiArg, _extraOptions, baseQuery) => {
         const result = await networkOrMock(
-          { url: `/cab/crqs/crq/${encodeURIComponent(crqNo)}`, method: "GET" },
+          { url: `/cab/crqs/mine/${serviceApprovalId}`, method: "GET" },
           baseQuery,
           async () => {
-            const c = MOCK_CRQS.find((r) => r.crqNo === crqNo);
-            if (c) return await mockDelay(c);
+            const c = MOCK_CRQS.find(
+              (r) => r.serviceApprovalId === serviceApprovalId
+            );
+            if (c) return await mockDelay(c as MyCrqDetail);
             throw { status: 404, data: { message: "CRQ not found" } };
           }
         );
@@ -838,8 +847,8 @@ export const cabPortalApi = api.injectEndpoints({
         }
         return result;
       },
-      providesTags: (_r, _e, crqNo) => [
-        { type: "CabCrq" as const, id: `MINE-${crqNo}` },
+      providesTags: (_r, _e, serviceApprovalId) => [
+        { type: "CabCrq" as const, id: `MINE-${serviceApprovalId}` },
       ],
     }),
 

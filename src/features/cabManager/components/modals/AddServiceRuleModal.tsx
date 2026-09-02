@@ -34,7 +34,7 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
     skip: !open,
   });
 
-  const canSubmit = !!form.service && !!form.circle && !!form.l1;
+  const canSubmit = !!form.service && !!form.circle && !!form.l1 && !!form.l2 && !!form.l3;
 
   const handleClose = () => {
     setForm(EMPTY_FORM);
@@ -48,8 +48,8 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
         service: form.service,
         circle: form.circle,
         l1: form.l1,
-        l2: form.l2 || undefined,
-        l3: form.l3 || undefined,
+        l2: form.l2,
+        l3: form.l3,
         active: form.active,
       }).unwrap();
 
@@ -71,7 +71,7 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
       <DialogContent>
         <Typography variant="body2" sx={{ color: "text.secondary", mb: 2 }}>
           Configure the impacted-party approval chain for a service and circle. L1 is the primary
-          approver; L2/L3 are optional escalation tiers.
+          approver; L2 and L3 are the escalation tiers.
         </Typography>
         <Stack spacing={2}>
           <TextField
@@ -107,16 +107,16 @@ export function AddServiceRuleModal({ open, onClose, onSuccess }: AddServiceRule
             onChange={(e) => setForm((f) => ({ ...f, l1: e.target.value }))}
           />
           <TextField
-            fullWidth
-            label="L2 OLM ID (optional)"
+            fullWidth required
+            label="L2 OLM ID"
             placeholder="e.g. B0093364"
             InputLabelProps={{ shrink: true }}
             value={form.l2}
             onChange={(e) => setForm((f) => ({ ...f, l2: e.target.value }))}
           />
           <TextField
-            fullWidth
-            label="L3 OLM ID (optional)"
+            fullWidth required
+            label="L3 OLM ID"
             placeholder="e.g. B0093365"
             InputLabelProps={{ shrink: true }}
             value={form.l3}
