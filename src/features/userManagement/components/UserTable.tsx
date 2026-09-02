@@ -28,6 +28,22 @@ import EmptyState from "./EmptyState";
 import { getAvatarColor, getInitials, formatRelativeTime } from "../utils/userHelpers";
 import { getUserStatus, STATUS_CONFIG, type User } from "../types/user";
 
+/**
+ * Painted geometry of the grid, per density, in CSS pixels.
+ *
+ * Lives here rather than in the page because it describes what this component
+ * renders: `row` is one body row including its 1px border, `chrome` is the top
+ * toolbar plus the sticky header row. UserManagement divides the space it has
+ * by these to decide how many rows to ask the server for, so a wrong value
+ * shows up as a half-cut last row — keep them in step with the sx below.
+ */
+export const ROW_METRICS = {
+  compact: { row: 39, chrome: 90 },
+  comfortable: { row: 62, chrome: 100 },
+} as const;
+
+export type TableDensity = keyof typeof ROW_METRICS;
+
 export interface UserTableProps {
   users: User[];
   onView: (u: User) => void;
@@ -41,6 +57,12 @@ export interface UserTableProps {
   hasActiveFilters: boolean;
   /** Hides the empty-state Add User CTA for roles without create rights. */
   canAddUser?: boolean;
+  /** Total matching the current filter across every page. `users` is one
+   *  server page, so the header count has to come from outside the table. */
+  totalElements?: number;
+  /** Compact row density — the default. Comfortable adds back the breathing
+   *  room, at roughly two thirds the rows per screen. */
+  dense?: boolean;
 }
 
 export default function UserTable({
@@ -55,6 +77,8 @@ export default function UserTable({
   onResetFilters,
   hasActiveFilters,
   canAddUser = true,
+  totalElements,
+  dense = true,
 }: UserTableProps) {
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
 
@@ -100,15 +124,15 @@ export default function UserTable({
           const u = row.original;
           const status = getUserStatus(u);
           return (
-            <Stack direction="row" alignItems="center" gap={1.5}>
+            <Stack direction="row" alignItems="center" gap={dense ? 1 : 1.5}>
               <Badge
                 overlap="circular"
                 anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
                 badgeContent={
                   <Box
                     sx={{
-                      width: 10,
-                      height: 10,
+                      width: dense ? 8 : 10,
+                      height: dense ? 8 : 10,
                       borderRadius: "50%",
                       bgcolor: STATUS_CONFIG[status].dot,
                       border: "2px solid",
@@ -120,9 +144,9 @@ export default function UserTable({
                 <Avatar
                   sx={{
                     bgcolor: getAvatarColor(u.id),
-                    width: 38,
-                    height: 38,
-                    fontSize: "0.78rem",
+                    width: dense ? 28 : 38,
+                    height: dense ? 28 : 38,
+                    fontSize: dense ? "0.68rem" : "0.78rem",
                     fontWeight: 700,
                     border: "2px solid",
                     borderColor: "background.paper",
@@ -133,10 +157,18 @@ export default function UserTable({
                 </Avatar>
               </Badge>
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }} noWrap>
+                <Typography
+                  sx={{ fontSize: dense ? 12.5 : 13, fontWeight: 700, color: "text.primary", lineHeight: 1.3 }}
+                  noWrap
+                  title={u.name}
+                >
                   {u.name}
                 </Typography>
-                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }} noWrap>
+                <Typography
+                  sx={{ fontSize: dense ? 10.5 : 11.5, color: "text.secondary", lineHeight: 1.3 }}
+                  noWrap
+                  title={u.email}
+                >
                   {u.email}
                 </Typography>
               </Box>
@@ -205,7 +237,7 @@ export default function UserTable({
       {
         id: "actions",
         header: "Actions",
-        size: 130,
+        size: dense ? 112 : 130,
         enableSorting: false,
         enableColumnActions: false,
         enableResizing: false,
@@ -216,11 +248,12 @@ export default function UserTable({
             onPermissions={() => onPermissions(row.original)}
             onResetPassword={() => onResetPassword(row.original)}
             onDelete={() => onDelete(row.original)}
+            dense={dense}
           />
         ),
       },
     ],
-    [onView, onEdit, onPermissions, onResetPassword, onDelete],
+    [onView, onEdit, onPermissions, onResetPassword, onDelete, dense, isDark],
   );
 
   const selectedUsers = useMemo(
@@ -288,6 +321,7 @@ export default function UserTable({
         letterSpacing: "0.06em",
         borderBottom: "2px solid",
         borderColor: "divider",
+        py: dense ? 0.75 : 1.25,
         px: { xs: 1, lg: 1.5 },
         "& .Mui-TableHeadCell-Content-Actions button": { color: theme.palette.text.secondary },
         ...(column.getIsPinned() && {
@@ -303,7 +337,7 @@ export default function UserTable({
       sx: {
         borderBottom: "1px solid",
         borderColor: "divider",
-        py: 1.35,
+        py: dense ? 0.5 : 1.35,
         px: { xs: 1, lg: 1.5 },
         ...(column.getIsPinned() && {
           background: theme.palette.background.paper,
@@ -338,7 +372,7 @@ export default function UserTable({
           justifyContent: "space-between",
           gap: 1,
           px: { xs: 1.25, lg: 2.25 },
-          py: 1.25,
+          py: dense ? 0.75 : 1.25,
           flexShrink: 0,
           borderBottom: "1px solid",
           borderColor: "divider",
@@ -373,11 +407,14 @@ export default function UserTable({
           ) : (
             <Stack direction="row" alignItems="center" gap={0.75}>
               <GroupOutlined sx={{ fontSize: 17, color: "text.secondary" }} />
+              {/* The chip used to show `users.length` — the size of the current
+                  server page — next to the label "All Users", so a 400-user
+                  directory read as "All Users 12". */}
               <Typography sx={{ fontSize: 13, fontWeight: 700, color: "text.primary" }}>
-                All Users
+                {hasActiveFilters ? "Matching users" : "All users"}
               </Typography>
               <Chip
-                label={users.length}
+                label={(totalElements ?? users.length).toLocaleString()}
                 size="small"
                 sx={{
                   height: 19,
@@ -387,6 +424,11 @@ export default function UserTable({
                   color: isDark ? theme.palette.primary.light : theme.palette.primary.dark,
                 }}
               />
+              {totalElements !== undefined && totalElements > users.length && (
+                <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
+                  showing {users.length}
+                </Typography>
+              )}
             </Stack>
           )}
         </Box>

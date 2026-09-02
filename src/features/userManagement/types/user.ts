@@ -52,9 +52,9 @@ export type UserStatus = "Active" | "Inactive";
 
 export interface RoleConfigEntry {
   label: string;
+  /** Categorical accent for this role family, tuned for a light surface;
+   *  RoleBadge lightens it itself for the dark theme. */
   color: string;
-  gradient: string;
-  bg: string;
   icon: SvgIconComponent;
 }
 
@@ -62,49 +62,22 @@ export interface RoleConfigEntry {
 // FUNCTION_HEAD, DOMAIN_HEAD, SUB_DOMAIN_HEAD, TEAM_MEMBER, CAB_*, ...) -
 // an open set, not a fixed 3-value enum, so styling is resolved by a
 // lookup with a fallback rather than a Record keyed by every possible role.
+//
+// Only a hue and an icon live here now: the `gradient`/`bg` pair that sat
+// alongside them was baked for the light theme and only ever fed RoleBadge's
+// saturated pill, which is tonal now and derives both surfaces from `color`.
 const KNOWN_ROLE_STYLE: Record<string, Omit<RoleConfigEntry, "label">> = {
-  SUPER_ADMIN: {
-    color: "#DC2626",
-    gradient: "linear-gradient(135deg, #EF4444 0%, #B91C1C 100%)",
-    bg: "#FEF2F2",
-    icon: Shield,
-  },
-  VERTICAL_HEAD: {
-    color: "#2563EB",
-    gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-    bg: "#EFF6FF",
-    icon: SupervisorAccount,
-  },
-  FUNCTION_HEAD: {
-    color: "#2563EB",
-    gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-    bg: "#EFF6FF",
-    icon: SupervisorAccount,
-  },
-  DOMAIN_HEAD: {
-    color: "#2563EB",
-    gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-    bg: "#EFF6FF",
-    icon: SupervisorAccount,
-  },
-  SUB_DOMAIN_HEAD: {
-    color: "#2563EB",
-    gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-    bg: "#EFF6FF",
-    icon: SupervisorAccount,
-  },
-  TEAM_MEMBER: {
-    color: "#10B981",
-    gradient: "linear-gradient(135deg, #34D399 0%, #059669 100%)",
-    bg: "#ECFDF5",
-    icon: Person,
-  },
+  SUPER_ADMIN: { color: "#DC2626", icon: Shield },
+  VEGAYAN_SUPER_ADMIN: { color: "#DC2626", icon: Shield },
+  VERTICAL_HEAD: { color: "#2563EB", icon: SupervisorAccount },
+  FUNCTION_HEAD: { color: "#2563EB", icon: SupervisorAccount },
+  DOMAIN_HEAD: { color: "#2563EB", icon: SupervisorAccount },
+  SUB_DOMAIN_HEAD: { color: "#2563EB", icon: SupervisorAccount },
+  TEAM_MEMBER: { color: "#0F9D67", icon: Person },
 };
 
 const FALLBACK_ROLE_STYLE: Omit<RoleConfigEntry, "label"> = {
   color: "#7C3AED",
-  gradient: "linear-gradient(135deg, #A78BFA 0%, #6D28D9 100%)",
-  bg: "#F5F3FF",
   icon: Groups,
 };
 
@@ -124,12 +97,11 @@ export function getRoleConfig(roleCode: string | null | undefined): RoleConfigEn
   return { label: roleCodeToLabel(roleCode), ...style };
 }
 
-export const STATUS_CONFIG: Record<
-  UserStatus,
-  { color: string; bg: string; dot: string }
-> = {
-  Active: { color: "#10B981", bg: "#ECFDF5", dot: "#22C55E" },
-  Inactive: { color: "#6B7280", bg: "#F3F4F6", dot: "#9CA3AF" },
+/** Only the presence dot on avatars still reads from here — the status pill
+ *  itself is palette-driven inside StatusBadge, so it tracks the theme. */
+export const STATUS_CONFIG: Record<UserStatus, { dot: string }> = {
+  Active: { dot: "#22C55E" },
+  Inactive: { dot: "#9CA3AF" },
 };
 
 export const getUserStatus = (u: User): UserStatus => (u.active ? "Active" : "Inactive");

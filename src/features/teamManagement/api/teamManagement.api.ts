@@ -102,6 +102,15 @@ export interface ExcelUploadResult {
   errorReportAvailable: boolean;
 }
 
+// Every employee write has to reach the User Management dashboard too - it
+// reads through its own tags (`features/userManagement/api/userManagementApi`),
+// so invalidating "EMPLOYEES" alone left that grid and its stat cards showing
+// pre-edit rows until something else happened to refetch them.
+const USER_DIRECTORY_TAGS = [
+  "EMPLOYEES" as const,
+  { type: "UserManagementList" as const, id: "LIST" as const },
+];
+
 export const orgHierarchyApi = api.injectEndpoints({
   endpoints: (builder) => ({
     addNewEmployee: builder.mutation<ApiResponse, CreateEmployeeRequest>({
@@ -110,7 +119,7 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["EMPLOYEES"],
+      invalidatesTags: USER_DIRECTORY_TAGS,
     }),
 
     addNewOtherEmployee: builder.mutation<ApiResponse, CreateOtherEmployeeRequest>({
@@ -119,7 +128,7 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "POST",
         body,
       }),
-      invalidatesTags: ["EMPLOYEES"],
+      invalidatesTags: USER_DIRECTORY_TAGS,
     }),
 
     getCreateUserDropdowns: builder.query<CreateUserDropdownResponse, void>({
@@ -139,7 +148,12 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["EMPLOYEES"],
+      // Also drops the edited user's cached profile, so the drawer behind the
+      // dialog repaints with what was actually saved instead of the pre-edit copy.
+      invalidatesTags: (_result, _error, arg) => [
+        ...USER_DIRECTORY_TAGS,
+        { type: "UserManagementProfile" as const, id: arg.userId },
+      ],
     }),
 
     updateUserStatus: builder.mutation<
@@ -151,7 +165,10 @@ export const orgHierarchyApi = api.injectEndpoints({
         method: "PUT",
         body,
       }),
-      invalidatesTags: ["EMPLOYEES"],
+      invalidatesTags: (_result, _error, arg) => [
+        ...USER_DIRECTORY_TAGS,
+        { type: "UserManagementProfile" as const, id: arg.userId },
+      ],
     }),
 
     // ── Download pre-filled template ──────────────────────────────────────
@@ -176,7 +193,7 @@ export const orgHierarchyApi = api.injectEndpoints({
           body: formData,
         };
       },
-      invalidatesTags: ["EMPLOYEES"],
+      invalidatesTags: USER_DIRECTORY_TAGS,
     }),
 
     // ── Upload filled Excel file (asynchronous — returns an uploadId immediately) ──

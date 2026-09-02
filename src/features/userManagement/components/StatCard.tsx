@@ -1,48 +1,20 @@
-import { Box, Stack, Typography, alpha, useTheme } from "@mui/material";
-import { TrendingDown, TrendingUp } from "@mui/icons-material";
-import { motion } from "framer-motion";
+import { Box, Stack, Tooltip, Typography, alpha, useTheme } from "@mui/material";
 import { useCountUp } from "../utils/userHelpers";
-
-function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const w = 52;
-  const h = 18;
-  const max = Math.max(...data);
-  const min = Math.min(...data);
-  const range = max - min || 1;
-  const points = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * w;
-      const y = h - ((v - min) / range) * h;
-      return `${x},${y}`;
-    })
-    .join(" ");
-  const areaPoints = `0,${h} ${points} ${w},${h}`;
-
-  return (
-    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`}>
-      <polygon points={areaPoints} fill={color} opacity={0.12} />
-      <polyline
-        points={points}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.75}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 export interface StatCardProps {
   label: string;
   value: number;
   icon: React.ElementType;
-  gradient: string;
+  /** Categorical accent for this metric — used for the icon tile and the
+   *  share bar, never for the figure itself (that stays text.primary so the
+   *  numbers read as one column of data rather than six coloured badges). */
   color: string;
-  trend: number;
-  sparkline: number[];
-  index?: number;
-  /** Short-viewport variant: tighter box, smaller figure, no sparkline. */
+  /** Fraction of the directory this metric covers, 0–1. Omitted on the tile
+   *  that *is* the total, which has nothing to be a share of. */
+  share?: number;
+  /** Plain-language reading of the figure, shown under the bar. */
+  caption?: string;
+  /** Short-viewport variant: tighter box, smaller figure, no share bar. */
   dense?: boolean;
 }
 
@@ -50,128 +22,119 @@ export default function StatCard({
   label,
   value,
   icon: Icon,
-  gradient,
   color,
-  trend,
-  sparkline,
-  index = 0,
+  share,
+  caption,
   dense = false,
 }: StatCardProps) {
   const animated = useCountUp(value);
-  const isUp = trend >= 0;
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
-  const trendColor = isUp ? theme.palette.success.main : theme.palette.error.main;
+
+  const pct = share === undefined ? null : Math.round(share * 100);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay: index * 0.05, ease: "easeOut" }}
-      whileHover={{ y: -2 }}
-      style={
-        dense
-          ? { flex: "1 1 124px", minWidth: 124 }
-          : { flex: "1 1 160px", minWidth: 148 }
-      }
-    >
+    <Tooltip title={caption ?? label} enterDelay={600}>
       <Box
         sx={{
-          position: "relative",
-          overflow: "hidden",
-          p: dense ? 0.9 : 1.25,
-          borderRadius: "14px",
-          background: isDark ? alpha(theme.palette.background.paper, 0.75) : "rgba(255,255,255,0.75)",
-          backdropFilter: "blur(12px)",
+          // Only the dense (scrolling) strip is a flex line; the standard
+          // layout is a grid, where the track sets the width.
+          ...(dense ? { flex: "1 1 128px", minWidth: 128 } : { minWidth: 0 }),
+          p: dense ? 1 : 1.35,
+          borderRadius: "12px",
+          bgcolor: "background.paper",
           border: "1px solid",
           borderColor: "divider",
-          boxShadow: isDark ? "0 2px 10px rgba(0,0,0,0.3)" : "0 2px 10px rgba(15,23,42,0.04)",
-          transition: "box-shadow 0.2s ease, border-color 0.2s ease",
+          transition: "border-color 0.2s ease, box-shadow 0.2s ease",
           "&:hover": {
-            boxShadow: isDark ? "0 8px 20px rgba(0,0,0,0.45)" : "0 8px 20px rgba(15,23,42,0.1)",
-            borderColor: `${color}40`,
+            borderColor: alpha(color, isDark ? 0.5 : 0.35),
+            boxShadow: isDark ? "0 4px 14px rgba(0,0,0,0.35)" : "0 4px 14px rgba(15,23,42,0.06)",
           },
         }}
       >
-        <Box
+        <Stack direction="row" alignItems="center" gap={1}>
+          <Box
+            sx={{
+              width: dense ? 24 : 27,
+              height: dense ? 24 : 27,
+              borderRadius: "8px",
+              bgcolor: alpha(color, isDark ? 0.22 : 0.12),
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            <Icon sx={{ color, fontSize: dense ? 14 : 15 }} />
+          </Box>
+          <Typography
+            sx={{
+              fontSize: dense ? 10 : 10.5,
+              fontWeight: 700,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              color: "text.secondary",
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {label}
+          </Typography>
+        </Stack>
+
+        <Typography
           sx={{
-            position: "absolute",
-            top: -24,
-            right: -24,
-            width: 72,
-            height: 72,
-            borderRadius: "50%",
-            background: gradient,
-            opacity: 0.12,
+            mt: dense ? 0.4 : 0.75,
+            fontSize: dense ? 19 : 23,
+            fontWeight: 700,
+            lineHeight: 1.1,
+            color: "text.primary",
+            fontVariantNumeric: "tabular-nums",
           }}
-        />
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack direction="row" alignItems="center" gap={1}>
-            <Box
-              sx={{
-                width: dense ? 24 : 28,
-                height: dense ? 24 : 28,
-                borderRadius: "9px",
-                background: gradient,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: `0 4px 10px ${color}55`,
-                flexShrink: 0,
-              }}
-            >
-              <Icon sx={{ color: "#fff", fontSize: dense ? 13 : 15 }} />
-            </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography
-                sx={{ fontSize: dense ? 15.5 : 18, fontWeight: 800, color: "text.primary", lineHeight: 1.1 }}
+        >
+          {animated.toLocaleString()}
+        </Typography>
+
+        {!dense && (
+          <Box sx={{ mt: 0.75, minHeight: 22 }}>
+            {pct !== null && (
+              <Box
+                sx={{
+                  height: 3,
+                  borderRadius: 999,
+                  bgcolor: alpha(theme.palette.text.primary, isDark ? 0.12 : 0.08),
+                  overflow: "hidden",
+                }}
               >
-                {animated.toLocaleString()}
-              </Typography>
+                <Box
+                  sx={{
+                    width: `${Math.min(100, Math.max(pct, value > 0 ? 2 : 0))}%`,
+                    height: "100%",
+                    borderRadius: 999,
+                    bgcolor: color,
+                    transition: "width 0.5s ease",
+                  }}
+                />
+              </Box>
+            )}
+            {caption && (
               <Typography
                 sx={{
-                  fontSize: dense ? 10 : 10.5,
+                  mt: 0.5,
+                  fontSize: 10.5,
                   color: "text.secondary",
-                  fontWeight: 600,
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}
               >
-                {label}
+                {caption}
               </Typography>
-            </Box>
-          </Stack>
-          <Stack
-            alignItems="flex-end"
-            gap={0.25}
-            sx={{ display: dense ? "none" : { xs: "none", lg: "flex" } }}
-          >
-            <Sparkline data={sparkline} color={color} />
-            <Stack
-              direction="row"
-              alignItems="center"
-              gap={0.3}
-              sx={{
-                px: 0.6,
-                py: 0.1,
-                borderRadius: 999,
-                bgcolor: alpha(trendColor, isDark ? 0.18 : 0.12),
-                color: trendColor,
-              }}
-            >
-              {isUp ? (
-                <TrendingUp sx={{ fontSize: 11 }} />
-              ) : (
-                <TrendingDown sx={{ fontSize: 11 }} />
-              )}
-              <Typography sx={{ fontSize: 10, fontWeight: 700 }}>
-                {Math.abs(trend)}%
-              </Typography>
-            </Stack>
-          </Stack>
-        </Stack>
+            )}
+          </Box>
+        )}
       </Box>
-    </motion.div>
+    </Tooltip>
   );
 }

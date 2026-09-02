@@ -1,6 +1,14 @@
-import { Box, Breadcrumbs, Button, IconButton, Link, Stack, Tooltip, Typography } from "@mui/material";
-import { PersonAddAlt1, UploadFile, Download, Refresh, NavigateNext } from "@mui/icons-material";
-import { motion } from "framer-motion";
+import {
+  Box,
+  Button,
+  Chip,
+  CircularProgress,
+  IconButton,
+  Stack,
+  Tooltip,
+  Typography,
+} from "@mui/material";
+import { PersonAddAlt1, UploadFile, Download, Refresh } from "@mui/icons-material";
 
 export interface DashboardHeaderProps {
   onAddUser: () => void;
@@ -8,9 +16,12 @@ export interface DashboardHeaderProps {
   onExport: () => void;
   onRefresh: () => void;
   refreshing?: boolean;
+  exporting?: boolean;
   /** When false the Add User action is hidden entirely (roles that may read
    *  the directory but not create users). */
   canAddUser?: boolean;
+  /** Row count for the current filter, shown as a chip beside the title. */
+  totalUsers?: number;
 }
 
 export default function DashboardHeader({
@@ -19,46 +30,48 @@ export default function DashboardHeader({
   onExport,
   onRefresh,
   refreshing = false,
+  exporting = false,
   canAddUser = true,
+  totalUsers,
 }: DashboardHeaderProps) {
   return (
-    <Box
-      component={motion.div}
-      initial={{ opacity: 0, y: -6 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25 }}
-      sx={{ mb: 1, flexShrink: 0 }}
-    >
+    <Box sx={{ mb: 1, flexShrink: 0 }}>
       <Stack
         direction={{ xs: "column", md: "row" }}
         alignItems={{ xs: "flex-start", md: "center" }}
         justifyContent="space-between"
-        gap={0.75}
+        gap={1}
       >
-        <Box>
-          <Breadcrumbs
-            separator={<NavigateNext sx={{ fontSize: 11 }} />}
-            sx={{ mb: 0, "& .MuiBreadcrumbs-li": { fontSize: 10.5 }, lineHeight: 1 }}
+        {/* The breadcrumb that used to sit here read "Admin › User Management"
+            with a dead "#" link, directly under a tab strip already labelled
+            User Management — two navigational claims for one location, one of
+            them non-functional. */}
+        <Stack direction="row" alignItems="baseline" gap={1} flexWrap="wrap">
+          <Typography
+            sx={{
+              fontSize: 17,
+              fontWeight: 700,
+              color: "text.primary",
+              letterSpacing: "-0.01em",
+              lineHeight: 1.3,
+            }}
           >
-            <Link underline="hover" color="text.secondary" href="#" sx={{ fontSize: 10.5 }}>
-              Admin
-            </Link>
-            <Typography color="text.secondary" sx={{ fontSize: 10.5 }}>
-              User Management
-            </Typography>
-          </Breadcrumbs>
-          <Stack direction="row" alignItems="baseline" gap={1} flexWrap="wrap">
-            <Typography sx={{ fontSize: 17, fontWeight: 800, color: "text.primary", letterSpacing: "-0.01em", lineHeight: 1.3 }}>
-              User Management
-            </Typography>
-            <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
-              Manage roles, permissions and team access
-            </Typography>
-          </Stack>
-        </Box>
+            User Directory
+          </Typography>
+          {totalUsers !== undefined && (
+            <Chip
+              label={totalUsers.toLocaleString()}
+              size="small"
+              sx={{ height: 19, fontSize: 11, fontWeight: 700, bgcolor: "action.hover" }}
+            />
+          )}
+          <Typography sx={{ fontSize: 11.5, color: "text.secondary" }}>
+            Manage roles, permissions and team access
+          </Typography>
+        </Stack>
 
         <Stack direction="row" alignItems="center" gap={0.75} flexWrap="wrap">
-          <Tooltip title="Import users">
+          <Tooltip title="Import users from a spreadsheet">
             <Button
               size="small"
               variant="outlined"
@@ -69,6 +82,7 @@ export default function DashboardHeader({
                 borderColor: "divider",
                 color: "text.secondary",
                 fontWeight: 600,
+                textTransform: "none",
                 py: 0.4,
                 minWidth: 0,
                 px: { xs: 1, sm: 1.5 },
@@ -80,67 +94,86 @@ export default function DashboardHeader({
               </Box>
             </Button>
           </Tooltip>
-          <Tooltip title="Export users">
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<Download sx={{ fontSize: 15 }} />}
-              onClick={onExport}
-              sx={{
-                borderRadius: "8px",
-                borderColor: "divider",
-                color: "text.secondary",
-                fontWeight: 600,
-                py: 0.4,
-                minWidth: 0,
-                px: { xs: 1, sm: 1.5 },
-                "& .MuiButton-startIcon": { mr: { xs: 0, sm: 0.75 } },
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                Export
-              </Box>
-            </Button>
+
+          <Tooltip title="Export the current filter as CSV">
+            <span>
+              <Button
+                size="small"
+                variant="outlined"
+                disabled={exporting}
+                startIcon={
+                  exporting ? (
+                    <CircularProgress size={13} color="inherit" />
+                  ) : (
+                    <Download sx={{ fontSize: 15 }} />
+                  )
+                }
+                onClick={onExport}
+                sx={{
+                  borderRadius: "8px",
+                  borderColor: "divider",
+                  color: "text.secondary",
+                  fontWeight: 600,
+                  textTransform: "none",
+                  py: 0.4,
+                  minWidth: 0,
+                  px: { xs: 1, sm: 1.5 },
+                  "& .MuiButton-startIcon": { mr: { xs: 0, sm: 0.75 } },
+                }}
+              >
+                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                  Export
+                </Box>
+              </Button>
+            </span>
           </Tooltip>
+
           <Tooltip title="Refresh">
             <IconButton
               size="small"
               onClick={onRefresh}
-              sx={{ borderRadius: "8px", border: "1px solid", borderColor: "divider", width: 30, height: 30 }}
+              aria-label="Refresh user list"
+              sx={{
+                borderRadius: "8px",
+                border: "1px solid",
+                borderColor: "divider",
+                width: 30,
+                height: 30,
+              }}
             >
               <Refresh
                 sx={{
                   fontSize: 15,
                   color: "text.secondary",
-                  animation: refreshing ? "spin 0.8s linear infinite" : "none",
-                  "@keyframes spin": { to: { transform: "rotate(360deg)" } },
+                  animation: refreshing ? "umRefreshSpin 0.8s linear infinite" : "none",
+                  "@keyframes umRefreshSpin": { to: { transform: "rotate(360deg)" } },
                 }}
               />
             </IconButton>
           </Tooltip>
 
           {canAddUser && (
-            <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
-              <Button
-                size="small"
-                variant="contained"
-                startIcon={<PersonAddAlt1 sx={{ fontSize: 15 }} />}
-                onClick={onAddUser}
-                sx={{
-                  borderRadius: "8px",
-                  fontWeight: 700,
-                  px: { xs: 1.5, sm: 2 },
-                  py: 0.4,
-                }}
-              >
-                <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
-                  Add User
-                </Box>
-                <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
-                  Add
-                </Box>
-              </Button>
-            </motion.div>
+            <Button
+              size="small"
+              variant="contained"
+              disableElevation
+              startIcon={<PersonAddAlt1 sx={{ fontSize: 15 }} />}
+              onClick={onAddUser}
+              sx={{
+                borderRadius: "8px",
+                fontWeight: 700,
+                textTransform: "none",
+                px: { xs: 1.5, sm: 2 },
+                py: 0.4,
+              }}
+            >
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+                Add User
+              </Box>
+              <Box component="span" sx={{ display: { xs: "inline", sm: "none" } }}>
+                Add
+              </Box>
+            </Button>
           )}
         </Stack>
       </Stack>

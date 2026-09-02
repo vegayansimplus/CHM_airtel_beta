@@ -7,24 +7,20 @@ import {
   PersonAdd,
   Verified,
 } from "@mui/icons-material";
+import dayjs from "dayjs";
 import StatCard from "./StatCard";
 import type { UserStats } from "../api/userManagementApi";
 
-// Deterministic pseudo-trend so sparklines don't jump around on re-render.
-function seededSeries(seed: number, base: number) {
-  const out: number[] = [];
-  let x = seed || 1;
-  for (let i = 0; i < 7; i++) {
-    x = (x * 9301 + 49297) % 233280;
-    const wobble = (x / 233280 - 0.5) * base * 0.35;
-    out.push(Math.max(0, Math.round(base * 0.7 + i * (base * 0.05) + wobble)));
-  }
-  return out;
-}
-
 // Stats are unfiltered aggregates across all users, returned alongside the
-// filtered/paginated grid by the same sp_get_users_paginated call - not
+// filtered/paginated grid by the same sp_get_users_paginated call — not
 // derived from the (search/filter/page-limited) rows currently on screen.
+//
+// Everything shown here is a real figure from that call. The cards used to
+// carry a "trend" percentage and a sparkline generated from a seeded PRNG:
+// invented movement, indistinguishable from measured movement, on a screen
+// people use to make access decisions. Both are gone; the only comparison
+// left is each metric's share of the directory, which is arithmetic on the
+// numbers actually returned.
 export default function StatsSection({
   stats,
   dense = false,
@@ -35,8 +31,16 @@ export default function StatsSection({
    *  height the table needs. */
   dense?: boolean;
 }) {
-  const s = stats ?? { activeCount: 0, inactiveCount: 0, adminCount: 0, headCount: 0, newThisMonth: 0 };
+  const s = stats ?? {
+    activeCount: 0,
+    inactiveCount: 0,
+    adminCount: 0,
+    headCount: 0,
+    newThisMonth: 0,
+  };
   const total = s.activeCount + s.inactiveCount;
+  const shareOf = (n: number) => (total > 0 ? n / total : 0);
+  const pct = (n: number) => (total > 0 ? `${Math.round((n / total) * 100)}% of directory` : "—");
 
   const cards = [
     {
@@ -44,80 +48,90 @@ export default function StatsSection({
       value: total,
       icon: Group,
       color: "#2563EB",
-      gradient: "linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%)",
-      trend: 8,
+      caption: `${s.activeCount.toLocaleString()} active · ${s.inactiveCount.toLocaleString()} inactive`,
     },
     {
-      label: "Active Users",
+      label: "Active",
       value: s.activeCount,
       icon: Verified,
-      color: "#10B981",
-      gradient: "linear-gradient(135deg, #34D399 0%, #059669 100%)",
-      trend: 5,
+      color: "#059669",
+      share: shareOf(s.activeCount),
+      caption: pct(s.activeCount),
     },
     {
       label: "Team Heads",
       value: s.headCount,
       icon: SupervisorAccount,
       color: "#7C3AED",
-      gradient: "linear-gradient(135deg, #A78BFA 0%, #6D28D9 100%)",
-      trend: 2,
+      share: shareOf(s.headCount),
+      caption: pct(s.headCount),
     },
     {
       label: "Super Admins",
       value: s.adminCount,
       icon: Shield,
       color: "#DC2626",
-      gradient: "linear-gradient(135deg, #F87171 0%, #B91C1C 100%)",
-      trend: 0,
+      share: shareOf(s.adminCount),
+      caption: pct(s.adminCount),
     },
     {
-      label: "Inactive Users",
+      label: "Inactive",
       value: s.inactiveCount,
       icon: PersonOff,
-      color: "#F59E0B",
-      gradient: "linear-gradient(135deg, #FBBF24 0%, #D97706 100%)",
-      trend: -4,
+      color: "#D97706",
+      share: shareOf(s.inactiveCount),
+      caption: pct(s.inactiveCount),
     },
     {
       label: "New This Month",
       value: s.newThisMonth,
       icon: PersonAdd,
       color: "#0891B2",
-      gradient: "linear-gradient(135deg, #22D3EE 0%, #0E7490 100%)",
-      trend: 12,
+      share: shareOf(s.newThisMonth),
+      caption: `Joined since ${dayjs().startOf("month").format("D MMM")}`,
     },
   ];
 
   return (
     <Box
       sx={{
-        display: "flex",
-        flexDirection: "row",
-        flexWrap: dense ? "nowrap" : "wrap",
         gap: 1,
-        mb: dense ? 1 : 2,
+        mb: dense ? 1 : 1.5,
         flexShrink: 0,
-        ...(dense && {
-          overflowX: "auto",
-          pb: 0.5,
-          scrollbarWidth: "thin",
-          "&::-webkit-scrollbar": { height: 5 },
-        }),
+        ...(dense
+          ? {
+              display: "flex",
+              flexDirection: "row",
+              flexWrap: "nowrap",
+              overflowX: "auto",
+              pb: 0.5,
+              scrollbarWidth: "thin",
+              "&::-webkit-scrollbar": { height: 5 },
+            }
+          : {
+              // A grid with a fixed column count per breakpoint rather than
+              // wrapped flex: six cards flowing freely left two orphans
+              // stretched across the full width on a tablet, which read as a
+              // different, more important kind of card.
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, minmax(0, 1fr))",
+                sm: "repeat(3, minmax(0, 1fr))",
+                lg: "repeat(6, minmax(0, 1fr))",
+              },
+            }),
       }}
     >
-      {cards.map((c, i) => (
+      {cards.map((c) => (
         <StatCard
           key={c.label}
-          index={i}
           label={c.label}
           value={c.value}
           icon={c.icon}
           color={c.color}
-          gradient={c.gradient}
-          trend={c.trend}
+          share={c.share}
+          caption={c.caption}
           dense={dense}
-          sparkline={seededSeries(c.value * 17 + i * 31 + 1, Math.max(c.value, 1))}
         />
       ))}
     </Box>

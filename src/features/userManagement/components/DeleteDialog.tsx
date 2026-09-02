@@ -19,6 +19,7 @@ import { WarningAmberRounded } from "@mui/icons-material";
 import type { TransitionProps } from "@mui/material/transitions";
 import { forwardRef } from "react";
 import { toast } from "react-toastify";
+import dayjs from "dayjs";
 import { getAvatarColor, getInitials } from "../utils/userHelpers";
 import { useUpdateUserStatusMutation } from "../../teamManagement/api/teamManagement.api";
 import type { User } from "../types/user";
@@ -59,9 +60,15 @@ export default function DeleteDialog({ user, bulkUsers, actorUserId, onClose, on
     onClose();
   };
 
+  // sp_change_user_status refuses a leaving date in the past. Blocking it in
+  // the picker keeps that rule from arriving as a server error after the user
+  // has filled in the whole form.
+  const today = dayjs().format("YYYY-MM-DD");
+
   const validate = () => {
     const next: Record<string, string> = {};
     if (!dateOfLeaving) next.dateOfLeaving = "Required";
+    else if (dateOfLeaving < today) next.dateOfLeaving = "Must be today or a future date";
     if (!exitType) next.exitType = "Required";
     if (!exitReason.trim()) next.exitReason = "Required";
     setErrors(next);
@@ -71,8 +78,15 @@ export default function DeleteDialog({ user, bulkUsers, actorUserId, onClose, on
   const handleConfirm = async () => {
     if (!validate()) return;
     const targets = isBulk ? bulkUsers! : [user!];
-    try {
-      for (const target of targets) {
+
+    // Each user is a separate call, so a failure part-way through leaves the
+    // earlier ones already deactivated. Previously that threw out of the loop
+    // and reported only the error — the users who *had* been removed went
+    // unmentioned, and the list was refreshed by neither branch.
+    const failures: { name: string; message: string }[] = [];
+
+    for (const target of targets) {
+      try {
         // eslint-disable-next-line no-await-in-loop
         await updateStatus({
           actorUserId,
@@ -84,13 +98,35 @@ export default function DeleteDialog({ user, bulkUsers, actorUserId, onClose, on
           replacementEmpOlmid: null,
           replacementEmpName: null,
         }).unwrap();
+      } catch (err: any) {
+        failures.push({
+          name: target.name,
+          message: err?.data?.message || "Failed to update user status.",
+        });
       }
-      toast.success(isBulk ? `Removed ${targets.length} users` : `${targets[0].name} removed`);
-      onDone();
-      resetAndClose();
-    } catch (err: any) {
-      toast.error(err?.data?.message || "Failed to update user status.");
     }
+
+    const succeeded = targets.length - failures.length;
+
+    if (succeeded > 0) {
+      toast.success(
+        targets.length === 1 ? `${targets[0].name} removed` : `Removed ${succeeded} of ${targets.length} users`,
+      );
+      onDone();
+    }
+
+    if (failures.length > 0) {
+      toast.error(
+        failures.length === 1
+          ? `${failures[0].name}: ${failures[0].message}`
+          : `${failures.length} users could not be removed — ${failures[0].message}`,
+      );
+      // Leave the dialog open so the reason stays on screen and the remaining
+      // targets can be retried without re-entering the exit details.
+      return;
+    }
+
+    resetAndClose();
   };
 
   return (
@@ -141,10 +177,11 @@ export default function DeleteDialog({ user, bulkUsers, actorUserId, onClose, on
             size="small"
             fullWidth
             InputLabelProps={{ shrink: true }}
+            inputProps={{ min: today }}
             value={dateOfLeaving}
             onChange={(e) => setDateOfLeaving(e.target.value)}
             error={!!errors.dateOfLeaving}
-            helperText={errors.dateOfLeaving}
+            helperText={errors.dateOfLeaving || "Today or later"}
           />
           <TextField
             select

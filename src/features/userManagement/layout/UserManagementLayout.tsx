@@ -1,6 +1,6 @@
 import React from "react";
 import { useNavigate, useLocation } from "react-router";
-import { Box, Tabs, Tab, Typography, useTheme } from "@mui/material";
+import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import { useTabColorTokens } from "../../../style/theme";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
@@ -17,7 +17,7 @@ const UserManagementLayout: React.FC = () => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const theme = useTheme();
-  const bg = useTabColorTokens(theme);
+  const t = useTabColorTokens(theme);
 
   // Derive active tab from current URL
   const activeTab = TAB_ROUTES.findIndex((route) => pathname.endsWith(route));
@@ -30,106 +30,62 @@ const UserManagementLayout: React.FC = () => {
   return (
     <Box
       sx={{
-        // backgroundColor: theme.palette.background.paper,
-        backgroundColor: bg.accentDim,
+        backgroundColor: t.accentDim,
         maxWidth: "100%",
         minHeight: SHELL_MIN_HEIGHT,
         display: "flex",
         flexDirection: "column",
+        // Sidebar rail inset + fixed header offset — the app-wide shell
+        // convention (see ReusableTabLayout).
         pl: 8,
+        // Stays scrollable: `minHeight: 100vh` already gives the flex column a
+        // definite height for User Management to fit itself into, while the
+        // sibling User Log Details tab is a naturally-growing page that needs
+        // somewhere to overflow. Local ::-webkit-scrollbar rules were dropped —
+        // index.css styles scrollbars app-wide now.
         overflow: "auto",
-
-        /* THEME-AWARE SCROLLBAR */
-        "&::-webkit-scrollbar": {
-          height: 8,
-        },
-        "&::-webkit-scrollbar-track": {
-          backgroundColor:
-            theme.palette.mode === "dark"
-              ? theme.palette.background.paper
-              : "#f1f1f1",
-        },
-        "&::-webkit-scrollbar-thumb": {
-          // backgroundColor: theme.palette.primary.main,
-          borderRadius: 4,
-        },
       }}
     >
-      {/* Header */}
-      <Box sx={{
+      {/* Tab bar */}
+      <Box
+        sx={{
           mt: "45px",
-          background:
-            theme.palette.mode === "dark"
-              ? "linear-gradient(135deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02))"
-              : "linear-gradient(135deg, rgba(255,255,255,0.7), rgba(255,255,255,0.4))",
-
-          backdropFilter: "blur(18px)",
-          WebkitBackdropFilter: "blur(18px)",
-
-          border: `1px solid ${
-            theme.palette.mode === "dark"
-              ? "rgba(255,255,255,0.08)"
-              : "rgba(255,255,255,0.6)"
-          }`,
-
-          boxShadow:
-            theme.palette.mode === "dark"
-              ? "0 8px 32px rgba(0,0,0,0.45)"
-              : "0 8px 32px rgba(0,0,0,0.08)",
-
-          transition: "all 0.3s ease",
-        }}>
-       
-
-        {/* Tab Navigation */}
+          flexShrink: 0,
+          bgcolor: "background.paper",
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
+      >
         <Tabs
           value={currentTab}
           onChange={handleTabChange}
           textColor="primary"
-          indicatorColor="primary"
+          variant="scrollable"
+          scrollButtons="auto"
+          allowScrollButtonsMobile
           aria-label="user management tabs"
-           sx={{
-            px: 2,
+          sx={{
+            px: { xs: 1, sm: 2 },
+            minHeight: 44,
             "& .MuiTab-root": {
               textTransform: "none",
               fontWeight: 500,
-              fontSize: 14,
+              fontSize: 13.5,
+              minHeight: 44,
+              py: 0,
             },
-            "& .Mui-selected": {
-              fontWeight: 600,
-              color: theme.palette.primary.main,
-            },
-            "& .MuiTabs-indicator": {
-              display: "flex",
-              justifyContent: "center",
-              backgroundColor: "transparent",
-              "&::after": {
-                content: '""',
-                width: 0,
-                height: 0,
-                borderRight: "8px solid transparent",
-                borderLeft: "8px solid transparent",
-                borderBottom: `10px solid ${theme.palette.primary.main}`,
-                position: "absolute",
-                bottom: 0,
-              },
-            },
+            "& .Mui-selected": { fontWeight: 700 },
+            // A plain 2px underline instead of the pointing triangle the old
+            // shell drew: the triangle sat on the panel's bottom edge and read
+            // as a stray glyph once the panel itself lost its glass border.
+            "& .MuiTabs-indicator": { height: 2, borderRadius: "2px 2px 0 0" },
           }}
         >
           {TAB_ROUTES.map((route) => (
-            <Tab
-              key={route}
-              label={TAB_LABELS[route]}
-              //   icon={TAB_ICONS[route]}
-              iconPosition="start"
-              sx={{ textTransform: "none", fontWeight: 500 }}
-            />
+            <Tab key={route} label={TAB_LABELS[route]} />
           ))}
         </Tabs>
       </Box>
-
-      {/* Divider */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider" }} />
 
       {/* Routed child renders here.
           `minHeight: 0` is what lets this region resolve to "whatever the
@@ -138,7 +94,7 @@ const UserManagementLayout: React.FC = () => {
           data region rather than pushing the whole shell into a page scroll. */}
       <Box
         sx={{
-          p: { xs: 1.5, sm: 2, md: 3 },
+          p: { xs: 1.5, sm: 2, md: 2.5 },
           flex: 1,
           minHeight: 0,
           display: "flex",

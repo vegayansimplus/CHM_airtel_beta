@@ -84,14 +84,20 @@ export default function AddOtherUserDialog({ open, onClose, onCreated }: AddOthe
       roleCode: form.roleCode,
     };
     try {
+      // Reaching here means the API answered 2xx; every refusal is a 4xx/5xx
+      // carrying { status: "Error", message }. The old check sniffed the
+      // success text for the substring "success", so a procedure whose wording
+      // did not happen to contain it was reported to the user as a failure
+      // after the user had, in fact, been created.
       const res = await addOtherEmployee(payload).unwrap();
-      if (res.message?.toLowerCase().includes("success")) {
-        setSuccess(true);
-        onCreated();
-        setTimeout(() => onClose(), 1100);
-      } else {
+      if (res.status && res.status !== "Success") {
         toast.error(res.message || "Creation failed");
+        return;
       }
+      toast.success(res.message || `${form.employeeName} was created successfully.`);
+      setSuccess(true);
+      onCreated();
+      setTimeout(() => onClose(), 1100);
     } catch (err: any) {
       toast.error(err?.data?.message || "Failed to create user.");
     }

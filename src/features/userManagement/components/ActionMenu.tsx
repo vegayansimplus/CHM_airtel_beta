@@ -1,5 +1,14 @@
 import { useState } from "react";
-import { IconButton, Menu, MenuItem, Stack, Tooltip, Typography, Divider, useTheme } from "@mui/material";
+import {
+  Divider,
+  IconButton,
+  Menu,
+  MenuItem,
+  Stack,
+  Tooltip,
+  Typography,
+  useTheme,
+} from "@mui/material";
 import {
   Visibility,
   Edit,
@@ -15,6 +24,9 @@ export interface ActionMenuProps {
   onPermissions: () => void;
   onResetPassword: () => void;
   onDelete: () => void;
+  /** Compact rows use smaller hit targets so the action column doesn't set the
+   *  row height. */
+  dense?: boolean;
 }
 
 export default function ActionMenu({
@@ -23,40 +35,43 @@ export default function ActionMenu({
   onPermissions,
   onResetPassword,
   onDelete,
+  dense = false,
 }: ActionMenuProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
 
+  const iconSx = { fontSize: dense ? 16 : 18 };
+  const buttonSx = {
+    color: "text.secondary",
+    p: dense ? 0.4 : 0.6,
+    "&:hover": { color: "primary.main", bgcolor: "action.hover" },
+  };
+
   return (
-    <Stack
-      direction="row"
-      alignItems="center"
-      gap={0.25}
-      className="row-actions"
-      sx={{
-        opacity: { xs: 1, md: 0 },
-        transition: "opacity 0.15s ease",
-        ".row-hover:hover &, tr:hover &": { opacity: 1 },
-      }}
-    >
+    // Always visible. These used to be `opacity: 0` until the row was hovered,
+    // which hides the only way to act on a row behind a gesture that leaves no
+    // trace — invisible to anyone scanning the grid, and unreachable entirely
+    // on a touch screen, where there is no hover state to enter.
+    <Stack direction="row" alignItems="center" gap={dense ? 0 : 0.25}>
       <Tooltip title="View profile">
-        <IconButton size="small" onClick={onView} sx={{ color: "text.secondary" }}>
-          <Visibility fontSize="small" />
+        <IconButton size="small" onClick={onView} aria-label="View profile" sx={buttonSx}>
+          <Visibility sx={iconSx} />
         </IconButton>
       </Tooltip>
       <Tooltip title="Edit user">
-        <IconButton size="small" onClick={onEdit} sx={{ color: "text.secondary" }}>
-          <Edit fontSize="small" />
+        <IconButton size="small" onClick={onEdit} aria-label="Edit user" sx={buttonSx}>
+          <Edit sx={iconSx} />
         </IconButton>
       </Tooltip>
       <Tooltip title="More actions">
         <IconButton
           size="small"
           onClick={(e) => setAnchorEl(e.currentTarget)}
-          sx={{ color: "text.secondary" }}
+          aria-label="More actions"
+          sx={buttonSx}
         >
-          <MoreVert fontSize="small" />
+          <MoreVert sx={iconSx} />
         </IconButton>
       </Tooltip>
 

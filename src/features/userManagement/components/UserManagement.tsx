@@ -23,7 +23,7 @@ import { AppScrollView } from "../../../components/ui/AppScrollView";
 import DashboardHeader from "./DashboardHeader";
 import StatsSection from "./StatsSection";
 import SearchToolbar, { DEFAULT_FILTERS, type UserFilters } from "./SearchToolbar";
-import UserTable from "./UserTable";
+import UserTable, { ROW_METRICS, type TableDensity } from "./UserTable";
 import UserCard from "./UserCard";
 import ProfileDrawer from "./ProfileDrawer";
 import AddUserWizard from "./AddUserWizard";
@@ -38,8 +38,9 @@ import { useGetCreateUserDropdownsQuery } from "../../teamManagement/api/teamMan
 import { useGetOrgHierarchyByUserQuery } from "../../orgHierarchy/api/orgHierarchy.api";
 import { useGetUsersQuery, useLazyGetUsersQuery } from "../api/userManagementApi";
 import { getUserStatus, mapUserListItem, type User } from "../types/user";
+import { useFitRows } from "../hooks/useFitRows";
 
-const ROWS_PER_PAGE_OPTIONS = [6, 12, 24, 50];
+const ROWS_PER_PAGE_OPTIONS = [10, 15, 25, 50, 100];
 // Large enough to cover any realistic filtered result set in one request for
 // CSV export, without paging through the UI's normal page size.
 const EXPORT_FETCH_SIZE = 5000;
@@ -48,15 +49,68 @@ const EXPORT_FETCH_SIZE = 5000;
 // affordance (header button, mobile FAB, empty-state CTA) is hidden for them.
 const NO_CREATE_ROLES = new Set(["TEAM_MEMBER"]);
 
-/** Page size chosen once from the viewport height, so a tall window opens with
- *  a full table instead of six rows and a large empty tail. Read once (not via
- *  a resize listener) because page size drives a refetch - re-deriving it while
- *  the user resizes would thrash the query. */
-function initialRowsPerPage() {
-  const h = typeof window === "undefined" ? 0 : window.innerHeight;
-  if (h >= 1000) return 24;
-  if (h >= 800) return 12;
-  return 6;
+// Fit-to-screen bounds. The floor keeps a very short window from asking for a
+// single row; the ceiling keeps a very tall one from pulling hundreds.
+const FIT_MIN_ROWS = 5;
+const FIT_MAX_ROWS = 60;
+// Height the pagination footer needs under the grid, plus the page's bottom
+// padding — the fit hook subtracts this so the footer is never pushed off.
+const FOOTER_RESERVE = 64;
+
+// ── Persisted view preferences ───────────────────────────────────────────
+// Per-viewer chrome choices only (density, whether the summary strip is up,
+// whether the grid auto-fits). Nothing here affects what data is fetched or
+// who may see it, so localStorage is the right home; it is read defensively
+// because a private window or blocked site data makes it throw.
+const PREF_KEY = "chm.userManagement.viewPrefs.v1";
+
+interface ViewPrefs {
+  density: TableDensity;
+  showStats: boolean;
+  autoFit: boolean;
+  rowsPerPage: number;
+}
+
+const DEFAULT_PREFS: ViewPrefs = {
+  density: "compact",
+  showStats: true,
+  autoFit: true,
+  rowsPerPage: 15,
+};
+
+function readPrefs(): ViewPrefs {
+  try {
+    const raw = localStorage.getItem(PREF_KEY);
+    if (!raw) return DEFAULT_PREFS;
+    const parsed = JSON.parse(raw) as Partial<ViewPrefs>;
+    return {
+      density: parsed.density === "comfortable" ? "comfortable" : "compact",
+      showStats: parsed.showStats !== false,
+      autoFit: parsed.autoFit !== false,
+      rowsPerPage:
+        typeof parsed.rowsPerPage === "number" && parsed.rowsPerPage > 0
+          ? parsed.rowsPerPage
+          : DEFAULT_PREFS.rowsPerPage,
+    };
+  } catch {
+    return DEFAULT_PREFS;
+  }
+}
+
+function writePrefs(prefs: ViewPrefs) {
+  try {
+    localStorage.setItem(PREF_KEY, JSON.stringify(prefs));
+  } catch {
+    /* private window / site data blocked — the session just keeps its defaults */
+  }
+}
+
+/** Which user the drawer is showing, and whether it was opened to be edited
+ *  rather than read. The row's pencil used to land on the read-only Overview
+ *  tab, leaving a second click to reach the form it promised. */
+interface DrawerTarget {
+  userId: number;
+  edit: boolean;
 }
 
 export default function UserManagement() {
@@ -68,8 +122,17 @@ export default function UserManagement() {
   // ── Core state (search/filter/pagination/CRUD) ──────────────────────────
   const [filters, setFilters] = useState<UserFilters>(DEFAULT_FILTERS);
   const [page, setPage] = useState(1);
-  const [rowsPerPage, setRowsPerPage] = useState(initialRowsPerPage);
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+
+  // ── View preferences ─────────────────────────────────────────────────────
+  const [prefs, setPrefs] = useState<ViewPrefs>(readPrefs);
+  const updatePrefs = useCallback((patch: Partial<ViewPrefs>) => {
+    setPrefs((prev) => {
+      const next = { ...prev, ...patch };
+      writePrefs(next);
+      return next;
+    });
+  }, []);
 
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [bulkDeleteTargets, setBulkDeleteTargets] = useState<User[] | null>(null);
@@ -77,9 +140,10 @@ export default function UserManagement() {
   const [addOpen, setAddOpen] = useState(false);
   const [addOtherOpen, setAddOtherOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
-  const [activeUserId, setActiveUserId] = useState<number | null>(null);
+  const [drawerTarget, setDrawerTarget] = useState<DrawerTarget | null>(null);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   const theme = useTheme();
   // Below `sm` (phones), the table has no room even with column-hiding, so fall
@@ -89,6 +153,27 @@ export default function UserManagement() {
   // panels, or any window the user has shrunk) the stats strip and the spacing
   // around it tighten so the scrolling data region keeps a usable height.
   const isShortViewport = useMediaQuery("(max-height: 800px)");
+
+  const openProfile = useCallback((u: User) => setDrawerTarget({ userId: u.userId, edit: false }), []);
+  const openEditor = useCallback((u: User) => setDrawerTarget({ userId: u.userId, edit: true }), []);
+
+  // ── Fit the grid to one screen ───────────────────────────────────────────
+  // The row count is derived from the space under the toolbar so "All users"
+  // arrives as a single screenful: no inner scroll, no half-cut last row. The
+  // card grid scrolls by nature, so it keeps the chosen page size instead.
+  const metrics = ROW_METRICS[prefs.density];
+  const fitEnabled = prefs.autoFit && viewMode === "list" && !isMobile;
+
+  const { anchorRef, rows: fittedRows } = useFitRows({
+    rowHeight: metrics.row,
+    chromeHeight: metrics.chrome,
+    reservedBelow: FOOTER_RESERVE,
+    min: FIT_MIN_ROWS,
+    max: FIT_MAX_ROWS,
+    enabled: fitEnabled,
+  });
+
+  const rowsPerPage = fitEnabled ? (fittedRows ?? prefs.rowsPerPage) : prefs.rowsPerPage;
 
   // ── Live data ────────────────────────────────────────────────────────────
   const queryArgs = useMemo(
@@ -151,6 +236,8 @@ export default function UserManagement() {
   const totalElements = data?.page.totalElements ?? 0;
   const totalPages = Math.max(1, data?.page.totalPages ?? 1);
   const clampedPage = Math.min(page, totalPages);
+  const firstRow = totalElements === 0 ? 0 : (clampedPage - 1) * rowsPerPage + 1;
+  const lastRow = Math.min(clampedPage * rowsPerPage, totalElements);
 
   const hasActiveFilters =
     filters.search !== "" ||
@@ -179,9 +266,16 @@ export default function UserManagement() {
   };
 
   const handleExport = async () => {
+    setExporting(true);
     try {
       const result = await triggerExportFetch({ ...queryArgs, page: 0, size: EXPORT_FETCH_SIZE }).unwrap();
       const rows = result.page.content.map(mapUserListItem);
+
+      if (rows.length === 0) {
+        toast.info("Nothing to export — no users match the current filters.");
+        return;
+      }
+
       const header = "Name,OLM ID,Email,Department,Role,Status,Joined Date\n";
       const body = rows
         .map((u) =>
@@ -192,9 +286,11 @@ export default function UserManagement() {
         .join("\n");
       const blob = new Blob([header + body], { type: "text/csv;charset=utf-8;" });
       saveAs(blob, `users-export-${dayjs().format("YYYY-MM-DD")}.csv`);
-      toast.success("Export ready — download started");
-    } catch {
-      toast.error("Failed to export users");
+      toast.success(`Exported ${rows.length.toLocaleString()} users`);
+    } catch (err: any) {
+      toast.error(err?.data?.message || "Failed to export users");
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -220,18 +316,22 @@ export default function UserManagement() {
         onExport={handleExport}
         onRefresh={handleRefresh}
         refreshing={refreshing}
+        exporting={exporting}
         canAddUser={canAddUser}
+        totalUsers={totalElements}
       />
 
-      {isBackgroundRefreshing && (
-        <LinearProgress sx={{ mb: 1, borderRadius: 999, height: 3, flexShrink: 0 }} />
-      )}
+      {/* Reserved strip, so rows do not jump by 3px each time a background
+          refresh starts and finishes. */}
+      <Box sx={{ height: 3, mb: 0.75, flexShrink: 0 }}>
+        {isBackgroundRefreshing && <LinearProgress sx={{ borderRadius: 999, height: 3 }} />}
+      </Box>
 
       {isInitialLoading ? (
         <LoadingState />
       ) : (
         <>
-          <StatsSection stats={data?.stats} dense={isShortViewport} />
+          {prefs.showStats && <StatsSection stats={data?.stats} dense={isShortViewport} />}
 
           <SearchToolbar
             filters={filters}
@@ -241,12 +341,20 @@ export default function UserManagement() {
             roles={roleOptions}
             viewMode={viewMode}
             onViewModeChange={setViewMode}
+            density={prefs.density}
+            onDensityChange={(density) => updatePrefs({ density })}
+            statsShown={prefs.showStats}
+            onToggleStats={() => updatePrefs({ showStats: !prefs.showStats })}
             dense={isShortViewport}
           />
 
-          {/* Data region — takes all remaining height. The floor keeps it
-              usable on very short windows; below that the shell scrolls. */}
+          {/* Data region — takes all remaining height. `anchorRef` is what the
+              fit hook measures: only this box's TOP edge, which is set by the
+              chrome above it and never by the row count below, so the fit
+              cannot feed back into itself. The floor keeps it usable on very
+              short windows; below that the shell scrolls. */}
           <Box
+            ref={anchorRef}
             sx={{
               flex: 1,
               minHeight: { xs: 260, md: 320 },
@@ -258,9 +366,9 @@ export default function UserManagement() {
             {viewMode === "list" && !isMobile ? (
               <UserTable
                 users={sorted}
-                onView={(u) => setActiveUserId(u.userId)}
-                onEdit={(u) => setActiveUserId(u.userId)}
-                onPermissions={(u) => setActiveUserId(u.userId)}
+                onView={openProfile}
+                onEdit={openEditor}
+                onPermissions={openProfile}
                 onResetPassword={handleResetPassword}
                 onDelete={setDeleteTarget}
                 onBulkDelete={setBulkDeleteTargets}
@@ -268,6 +376,8 @@ export default function UserManagement() {
                 onResetFilters={handleResetFilters}
                 hasActiveFilters={hasActiveFilters}
                 canAddUser={canAddUser}
+                totalElements={totalElements}
+                dense={prefs.density === "compact"}
               />
             ) : sorted.length === 0 && !isFetching ? (
               <Box sx={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
@@ -293,14 +403,13 @@ export default function UserManagement() {
                     pb: 0.5,
                   }}
                 >
-                  {sorted.map((u, i) => (
+                  {sorted.map((u) => (
                     <UserCard
                       key={u.id}
                       user={u}
-                      index={i}
-                      onView={(usr) => setActiveUserId(usr.userId)}
-                      onEdit={(usr) => setActiveUserId(usr.userId)}
-                      onPermissions={(usr) => setActiveUserId(usr.userId)}
+                      onView={openProfile}
+                      onEdit={openEditor}
+                      onPermissions={openProfile}
                       onResetPassword={handleResetPassword}
                       onDelete={setDeleteTarget}
                     />
@@ -310,62 +419,82 @@ export default function UserManagement() {
             )}
           </Box>
 
-          {/* ── Modern Pagination Footer ── */}
+          {/* ── Pagination footer ── */}
           <Stack
-            direction={{ xs: "column", sm: "row" }}
-            alignItems="center"
+            direction={{ xs: "column", md: "row" }}
+            alignItems={{ xs: "stretch", md: "center" }}
             justifyContent="space-between"
             flexWrap="wrap"
-            mt={isShortViewport ? 1 : 1.5}
-            gap={isShortViewport ? 1 : 1.5}
+            mt={isShortViewport ? 1 : 1.25}
+            gap={isShortViewport ? 0.75 : 1.25}
             sx={{ flexShrink: 0 }}
           >
-            <Stack direction="row" alignItems="center" gap={1.5}>
-              <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>Rows per page</Typography>
+            <Stack direction="row" alignItems="center" gap={1.25} flexWrap="wrap">
+              <Typography sx={{ fontSize: 12.5, color: "text.secondary", whiteSpace: "nowrap" }}>
+                Rows
+              </Typography>
+              {/* 0 is the "Fit to screen" sentinel — picking any real number is
+                  also how the user opts out of auto-fitting. */}
               <Select
                 size="small"
-                value={rowsPerPage}
+                value={fitEnabled ? 0 : prefs.rowsPerPage}
                 onChange={(e) => {
-                  setRowsPerPage(Number(e.target.value));
+                  const value = Number(e.target.value);
+                  updatePrefs(
+                    value === 0 ? { autoFit: true } : { autoFit: false, rowsPerPage: value },
+                  );
                   setPage(1);
                 }}
-                sx={{ fontSize: 12.5, borderRadius: "10px", minWidth: 72 }}
+                sx={{ fontSize: 12.5, borderRadius: "8px", minWidth: 92 }}
               >
+                <MenuItem value={0} sx={{ fontSize: 12.5 }} disabled={viewMode !== "list" || isMobile}>
+                  Fit ({rowsPerPage})
+                </MenuItem>
                 {ROWS_PER_PAGE_OPTIONS.map((n) => (
                   <MenuItem key={n} value={n} sx={{ fontSize: 12.5 }}>
                     {n}
                   </MenuItem>
                 ))}
               </Select>
-              <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>
-                Showing {totalElements === 0 ? 0 : (clampedPage - 1) * rowsPerPage + 1}–
-                {Math.min(clampedPage * rowsPerPage, totalElements)} of {totalElements} users
+              <Typography
+                sx={{ fontSize: 12.5, color: "text.secondary", fontVariantNumeric: "tabular-nums" }}
+              >
+                {firstRow.toLocaleString()}–{lastRow.toLocaleString()} of{" "}
+                {totalElements.toLocaleString()}
               </Typography>
             </Stack>
 
-            <Stack direction="row" alignItems="center" gap={1.5}>
+            <Stack direction="row" alignItems="center" gap={1.25} justifyContent={{ xs: "space-between", md: "flex-end" }}>
               <Pagination
                 count={totalPages}
                 page={clampedPage}
                 onChange={(_, v) => setPage(v)}
                 shape="rounded"
-                sx={{ "& .MuiPaginationItem-root": { borderRadius: "8px" } }}
+                size="small"
+                siblingCount={isMobile ? 0 : 1}
+                sx={{ "& .MuiPaginationItem-root": { borderRadius: "8px", fontSize: 12.5 } }}
               />
-              <Stack direction="row" alignItems="center" gap={0.75}>
-                <Typography sx={{ fontSize: 12.5, color: "text.secondary" }}>Go to</Typography>
-                <TextField
-                  size="small"
-                  type="number"
-                  defaultValue={clampedPage}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
+              {/* Only worth the space once paging by hand beats clicking through. */}
+              {totalPages > 5 && (
+                <Stack direction="row" alignItems="center" gap={0.75}>
+                  <Typography sx={{ fontSize: 12.5, color: "text.secondary", whiteSpace: "nowrap" }}>
+                    Go to
+                  </Typography>
+                  <TextField
+                    size="small"
+                    type="number"
+                    key={clampedPage}
+                    defaultValue={clampedPage}
+                    inputProps={{ min: 1, max: totalPages, "aria-label": "Go to page" }}
+                    onKeyDown={(e) => {
+                      if (e.key !== "Enter") return;
                       const v = Number((e.target as HTMLInputElement).value);
                       if (v >= 1 && v <= totalPages) setPage(v);
-                    }
-                  }}
-                  sx={{ width: 64, "& .MuiOutlinedInput-root": { borderRadius: "10px", fontSize: 12.5 } }}
-                />
-              </Stack>
+                    }}
+                    sx={{ width: 68, "& .MuiOutlinedInput-root": { borderRadius: "8px", fontSize: 12.5 } }}
+                  />
+                </Stack>
+              )}
             </Stack>
           </Stack>
         </>
@@ -375,12 +504,9 @@ export default function UserManagement() {
       {isMobile && canAddUser && (
         <Fab
           color="primary"
+          aria-label="Add user"
           onClick={() => setAddTypeOpen(true)}
-          sx={{
-            position: "fixed",
-            bottom: 24,
-            right: 24,
-          }}
+          sx={{ position: "fixed", bottom: 24, right: 24 }}
         >
           <Add />
         </Fab>
@@ -388,9 +514,10 @@ export default function UserManagement() {
 
       {/* ── Drawer & Dialogs ── */}
       <ProfileDrawer
-        userId={activeUserId}
+        userId={drawerTarget?.userId ?? null}
+        openInEditMode={drawerTarget?.edit ?? false}
         actorUserId={actorUserId}
-        onClose={() => setActiveUserId(null)}
+        onClose={() => setDrawerTarget(null)}
         onUserChanged={refetch}
       />
 
