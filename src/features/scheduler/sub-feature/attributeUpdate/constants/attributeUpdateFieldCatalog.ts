@@ -94,28 +94,6 @@ const YES_NO_VALUES = ["Yes", "No"];
  * it default to the signed-in user's OLM ID. */
 const EXECUTED_BY_VALUES = ["OEM", "Bharti", "Bharti + OEM"];
 
-/**
- * "CRQ approval status" - collected at Network Execution *and* Task Closure.
- *
- * GET_CAB_DETAILS_BY_STAGE returns CRQ_APPROVAL_STATUS for either stage, and
- * CAB_UPDATE_ATTR_TBL is append-only (every save writes a fresh row, see
- * buildAttributeSaveSections), so a Task Closure save that left this out of its
- * cab section wrote the new row with the column blanked - losing the approval
- * status the execution stage had recorded. It is also what buildCabRequest maps
- * onto Remedy's "Change Request Status", so dropping it blanked that too.
- *
- * The catalog values are upper-case while stored rows use "Approved"; the row
- * renderer widens the list with whatever is already saved (see withSavedValue),
- * so an existing value stays visible and selected either way.
- */
-const CRQ_APPROVAL_STATUS_ATTRIBUTE: StageAttribute = {
-  name: "CRQ approval status",
-  field: "crqApprovalStatus",
-  type: "Dropdown",
-  mandatory: "Mandatory",
-  values: ["PENDING FOR APPROVAL", "REJECTED", "APPROVED"],
-};
-
 /** Circle codes offered by the numbered CAB circle slots (circle1..circle19).
  * Deliberately separate from the "Impacted Circle(s)**" list below, which also
  * carries an "All" entry and spells one circle "GI" - that field's options are
@@ -706,7 +684,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: MOP_METHOD_VALUES,
       },
-      CRQ_APPROVAL_STATUS_ATTRIBUTE,
     ],
   },
   {
@@ -736,7 +713,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
       },
       OLM_PREFILL_ATTRIBUTE("CRQ Closed By", "crqClosedBy"),
       NOW_PREFILL_ATTRIBUTE("CRQ Closed By Time", "crqClosedByTime"),
-      CRQ_APPROVAL_STATUS_ATTRIBUTE,
     ],
   },
 ];
