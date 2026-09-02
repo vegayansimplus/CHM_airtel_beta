@@ -203,6 +203,8 @@ export const CreateEditMemberDialog = ({
         dateOfLeaving: form.dateOfLeaving || null,
         replacementEmpOlmid: null,
         replacementEmpName: null,
+        // null keeps the current role - the proc only reassigns when a code is sent
+        roleCode: form.roleCode || null,
       };
       const res = await updateEmployee(payload).unwrap();
       if (res.status === "Success") {
