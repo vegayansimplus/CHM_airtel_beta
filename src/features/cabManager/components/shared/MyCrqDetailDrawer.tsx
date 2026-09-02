@@ -87,7 +87,7 @@ export function MyCrqDetailDrawer({ crq, onClose }: { crq: Crq | null; onClose: 
                 ["Stage",      <StageChip key="s" stage={data.currentStage} />],
                 ["Service",    data.serviceCode],
                 ["Stage Status", data.stageStatus],
-                ["SLA",        data.slaPercentage == null ? "" : `${data.slaPercentage}%`],
+                // ["SLA",        data.slaPercentage == null ? "" : `${data.slaPercentage}%`],
               ].map(([k, v]) => (
                 <Box key={String(k)}>
                   <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>{k}</Typography>

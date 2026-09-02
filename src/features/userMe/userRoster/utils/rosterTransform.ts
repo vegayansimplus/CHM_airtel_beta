@@ -10,6 +10,12 @@ import type {
   RosterMonthStats,
 } from "../types/roster.types";
 
+/** Shift boundaries, as "HH:mm", parsed out of a "(9:30 AM - 6:30 PM)" label.
+ *  The format list has to carry "h:mm A" first: on "h A" alone moment reads
+ *  only the hour and silently discards the minutes, so every half-hour shift
+ *  came back rounded down — a 9:30 AM – 6:30 PM shift measured as 9:00–6:00. */
+const SHIFT_TIME_FORMATS = ["h:mm A", "H:mm", "h A"];
+
 export const parseShiftTime = (shift: string) => {
   const match = shift.match(/\(([^)]+)\)/);
 
@@ -21,8 +27,8 @@ export const parseShiftTime = (shift: string) => {
 
   return {
     allDay: false,
-    startTime: moment(start, ["h A"]).format("HH:mm"),
-    endTime: moment(end, ["h A"]).format("HH:mm"),
+    startTime: moment(start, SHIFT_TIME_FORMATS).format("HH:mm"),
+    endTime: moment(end, SHIFT_TIME_FORMATS).format("HH:mm"),
   };
 };
 

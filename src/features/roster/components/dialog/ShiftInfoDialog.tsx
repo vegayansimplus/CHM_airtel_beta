@@ -25,6 +25,7 @@ import EventBusyRoundedIcon from "@mui/icons-material/EventBusyRounded";
 import dayjs from "dayjs";
 import { useGetDailyAssignmentsQuery } from "../../../dashboard/api/dashboardApi";
 import type { EngineerDailyAssignmentRow } from "../../../dashboard/types/dashboard.types";
+import { parseShiftTime } from "../../../userMe/userRoster/utils/rosterTransform";
 
 interface ShiftInfoDialogProps {
   open: boolean;
@@ -73,6 +74,75 @@ function fmtDuration(mins?: number | null): string {
   if (!h) return `${m}m`;
   return m ? `${h}h ${m}m` : `${h}h`;
 }
+
+/* ─── Shift-day time math ────────────────────────────────────────────────
+   A night shift's work is timestamped on the calendar date the shift *starts*,
+   so 12:00–2:00 AM under a 10:00 PM – 7:00 AM shift arrives with a clock time
+   that sits *before* the shift start. Read as plain wall clock it looks like
+   the small hours of the morning before, which is why the timeline used to
+   invent its own bounds around it. Everything below works in minutes on the
+   shift day instead — a clock time earlier than the shift start belongs to the
+   stretch past midnight — the same rule the dashboard's AttendanceTimeline
+   applies. */
+const MINUTES_IN_DAY = 24 * 60;
+
+/** "22:00" → 1320. NaN when the source string was not a real time. */
+function hhmmToMinutes(hhmm: string): number {
+  const [h, m] = hhmm.split(":");
+  return Number(h) * 60 + Number(m);
+}
+
+/** Minutes past midnight of a timestamp, seconds kept as a fraction. */
+function minutesOfDay(value: string): number {
+  const d = dayjs(value);
+  return d.hour() * 60 + d.minute() + d.second() / 60;
+}
+
+/** Minutes on the shift day, given where that shift day begins. */
+function toShiftMinutes(value: string, anchor: number): number {
+  const mins = minutesOfDay(value);
+  return mins < anchor ? mins + MINUTES_IN_DAY : mins;
+}
+
+/** Renders a shift-day minute (which may run past 1440) as a clock label. */
+function fmtShiftClock(mins: number): string {
+  const wrapped = ((Math.round(mins) % MINUTES_IN_DAY) + MINUTES_IN_DAY) % MINUTES_IN_DAY;
+  const h = Math.floor(wrapped / 60);
+  const m = wrapped % 60;
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+/** The rostered window out of "N (10:00 PM - 07:00 AM)", in shift-day minutes
+ *  (an overnight end rolls past 1440). `null` for shifts that carry no time
+ *  range at all — WO, Holiday, Leave — or a label the parser cannot read. */
+function parseShiftWindow(label: string): { start: number; end: number } | null {
+  const parsed = parseShiftTime(label);
+  if (!("startTime" in parsed) || !parsed.startTime || !parsed.endTime) return null;
+  const start = hhmmToMinutes(parsed.startTime);
+  let end = hhmmToMinutes(parsed.endTime);
+  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  if (end <= start) end += MINUTES_IN_DAY; // overnight shift
+  return { start, end };
+}
+
+/** An assignment that actually carries both ends of its window. */
+type TimedAssignment = EngineerDailyAssignmentRow & {
+  startTime: string;
+  endTime: string;
+};
+
+type TimelineLane = { row: TimedAssignment; start: number; end: number };
+
+type Timeline = {
+  /** Axis bounds, in shift-day minutes. */
+  start: number;
+  end: number;
+  lanes: TimelineLane[];
+  /** The rostered window — set only when the axis had to reach past it. */
+  shiftWindow: { start: number; end: number } | null;
+};
 
 /* ─── Small presentational pieces ────────────────────────────────────── */
 function SectionTitle({ icon, label }: { icon: React.ReactNode; label: string }) {
@@ -179,19 +249,20 @@ function StatusLegend({
   );
 }
 
-/** Compact Gantt-style timeline: one lane per assignment, positioned by real start/end time. */
+/** Compact Gantt-style timeline: one lane per assignment, positioned inside
+ *  the rostered shift window. */
 function AssignmentTimeline({
-  timedRows,
-  axis,
+  timeline,
   toneColor,
   isDark,
 }: {
-  timedRows: EngineerDailyAssignmentRow[];
-  axis: { min: number; max: number };
+  timeline: Timeline;
   toneColor: Record<StatusTone, string>;
   isDark: boolean;
 }) {
-  const span = axis.max - axis.min || 1;
+  const span = timeline.end - timeline.start || 1;
+  const pct = (mins: number) => ((mins - timeline.start) / span) * 100;
+
   return (
     <Box
       sx={{
@@ -205,66 +276,83 @@ function AssignmentTimeline({
     >
       <Stack direction="row" justifyContent="space-between" sx={{ mb: 1 }}>
         <Typography sx={{ fontSize: 10, fontWeight: 600, color: "text.secondary" }}>
-          {dayjs(axis.min).format("h:mm A")}
+          {fmtShiftClock(timeline.start)}
         </Typography>
         <Typography sx={{ fontSize: 10, fontWeight: 600, color: "text.secondary" }}>
-          {dayjs(axis.max).format("h:mm A")}
+          {fmtShiftClock(timeline.end)}
         </Typography>
       </Stack>
-      <Stack spacing="7px">
-        {timedRows.map((r, i) => {
-          const start = dayjs(r.startTime).valueOf();
-          const end = dayjs(r.endTime).valueOf();
-          const left = ((start - axis.min) / span) * 100;
-          const width = Math.max(((end - start) / span) * 100, 2.5);
-          const tone = toneForRemark(r.remark);
+      <Box sx={{ position: "relative" }}>
+        {/* Only drawn when an assignment pushed the axis past the rostered
+            window, so an overrun stays readable instead of being clipped. */}
+        {timeline.shiftWindow && (
+          <Box
+            aria-hidden
+            sx={{
+              position: "absolute",
+              top: 0,
+              bottom: 0,
+              left: `${pct(timeline.shiftWindow.start)}%`,
+              width: `${pct(timeline.shiftWindow.end) - pct(timeline.shiftWindow.start)}%`,
+              borderRadius: 1,
+              bgcolor: isDark ? "rgba(255,255,255,0.05)" : "rgba(15,23,42,0.04)",
+              pointerEvents: "none",
+            }}
+          />
+        )}
+        <Stack spacing="7px">
+          {timeline.lanes.map(({ row: r, start, end }, i) => {
+            const left = pct(start);
+            const width = Math.max(pct(end) - left, 2.5);
+            const tone = toneForRemark(r.remark);
 
-          return (
-            <Tooltip
-              key={`${r.planNo}-${r.stage}-${i}`}
-              arrow
-              placement="top"
-              title={
-                <Box sx={{ py: 0.25 }}>
-                  <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
-                    {(r.crqNo ?? r.planNo) || "—"} · {r.stage}
-                  </Typography>
-                  <Typography sx={{ fontSize: 10.5, opacity: 0.85 }}>
-                    {fmtTime(r.startTime)} – {fmtTime(r.endTime)} ({fmtDuration(r.durationMins)})
-                  </Typography>
-                  <Typography sx={{ fontSize: 10.5, opacity: 0.85 }}>{r.remark}</Typography>
-                </Box>
-              }
-            >
-              <Box
-                sx={{
-                  position: "relative",
-                  height: 20,
-                  borderBottom: "1px solid",
-                  borderColor: "divider",
-                }}
+            return (
+              <Tooltip
+                key={`${r.planNo}-${r.stage}-${i}`}
+                arrow
+                placement="top"
+                title={
+                  <Box sx={{ py: 0.25 }}>
+                    <Typography sx={{ fontSize: 11, fontWeight: 700 }}>
+                      {(r.crqNo ?? r.planNo) || "—"} · {r.stage}
+                    </Typography>
+                    <Typography sx={{ fontSize: 10.5, opacity: 0.85 }}>
+                      {fmtTime(r.startTime)} – {fmtTime(r.endTime)} ({fmtDuration(r.durationMins)})
+                    </Typography>
+                    <Typography sx={{ fontSize: 10.5, opacity: 0.85 }}>{r.remark}</Typography>
+                  </Box>
+                }
               >
                 <Box
                   sx={{
-                    position: "absolute",
-                    top: 2,
-                    bottom: 4,
-                    left: `${left}%`,
-                    width: `${width}%`,
-                    minWidth: 6,
-                    borderRadius: "4px",
-                    bgcolor: toneColor[tone],
-                    boxShadow: `0 1px 3px ${alpha(toneColor[tone], 0.4)}`,
-                    transition: "filter .15s, transform .15s",
-                    transformOrigin: "center",
-                    "&:hover": { filter: "brightness(1.1)", transform: "scaleY(1.15)" },
+                    position: "relative",
+                    height: 20,
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
                   }}
-                />
-              </Box>
-            </Tooltip>
-          );
-        })}
-      </Stack>
+                >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: 2,
+                      bottom: 4,
+                      left: `${left}%`,
+                      width: `${width}%`,
+                      minWidth: 6,
+                      borderRadius: "4px",
+                      bgcolor: toneColor[tone],
+                      boxShadow: `0 1px 3px ${alpha(toneColor[tone], 0.4)}`,
+                      transition: "filter .15s, transform .15s",
+                      transformOrigin: "center",
+                      "&:hover": { filter: "brightness(1.1)", transform: "scaleY(1.15)" },
+                    }}
+                  />
+                </Box>
+              </Tooltip>
+            );
+          })}
+        </Stack>
+      </Box>
     </Box>
   );
 }
@@ -389,22 +477,57 @@ export const ShiftInfoDialog = ({ open, onClose, data }: ShiftInfoDialogProps) =
   const timedRows = useMemo(
     () =>
       rows.filter(
-        (r) => r.startTime && r.endTime && dayjs(r.startTime).isValid() && dayjs(r.endTime).isValid(),
+        (r): r is TimedAssignment =>
+          !!r.startTime && !!r.endTime && dayjs(r.startTime).isValid() && dayjs(r.endTime).isValid(),
       ),
     [rows],
   );
 
-  const axis = useMemo(() => {
+  /* shiftDisplay is the one place the rostered window survives — it arrives as
+     "N (10:00 PM - 7:00 AM)". timeRange, when a caller sets it instead, is the
+     bare range with an en dash, so it gets wrapped back into the shape
+     parseShiftTime expects. */
+  const shiftLabel = useMemo(() => {
+    const display: string = shift?.shiftDisplay ?? "";
+    if (display.includes("(")) return display;
+    const range: string = shift?.timeRange ?? "";
+    return range ? `(${range.replace(/\s*[–—-]\s*/, " - ")})` : display;
+  }, [shift?.shiftDisplay, shift?.timeRange]);
+
+  const timeline = useMemo<Timeline | null>(() => {
     if (!timedRows.length) return null;
-    let min = dayjs(timedRows[0].startTime).valueOf();
-    let max = dayjs(timedRows[0].endTime).valueOf();
-    timedRows.forEach((r) => {
-      min = Math.min(min, dayjs(r.startTime).valueOf());
-      max = Math.max(max, dayjs(r.endTime).valueOf());
+
+    // The shift day starts at the rostered start time; with no parseable shift
+    // it falls back to the hour the earliest assignment begins.
+    const shiftWindow = parseShiftWindow(shiftLabel);
+    const anchor =
+      shiftWindow?.start ??
+      Math.floor(Math.min(...timedRows.map((r) => minutesOfDay(r.startTime))) / 60) * 60;
+
+    const lanes: TimelineLane[] = timedRows.map((r) => {
+      const start = toShiftMinutes(r.startTime, anchor);
+      let end = toShiftMinutes(r.endTime, anchor);
+      if (end < start) end += MINUTES_IN_DAY; // assignment runs past midnight
+      return { row: r, start, end };
     });
-    const pad = Math.max((max - min) * 0.08, 5 * 60 * 1000);
-    return { min: min - pad, max: max + pad };
-  }, [timedRows]);
+
+    // The axis is the rostered window, widened to the hour only when an
+    // assignment genuinely falls outside it — never stretched by an arbitrary
+    // fraction, so both end labels stay real clock times the rest of the
+    // dialog agrees with.
+    const dataStart = Math.min(...lanes.map((l) => l.start));
+    const dataEnd = Math.max(...lanes.map((l) => l.end));
+    const start = Math.min(shiftWindow?.start ?? dataStart, Math.floor(dataStart / 60) * 60);
+    const end = Math.max(shiftWindow?.end ?? dataEnd, Math.ceil(dataEnd / 60) * 60);
+
+    return {
+      start,
+      end: end > start ? end : start + 60,
+      lanes,
+      shiftWindow:
+        shiftWindow && (start < shiftWindow.start || end > shiftWindow.end) ? shiftWindow : null,
+    };
+  }, [timedRows, shiftLabel]);
 
   if (!data) return null;
 
@@ -523,7 +646,7 @@ export const ShiftInfoDialog = ({ open, onClose, data }: ShiftInfoDialogProps) =
 
             <StatusLegend rows={rows} toneColor={toneColor} />
 
-            {axis && <AssignmentTimeline timedRows={timedRows} axis={axis} toneColor={toneColor} isDark={isDark} />}
+            {timeline && <AssignmentTimeline timeline={timeline} toneColor={toneColor} isDark={isDark} />}
 
             <Stack spacing={1}>
               {rows.map((r, i) => (
