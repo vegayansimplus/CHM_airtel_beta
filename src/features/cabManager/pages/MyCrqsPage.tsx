@@ -31,7 +31,10 @@ export function MyCrqsPage() {
   const { data, isLoading, isError, error, refetch } = useGetMyCrqsQuery();
   // const { data: services } = useGetCabServicesQuery();
 
-  const [selected, setSelected] = useState<string | null>(null);
+  // The whole row, not just an id: the detail proc is keyed on serviceApprovalId
+  // while the SPOC/FE and Conflict modals still need the CRQ number, and the row
+  // also carries serviceApprovalStatus, which the detail proc no longer returns.
+  const [selected, setSelected] = useState<Crq | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -185,7 +188,7 @@ export function MyCrqsPage() {
     muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: ({ row }) => ({
       hover: true,
-      onClick: () => setSelected(row.original.crqNo),
+      onClick: () => setSelected(row.original),
       sx: {
         cursor: "pointer",
         "&:hover td": {
@@ -294,7 +297,7 @@ export function MyCrqsPage() {
         <MaterialReactTable table={table} />
       </Paper>
 
-      <MyCrqDetailDrawer crqId={selected} onClose={() => setSelected(null)} />
+      <MyCrqDetailDrawer crq={selected} onClose={() => setSelected(null)} />
     </Box>
   );
 }
