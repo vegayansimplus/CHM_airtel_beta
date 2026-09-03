@@ -132,6 +132,7 @@ export const api = createApi({
     "ImpactBatch",
     "Checkpoints",
     "CabRejectReasons",
-    "CancelledCrq"
+    "CancelledCrq",
+    "MopDocument"
   ],
 });

@@ -5,14 +5,15 @@ import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import type { StageConfig } from "../../../types/stageWorkflow.types";
 import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
-// import type { StageConfig } from "../../../types/stageWorkflow.types";
+import { MopCreateDocumentPanel } from "./mopCreate/MopCreateDocumentPanel";
 
 interface StagePreviewPanelProps {
   crqNo: string | null;
   stageConfig: StageConfig;
-  /** Cancelled / already-reviewed / view-only stage - the explorer stays
-   * readable (batches, drill-downs, Delta, Excel download) but the one
-   * side-effecting control in it, "Refetch", is inert. */
+  /** Cancelled / already-reviewed / view-only stage - the panel stays
+   * readable (batches, drill-downs, Delta, Excel download; the stored MOP
+   * and its download) but every side-effecting control in it - Impact
+   * Analysis's "Refetch", MOP Create's uploader - is inert. */
   readOnly?: boolean;
   panelOpen: boolean;
   colors: any;
@@ -20,11 +21,31 @@ interface StagePreviewPanelProps {
 }
 
 /**
- * Right panel for the Impact Analysis stage's `StageReviewDialog` - the only
- * stage with a real live view (`ImpactBatchExplorer`) to show here. Every
- * other stage (MOP Create, MOP Validate, Scheduling, Activity Implement,
- * Closer) has no summary data to preview, so `StageReviewDialog` skips this
- * panel entirely for them instead of mounting it empty.
+ * Per-stage copy for the panel's header row and its collapse toggle. Only
+ * the stages `StageReviewDialog.hasPreviewPanel` admits appear here; every
+ * other stage (MOP Validate, Scheduling, Activity Implement, Closer) has no
+ * summary data to show, so that dialog skips this panel entirely for them
+ * rather than mounting it empty.
+ */
+const PANEL_COPY: Record<string, { title: string; chip: string; show: string; hide: string }> = {
+  impactanalysis: {
+    title: "Impact Analysis Summary",
+    chip: "Live",
+    show: "Show Validation",
+    hide: "Hide Validation",
+  },
+  mopcreate: {
+    title: "MOP Document",
+    chip: "Live",
+    show: "Show Document",
+    hide: "Hide Document",
+  },
+};
+
+/**
+ * Right panel of `StageReviewDialog`, paired with the stage's action form.
+ * What it renders is chosen by stage: Impact Analysis gets the live
+ * `ImpactBatchExplorer`, MOP Create the MOP header and document uploader.
  */
 export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   crqNo,
@@ -33,59 +54,78 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   panelOpen,
   colors,
   setPanelOpen,
-}) => (
-  <Box
-    component="section"
-    sx={{
-      flex: 1,
-      minWidth: 0,
-      display: "flex",
-      flexDirection: "column",
-      bgcolor: colors.isDark ? alpha("#fff", 0.02) : "#F4F5F7",
-    }}
-  >
+}) => {
+  const copy = PANEL_COPY[stageConfig.key] ?? {
+    title: `${stageConfig.label} Summary`,
+    chip: "Live",
+    show: "Show Panel",
+    hide: "Hide Panel",
+  };
+
+  return (
     <Box
+      component="section"
       sx={{
-        px: 2.5,
-        py: 1.2,
-        borderBottom: `1px solid ${colors.border}`,
+        flex: 1,
+        minWidth: 0,
         display: "flex",
-        alignItems: "center",
-        gap: 1.5,
+        flexDirection: "column",
+        bgcolor: colors.isDark ? alpha("#fff", 0.02) : "#F4F5F7",
       }}
     >
-      <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary }}>
-        {stageConfig.label} Summary
-      </Typography>
-      <Chip
-        label="Live"
-        size="small"
-        sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: alpha(colors.accent, 0.1), color: colors.accent }}
-      />
-      <Box sx={{ flex: 1 }} />
-      {/* Collapse/expand is a view control, not an action, so it stays live
-          even on a frozen stage - on a small screen the form auto-collapses,
-          and disabling this was the only way back to it. */}
-      <Tooltip title={panelOpen ? "Collapse" : "Expand"} arrow>
-        <Button
+      <Box
+        sx={{
+          px: 2.5,
+          py: 1.2,
+          borderBottom: `1px solid ${colors.border}`,
+          display: "flex",
+          alignItems: "center",
+          gap: 1.5,
+        }}
+      >
+        <Typography variant="body2" sx={{ fontWeight: 700, fontSize: 13, color: colors.textPrimary }}>
+          {copy.title}
+        </Typography>
+        <Chip
+          label={copy.chip}
           size="small"
-          onClick={() => setPanelOpen((v) => !v)}
-          startIcon={panelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
-          sx={{ color: colors.accent, border: `1px solid ${alpha(colors.accent, 0.28)}` }}
-        >
-          {panelOpen ? "Hide Validation" : "Show Validation"}
-        </Button>
-      </Tooltip>
-    </Box>
+          sx={{ height: 20, fontSize: 10, fontWeight: 700, bgcolor: alpha(colors.accent, 0.1), color: colors.accent }}
+        />
+        <Box sx={{ flex: 1 }} />
+        {/* Collapse/expand is a view control, not an action, so it stays live
+            even on a frozen stage - on a small screen the form auto-collapses,
+            and disabling this was the only way back to it. */}
+        <Tooltip title={panelOpen ? "Collapse" : "Expand"} arrow>
+          <Button
+            size="small"
+            onClick={() => setPanelOpen((v) => !v)}
+            startIcon={panelOpen ? <ChevronLeftIcon /> : <ChevronRightIcon />}
+            sx={{ color: colors.accent, border: `1px solid ${alpha(colors.accent, 0.28)}` }}
+          >
+            {panelOpen ? copy.hide : copy.show}
+          </Button>
+        </Tooltip>
+      </Box>
 
-    <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
-      <SmartScrollContainer fill>
-        <Box sx={{ p: 2.5 }}>
-          <ImpactBatchExplorer crqNo={crqNo} colors={colors} readOnly={readOnly} />
-        </Box>
-      </SmartScrollContainer>
+      {/* MOP Create sizes itself to this box and never overflows it - its PDF
+          preview is what absorbs the leftover height - so it is mounted
+          directly. Wrapping it in the scroller would cap it at its content
+          height and leave the preview a few hundred pixels tall. Impact
+          Analysis is the opposite: an arbitrarily long batch list that has to
+          scroll. */}
+      <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
+        {stageConfig.key === "mopcreate" ? (
+          <MopCreateDocumentPanel crqNo={crqNo} readOnly={readOnly} colors={colors} />
+        ) : (
+          <SmartScrollContainer fill>
+            <Box sx={{ p: 2.5 }}>
+              <ImpactBatchExplorer crqNo={crqNo} colors={colors} readOnly={readOnly} />
+            </Box>
+          </SmartScrollContainer>
+        )}
+      </Box>
     </Box>
-  </Box>
-);
+  );
+};
 
 export default StagePreviewPanel;

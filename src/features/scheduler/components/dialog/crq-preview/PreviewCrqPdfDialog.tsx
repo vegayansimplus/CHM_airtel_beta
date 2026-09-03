@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect } from "react";
 import {
   Box,
   Button,
@@ -24,6 +24,7 @@ import ErrorOutlineRoundedIcon from "@mui/icons-material/ErrorOutlineRounded";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
 import type { Colors } from "../../../types/colorTypes";
 import { useLazyGetCrqPlanPdfQuery } from "../../../api/crqreviewApiSlice";
+import { usePdfObjectUrl } from "../../../hook/usePdfObjectUrl";
 
 export interface PreviewCrqPdfDialogProps {
   open: boolean;
@@ -47,59 +48,11 @@ export const PreviewCrqPdfDialog: React.FC<PreviewCrqPdfDialogProps> = ({
   const theme = useTheme();
   const isSmall = useMediaQuery(theme.breakpoints.down("sm"));
   const [trigger, { data: blob, isFetching, isError }] = useLazyGetCrqPlanPdfQuery();
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
-  const [isMalformed, setIsMalformed] = useState(false);
-  const objectUrlRef = useRef<string | null>(null);
+  const { url: pdfUrl, isMalformed } = usePdfObjectUrl(blob);
 
   useEffect(() => {
-    if (open && crqNo) {
-      setIsMalformed(false);
-      trigger(crqNo);
-    }
+    if (open && crqNo) trigger(crqNo);
   }, [open, crqNo, trigger]);
-
-  // Builds/revokes the blob: URL the iframe and download button use - never
-  // leaks the previous URL across re-fetches (retry, switching CRQ). Checks
-  // the "%PDF-" magic header first: the backend is expected to reject
-  // corrupt/non-PDF documents itself, but if bad bytes ever slip through
-  // this stops the browser's own PDF viewer from showing its opaque
-  // "Failed to load PDF document" error in place of our error state.
-  useEffect(() => {
-    if (objectUrlRef.current) {
-      URL.revokeObjectURL(objectUrlRef.current);
-      objectUrlRef.current = null;
-    }
-    setPdfUrl(null);
-    setIsMalformed(false);
-    if (!blob) return;
-
-    let cancelled = false;
-    blob
-      .slice(0, 5)
-      .arrayBuffer()
-      .then((buf) => {
-        if (cancelled) return;
-        const header = new TextDecoder("ascii").decode(buf);
-        if (header !== "%PDF-") {
-          setIsMalformed(true);
-          return;
-        }
-        const url = URL.createObjectURL(blob);
-        objectUrlRef.current = url;
-        setPdfUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setIsMalformed(true);
-      });
-
-    return () => {
-      cancelled = true;
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, [blob]);
 
   const handleRetry = () => {
     if (crqNo) trigger(crqNo);
