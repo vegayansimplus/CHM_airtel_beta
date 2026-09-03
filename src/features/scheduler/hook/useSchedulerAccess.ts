@@ -11,6 +11,8 @@ export interface SchedulerAccess {
   canViewTaskConfig: boolean;
   /** /scheduler/crqjourney */
   canViewCrqJourney: boolean;
+  /** /scheduler/cancelledcrq — the read-only Cancelled CRQ register. */
+  canViewCancelledCrq: boolean;
   /**
    * Whether the user may perform the Scheduler's mutating actions (start/pause
    * a stage, submit a stage outcome, reschedule, sync plan data, update
@@ -40,6 +42,7 @@ export const useSchedulerAccess = (): SchedulerAccess => {
       canViewPlan: allows("/scheduler/planviewandsetup"),
       canViewTaskConfig: allows("/scheduler/taskconfig"),
       canViewCrqJourney: allows("/scheduler/crqjourney"),
+      canViewCancelledCrq: allows("/scheduler/cancelledcrq"),
       canEdit: can("Scheduler", "UPDATE"),
     };
   }, [hasModule, hasSubModule, can]);

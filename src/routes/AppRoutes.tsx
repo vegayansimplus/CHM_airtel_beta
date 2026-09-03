@@ -103,6 +103,14 @@ const PlanViewAndSetup = lazy(() =>
 const PlanViewAndSetupTab = lazy(
   () => import("../features/scheduler/page/PlanViewAndSetupTab"),
 );
+const CancelledCrqTab = lazy(
+  () => import("../features/scheduler/page/CancelledCrqTab"),
+);
+const CancelledCrqMain = lazy(() =>
+  import("../features/scheduler/sub-feature/cancelledCrq/CancelledCrqMain").then(
+    (m) => ({ default: m.CancelledCrqMain }),
+  ),
+);
 const TaskConfigMain = lazy(() =>
   import("../features/scheduler/sub-feature/taskConfig/TaskConfigMain").then(
     (m) => ({ default: m.TaskConfigMain }),
@@ -435,6 +443,16 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           {/* <Route path="taskplanning" element={<TaskPlanningMain />} /> */}
           <Route path="crqjourney" element={<CrqJourneyMain />} />
           <Route path="crqjourney/:id" element={<CrqJourneyMain />} />
+        </Route>
+
+        {/* Cancelled CRQ register — its own shell rather than a tab on the
+            plan-authoring strip above, since it is a read-only record and not
+            part of that flow. */}
+        <Route
+          path="scheduler"
+          element={<PrivateRoute element={<CancelledCrqTab />} />}
+        >
+          <Route path="cancelledcrq" element={<CancelledCrqMain />} />
         </Route>
 
         <Route

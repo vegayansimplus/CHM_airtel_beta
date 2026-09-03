@@ -26,6 +26,7 @@ import SchemaIcon from "@mui/icons-material/SchemaOutlined";
 import CloudSyncOutlinedIcon from "@mui/icons-material/CloudSyncOutlined";
 import DnsOutlinedIcon from "@mui/icons-material/DnsOutlined";
 import TerminalIcon from "@mui/icons-material/TerminalOutlined";
+import BlockOutlinedIcon from "@mui/icons-material/BlockOutlined";
 import {
   MY_DASHBOARD_BASE,
   MY_DASHBOARD_VISIBLE_TABS,
@@ -214,6 +215,19 @@ export const ALL_NAV_ITEMS: NavItem[] = [
         icon: <AltRouteIcon />,
         requiredModule: "Scheduler",
         matchPaths: ["/scheduler/crqjourney"],
+      },
+      {
+        /*
+         * Read-only register of every cancelled CRQ, across all seven stages.
+         * Gated at module level like CRQ Journey above: there is no
+         * WEB_SUB_MODULE row under module 5 for it, and naming one that does
+         * not exist would read as "not granted" for every user.
+         */
+        to: "/scheduler/cancelledcrq",
+        text: "Cancelled CRQs",
+        icon: <BlockOutlinedIcon />,
+        requiredModule: "Scheduler",
+        matchPaths: ["/scheduler/cancelledcrq"],
       },
     ],
   },
