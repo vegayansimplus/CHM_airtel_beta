@@ -24,6 +24,21 @@ export const mopDocumentApiSlice = api.injectEndpoints({
       providesTags: (_result, _error, crqNo) => [{ type: "MopDocument", id: crqNo }],
     }),
 
+    // POST /crqworkflow/mopcreate/{crqNo}/details - creates the MOP record
+    // through SP_GET_MOP_DETAILS_BY_CRQN. Named like a read but it writes:
+    // `mop`, `mop_version` v1, `mop_file` and an audit entry. It refuses a
+    // second call ("A MOP already exists for this CRQ"), which is why this is
+    // a mutation the reviewer triggers once rather than part of the query
+    // above - driving it off the dialog's GET created a MOP on first open and
+    // then failed on every open after.
+    createMop: builder.mutation<MopCreateDetails, string>({
+      query: (crqNo) => ({
+        url: `/crqworkflow/mopcreate/${crqNo}/details`,
+        method: "POST",
+      }),
+      invalidatesTags: (_result, _error, crqNo) => [{ type: "MopDocument", id: crqNo }],
+    }),
+
     // GET /crqworkflow/mopcreate/{crqNo}/pdf - a real application/pdf stream,
     // or 404 JSON when nothing is stored. Only fetched once `documentAttached`
     // says there is something to fetch, so a 404 here is a genuine error
@@ -64,6 +79,7 @@ export const mopDocumentApiSlice = api.injectEndpoints({
 });
 
 export const {
+  useCreateMopMutation,
   useGetMopCreateDetailsQuery,
   useGetMopCreatePdfQuery,
   useLazyGetMopCreatePdfQuery,
