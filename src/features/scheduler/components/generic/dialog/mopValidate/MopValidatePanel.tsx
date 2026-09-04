@@ -10,6 +10,7 @@ import {
   alpha,
 } from "@mui/material";
 import AssignmentTurnedInOutlinedIcon from "@mui/icons-material/AssignmentTurnedInOutlined";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import PlayArrowRoundedIcon from "@mui/icons-material/PlayArrowRounded";
 import { toast } from "react-toastify";
@@ -18,6 +19,7 @@ import {
   useGetMopValidateDetailsQuery,
   useStartMopReviewMutation,
 } from "../../../../api/mopValidateApiSlice";
+import { MopReviewWorkspaceDialog } from "./MopReviewWorkspaceDialog";
 
 interface MopValidatePanelProps {
   crqNo: string | null;
@@ -53,6 +55,12 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
 
   const [startReview, { isLoading: isStarting }] = useStartMopReviewMutation();
   const [actionError, setActionError] = useState<string | null>(null);
+
+  // The full validation workspace - the document, findings, history and the
+  // two decisions - is a fullscreen dialog rather than more of this pane: the
+  // design pairs a document viewer with a 420px rail, which cannot breathe
+  // inside what is already the right half of the stage dialog.
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   const handleStart = async () => {
     if (!crqNo) return;
@@ -137,6 +145,18 @@ export const MopValidatePanel: React.FC<MopValidatePanelProps> = ({ crqNo, readO
           readOnly={readOnly}
           isStarting={isStarting}
           onStart={handleStart}
+          onOpenWorkspace={() => setWorkspaceOpen(true)}
+        />
+      )}
+
+      {/* Mounted only while open so its workspace query - which pulls the
+          version history, findings and audit trail - never runs for a CRQ
+          nobody has opened. */}
+      {workspaceOpen && (
+        <MopReviewWorkspaceDialog
+          crqNo={crqNo}
+          open={workspaceOpen}
+          onClose={() => setWorkspaceOpen(false)}
         />
       )}
     </Box>
@@ -183,7 +203,8 @@ const ReviewBody: React.FC<{
   readOnly: boolean;
   isStarting: boolean;
   onStart: () => void;
-}> = ({ data, colors, canStart, readOnly, isStarting, onStart }) => (
+  onOpenWorkspace: () => void;
+}> = ({ data, colors, canStart, readOnly, isStarting, onStart, onOpenWorkspace }) => (
   <Box
     sx={{
       flex: 1,
@@ -229,6 +250,28 @@ const ReviewBody: React.FC<{
           }}
         />
       )}
+
+      {/* The workspace is readable whatever the review state - a superseded or
+          already-validated version still has findings and a history worth
+          opening - so this is never gated on canStart. */}
+      <Button
+        size="small"
+        variant="outlined"
+        onClick={onOpenWorkspace}
+        startIcon={<FactCheckOutlinedIcon sx={{ fontSize: "17px !important" }} />}
+        sx={{
+          textTransform: "none",
+          fontSize: 12.5,
+          fontWeight: 700,
+          borderRadius: 1.5,
+          px: 1.4,
+          whiteSpace: "nowrap",
+          color: colors.textPrimary,
+          borderColor: colors.border,
+        }}
+      >
+        Validate
+      </Button>
 
       {!data.reviewOpen && (
         <Button

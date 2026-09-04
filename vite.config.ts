@@ -17,6 +17,59 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+
+    // ---- Single-React guarantees ----------------------------------------
+    // The "Invalid hook call / Cannot read properties of null (reading
+    // 'useContext')" crash in dev is never a Rules-of-Hooks violation in our
+    // components: it is two *copies of React* alive in the same browser tab.
+    // It shows up as mismatched dep-optimizer hashes in the stack trace, e.g.
+    // MUI's useTheme running from `chunk-...js?v=1520b26f` while the renderer
+    // is `react-dom_client.js?v=ed507458`. The old chunk's React has a null
+    // dispatcher because the *new* React is the one actually rendering.
+    //
+    // Two independent guards below:
+    //
+    // 1. `resolve.dedupe` collapses any duplicate physical resolution of these
+    //    packages to the root copy, so a transitive dep that ships its own
+    //    React (or a linked package) can never introduce a second instance.
+    resolve: {
+      dedupe: [
+        'react',
+        'react-dom',
+        'react-router',
+        '@mui/material',
+        '@mui/system',
+        '@emotion/react',
+        '@emotion/styled',
+      ],
+    },
+    // 2. `optimizeDeps.include` pins the packages that must never be
+    //    discovered *late*. Vite bumps the shared `browserHash` on every
+    //    re-optimization pass; anything the first pass missed forces a second
+    //    pass mid-session, and a tab that has already evaluated modules from
+    //    the first pass then holds a stale React alongside the new one. These
+    //    entries are the ones whose duplication is fatal rather than merely
+    //    wasteful, so they are declared up front instead of being left to the
+    //    scanner. Deep `@mui/icons-material/*` imports are deliberately NOT
+    //    listed - the scanner already finds all ~376 of them through the
+    //    React.lazy() route boundaries, and enumerating them here would make
+    //    the config hash churn on every new icon import.
+    optimizeDeps: {
+      include: [
+        'react',
+        'react/jsx-runtime',
+        'react/jsx-dev-runtime',
+        'react-dom',
+        'react-dom/client',
+        'react-router',
+        'react-redux',
+        '@reduxjs/toolkit',
+        '@mui/material',
+        '@mui/material/styles',
+        '@emotion/react',
+        '@emotion/styled',
+      ],
+    },
     assetsInclude: ['**/*.xlsx', '**/*.xlsm'],
     base: basePath,
     server: {
@@ -38,6 +91,19 @@ export default defineConfig(({ mode }) => {
           // long-lived-cache chunks collapses that burst.
           manualChunks(id: string) {
             if (!id.includes('node_modules')) return undefined
+            // pdf.js is the one library worth keeping out of 'vendor': it is
+            // ~430KB that only the MOP validation workspace needs, and that
+            // screen lazy-loads its canvas, so this chunk is fetched on the
+            // first Validate click and never on app start. Safe to split
+            // despite the note below - react-pdf imports React one way and
+            // nothing in 'vendor' imports back into it, so there is no
+            // cross-chunk cycle to trip over.
+            // Anchored on the package directory so it matches the standalone
+            // `react-pdf` viewer only. A bare 'react-pdf' substring would also
+            // catch `@react-pdf/renderer`, which is a different library that
+            // team-management's employee export uses - dragging it into a chunk
+            // only the MOP viewer pulls would make every export wait on pdf.js.
+            if (/node_modules[\\/](pdfjs-dist|react-pdf)[\\/]/.test(id)) return 'pdfjs'
             // MUI/Emotion, React, React-DOM and React-Router have circular
             // internal references (react-is, prop-types, etc). Splitting them
             // into separate chunk *files* forces the browser to execute one
