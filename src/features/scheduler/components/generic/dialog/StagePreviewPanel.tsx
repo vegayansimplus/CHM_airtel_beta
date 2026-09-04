@@ -6,6 +6,7 @@ import type { StageConfig } from "../../../types/stageWorkflow.types";
 import SmartScrollContainer from "../../../../../components/common/SmartScrollContainer";
 import { ImpactBatchExplorer } from "./impactAnalysis/ImpactBatchExplorer";
 import { MopCreateDocumentPanel } from "./mopCreate/MopCreateDocumentPanel";
+import { MopValidatePanel } from "./mopValidate/MopValidatePanel";
 
 interface StagePreviewPanelProps {
   crqNo: string | null;
@@ -40,12 +41,19 @@ const PANEL_COPY: Record<string, { title: string; chip: string; show: string; hi
     show: "Show Document",
     hide: "Hide Document",
   },
+  mopvalidate: {
+    title: "MOP Validation",
+    chip: "Live",
+    show: "Show Validation",
+    hide: "Hide Validation",
+  },
 };
 
 /**
  * Right panel of `StageReviewDialog`, paired with the stage's action form.
  * What it renders is chosen by stage: Impact Analysis gets the live
- * `ImpactBatchExplorer`, MOP Create the MOP header and document uploader.
+ * `ImpactBatchExplorer`, MOP Create the MOP header and document uploader, MOP
+ * Validate the current MOP version and its review.
  */
 export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
   crqNo,
@@ -107,15 +115,17 @@ export const StagePreviewPanel: React.FC<StagePreviewPanelProps> = ({
         </Tooltip>
       </Box>
 
-      {/* MOP Create sizes itself to this box and never overflows it - its PDF
-          preview is what absorbs the leftover height - so it is mounted
-          directly. Wrapping it in the scroller would cap it at its content
-          height and leave the preview a few hundred pixels tall. Impact
-          Analysis is the opposite: an arbitrarily long batch list that has to
-          scroll. */}
+      {/* Both MOP panels size themselves to this box and never overflow it -
+          MOP Create's PDF preview and MOP Validate's review body absorb the
+          leftover height - so they are mounted directly. Wrapping them in the
+          scroller would cap them at their content height and leave the preview
+          a few hundred pixels tall. Impact Analysis is the opposite: an
+          arbitrarily long batch list that has to scroll. */}
       <Box sx={{ flex: 1, minHeight: 0, display: "flex", flexDirection: "column" }}>
         {stageConfig.key === "mopcreate" ? (
           <MopCreateDocumentPanel crqNo={crqNo} readOnly={readOnly} colors={colors} />
+        ) : stageConfig.key === "mopvalidate" ? (
+          <MopValidatePanel crqNo={crqNo} readOnly={readOnly} colors={colors} />
         ) : (
           <SmartScrollContainer fill>
             <Box sx={{ p: 2.5 }}>

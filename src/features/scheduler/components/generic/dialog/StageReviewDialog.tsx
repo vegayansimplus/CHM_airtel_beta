@@ -67,10 +67,14 @@ export const StageReviewDialog: React.FC<StageReviewDialogProps> = ({
   const isCancelled = isCrqCancelled || isCanceledStatus(stageStatus);
 
   // Only these stages have a right panel to pair the form with - Impact
-  // Analysis its live ImpactBatchExplorer, MOP Create its document uploader.
-  // Every other stage renders GenericFormPanel alone, so its collapse toggle
-  // and this small-screen auto-collapse would have nothing to reveal.
-  const hasPreviewPanel = stageConfig.key === "impactanalysis" || stageConfig.key === "mopcreate";
+  // Analysis its live ImpactBatchExplorer, MOP Create its document uploader,
+  // MOP Validate its current version and review. Every other stage renders
+  // GenericFormPanel alone, so its collapse toggle and this small-screen
+  // auto-collapse would have nothing to reveal.
+  const hasPreviewPanel =
+    stageConfig.key === "impactanalysis" ||
+    stageConfig.key === "mopcreate" ||
+    stageConfig.key === "mopvalidate";
 
   useEffect(() => {
     if (isSmall && hasPreviewPanel) setPanelOpen(false);

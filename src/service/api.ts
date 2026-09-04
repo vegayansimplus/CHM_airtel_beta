@@ -133,6 +133,7 @@ export const api = createApi({
     "Checkpoints",
     "CabRejectReasons",
     "CancelledCrq",
-    "MopDocument"
+    "MopDocument",
+    "MopReview"
   ],
 });
