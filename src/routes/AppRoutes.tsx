@@ -81,6 +81,11 @@ const UserLogs = lazy(() =>
     default: m.UserLogs,
   })),
 );
+const AuditLog = lazy(() =>
+  import("../features/userManagement/pages/AuditLog").then((m) => ({
+    default: m.AuditLog,
+  })),
+);
 const NetworkManagementTabView = lazy(
   () => import("../features/settings/page/NetworkManagementTabView"),
 );
@@ -471,6 +476,15 @@ const AppRoutes: React.FC<AppRoutesProps> = ({
           <Route index element={<Navigate to="usermang" replace />} />
           <Route path="usermang" element={<UserManagement />} />
           <Route path="userlogs" element={<UserLogs />} />
+          {/*
+            Audit Log — super admin only. Guarded twice over: PrivateRoute on
+            the parent re-evaluates the full pathname on every navigation and
+            refuses this one for anyone else (see ROUTE_ONLY_ACCESS_ENTRIES in
+            navRegistry), and the page itself fails closed if it is ever
+            rendered from somewhere that skipped that check. The backend refuses
+            the data independently of both.
+          */}
+          <Route path="auditlog" element={<AuditLog />} />
         </Route>
         <Route
           path="sftp-management"

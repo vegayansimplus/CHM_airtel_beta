@@ -4,11 +4,12 @@ import { Navigate, useLocation } from "react-router";
 import { usePermission } from "../rbac/usePermission";
 import { isPathAllowed } from "../rbac/routeAccess";
 import AccessDenied from "../rbac/AccessDenied";
+import { canViewAuditLog } from "../features/userManagement/utils/auditLogAccess";
 
 export const PrivateRoute = ({ element }: { element: JSX.Element }) => {
   const { isAuthenticated, hydrated } = useAppSelector((s) => s.auth);
   const location = useLocation();
-  const { hasModule, hasSubModule } = usePermission();
+  const { hasModule, hasSubModule, roleCode } = usePermission();
 
   if (!hydrated) {
     return null;
@@ -24,7 +25,17 @@ export const PrivateRoute = ({ element }: { element: JSX.Element }) => {
     return <Navigate to="/login" replace />;
   }
 
-  if (!isPathAllowed(location.pathname, hasModule, hasSubModule)) {
+  // The super-admin flag is the same predicate the Audit Log screen and the
+  // backend's sp_get_ui_actions_log_access use, so a super-admin-only route
+  // cannot be reached by typing its URL.
+  if (
+    !isPathAllowed(
+      location.pathname,
+      hasModule,
+      hasSubModule,
+      canViewAuditLog(roleCode),
+    )
+  ) {
     return <AccessDenied reason="forbidden" />;
   }
 

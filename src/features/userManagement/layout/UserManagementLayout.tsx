@@ -1,16 +1,19 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { useNavigate, useLocation } from "react-router";
 import { Box, Tabs, Tab, useTheme } from "@mui/material";
 import { useTabColorTokens } from "../../../style/theme";
 import AnimatedOutlet from "../../../components/loading/AnimatedOutlet";
 import { SHELL_MIN_HEIGHT } from "../../../components/layout/layoutConstants";
+import { usePermission } from "../../../rbac/usePermission";
+import { canViewAuditLog } from "../utils/auditLogAccess";
 
-const TAB_ROUTES = ["usermang", "userlogs"] as const;
-type TabRoute = (typeof TAB_ROUTES)[number];
+const ALL_TAB_ROUTES = ["usermang", "userlogs", "auditlog"] as const;
+type TabRoute = (typeof ALL_TAB_ROUTES)[number];
 
 const TAB_LABELS: Record<TabRoute, string> = {
   usermang: "User Management",
   userlogs: "User Log Details",
+  auditlog: "Audit Log",
 };
 
 const UserManagementLayout: React.FC = () => {
@@ -18,13 +21,30 @@ const UserManagementLayout: React.FC = () => {
   const { pathname } = useLocation();
   const theme = useTheme();
   const t = useTabColorTokens(theme);
+  const { roleCode } = usePermission();
+
+  /*
+   * The Audit Log tab is the menu entry for a super-admin-only screen, so it is
+   * removed from the strip for everyone else rather than merely disabled — a
+   * disabled tab still advertises that the screen exists.
+   *
+   * Hiding it is a convenience, not the protection: PrivateRoute refuses the
+   * URL, the page fails closed, and the backend answers 403 regardless.
+   */
+  const tabRoutes = useMemo(
+    () =>
+      ALL_TAB_ROUTES.filter(
+        (route) => route !== "auditlog" || canViewAuditLog(roleCode),
+      ),
+    [roleCode],
+  );
 
   // Derive active tab from current URL
-  const activeTab = TAB_ROUTES.findIndex((route) => pathname.endsWith(route));
+  const activeTab = tabRoutes.findIndex((route) => pathname.endsWith(route));
   const currentTab = activeTab === -1 ? 0 : activeTab;
 
   const handleTabChange = (_: React.SyntheticEvent, newValue: number) => {
-    navigate(TAB_ROUTES[newValue]);
+    navigate(tabRoutes[newValue]);
   };
 
   return (
@@ -81,7 +101,7 @@ const UserManagementLayout: React.FC = () => {
             "& .MuiTabs-indicator": { height: 2, borderRadius: "2px 2px 0 0" },
           }}
         >
-          {TAB_ROUTES.map((route) => (
+          {tabRoutes.map((route) => (
             <Tab key={route} label={TAB_LABELS[route]} />
           ))}
         </Tabs>

@@ -134,6 +134,7 @@ export const api = createApi({
     "CabRejectReasons",
     "CancelledCrq",
     "MopDocument",
-    "MopReview"
+    "MopReview",
+    "AuditLog"
   ],
 });

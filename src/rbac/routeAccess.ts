@@ -1,6 +1,7 @@
 // src/rbac/routeAccess.ts
 import {
   ALL_NAV_ITEMS,
+  ROUTE_ONLY_ACCESS_ENTRIES,
   isNavItemAllowed,
   type AccessRequirement,
   type NavItem,
@@ -46,6 +47,7 @@ const flatten = (items: NavItem[]): FlatEntry[] => {
       requiredModule: item.requiredModule,
       requiredSubModule: item.requiredSubModule,
       requiredAnyOf: item.requiredAnyOf,
+      requiredSuperAdmin: item.requiredSuperAdmin,
     });
     for (const child of item.children ?? []) {
       entries.push({
@@ -54,6 +56,7 @@ const flatten = (items: NavItem[]): FlatEntry[] => {
         requiredModule: child.requiredModule,
         requiredSubModule: child.requiredSubModule,
         requiredAnyOf: child.requiredAnyOf,
+        requiredSuperAdmin: child.requiredSuperAdmin,
       });
     }
   }
@@ -61,7 +64,12 @@ const flatten = (items: NavItem[]): FlatEntry[] => {
   return entries.sort((a, b) => b.to.length - a.to.length);
 };
 
-const FLAT_ENTRIES = flatten(ALL_NAV_ITEMS);
+// Sidebar items plus the routes that are guarded but not shown in the sidebar
+// (see ROUTE_ONLY_ACCESS_ENTRIES). Both go through the same sort, so a
+// route-only entry still wins over the shorter parent path it sits under.
+const FLAT_ENTRIES = [...flatten(ALL_NAV_ITEMS), ...ROUTE_ONLY_ACCESS_ENTRIES].sort(
+  (a, b) => b.to.length - a.to.length,
+);
 
 /**
  * Resolves what module/sub-module a given pathname requires, using the same
@@ -82,6 +90,7 @@ export const getRequiredAccess = (pathname: string): RequiredAccess | undefined 
     requiredModule: entry.requiredModule,
     requiredSubModule: entry.requiredSubModule,
     requiredAnyOf: entry.requiredAnyOf,
+    requiredSuperAdmin: entry.requiredSuperAdmin,
   };
 };
 
@@ -97,6 +106,13 @@ export const isPathAllowed = (
   path: string,
   hasModule: (moduleName: string) => boolean,
   hasSubModule: (moduleName: string, subModuleName: string) => boolean,
+  /**
+   * Optional so the existing callers (LoginPage vetting a pending redirect,
+   * the Scheduler and Global Settings tab strips) keep working unchanged. They
+   * gate no super-admin-only path, and omitting it fails closed rather than
+   * open — a super-admin-only route is refused, never wrongly permitted.
+   */
+  isSuperAdmin: boolean = false,
 ): boolean => {
   const access = getRequiredAccess(path.split(/[?#]/)[0]);
 
@@ -107,7 +123,7 @@ export const isPathAllowed = (
   // Delegated rather than re-implemented, so route protection and sidebar
   // visibility stay one predicate — including the requiredAnyOf case a
   // multi-module group (My Dashboard) relies on.
-  return isNavItemAllowed(access, hasModule, hasSubModule);
+  return isNavItemAllowed(access, hasModule, hasSubModule, isSuperAdmin);
 };
 
 /**

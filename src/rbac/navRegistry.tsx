@@ -38,6 +38,13 @@ export interface AccessRequirement {
   requiredSubModule?: string;
   /** When set, the item is allowed if ANY listed requirement is satisfied. */
   requiredAnyOf?: AccessRequirement[];
+  /**
+   * When true, only a super-admin role satisfies this — whatever modules the
+   * user holds. Used by screens whose access must not be delegable from Global
+   * Settings (the Audit Log), where a WEB_* grant would let an administrator
+   * hand out a screen the server still refuses.
+   */
+  requiredSuperAdmin?: boolean;
 }
 
 export interface NavItem extends AccessRequirement {
@@ -361,19 +368,52 @@ export const ALL_NAV_ITEMS: NavItem[] = [
   },
 ];
 
+/**
+ * Route entries that are guarded like nav items but are NOT shown in the
+ * sidebar — screens reached as a tab inside another workspace.
+ *
+ * `routeAccess` folds these into the same flat list it builds from
+ * `ALL_NAV_ITEMS`, so a direct URL to one is refused by exactly the predicate
+ * that governs everything else; `useSidebarNav` reads only `ALL_NAV_ITEMS`, so
+ * the sidebar's shape is untouched.
+ *
+ * Without this, /user-management/auditlog would prefix-match the plain
+ * "/user-management" entry and be allowed for anyone holding the User
+ * Management module.
+ */
+export const ROUTE_ONLY_ACCESS_ENTRIES: Array<
+  AccessRequirement & { to: string; matchPaths?: string[] }
+> = [
+  {
+    to: "/user-management/auditlog",
+    requiredModule: null,
+    requiredSuperAdmin: true,
+    matchPaths: ["/user-management/auditlog"],
+  },
+];
+
 export const isNavItemAllowed = (
   item: AccessRequirement,
   hasModule: (moduleName: string) => boolean,
   hasSubModule: (moduleName: string, subModuleName: string) => boolean,
+  /**
+   * Optional and defaulted to false so every existing caller keeps working
+   * unchanged — and so that a `requiredSuperAdmin` entry fails closed for any
+   * caller that has not been taught about it.
+   */
+  isSuperAdmin: boolean = false,
 ): boolean => {
   // Evaluated before the `requiredModule === null` shortcut below, so a group
   // spanning several modules can declare `requiredModule: null` and still be
   // gated — otherwise that null would read as "open to every signed-in user".
   if (item.requiredAnyOf?.length) {
     return item.requiredAnyOf.some((req) =>
-      isNavItemAllowed(req, hasModule, hasSubModule),
+      isNavItemAllowed(req, hasModule, hasSubModule, isSuperAdmin),
     );
   }
+  // Checked before the null shortcut for the same reason: a super-admin-only
+  // entry declares no module, and that must not read as "open to everyone".
+  if (item.requiredSuperAdmin && !isSuperAdmin) return false;
   if (item.requiredModule === null) return true;
   if (item.requiredSubModule) {
     return hasSubModule(item.requiredModule, item.requiredSubModule);
