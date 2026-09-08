@@ -43,6 +43,12 @@ export interface Crq {
   serviceCode: string;
   stageStatus: string;
   serviceApprovalStatus: string;
+  /**
+   * Change_Impact from sp_get_cab_crqs — SA (service affecting) / NSA.
+   * Optional because only the All CRQs proc selects it; the My CRQs rows proc
+   * shares this DTO without returning the column.
+   */
+  changeImpact?: ImpactCode;
   slaPercentage: number;
   // Not returned by the current AllCRQs/MyCRQs list & detail endpoints —
   // kept optional for the mock-only Journey/Implementation pages.
