@@ -1,11 +1,13 @@
 import { useCallback } from "react";
 import { useAppDispatch, useAppSelector } from "../../../../../app/hooks";
+import { api } from "../../../../../service/api";
 import { STAGE_ID_TO_ENUM, type WorkflowStageId } from "../../../constants/workflowStages";
 import { closeAttributeUpdateDialog } from "../slices/attributeUpdate.slice";
 import {
   selectAttributeCrq,
   selectAttributeCrqStatus,
   selectAttributeCurrentStageId,
+  selectAttributeDetailsFetching,
   selectAttributeDialogOpen,
   selectAttributeStageMeta,
 } from "../selectors/attributeUpdate.selectors";
@@ -21,9 +23,28 @@ export function useAttributeUpdate() {
   const crqStatus = useAppSelector(selectAttributeCrqStatus);
   const stageMeta = useAppSelector(selectAttributeStageMeta);
 
+  const isRefreshing = useAppSelector(selectAttributeDetailsFetching);
+
   const close = useCallback(() => dispatch(closeAttributeUpdateDialog()), [dispatch]);
 
-  return { dialogOpen, crq, currentStageId, crqStatus, stageMeta, close };
+  /**
+   * Re-pulls what the dialog shows without leaving it. Invalidating tags rather
+   * than calling one card's refetch is what lets a single handler serve all seven
+   * cards: whichever are open refetch, the rest are a no-op. The host page's
+   * CRQ list goes with it (the tags useStageRefresh uses), so closing the dialog
+   * lands on a current page instead of the pre-edit one.
+   */
+  const refresh = useCallback(() => {
+    dispatch(
+      api.util.invalidateTags([
+        "AttributeUpdate" as const,
+        "StageWorkflow" as const,
+        "CrqReview" as const,
+      ]),
+    );
+  }, [dispatch]);
+
+  return { dialogOpen, crq, currentStageId, crqStatus, stageMeta, close, refresh, isRefreshing };
 }
 
 /**

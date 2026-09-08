@@ -346,7 +346,18 @@ export interface NewCrqPayload {
 
 export interface AssignSpocPayload { crqId: string; spocOlmId: string; }
 export interface AssignFePayload   { crqId: string; fieldEngineerOlmId: string; }
-export interface ApproveCrqPayload { serviceApprovalId: number; comment?: string; }
+/**
+ * SPOC assignment goes to sp_approve_cab_crq's p_spoc_name / p_spoc_mob_no /
+ * p_spoc_email. All three are mandatory - approving assigns the SPOC who owns
+ * the change - and the endpoint answers 409 if any is blank.
+ */
+export interface ApproveCrqPayload {
+  serviceApprovalId: number;
+  comment?: string;
+  spocName: string;
+  spocMobNo: string;
+  spocEmail: string;
+}
 export interface RejectCrqPayload  { serviceApprovalId: number; reasonId: number; comment: string; }
 export interface ReschedulePayload { serviceApprovalId: number; newDate: string; newWindow: string; reason: string; }
 

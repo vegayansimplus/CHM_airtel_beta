@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import {
   Box,
   Chip,
+  CircularProgress,
   Dialog,
   DialogTitle,
   IconButton,
@@ -14,6 +15,7 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
+import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 
 import { useTabColorTokens } from "../../../../../style/theme";
 import { SlideUpTransition } from "../../../../../components/common/SlideUpTransition";
@@ -50,7 +52,16 @@ export const AttributeUpdateDialog: React.FC = () => {
   const colors = useTabColorTokens(theme);
   const isSmall = useMediaQuery(theme.breakpoints.down("md"));
 
-  const { dialogOpen, crq, currentStageId, crqStatus, stageMeta, close } = useAttributeUpdate();
+  const {
+    dialogOpen,
+    crq,
+    currentStageId,
+    crqStatus,
+    stageMeta,
+    close,
+    refresh,
+    isRefreshing,
+  } = useAttributeUpdate();
 
   // Resolved once per (stageMeta/currentStageId/crqStatus) change, not per
   // card render: each card gets its mode/meta as plain props instead of
@@ -176,6 +187,32 @@ export const AttributeUpdateDialog: React.FC = () => {
           </Stack>
 
           <Box sx={{ flex: 1 }} />
+
+          {/* Values can move underneath an open dialog - a Remedy sync, or a
+              save made on another stage - so the whole timeline can be re-pulled
+              in place instead of closing out and reloading the page. */}
+          <Tooltip title="Refresh attribute data" arrow>
+            <span>
+              <IconButton
+                onClick={refresh}
+                disabled={isRefreshing}
+                size="small"
+                sx={{
+                  color: colors.textSecondary,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 1.5,
+                  mr: 0.25,
+                }}
+              >
+                {isRefreshing ? (
+                  <CircularProgress size={14} color="inherit" />
+                ) : (
+                  <RefreshRoundedIcon sx={{ fontSize: 17 }} />
+                )}
+              </IconButton>
+            </span>
+          </Tooltip>
 
           <Tooltip title="Close" arrow>
             <IconButton

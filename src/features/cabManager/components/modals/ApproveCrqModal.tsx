@@ -104,21 +104,44 @@ export function ApproveCrqModal({
   onSuccess,
 }: ApproveCrqModalProps) {
   const [comment, setComment] = useState("");
+  // SPOC assignment - sp_approve_cab_crq takes these as p_spoc_name /
+  // p_spoc_mob_no / p_spoc_email. All three are mandatory: the endpoint answers
+  // 409 when any is blank, so the form blocks the submit rather than round-trip
+  // for that error.
+  const [spocName, setSpocName] = useState("");
+  const [spocMobNo, setSpocMobNo] = useState("");
+  const [spocEmail, setSpocEmail] = useState("");
+
+  const name = spocName.trim();
+  const mobNo = spocMobNo.trim();
+  const email = spocEmail.trim();
+
+  // Format errors only show once something is typed, so an untouched form is
+  // not red on open - the disabled submit is what holds it back until filled.
+  const mobInvalid = mobNo !== "" && !/^[0-9]{10}$/.test(mobNo);
+  const emailInvalid = email !== "" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const spocIncomplete = !name || !mobNo || !email;
 
   const [approve, { isLoading }] = useApproveCrqMutation();
 
   const submit = async () => {
-    if (serviceApprovalId == null) return;
+    if (serviceApprovalId == null || spocIncomplete || mobInvalid || emailInvalid) return;
 
     try {
       const result = await approve({
         serviceApprovalId,
         comment,
+        spocName: name,
+        spocMobNo: mobNo,
+        spocEmail: email,
       }).unwrap();
 
       if (result.status === "Success") {
         toast.success(result.message);
         setComment("");
+        setSpocName("");
+        setSpocMobNo("");
+        setSpocEmail("");
         onSuccess ? onSuccess() : onClose();
       } else {
         toast.error(result.message);
@@ -179,6 +202,61 @@ export function ApproveCrqModal({
           impact analysis.
         </Alert>
 
+        <Typography
+          variant="caption"
+          sx={{
+            color: "text.secondary",
+            letterSpacing: 0.5,
+            textTransform: "uppercase",
+            fontWeight: 700,
+            display: "block",
+            mb: 1,
+          }}
+        >
+          SPOC Assign
+        </Typography>
+
+        <TextField
+          fullWidth
+          required
+          size="small"
+          label="SPOC Name"
+          placeholder="e.g. Rahul Sharma"
+          InputLabelProps={{ shrink: true }}
+          value={spocName}
+          onChange={(e) => setSpocName(e.target.value)}
+          sx={{ mb: 1.5 }}
+        />
+
+        <TextField
+          fullWidth
+          required
+          size="small"
+          label="SPOC Mobile No"
+          placeholder="10-digit mobile number"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ maxLength: 15, inputMode: "numeric" }}
+          value={spocMobNo}
+          onChange={(e) => setSpocMobNo(e.target.value)}
+          error={mobInvalid}
+          helperText={mobInvalid ? "Enter a 10-digit mobile number." : ""}
+          sx={{ mb: 1.5 }}
+        />
+
+        <TextField
+          fullWidth
+          required
+          size="small"
+          label="SPOC Email"
+          placeholder="name@airtel.com"
+          InputLabelProps={{ shrink: true }}
+          value={spocEmail}
+          onChange={(e) => setSpocEmail(e.target.value)}
+          error={emailInvalid}
+          helperText={emailInvalid ? "Enter a valid email address." : ""}
+          sx={{ mb: 2 }}
+        />
+
         <TextField
           fullWidth
           multiline
@@ -198,7 +276,7 @@ export function ApproveCrqModal({
           variant="contained"
           color="success"
           onClick={submit}
-          disabled={isLoading}
+          disabled={isLoading || spocIncomplete || mobInvalid || emailInvalid}
           startIcon={<CheckCircleOutlineIcon />}
         >
           {isLoading ? "Approving..." : "Confirm Approval"}
