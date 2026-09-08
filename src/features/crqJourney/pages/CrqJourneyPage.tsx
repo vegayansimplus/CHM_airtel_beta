@@ -8,9 +8,9 @@ import { CrqFlowCanvas } from "../components/CrqFlowCanvas";
 import { CrqFlowSkeleton } from "../components/CrqFlowSkeleton";
 import { CrqEmptyState } from "../components/CrqEmptyState";
 import {
-  PendingApprovalsPanel,
-  pendingApprovalsReserve,
-} from "../components/PendingApprovalsPanel";
+  ServiceRosterPanel,
+  serviceRosterReserve,
+} from "../components/ServiceRosterPanel";
 
 export const CrqJourneyPage: React.FC = () => {
   const {
@@ -29,7 +29,7 @@ export const CrqJourneyPage: React.FC = () => {
     error,
     flow,
     progress,
-    pendingApprovals,
+    serviceRoster,
     approverIndex,
     scope,
     details,
@@ -38,12 +38,12 @@ export const CrqJourneyPage: React.FC = () => {
     isRefreshing,
   } = useCrqJourney();
 
-  // The approvals panel sits under the flow canvas, and the canvas fits itself
+  // The service panel sits under the flow canvas, and the canvas fits itself
   // into the viewport height left below its own top edge — so the panel's open
   // state lives here, where it can also be turned into the height the canvas
   // has to leave free. Collapsing it hands that height back to the diagram.
-  const [approvalsOpen, setApprovalsOpen] = useState(true);
-  const approvalsReserve = pendingApprovalsReserve(pendingApprovals, approvalsOpen);
+  const [rosterOpen, setRosterOpen] = useState(true);
+  const rosterReserve = serviceRosterReserve(serviceRoster, rosterOpen);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pb: 1 }}>
@@ -106,17 +106,18 @@ export const CrqJourneyPage: React.FC = () => {
               showLegend={showLegend}
               onToggleLegend={handleToggleLegend}
               approverIndex={approverIndex}
-              bottomReserve={approvalsReserve}
+              bottomReserve={rosterReserve}
             />
           )}
 
-          {/* Who still has to act — under the diagram of what's left to do. The
-              canvas above reserves this panel's height so both fit in one view. */}
-          <PendingApprovalsPanel
-            summary={pendingApprovals}
+          {/* Who owns each service and who still has to act on it — under the
+              diagram of what's left to do. The canvas above reserves this
+              panel's height so both fit in one view. */}
+          <ServiceRosterPanel
+            roster={serviceRoster}
             scope={scope}
-            open={approvalsOpen}
-            onToggle={() => setApprovalsOpen((v) => !v)}
+            open={rosterOpen}
+            onToggle={() => setRosterOpen((v) => !v)}
           />
         </>
       )}

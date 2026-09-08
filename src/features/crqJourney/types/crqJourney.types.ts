@@ -79,16 +79,79 @@ export interface PendingApprovalView {
   configured: boolean;
 }
 
-/** Result set 3 of sp_get_crq_journey_page — the CRQ's org scope. */
+/**
+ * One RAW row of the SPOC result set of sp_get_crq_journey_page (added to the
+ * procedure on 2026-09-08) — the single point of contact recorded against one
+ * CAB service of this CRQ.
+ *
+ * Exactly the three columns the procedure emits, untouched. It differs from
+ * `CrqPendingApproval` in ways that matter when merging the two:
+ *
+ *   • it covers EVERY service linked to the CRQ, not only the pending ones, so
+ *     it is the closest thing the payload has to a service roster;
+ *   • `serviceCode` is again the raw master code — the procedure resolves the
+ *     display name internally but does not select it;
+ *   • `serviceCode` doubles as a sentinel channel: the literal 'NO SERVICES'
+ *     arrives as the only row, both SPOC fields null, when the CRQ has none;
+ *   • it is produced by an INNER JOIN to CRQ_CAB_SERVICE_MASTER, so a service
+ *     whose code has since been dropped from that master vanishes from here
+ *     while still appearing in the pending set — which is why this array can be
+ *     empty for a CRQ that demonstrably has services.
+ *
+ * Both SPOC fields are frequently null: they are optional columns that only get
+ * filled in once someone actually records a contact.
+ */
+export interface CrqServiceSpoc {
+  serviceCode: string | null;
+  spocName: string | null;
+  spocContact: string | null;
+}
+
+/** One recorded contact — kept as a pair because a service can carry more than one. */
+export interface ServiceSpocContact {
+  name: string | null;
+  contact: string | null;
+}
+
+/**
+ * One CAB service of the CRQ as the roster panel shows it: the SPOC rows, the
+ * pending-approval rows and the journey rows merged into a single line per
+ * service, so a reader sees who owns a service and who owes a decision on it
+ * side by side instead of in two disconnected lists.
+ */
+export interface ServiceRosterRow {
+  /** Raw master code — always present, and the key the three result sets agree on. */
+  serviceCode: string;
+  /** Display name resolved from the journey rows / the mirrored master map; falls back to the code. */
+  serviceName: string;
+  /** False when the code could not be resolved and `serviceName` is just the code echoed back. */
+  nameResolved: boolean;
+  /** Decision state; null when the service appears in no journey row (its code left the master). */
+  status: ApprovalStatus | null;
+  /** Open CRQ_CAB_SERVICE_TBL rows behind this line — 0 once the service is decided. */
+  pendingCount: number;
+  /** Who owes the decision, while one is still owed. Null on a decided service. */
+  approver: PendingApprovalView | null;
+  /** Distinct contacts recorded against this service; empty when nobody filled them in. */
+  spocs: ServiceSpocContact[];
+  /** How many CRQ_CAB_SERVICE_TBL rows this line stands for, SPOC set permitting. */
+  serviceRows: number;
+  /** The service is in the SPOC result set — i.e. its code still resolves in the service master. */
+  inSpocSet: boolean;
+}
+
+/** Result set 4 of sp_get_crq_journey_page — the CRQ's org scope. */
 export interface CrqJourneyScope {
   domainName: string | null;
   subDomainName: string | null;
 }
 
-/** GET /crqworkflow/journey-explorer/{crqNo} — all three result sets in one payload. */
+/** GET /crqworkflow/journey-explorer/{crqNo} — all four result sets in one payload. */
 export interface CrqJourneyPageResponse {
   stages: CrqJourneyStageRow[];
   pendingApprovals: CrqPendingApproval[];
+  /** Empty on a database still running a pre-2026-09-08 revision of the proc. */
+  serviceSpocs: CrqServiceSpoc[];
   scope: CrqJourneyScope | null;
 }
 
@@ -123,23 +186,30 @@ export interface CrqDetailsResponse {
 
 // ─── Feature 1 (/cabmanager/journey) — grouped, dynamic-length flow ──────────
 //
-// sp_get_crq_journey_page emits one flat (STAGE, STATUS) list, built in four
-// appends (verified against the live routine body):
-//   1. the 7 canonical workflow stages, always present, fixed order:
-//      Plan & Inventory · IMPACT ANALYSIS · MOP CREATE · MOP VALIDATE ·
-//      SCHEDULING · Activity_Implement · CLOSURE
+// sp_get_crq_journey_page emits one flat (STAGE, STATUS) list, built in three
+// appends — verified against the live routine body on 2026-09-08, when it was
+// last re-authored:
+//   1. 0..N linked CAB service rows, named from CRQ_CAB_SERVICE_MASTER
+//      (B2B, IWAN, B2C-HOMES, …) — names are NOT unique, the same service can
+//      appear several times, once per CRQ_CAB_SERVICE_TBL row.
+//   2. CONFLICT CHECK  (exactly 1 row) — YES/NO
+//   3. the 7 canonical workflow stages, always present, fixed order:
+//      VALIDATE · IMPACT ANALYSIS · MOP CREATE · MOP VALIDATE · SCHEDULING ·
+//      IMPLEMENTATION · CLOSURE
 //      Status = APPROVED for stages before the current one, the CRQ's live
 //      current_status (underscores → hyphens) for the current one, PENDING
 //      after it — or NA after it once the CRQ is CANCELLED.
-//   2. 0..N linked CAB service rows, named from CRQ_CAB_SERVICE_MASTER
-//      (Mobility (RAN/Core), Enterprise / B2B, Transmission, …) — names are
-//      NOT unique, the same service can appear several times.
-//   3. CAB             (exactly 1 row) — YES/NO: is the CRQ mapped to a session
-//   4. CONFLICT CHECK  (exactly 1 row) — YES/NO
 //
-// groupJourneyStages() resolves this by NAME rather than by position, so a
-// future re-ordering or an extra appended row can't shift stages into the
-// approvals bucket.
+// Everything about that list has moved at least once: the services used to be
+// appended last and are now first, the stages have been spelled both
+// VALIDATE / IMPLEMENTATION and Plan & Inventory / Activity_Implement, and the
+// CAB session-mapping row that used to sit between the services and the
+// conflict row is no longer emitted at all.
+//
+// groupJourneyStages() therefore resolves this by NAME rather than by position,
+// accepts every spelling seen in the field, and leaves any slot the routine
+// stopped emitting as null — so a re-ordering, a rename or a dropped row can
+// neither shift stages into the approvals bucket nor break the canvas.
 
 export interface CrqJourneyFlow {
   /** Legacy slot — the current routine no longer emits SPOC/FE ASSIGNMENT, kept so an older DB still renders. */

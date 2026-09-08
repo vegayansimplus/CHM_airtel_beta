@@ -51,7 +51,7 @@ interface CrqFlowCanvasProps {
    * Service name / code → the approver who owes a decision on it (result set 2
    * of sp_get_crq_journey_page). An approvals-lane card is ~90px wide, so the
    * approver can only live in the card's tooltip; the full picture is the
-   * PendingApprovalsPanel above this canvas.
+   * ServiceRosterPanel below this canvas.
    */
   approverIndex?: Map<string, PendingApprovalView>;
   /**
@@ -66,7 +66,7 @@ interface CrqFlowCanvasProps {
    * closes a loop at the window widths where the page sits right on the
    * overflow boundary: bigger canvas → scrollbar → narrower page → the block
    * below reflows taller → bigger reserve → smaller canvas → scrollbar goes →
-   * repeat. See pendingApprovalsReserve for the state-derived version.
+   * repeat. See serviceRosterReserve for the state-derived version.
    */
   bottomReserve?: number;
 }

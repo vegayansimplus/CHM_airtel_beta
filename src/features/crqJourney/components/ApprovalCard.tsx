@@ -50,7 +50,7 @@ interface ApprovalCardProps {
    * The approver who owes a decision on this service, when it's still pending
    * (result set 2 of sp_get_crq_journey_page). The card has no room to print a
    * person's name, so it lands in the tooltip — the sortable, copyable,
-   * contactable version is the PendingApprovalsPanel.
+   * contactable version, alongside the service's SPOC, is the ServiceRosterPanel.
    */
   approver?: PendingApprovalView | null;
   /** Canvas-driven width — the approvals lane divides its space between however many services the CRQ has. */

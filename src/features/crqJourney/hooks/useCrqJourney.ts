@@ -10,6 +10,7 @@ import {
 } from "../api/crqJourneyExplorer.api";
 import {
   buildApproverIndex,
+  buildServiceRoster,
   computeFlowProgress,
   currentStageEnteredAt,
   groupJourneyStages,
@@ -115,6 +116,15 @@ export const useCrqJourney = () => {
     [pendingApprovals.services]
   );
 
+  // Result set 3, folded together with the two above: one line per CAB service
+  // carrying its decision, its approver and its SPOC. Only this set lists the
+  // services that are already decided, so the roster — not the pending summary —
+  // is what the panel renders.
+  const serviceRoster = useMemo(
+    () => buildServiceRoster(journey?.serviceSpocs, pendingApprovals, flow?.approvals ?? []),
+    [journey?.serviceSpocs, pendingApprovals, flow?.approvals]
+  );
+
   // Only the details belonging to the CRQ on screen — a stale response for the
   // previously selected CRQ must not leak into the header strip.
   const selectedDetails =
@@ -159,7 +169,7 @@ export const useCrqJourney = () => {
         : null,
     flow,
     progress,
-    pendingApprovals,
+    serviceRoster,
     approverIndex,
     scope: journey?.scope ?? null,
     details: selectedDetails,
