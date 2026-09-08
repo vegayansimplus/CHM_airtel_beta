@@ -29,7 +29,7 @@ import {
 } from "../api/cabManagerApiSlice";
 import { AllCrqDetailDrawer } from "../components/shared/AllCrqDetailDrawer";
 // import { NewCrqModal } from "../components/modals/NewCrqModal";
-import { StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
+import { ImpactChip, StageChip, StatusChip, getStageLabel } from "../components/shared/Chips";
 import { errMsg } from "../components/shared/errMsg";
 import { STAGES } from "../data/cabManager.mock";
 import type {
@@ -166,6 +166,19 @@ export function AllCrqsPage() {
         ),
       },
       {
+        accessorKey: "changeImpact",
+        header: "Impact",
+        size: 110,
+        Cell: ({ cell }) => {
+          const impact = cell.getValue<ImpactCode | undefined>();
+          return impact ? (
+            <ImpactChip impact={impact} />
+          ) : (
+            <Typography variant="body2" sx={{ color: "text.secondary" }}>—</Typography>
+          );
+        },
+      },
+      {
         accessorKey: "serviceApprovalStatus",
         header: "Service Status",
         size: 170,
@@ -277,6 +290,8 @@ export function AllCrqsPage() {
           </TextField>
           <TextField select size="small" label="Impact" value={filters.impact ?? "All Impact"} onChange={(e) => setF("impact", e.target.value as ImpactCode)} sx={{ minWidth: 120 }}>
             <MenuItem value="All Impact">All Impact</MenuItem>
+            <MenuItem value="SA">SA — Service Affecting</MenuItem>
+            <MenuItem value="NSA">NSA — Non Service Affecting</MenuItem>
           </TextField>
           <TextField select size="small" label="Service" value={filters.serviceCode ?? "All Services"} onChange={(e) => setF("serviceCode", e.target.value)} sx={{ minWidth: 160 }}>
             <MenuItem value="All Services">All Services</MenuItem>

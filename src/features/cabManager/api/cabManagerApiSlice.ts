@@ -738,6 +738,7 @@ const filterCrqs = (rows: Crq[], f: CrqFilters): Crq[] => {
     if (f.circle && f.circle !== "All Circles" && r.circleCode !== f.circle) return false;
     if (f.stage && f.stage !== "All Stages" && r.currentStage !== f.stage) return false;
     if (f.serviceCode && f.serviceCode !== "All Services" && r.serviceCode !== f.serviceCode) return false;
+    if (f.impact && f.impact !== "All Impact" && r.changeImpact !== f.impact) return false;
     if (f.search && f.search !== "All Search") {
       const q = f.search.toLowerCase();
       if (!r.crqNo.toLowerCase().includes(q)) return false;
