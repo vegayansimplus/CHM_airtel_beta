@@ -7,6 +7,9 @@ import type {
   CrqJourneyFlow,
   CrqPendingApproval,
   PendingApprovalView,
+  CrqServiceSpoc,
+  ServiceRosterRow,
+  ServiceSpocContact,
   CrqDetailsStage,
 } from "../types/crqJourney.types";
 
@@ -366,12 +369,25 @@ const SENTINEL_NO_PENDING = "NO SERVICES PENDING";
  * unresolvable code renders as itself rather than as a blank.
  */
 const SERVICE_CODE_NAMES: Record<string, string> = {
+  // Current seed (2026-08-25). It spells every name identically to its code, so
+  // these entries buy no nicer label — they buy the knowledge that the code is a
+  // real, current service rather than an unresolved one, which is what tells the
+  // roster whether a separate code chip would say anything.
+  B2B: "B2B",
+  "B2C-HOMES": "B2C-HOMES",
+  "B2C-MOBILITY": "B2C-MOBILITY",
+  IWAN: "IWAN",
+  NA: "NA",
+  // Superseded codes. Still worth carrying: CRQ_CAB_SERVICE_TBL rows created
+  // before the re-seed keep them, and they still surface in the pending result
+  // set even though the journey and SPOC sets — which INNER JOIN the master —
+  // drop them entirely.
   RAN: "Radio Access Network",
   TX: "Transmission",
   MOB: "Mobility (RAN/Core)",
-  B2B: "Enterprise / B2B",
   TEL: "Telemedia",
   CORE: "Core Services",
+  INFRA: "Infrastructure",
 };
 
 export type PendingApprovalsVerdict = "awaiting" | "all_decided" | "no_services" | "unknown";
@@ -568,6 +584,202 @@ export const buildApproverIndex = (
     }
   }
   return index;
+};
+
+// ─── Service roster: the three service-shaped result sets, merged ────────────
+//
+// The payload describes the same services three times over and never the same
+// way twice:
+//   • the journey rows (result set 1) know each service's DECISION but name it
+//     by its master display name;
+//   • the pending rows (result set 2) know WHO must decide it but identify it
+//     by raw code, and only while it is still open;
+//   • the SPOC rows (result set 3) know WHO OWNS it and are the only set that
+//     lists every service, decided or not — but they too carry only the code.
+//
+// Read separately they answer half a question each; a CAB manager chasing a
+// stalled CRQ wants one line per service saying what state it is in, who owes
+// the decision, and who to ring. That is what this builds.
+//
+// Everything is matched by content — code against code, name against name —
+// never by index. Only one of the three sets has an ORDER BY, the SPOC set is
+// INNER JOINed to a master the others are not, and the procedure has re-ordered
+// its result sets twice; pairing them positionally would mislabel services the
+// first time any of that shifts again.
+
+export interface ServiceRosterSummary {
+  /** One line per service, SPOC-set order first (i.e. the master's Sort_Order). */
+  rows: ServiceRosterRow[];
+  /** Services still awaiting a decision. */
+  pendingServices: number;
+  /** Open CRQ_CAB_SERVICE_TBL rows across those services. */
+  totalPending: number;
+  /** Pending services with no active approval-config row — a reportable gap. */
+  unconfigured: number;
+  /** Services carrying at least one recorded contact; 0 means the SPOC column is dead weight. */
+  withSpoc: number;
+  /** The CRQ has no CAB service at all (the 'NO SERVICES' sentinel, or nothing in any set). */
+  empty: boolean;
+  /**
+   * Every service is decided — the panel says so rather than showing an empty
+   * "who owes a decision" table.
+   */
+  allDecided: boolean;
+  /**
+   * The SPOC set contributed nothing: either the backend is talking to a
+   * database still running a pre-2026-09-08 procedure, or every service code on
+   * this CRQ predates the current master and was dropped by the INNER JOIN.
+   * Either way the roster falls back to what the pending set alone can say.
+   */
+  spocSetMissing: boolean;
+}
+
+const EMPTY_ROSTER: ServiceRosterSummary = {
+  rows: [],
+  pendingServices: 0,
+  totalPending: 0,
+  unconfigured: 0,
+  withSpoc: 0,
+  empty: true,
+  allDecided: false,
+  spocSetMissing: true,
+};
+
+/** Distinct (name, contact) pairs, in first-seen order; a row carrying neither is dropped. */
+const collectSpocs = (rows: CrqServiceSpoc[]): ServiceSpocContact[] => {
+  const seen = new Map<string, ServiceSpocContact>();
+  for (const row of rows) {
+    const name = clean(row.spocName) || null;
+    const contact = clean(row.spocContact) || null;
+    if (!name && !contact) continue;
+    const key = `${(name ?? "").toUpperCase()}|${contact ?? ""}`;
+    if (!seen.has(key)) seen.set(key, { name, contact });
+  }
+  return [...seen.values()];
+};
+
+/**
+ * Decision state for one service, read off the journey rows carrying its
+ * display name. A service with several CRQ_CAB_SERVICE_TBL rows produces
+ * several journey rows, which can disagree — a rejection is the one a reader
+ * must not miss, so it wins, then an approval; an unmatched service (its code
+ * no longer resolves in the master) stays null rather than being guessed at.
+ *
+ * Pending is decided upstream from the pending result set instead: that set is
+ * authoritative about what is still open and, unlike this one, does not depend
+ * on the master join.
+ */
+const decidedStatus = (
+  serviceName: string,
+  journeyServiceRows: CrqJourneyStageRow[]
+): ApprovalStatus | null => {
+  const matches = journeyServiceRows.filter(
+    (r) => clean(r.stage).toUpperCase() === serviceName.toUpperCase()
+  );
+  if (!matches.length) return null;
+  const statuses = matches.map((r) => normalizeApprovalStatus(r.status));
+  if (statuses.includes("rejected")) return "rejected";
+  if (statuses.includes("approved")) return "approved";
+  return null;
+};
+
+/**
+ * Merges the SPOC rows, the summarized pending approvals and the journey's
+ * service rows into one line per service.
+ *
+ * `pending` is the already-summarized output of summarizePendingApprovals, so
+ * the de-duplication, sentinel handling and code→name resolution it performs
+ * are not repeated here; this only has to cover what that summary cannot see,
+ * namely the services already decided.
+ */
+export const buildServiceRoster = (
+  spocRows: CrqServiceSpoc[] | null | undefined,
+  pending: PendingApprovalsSummary,
+  journeyServiceRows: CrqJourneyStageRow[] = []
+): ServiceRosterSummary => {
+  // The sentinel is the procedure saying "no CAB service on this CRQ"; it is a
+  // message, not a service, and must never become a roster line.
+  const realSpocRows = (spocRows ?? []).filter((r) => {
+    const code = clean(r.serviceCode).toUpperCase();
+    return code && code !== SENTINEL_NO_SERVICES && code !== SENTINEL_NO_PENDING;
+  });
+  const spocSetMissing = realSpocRows.length === 0;
+
+  if (spocSetMissing && !pending.services.length) {
+    // Nothing anywhere. Distinguish "the CRQ has no services" and "everything is
+    // decided", both of which the pending set states outright, from "we were
+    // told nothing at all" — the panel says something different for each.
+    return {
+      ...EMPTY_ROSTER,
+      empty: pending.verdict === "no_services",
+      allDecided: pending.verdict === "all_decided",
+      spocSetMissing,
+    };
+  }
+
+  // Grouped by code, preserving the SPOC set's order — the procedure sorts it by
+  // the master's Sort_Order, which is the order the business reads services in.
+  const grouped = new Map<string, CrqServiceSpoc[]>();
+  for (const row of realSpocRows) {
+    const key = clean(row.serviceCode).toUpperCase();
+    grouped.set(key, [...(grouped.get(key) ?? []), row]);
+  }
+
+  const pendingByCode = new Map(pending.services.map((s) => [s.serviceCode.toUpperCase(), s]));
+
+  // Services the SPOC set never mentioned still belong on the roster: a code
+  // dropped from the service master disappears from the journey and SPOC sets
+  // but stays in the pending set, and hiding it would hide real open work.
+  const codes = [...grouped.keys()];
+  for (const code of pendingByCode.keys()) if (!grouped.has(code)) codes.push(code);
+
+  const rows: ServiceRosterRow[] = codes.map((code) => {
+    const spocSource = grouped.get(code) ?? [];
+    const approver = pendingByCode.get(code) ?? null;
+
+    // The pending summary already resolved this code against both the master map
+    // and the journey rows, so prefer its answer over redoing that work.
+    const mapped = SERVICE_CODE_NAMES[code];
+    const serviceName = approver?.nameResolved ? approver.serviceName : (mapped ?? code);
+    const nameResolved = !!approver?.nameResolved || !!mapped;
+
+    return {
+      serviceCode: spocSource.length
+        ? clean(spocSource[0].serviceCode)
+        : (approver?.serviceCode ?? code),
+      serviceName,
+      nameResolved,
+      status: approver ? "pending" : decidedStatus(serviceName, journeyServiceRows),
+      pendingCount: approver?.pendingCount ?? 0,
+      approver,
+      spocs: collectSpocs(spocSource),
+      serviceRows: spocSource.length,
+      inSpocSet: spocSource.length > 0,
+    };
+  });
+
+  return {
+    rows,
+    pendingServices: rows.filter((r) => r.pendingCount > 0).length,
+    totalPending: rows.reduce((sum, r) => sum + r.pendingCount, 0),
+    unconfigured: rows.filter((r) => r.approver && !r.approver.configured).length,
+    withSpoc: rows.filter((r) => r.spocs.length > 0).length,
+    empty: rows.length === 0,
+    allDecided: rows.length > 0 && rows.every((r) => r.pendingCount === 0),
+    spocSetMissing,
+  };
+};
+
+/**
+ * A dialable version of a recorded contact, or null when it holds too few
+ * digits to be one. Spoc_Contact is free text on CRQ_CAB_SERVICE_TBL and has
+ * held things that are plainly not phone numbers, so the tel: link is offered
+ * only when there is actually something to dial.
+ */
+export const telHref = (contact: string | null): string | null => {
+  const trimmed = clean(contact);
+  const digits = trimmed.replace(/[^0-9+]/g, "");
+  return digits.replace(/[^0-9]/g, "").length >= 6 ? `tel:${digits}` : null;
 };
 
 // ─── get_crq_details stage codes → friendly labels (Feature 2) ──────────────
