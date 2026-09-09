@@ -449,6 +449,7 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolScopes: [],
     remedy: [
       REMEDY_STATUS_ATTRIBUTE,
+      ...COORDINATOR_IMPLEMENTER_ATTRIBUTES,
       {
         name: "MOP Creation Method",
         field: "mopCreationMethod",
@@ -483,7 +484,7 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
     planningToolPhase: "MOP Validation",
     remedyStatuses: ["Planning In Progress"],
     planningToolScopes: [],
-    remedy: [REMEDY_STATUS_ATTRIBUTE],
+    remedy: [REMEDY_STATUS_ATTRIBUTE, ...COORDINATOR_IMPLEMENTER_ATTRIBUTES],
     cab: [
       OLM_PREFILL_ATTRIBUTE("MOP Validated By", "mopValidatedBy"),
       NOW_PREFILL_ATTRIBUTE("MOP Validated By Time", "mopValidatedByTime"),
@@ -493,6 +494,19 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         type: "Dropdown",
         mandatory: "Mandatory",
         values: ["Not OK", "OK"],
+      },
+      {
+        name: "FE Required**",
+        field: "feRequired",
+        type: "Radio Button",
+        mandatory: "Mandatory",
+        values: YES_NO_VALUES,
+      },
+      {
+        name: "Remarks for FE Details",
+        field: "remarksForFeDetails",
+        type: "Text",
+        mandatory: "Optional",
       },
     ],
   },
@@ -521,19 +535,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
       BUSINESS_JUSTIFICATION_ATTRIBUTE,
     ],
     cab: [
-      {
-        name: "FE Required**",
-        field: "feRequired",
-        type: "Radio Button",
-        mandatory: "Mandatory",
-        values: YES_NO_VALUES,
-      },
-      {
-        name: "Remarks for FE Details",
-        field: "remarksForFeDetails",
-        type: "Text",
-        mandatory: "Optional",
-      },
       OLM_PREFILL_ATTRIBUTE("CRQ Scheduled By", "crqScheduledBy"),
       NOW_PREFILL_ATTRIBUTE("CRQ Scheduled By Time", "crqScheduledByTime"),
       {
