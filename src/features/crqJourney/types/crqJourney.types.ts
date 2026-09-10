@@ -50,10 +50,16 @@ export type ApproverLevelKey = "L1" | "L2" | "L3";
  *   • L2 and L3 come from CRQ_CAB_SERVICE_ESCALATION_TBL. That table has its
  *     own L1 columns which the procedure deliberately ignores.
  *
- * `escalated` mirrors the proc's `L*_Escalated_Remark`, set only when
- * CRQ_CAB_SERVICE_TBL.Is_Escalated = 1 and its Escalation_Level enum names this
- * rung — so at most one rung of a row is ever flagged, and none being flagged
- * means the approval was never escalated and still sits with L1.
+ * `escalated` is the RAW mirror of the proc's `L*_Escalated_Remark`, set only
+ * when CRQ_CAB_SERVICE_TBL.Is_Escalated = 1 and its Escalation_Level enum names
+ * this rung — so at most one rung of a row is ever flagged, and none being
+ * flagged means the approval was never escalated and still sits with L1.
+ *
+ * Read it as "the approval is ON this rung", never as "it escalated to get
+ * here": a flagged L1 is the ordinary state of a service that merely has
+ * escalation TRACKING enabled and has not moved. Whether a service has really
+ * escalated is `PendingApprovalView.escalated`, which tests the live rung
+ * against L1 instead of testing this flag for presence.
  */
 export interface CrqApproverLevel {
   level: ApproverLevelKey;
@@ -127,7 +133,12 @@ export interface PendingApprovalView {
   chain: ApproverLevelView[];
   /** The rung the approval currently sits on. L1 unless the proc flagged an escalation. */
   currentLevel: ApproverLevelKey;
-  /** The proc flagged a rung as ESCALATED — i.e. this approval has been escalated at least once. */
+  /**
+   * The approval has genuinely moved off its first approver, i.e. `currentLevel`
+   * is L2 or L3. NOT the presence of the proc's ESCALATED flag: that flag also
+   * fires on L1 for any service with escalation tracking switched on, which is
+   * the resting state of a brand-new CRQ rather than an escalation.
+   */
   escalated: boolean;
   /** Current rung's approver — who owes the decision now, not necessarily L1. */
   approverOlmId: string | null;

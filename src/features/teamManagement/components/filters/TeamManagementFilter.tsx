@@ -23,6 +23,9 @@ interface Props {
   filteredRows: Record<string, any>[];
   totalRowCount: number;
   currentPageSize: number;
+  /** Refetches the member list + counts owned by TeamManagementMain. */
+  onRefresh: () => void;
+  isRefreshing: boolean;
 }
 
 export const TeamManagementFilter = ({
@@ -33,6 +36,8 @@ export const TeamManagementFilter = ({
   filteredRows,
   totalRowCount,
   currentPageSize,
+  onRefresh,
+  isRefreshing,
 }: Props) => {
   const loggedUser  = authStorage.getUser();
   const actorUserId = loggedUser?.userId;
@@ -65,6 +70,12 @@ export const TeamManagementFilter = ({
         values={filters}
         options={options}
         onChange={handleFilterChange}
+        onRefresh={onRefresh}
+        isRefreshing={isRefreshing}
+        refreshDisabled={!filters.subDomain}
+        refreshTooltip={
+          filters.subDomain ? "Refresh members" : "Pick a Sub Domain first"
+        }
       >
         <Box
           sx={{

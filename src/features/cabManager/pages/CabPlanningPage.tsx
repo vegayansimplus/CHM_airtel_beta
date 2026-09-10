@@ -22,6 +22,7 @@ import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import { useGetCabPlanDatesQuery, useGetCabQueueQuery } from "../api/cabManagerApiSlice";
 import { PlanCabModal } from "../components/modals/PlanCabModal";
 import { CabQueueState } from "../components/shared/CabQueueState";
@@ -40,6 +41,17 @@ export function CabPlanningPage() {
     { skip: !shouldFetch }
   );
   const dates = useGetCabPlanDatesQuery();
+
+  // Filter-bar refresh reloads the whole screen - the queue for the current
+  // scope plus the plan-date list the modal offers. The queue card keeps its
+  // own narrower "Refresh queue" button.
+  const { refresh, isRefreshing } = useApiRefresh({
+    onRefresh: () => {
+      if (shouldFetch) void queue.refetch();
+      void dates.refetch();
+    },
+    isFetching: queue.isFetching || dates.isFetching,
+  });
   const [rowSelection, setRowSelection] = useState<MRT_RowSelectionState>({});
   const [openPlan, setOpenPlan] = useState(false);
   const selected = useMemo(
@@ -135,6 +147,14 @@ export function CabPlanningPage() {
           values={values}
           options={options}
           onChange={handleChange}
+          onRefresh={refresh}
+          isRefreshing={isRefreshing}
+          refreshDisabled={!shouldFetch}
+          refreshTooltip={
+            shouldFetch
+              ? "Refresh CAB queue"
+              : "Pick a Domain and Sub Domain first"
+          }
         />
       </Box>
 

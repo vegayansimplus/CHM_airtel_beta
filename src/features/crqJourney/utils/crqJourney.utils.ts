@@ -506,6 +506,19 @@ const EMPTY_SUMMARY: PendingApprovalsSummary = {
  * never escalated, which puts it on L1 by definition — so `current` always
  * lands on exactly one rung and "who owes this decision" is never ambiguous.
  *
+ * The flag says WHERE the approval sits, not THAT it has moved, and the two
+ * part company on L1. The procedure writes L1_Escalated_Remark = 'ESCALATED'
+ * whenever Is_Escalated = 1 AND Escalation_Level = 'L1' — and a row sits in
+ * exactly that state the moment escalation TRACKING is switched on, before any
+ * escalation has actually happened: CRQ000005097485 carries Is_Escalated = 1,
+ * Escalation_Level = 'L1', Escalated_At = NULL on all four of its services.
+ * Reading the flag as "has escalated" badges every such service amber and makes
+ * the roster's own summary contradict itself — "escalated past the first
+ * approver: B2B (now L1)". So `escalated` is derived from the rung the approval
+ * LANDED on rather than from the presence of a flag: true only once the live
+ * rung is past L1. `currentLevel` still follows the flag, because a flagged L1
+ * and an unflagged L1 are the same place to send a reader.
+ *
  * All three rungs are emitted however sparsely configured, so the UI can show
  * an unstaffed escalation path as the gap it is rather than as a shorter ladder.
  * A rung is `configured` on a name OR an ID: the escalation table lets either be
@@ -537,7 +550,7 @@ const buildApproverChain = (
     };
   });
 
-  return { chain, currentLevel, escalated: !!flagged };
+  return { chain, currentLevel, escalated: currentLevel !== "L1" };
 };
 
 /**

@@ -41,6 +41,7 @@ import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFilte
 import { authStorage } from "../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import {
   useLazyGetLoginDetailsQuery,
   type LoginLog,
@@ -253,6 +254,14 @@ export const UserLogs: React.FC = () => {
     }
   };
 
+  // Re-runs the same lazy query the Fetch button triggers, with whatever scope
+  // and date range is on screen - this list is a live audit trail, so a reload
+  // is the point rather than a cache-invalidation nicety.
+  const { refresh, isRefreshing } = useApiRefresh({
+    onRefresh: () => void handleFetchData(),
+    isFetching: loading,
+  });
+
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
     return logs.filter((l) => {
@@ -307,6 +316,12 @@ export const UserLogs: React.FC = () => {
               values={values}
               options={options}
               onChange={handleChange}
+              onRefresh={refresh}
+              isRefreshing={isRefreshing}
+              refreshDisabled={!subDomainId}
+              refreshTooltip={
+                subDomainId ? "Reload login logs" : "Pick a Sub Domain first"
+              }
             />
           </Box>
 
