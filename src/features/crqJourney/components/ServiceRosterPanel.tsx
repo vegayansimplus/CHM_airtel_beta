@@ -21,11 +21,13 @@ import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
 import LayersRoundedIcon from "@mui/icons-material/LayersRounded";
 import PersonOffRoundedIcon from "@mui/icons-material/PersonOffRounded";
 import SupportAgentRoundedIcon from "@mui/icons-material/SupportAgentRounded";
-import type { CrqJourneyScope, ServiceRosterRow } from "../types/crqJourney.types";
+import KeyboardDoubleArrowUpRoundedIcon from "@mui/icons-material/KeyboardDoubleArrowUpRounded";
+import type { CrqJourneyScope, PendingApprovalView, ServiceRosterRow } from "../types/crqJourney.types";
 import type { ServiceRosterSummary } from "../utils/crqJourney.utils";
 import {
   approverInitials,
   approverLabel,
+  approverLevelLabel,
   getApprovalStatusConfig,
   telHref,
 } from "../utils/crqJourney.utils";
@@ -43,7 +45,15 @@ import {
 //  Before 2026-09-08 the procedure only reported the PENDING services, so this
 //  panel could only ever list those. The SPOC result set added that day covers
 //  every service on the CRQ, decided or not, which is what lets this show the
-//  full roster — pending first, then the decided ones, dimmed.
+//  full roster — open work first, then the decided ones, dimmed. Since
+//  2026-09-09 the approval set carries each service's own Status too, so the
+//  roster no longer has to infer a decision from the journey rows.
+//
+//  That same revision turned the single approver into an L1 → L2 → L3 ladder
+//  with one live rung. Only the live rung's person is named in the cell — they
+//  are who to chase — with the rung itself as a chip beside them and the full
+//  path in the tooltip: an escalation that has run out of configured rungs is a
+//  CRQ nobody is going to approve, and it should be visible before the timer is.
 //
 //  Columns are exactly what the procedure gives, with the service code resolved
 //  to its display name upstream. There is still no circle, domain or email
@@ -108,9 +118,12 @@ const sortRoster = (rows: ServiceRosterRow[]): ServiceRosterRow[] =>
   rows
     .map((row, index) => ({ row, index }))
     .sort((a, b) => {
-      const openA = a.row.pendingCount > 0 ? 0 : 1;
-      const openB = b.row.pendingCount > 0 ? 0 : 1;
-      return openA - openB || a.index - b.index;
+      const openA = a.row.status === "pending" ? 0 : 1;
+      const openB = b.row.status === "pending" ? 0 : 1;
+      // An escalated approval is the oldest open work on the page, so it leads.
+      const escA = a.row.approver?.escalated ? 0 : 1;
+      const escB = b.row.approver?.escalated ? 0 : 1;
+      return openA - openB || escA - escB || a.index - b.index;
     })
     .map((entry) => entry.row);
 
@@ -185,14 +198,74 @@ const CopyableValue: React.FC<{ value: string; label: string; href?: string | nu
   );
 };
 
-// ─── Approver identity (avatar + name + OLM ID) ──────────────────────────────
+/**
+ * The whole L1 → L2 → L3 ladder as one tooltip, with the live rung marked.
+ *
+ * The cell itself only has room for the person who owes the decision NOW, but
+ * "who is next if this stalls again" is the other half of an escalation, and a
+ * rung nobody is configured on is exactly the gap worth knowing about before
+ * the timer runs out. Both live here rather than costing a third line.
+ */
+const ChainTooltip: React.FC<{ approver: PendingApprovalView }> = ({ approver }) => (
+  <>
+    Escalation path
+    {approver.chain.map((rung) => (
+      <React.Fragment key={rung.level}>
+        <br />
+        {rung.current ? "▸ " : "  "}
+        {approverLevelLabel(rung)}
+        {rung.current ? " — with them now" : ""}
+      </React.Fragment>
+    ))}
+  </>
+);
+
+/** Which rung of the ladder the approval is sitting on; amber once it has escalated. */
+const LevelChip: React.FC<{ approver: PendingApprovalView; muted: boolean }> = ({
+  approver,
+  muted,
+}) => {
+  const theme = useTheme();
+  const isDark = theme.palette.mode === "dark";
+  const color = muted
+    ? theme.palette.text.disabled
+    : approver.escalated
+      ? theme.palette.warning.main
+      : theme.palette.text.secondary;
+
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "1px",
+        flexShrink: 0,
+        height: 15,
+        px: "4px",
+        borderRadius: "4px",
+        fontSize: 9.5,
+        fontWeight: 800,
+        letterSpacing: "0.3px",
+        lineHeight: 1,
+        color,
+        background: alpha(color, isDark ? 0.18 : 0.1),
+      }}
+    >
+      {approver.escalated && <KeyboardDoubleArrowUpRoundedIcon sx={{ fontSize: 11 }} />}
+      {approver.currentLevel}
+    </Box>
+  );
+};
+
+// ─── Approver identity (avatar + live rung + name + OLM ID) ──────────────────
 const ApproverIdentity: React.FC<{ row: ServiceRosterRow }> = ({ row }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
   const { approver } = row;
 
-  // A decided service owes nobody a decision. Saying "awaiting X" next to an
-  // Approved badge would contradict the badge, so it says nothing at all.
+  // A service the approval set never listed. Nothing is known about who decides
+  // it, so it says nothing rather than guessing.
   if (!approver) {
     return (
       <Typography sx={{ fontSize: 11.5, color: "text.disabled", lineHeight: 1.3 }}>
@@ -201,66 +274,109 @@ const ApproverIdentity: React.FC<{ row: ServiceRosterRow }> = ({ row }) => {
     );
   }
 
-  const seedColor = approver.configured ? theme.palette.primary.main : theme.palette.warning.main;
+  // A decided service owes nobody a decision. Its ladder is still shown — it is
+  // the record of who signed off — but muted, and never flagged as a config gap:
+  // "no approver configured" beside an Approved badge reads as a contradiction,
+  // and chasing an approver for a closed decision is wasted effort.
+  const isPending = row.status === "pending";
+  const isGap = isPending && !approver.configured;
+
+  const seedColor = isGap
+    ? theme.palette.warning.main
+    : isPending
+      ? theme.palette.primary.main
+      : theme.palette.text.disabled;
 
   return (
-    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
-      <Box
-        sx={{
-          width: 28,
-          height: 28,
-          flexShrink: 0,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 10.5,
-          fontWeight: 700,
-          letterSpacing: "0.3px",
-          color: seedColor,
-          background: alpha(seedColor, isDark ? 0.2 : 0.11),
-          border: `1px solid ${alpha(seedColor, 0.3)}`,
-        }}
-      >
-        {approver.configured ? approverInitials(approver) : <PersonOffRoundedIcon sx={{ fontSize: 14 }} />}
-      </Box>
+    <Tooltip title={<ChainTooltip approver={approver} />} arrow enterDelay={400}>
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+        <Box
+          sx={{
+            width: 28,
+            height: 28,
+            flexShrink: 0,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 10.5,
+            fontWeight: 700,
+            letterSpacing: "0.3px",
+            color: seedColor,
+            background: alpha(seedColor, isDark ? 0.2 : 0.11),
+            border: `1px solid ${alpha(seedColor, 0.3)}`,
+          }}
+        >
+          {approver.configured ? (
+            approverInitials(approver)
+          ) : (
+            <PersonOffRoundedIcon sx={{ fontSize: 14 }} />
+          )}
+        </Box>
 
-      <Box sx={{ minWidth: 0 }}>
-        {approver.configured ? (
-          <>
-            <Tooltip title={approverLabel(approver)} arrow enterDelay={500}>
+        <Box sx={{ minWidth: 0 }}>
+          {approver.configured ? (
+            <>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: isPending ? "text.primary" : "text.secondary",
+                    lineHeight: 1.25,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {approverLabel(approver)}
+                </Typography>
+                <LevelChip approver={approver} muted={!isPending} />
+              </Box>
+              {approver.approverOlmId && (
+                <CopyableValue value={approver.approverOlmId} label="OLM ID" />
+              )}
+            </>
+          ) : (
+            <>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                <Typography
+                  sx={{
+                    fontSize: 12.5,
+                    fontWeight: 600,
+                    color: isGap ? theme.palette.warning.main : "text.disabled",
+                    lineHeight: 1.25,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  No approver configured
+                </Typography>
+                <LevelChip approver={approver} muted={!isPending} />
+              </Box>
               <Typography
                 sx={{
-                  fontSize: 12.5,
-                  fontWeight: 600,
-                  color: "text.primary",
-                  lineHeight: 1.25,
+                  fontSize: 10.5,
+                  color: "text.disabled",
+                  lineHeight: 1.3,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
                 }}
               >
-                {approverLabel(approver)}
+                {/* L1 is the approval config; L2/L3 are the escalation config. Naming the
+                    right table is the difference between a fixable gap and a wild goose
+                    chase. Kept to one line so the row stays the height the canvas above
+                    budgeted for it (see TABLE_ROW_H). */}
+                {approver.currentLevel} missing from{" "}
+                {approver.currentLevel === "L1" ? "approval" : "escalation"} config
               </Typography>
-            </Tooltip>
-            {approver.approverOlmId && (
-              <CopyableValue value={approver.approverOlmId} label="OLM ID" />
-            )}
-          </>
-        ) : (
-          <>
-            <Typography
-              sx={{ fontSize: 12.5, fontWeight: 600, color: theme.palette.warning.main, lineHeight: 1.25 }}
-            >
-              No approver configured
-            </Typography>
-            <Typography sx={{ fontSize: 10.5, color: "text.disabled", lineHeight: 1.3 }}>
-              {row.serviceCode} has no active approval-config entry
-            </Typography>
-          </>
-        )}
+            </>
+          )}
+        </Box>
       </Box>
-    </Box>
+    </Tooltip>
   );
 };
 
@@ -570,7 +686,7 @@ const ScopeChip: React.FC<{ icon: React.ElementType; label: string }> = ({ icon:
 };
 
 const GRID_TEMPLATE = "minmax(120px, 1.2fr) 86px 48px minmax(150px, 1.5fr) minmax(140px, 1.4fr)";
-const COLUMN_HEADS = ["Service", "Status", "Open", "Approver (OLM ID)", "SPOC"];
+const COLUMN_HEADS = ["Service", "Status", "Open", "Current Approver (OLM ID)", "SPOC"];
 
 export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
   roster,
@@ -582,7 +698,8 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
   const isDark = theme.palette.mode === "dark";
   const isCompact = useMediaQuery(theme.breakpoints.down("md"), { noSsr: true });
 
-  const { rows, pendingServices, totalPending, unconfigured, withSpoc, empty, allDecided } = roster;
+  const { rows, pendingServices, totalPending, unconfigured, escalated, withSpoc, empty, allDecided } =
+    roster;
 
   // An older database, or a call that returned only the journey rows: nothing to
   // show and no gap to report, so the panel stays out of the layout entirely.
@@ -707,12 +824,31 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
           </Tooltip>
         )}
 
+        {escalated > 0 && (
+          <Tooltip
+            arrow
+            title={`Escalated past the first approver: ${sorted
+              .filter((r) => r.status === "pending" && r.approver?.escalated)
+              .map((r) => `${r.serviceName} (now ${r.approver?.currentLevel})`)
+              .join(", ")}`}
+          >
+            <Box
+              sx={{ display: "inline-flex", alignItems: "center", gap: 0.5, color: theme.palette.warning.main }}
+            >
+              <KeyboardDoubleArrowUpRoundedIcon sx={{ fontSize: 15 }} />
+              <Typography sx={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+                {escalated} escalated
+              </Typography>
+            </Box>
+          </Tooltip>
+        )}
+
         {unconfigured > 0 && (
           <Tooltip
             arrow
-            title={`No approver is configured for: ${sorted
-              .filter((r) => r.approver && !r.approver.configured)
-              .map((r) => r.serviceName)
+            title={`Nobody is configured on the current escalation level for: ${sorted
+              .filter((r) => r.status === "pending" && r.approver && !r.approver.configured)
+              .map((r) => `${r.serviceName} (${r.approver?.currentLevel})`)
               .join(", ")}`}
           >
             <Box
@@ -770,10 +906,10 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1, p: 1.5 }}>
                 {sorted.map((row) => (
                   <Box
-                    key={`${row.serviceCode}-${row.approver?.approverOlmId ?? "none"}`}
+                    key={`${row.serviceCode}-${row.status ?? "unknown"}-${row.approver?.currentLevel ?? "L1"}-${row.approver?.approverOlmId ?? "none"}`}
                     sx={{
                       border: `1px solid ${
-                        row.approver && !row.approver.configured
+                        row.status === "pending" && row.approver && !row.approver.configured
                           ? alpha(theme.palette.warning.main, 0.4)
                           : theme.palette.divider
                       }`,
@@ -783,7 +919,7 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
                       flexDirection: "column",
                       gap: 1,
                       minWidth: 0,
-                      opacity: row.pendingCount > 0 ? 1 : 0.85,
+                      opacity: row.status === "pending" ? 1 : 0.85,
                     }}
                   >
                     <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, minWidth: 0 }}>
@@ -842,7 +978,7 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
 
                 {sorted.map((row, idx) => (
                   <Box
-                    key={`${row.serviceCode}-${row.approver?.approverOlmId ?? "none"}`}
+                    key={`${row.serviceCode}-${row.status ?? "unknown"}-${row.approver?.currentLevel ?? "L1"}-${row.approver?.approverOlmId ?? "none"}`}
                     sx={{
                       display: "grid",
                       gridTemplateColumns: GRID_TEMPLATE,
@@ -855,10 +991,10 @@ export const ServiceRosterPanel: React.FC<ServiceRosterPanelProps> = ({
                       // past, so it carries its own left edge. A decided service
                       // is reference material and steps back instead.
                       borderLeft:
-                        row.approver && !row.approver.configured
+                        row.status === "pending" && row.approver && !row.approver.configured
                           ? `3px solid ${theme.palette.warning.main}`
                           : "3px solid transparent",
-                      opacity: row.pendingCount > 0 ? 1 : 0.85,
+                      opacity: row.status === "pending" ? 1 : 0.85,
                       transition: "background 0.15s ease",
                       "&:hover": { background: alpha(theme.palette.text.primary, isDark ? 0.04 : 0.02) },
                     }}

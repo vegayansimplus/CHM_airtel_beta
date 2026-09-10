@@ -76,12 +76,17 @@ export const ApprovalCard: React.FC<ApprovalCardProps> = ({ approval, approver, 
   // the same row for both cards — hence the status guard rather than a
   // presence check alone.
   const pendingApprover = status === "pending" && approver ? approver : null;
+  // Names the LIVE rung of the escalation ladder, which is not always L1 — the
+  // whole point of an escalation is that the original approver stopped being the
+  // answer, and sending a reader back to them wastes the escalation.
   const approverLine = pendingApprover
     ? pendingApprover.configured
       ? `Awaiting ${approverLabel(pendingApprover)}${
           pendingApprover.approverOlmId ? ` (${pendingApprover.approverOlmId})` : ""
-        }`
-      : "No approver configured"
+        }${pendingApprover.escalated ? ` — escalated to ${pendingApprover.currentLevel}` : ""}`
+      : pendingApprover.escalated
+        ? `Escalated to ${pendingApprover.currentLevel} — nobody configured`
+        : "No approver configured"
     : null;
 
   return (

@@ -6,6 +6,9 @@ import type {
   CrqJourneyStageRow,
   CrqJourneyFlow,
   CrqPendingApproval,
+  CrqApproverLevel,
+  ApproverLevelKey,
+  ApproverLevelView,
   PendingApprovalView,
   CrqServiceSpoc,
   ServiceRosterRow,
@@ -334,27 +337,40 @@ export const computeFlowProgress = (
   };
 };
 
-// ─── Pending service approvals (result set 2) ────────────────────────────────
+// ─── Service approvals (result set 2) ────────────────────────────────────────
 //
 // sp_get_crq_journey_page is read-only for this feature, so everything the UI
-// needs beyond its three raw columns is derived here:
+// needs beyond its raw columns is derived here:
 //
 //   • result set 2 identifies services by CODE ("MOB") while result set 1 names
 //     the very same services by their master name ("Mobility (RAN/Core)") — one
 //     page showing both labels for one service reads as two different things,
 //     so codes are resolved to names below;
-//   • the proc emits one row per PENDING CRQ_CAB_SERVICE_TBL row, so a service
-//     with six open rows arrives six times — those collapse into one line
-//     carrying the count;
-//   • 'NO SERVICES' / 'NO SERVICES PENDING' arrive through the service-code
-//     column, so the "nothing is pending" answer has to be told apart from the
-//     name of a real service.
+//   • the proc emits one row per CRQ_CAB_SERVICE_TBL row, so a service with six
+//     rows arrives six times — those collapse into one line carrying the count;
+//   • 'NO SERVICES' arrives through the service-code column, so the "this CRQ
+//     has none" answer has to be told apart from the name of a real service;
+//   • the nine approver columns are a three-rung ladder, of which exactly one
+//     rung is live at a time — so "the approver" is a derived thing, not a
+//     column, and getting it wrong names someone who no longer owes anything.
+//
+// Since the 2026-09-09 re-authoring this set covers DECIDED services as well as
+// open ones, while still calling its key column `Pending_Service_Code`. Every
+// count below therefore filters on the row's own Status rather than trusting
+// the column name — the previous revision's habit of treating one row as one
+// piece of open work now silently triples the "awaiting" figure on a CRQ whose
+// services are mostly approved.
 //
 // The whole thing happens on the rows already in hand — no extra round trip,
 // and nothing here depends on the ORDER the proc returns rows in, which it does
 // not guarantee for this result set.
 
-/** The proc's sentinel values, which arrive in place of a service code. */
+/**
+ * The proc's sentinel values, which arrive in place of a service code.
+ * 'NO SERVICES PENDING' is no longer emitted — with decided services now in the
+ * set, "all decided" is read off the Status column — but it is still recognised
+ * so a database on the older revision keeps reporting the right verdict.
+ */
 const SENTINEL_NO_SERVICES = "NO SERVICES";
 const SENTINEL_NO_PENDING = "NO SERVICES PENDING";
 
@@ -394,23 +410,31 @@ export type PendingApprovalsVerdict = "awaiting" | "all_decided" | "no_services"
 
 export interface PendingApprovalsSummary {
   verdict: PendingApprovalsVerdict;
-  /** One entry per pending service, de-duplicated and named. Never a sentinel. */
+  /**
+   * One entry per (service, decision, ladder), de-duplicated and named. Never a
+   * sentinel. Includes DECIDED services since the 2026-09-09 proc revision — read
+   * each entry's `status`; `pending` below is the pre-filtered open subset.
+   */
   services: PendingApprovalView[];
+  /** Just the entries still awaiting a decision — what "pending" used to mean for the whole array. */
+  pending: PendingApprovalView[];
   /** How many CRQ_CAB_SERVICE_TBL rows are open in total, across those services. */
   totalPending: number;
-  /** Services with no approver configured — a reportable gap, not a lookup bug. */
+  /** Pending services with nobody on the live rung — a reportable gap, not a lookup bug. */
   unconfigured: PendingApprovalView[];
+  /** Pending services the proc flagged as escalated past L1. */
+  escalated: PendingApprovalView[];
 }
 
 const clean = (value: string | null | undefined): string => (value ?? "").trim();
 
 /**
- * Resolves each pending service CODE to its display name.
+ * Resolves each service CODE to its display name.
  *
  * Two independent sources, so neither being incomplete loses the name:
  *   1. SERVICE_CODE_NAMES, mirroring the service master;
- *   2. the PENDING service rows of result set 1, which are already labelled with
- *      the master name for exactly the services on this CRQ.
+ *   2. the service rows of result set 1, which are already labelled with the
+ *      master name for exactly the services on this CRQ.
  *
  * Source 2 is matched by content, never by position — the two result sets are
  * built by different queries and only one of them has an ORDER BY, so pairing
@@ -418,20 +442,19 @@ const clean = (value: string | null | undefined): string => (value ?? "").trim()
  * As a last step, a single leftover code and a single unclaimed name can only
  * be each other, so they are paired; anything more ambiguous stays unresolved
  * and shows the raw code.
+ *
+ * All service rows are offered, not just the pending ones: result set 2 now
+ * carries decided services too, and filtering the name pool to pending rows
+ * would leave exactly those codes to fall through to the raw-code fallback.
  */
 const resolveServiceNames = (
   codes: string[],
-  pendingServiceRows: CrqJourneyStageRow[]
+  serviceRows: CrqJourneyStageRow[]
 ): Map<string, string> => {
   const resolved = new Map<string, string>();
 
-  // Names result set 1 reports as still pending, de-duplicated.
-  const unclaimedNames = new Set(
-    pendingServiceRows
-      .filter((r) => normalizeApprovalStatus(r.status) === "pending")
-      .map((r) => clean(r.stage))
-      .filter(Boolean)
-  );
+  // Every service name result set 1 reports, de-duplicated.
+  const unclaimedNames = new Set(serviceRows.map((r) => clean(r.stage)).filter(Boolean));
 
   const claim = (name: string) => {
     unclaimedNames.delete(name);
@@ -462,47 +485,108 @@ const resolveServiceNames = (
   return resolved;
 };
 
+/** The ladder's rungs in escalation order — the order every chain is built in. */
+export const APPROVER_LEVELS: ApproverLevelKey[] = ["L1", "L2", "L3"];
+
+const EMPTY_SUMMARY: PendingApprovalsSummary = {
+  verdict: "unknown",
+  services: [],
+  pending: [],
+  totalPending: 0,
+  unconfigured: [],
+  escalated: [],
+};
+
+/**
+ * One row's three approver columns → the ladder the UI walks.
+ *
+ * The live rung is the one the proc flagged ESCALATED, and it flags at most one:
+ * the flag is derived from CRQ_CAB_SERVICE_TBL.Escalation_Level, a single enum
+ * naming where the approval currently sits. No flag means the approval was
+ * never escalated, which puts it on L1 by definition — so `current` always
+ * lands on exactly one rung and "who owes this decision" is never ambiguous.
+ *
+ * All three rungs are emitted however sparsely configured, so the UI can show
+ * an unstaffed escalation path as the gap it is rather than as a shorter ladder.
+ * A rung is `configured` on a name OR an ID: the escalation table lets either be
+ * null independently, and a rung with only one of them still names a person.
+ */
+const buildApproverChain = (
+  row: CrqPendingApproval
+): { chain: ApproverLevelView[]; currentLevel: ApproverLevelKey; escalated: boolean } => {
+  const raw: Record<ApproverLevelKey, CrqApproverLevel | null> = {
+    L1: row.l1 ?? null,
+    L2: row.l2 ?? null,
+    L3: row.l3 ?? null,
+  };
+
+  const flagged = APPROVER_LEVELS.find((level) => raw[level]?.escalated) ?? null;
+  const currentLevel = flagged ?? "L1";
+
+  const chain = APPROVER_LEVELS.map<ApproverLevelView>((level) => {
+    const source = raw[level];
+    const olmId = clean(source?.olmId) || null;
+    const name = clean(source?.name) || null;
+    return {
+      level,
+      olmId,
+      name,
+      escalated: !!source?.escalated,
+      current: level === currentLevel,
+      configured: !!olmId || !!name,
+    };
+  });
+
+  return { chain, currentLevel, escalated: !!flagged };
+};
+
 /**
  * Raw result set 2 → what the UI renders.
  *
- * `pendingServiceRows` are the service rows of result set 1 (i.e. the grouped
- * flow's `approvals`), used only to put proper names on the codes.
+ * `serviceRows` are the service rows of result set 1 (i.e. the grouped flow's
+ * `approvals`), used only to put proper names on the codes.
+ *
+ * Every service the CRQ has comes back in `services`, decided ones included,
+ * because the panel lists the whole roster; `pending` and the counts alongside
+ * it are the open subset, filtered on each row's own Status rather than on the
+ * misleading `Pending_Service_Code` column name.
  */
-export const summarizePendingApprovals = (
+export const summarizeServiceApprovals = (
   rows: CrqPendingApproval[] | null | undefined,
-  pendingServiceRows: CrqJourneyStageRow[] = []
+  serviceRows: CrqJourneyStageRow[] = []
 ): PendingApprovalsSummary => {
   const all = rows ?? [];
 
   // An older database, or a backend that only forwarded the journey rows: there
   // is nothing to report and no gap to flag.
-  if (!all.length) {
-    return { verdict: "unknown", services: [], totalPending: 0, unconfigured: [] };
-  }
+  if (!all.length) return EMPTY_SUMMARY;
 
   const codes = all.map((r) => clean(r.serviceCode).toUpperCase());
-  if (codes.includes(SENTINEL_NO_PENDING)) {
-    return { verdict: "all_decided", services: [], totalPending: 0, unconfigured: [] };
-  }
-  if (codes.includes(SENTINEL_NO_SERVICES)) {
-    return { verdict: "no_services", services: [], totalPending: 0, unconfigured: [] };
-  }
+  if (codes.includes(SENTINEL_NO_PENDING)) return { ...EMPTY_SUMMARY, verdict: "all_decided" };
+  if (codes.includes(SENTINEL_NO_SERVICES)) return { ...EMPTY_SUMMARY, verdict: "no_services" };
 
-  // One line per (service, approver). Keyed on the approver too, because the
-  // approval config is per circle: the same service really can be waiting on
-  // two different people, and collapsing on the code alone would hide one.
+  // One line per (service, decision, ladder). Keyed on all three because the
+  // approval config is per circle: the same service really can sit on two
+  // different ladders, and can be approved on one row while open on another —
+  // collapsing on the code alone would hide whichever arrived second.
   const grouped = new Map<string, PendingApprovalView>();
 
   for (const row of all) {
     const code = clean(row.serviceCode);
     if (!code) continue;
 
-    const olmId = clean(row.approverOlmId);
-    const key = `${code.toUpperCase()}|${olmId.toUpperCase()}`;
+    const status = normalizeApprovalStatus(row.status);
+    const { chain, currentLevel, escalated } = buildApproverChain(row);
+    const current = chain.find((rung) => rung.current) ?? chain[0];
+
+    const ladder = chain.map((rung) => `${rung.olmId ?? ""}~${rung.name ?? ""}`).join("|");
+    const key = `${code.toUpperCase()}|${status}|${currentLevel}|${ladder.toUpperCase()}`;
 
     const existing = grouped.get(key);
     if (existing) {
-      existing.pendingCount += 1;
+      // Only open rows are work; a repeated decided row is just the proc
+      // emitting one line per CRQ_CAB_SERVICE_TBL row.
+      if (status === "pending") existing.pendingCount += 1;
       continue;
     }
 
@@ -510,17 +594,21 @@ export const summarizePendingApprovals = (
       serviceCode: code,
       serviceName: code, // replaced below once every code is known
       nameResolved: false,
-      pendingCount: 1,
-      approverOlmId: olmId || null,
-      approverName: clean(row.approverName) || null,
-      configured: !!olmId,
+      status,
+      pendingCount: status === "pending" ? 1 : 0,
+      chain,
+      currentLevel,
+      escalated,
+      approverOlmId: current.olmId,
+      approverName: current.name,
+      configured: current.configured,
     });
   }
 
   const services = [...grouped.values()];
   const names = resolveServiceNames(
     [...new Set(services.map((s) => s.serviceCode))],
-    pendingServiceRows
+    serviceRows
   );
 
   for (const service of services) {
@@ -533,18 +621,22 @@ export const summarizePendingApprovals = (
 
   // Same order the approvals lane uses, so the panel and the canvas read alike;
   // an unresolved code sorts last rather than interleaving oddly.
-  const laneOrder = pendingServiceRows.map((r) => clean(r.stage).toUpperCase());
+  const laneOrder = serviceRows.map((r) => clean(r.stage).toUpperCase());
   const rank = (s: PendingApprovalView) => {
     const i = laneOrder.indexOf(s.serviceName.toUpperCase());
     return i === -1 ? Number.MAX_SAFE_INTEGER : i;
   };
   services.sort((a, b) => rank(a) - rank(b) || a.serviceName.localeCompare(b.serviceName));
 
+  const pending = services.filter((s) => s.status === "pending");
+
   return {
-    verdict: services.length ? "awaiting" : "unknown",
+    verdict: pending.length ? "awaiting" : services.length ? "all_decided" : "unknown",
     services,
-    totalPending: services.reduce((sum, s) => sum + s.pendingCount, 0),
-    unconfigured: services.filter((s) => !s.configured),
+    pending,
+    totalPending: pending.reduce((sum, s) => sum + s.pendingCount, 0),
+    unconfigured: pending.filter((s) => !s.configured),
+    escalated: pending.filter((s) => s.escalated),
   };
 };
 
@@ -552,6 +644,10 @@ export const summarizePendingApprovals = (
  * Approver display name, with the OLM ID as the fallback identity: an approver
  * whose config row carries an ID but no name is still a real person to chase,
  * and showing the ID beats showing "—".
+ *
+ * Reads the CURRENT rung of the ladder, which is what `approverOlmId` /
+ * `approverName` now hold — naming L1 on an approval that has escalated past
+ * them sends the reader to someone who no longer owes anything.
  */
 export const approverLabel = (row: PendingApprovalView): string =>
   row.approverName ?? row.approverOlmId ?? "Not assigned";
@@ -565,11 +661,26 @@ export const approverInitials = (row: PendingApprovalView): string => {
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 };
 
+/** One rung as a single line, for the ladder tooltip: "L2 · Venkatraman Ezhumalai (A1VE3S1U)". */
+export const approverLevelLabel = (rung: ApproverLevelView): string => {
+  if (!rung.configured) return `${rung.level} · Not configured`;
+  const name = rung.name ?? rung.olmId ?? "";
+  const id = rung.name && rung.olmId ? ` (${rung.olmId})` : "";
+  return `${rung.level} · ${name}${id}`;
+};
+
 /**
  * Lookup from an approvals-lane card in the canvas back to its approver.
  *
  * Keyed on both the resolved name (which is what a lane card holds) and the raw
  * code, upper-cased, so either spelling finds the row.
+ *
+ * A lane card cannot tell two circles of the same service apart, so one entry
+ * has to stand for all of them. An OPEN one wins — the card only shows an
+ * approver while it is still pending, and a CRQ carrying the same service both
+ * approved and open would otherwise resolve to the decided row and leave the
+ * pending card claiming nobody owes it a decision. Between two equally open
+ * rows the first wins, which is the approvals-lane order.
  */
 export const buildApproverIndex = (
   services: PendingApprovalView[]
@@ -578,9 +689,11 @@ export const buildApproverIndex = (
   for (const service of services) {
     for (const key of [service.serviceName, service.serviceCode]) {
       const k = key.trim().toUpperCase();
-      // First writer wins: a lane card can't tell two circles of the same
-      // service apart, so don't let a later row swap the first one out.
-      if (k && !index.has(k)) index.set(k, service);
+      if (!k) continue;
+      const held = index.get(k);
+      if (!held || (held.status !== "pending" && service.status === "pending")) {
+        index.set(k, service);
+      }
     }
   }
   return index;
@@ -592,10 +705,10 @@ export const buildApproverIndex = (
 // way twice:
 //   • the journey rows (result set 1) know each service's DECISION but name it
 //     by its master display name;
-//   • the pending rows (result set 2) know WHO must decide it but identify it
-//     by raw code, and only while it is still open;
-//   • the SPOC rows (result set 3) know WHO OWNS it and are the only set that
-//     lists every service, decided or not — but they too carry only the code.
+//   • the approval rows (result set 2) know WHO must decide it, on which rung of
+//     the escalation ladder, but identify it by raw code;
+//   • the SPOC rows (result set 3) know WHO OWNS it — but they too carry only
+//     the code, and are INNER JOINed to a master the approval rows are not.
 //
 // Read separately they answer half a question each; a CAB manager chasing a
 // stalled CRQ wants one line per service saying what state it is in, who owes
@@ -614,8 +727,10 @@ export interface ServiceRosterSummary {
   pendingServices: number;
   /** Open CRQ_CAB_SERVICE_TBL rows across those services. */
   totalPending: number;
-  /** Pending services with no active approval-config row — a reportable gap. */
+  /** Pending services with nobody on their live escalation rung — a reportable gap. */
   unconfigured: number;
+  /** Pending services that have been escalated past L1 — the ones ageing badly. */
+  escalated: number;
   /** Services carrying at least one recorded contact; 0 means the SPOC column is dead weight. */
   withSpoc: number;
   /** The CRQ has no CAB service at all (the 'NO SERVICES' sentinel, or nothing in any set). */
@@ -639,6 +754,7 @@ const EMPTY_ROSTER: ServiceRosterSummary = {
   pendingServices: 0,
   totalPending: 0,
   unconfigured: 0,
+  escalated: 0,
   withSpoc: 0,
   empty: true,
   allDecided: false,
@@ -665,9 +781,11 @@ const collectSpocs = (rows: CrqServiceSpoc[]): ServiceSpocContact[] => {
  * must not miss, so it wins, then an approval; an unmatched service (its code
  * no longer resolves in the master) stays null rather than being guessed at.
  *
- * Pending is decided upstream from the pending result set instead: that set is
- * authoritative about what is still open and, unlike this one, does not depend
- * on the master join.
+ * Only a fallback now: since 2026-09-09 the approval set carries each service's
+ * own Status, which is authoritative and — unlike this one — does not depend on
+ * the service surviving the master join or on its display name being matchable.
+ * This still covers a service the approval set never mentioned, and a database
+ * on the older revision that reports only the pending ones.
  */
 const decidedStatus = (
   serviceName: string,
@@ -684,17 +802,16 @@ const decidedStatus = (
 };
 
 /**
- * Merges the SPOC rows, the summarized pending approvals and the journey's
+ * Merges the SPOC rows, the summarized service approvals and the journey's
  * service rows into one line per service.
  *
- * `pending` is the already-summarized output of summarizePendingApprovals, so
- * the de-duplication, sentinel handling and code→name resolution it performs
- * are not repeated here; this only has to cover what that summary cannot see,
- * namely the services already decided.
+ * `approvals` is the already-summarized output of summarizeServiceApprovals, so
+ * the de-duplication, sentinel handling, ladder resolution and code→name
+ * resolution it performs are not repeated here.
  */
 export const buildServiceRoster = (
   spocRows: CrqServiceSpoc[] | null | undefined,
-  pending: PendingApprovalsSummary,
+  approvals: PendingApprovalsSummary,
   journeyServiceRows: CrqJourneyStageRow[] = []
 ): ServiceRosterSummary => {
   // The sentinel is the procedure saying "no CAB service on this CRQ"; it is a
@@ -705,14 +822,14 @@ export const buildServiceRoster = (
   });
   const spocSetMissing = realSpocRows.length === 0;
 
-  if (spocSetMissing && !pending.services.length) {
+  if (spocSetMissing && !approvals.services.length) {
     // Nothing anywhere. Distinguish "the CRQ has no services" and "everything is
-    // decided", both of which the pending set states outright, from "we were
+    // decided", both of which the approval set states outright, from "we were
     // told nothing at all" — the panel says something different for each.
     return {
       ...EMPTY_ROSTER,
-      empty: pending.verdict === "no_services",
-      allDecided: pending.verdict === "all_decided",
+      empty: approvals.verdict === "no_services",
+      allDecided: approvals.verdict === "all_decided",
       spocSetMissing,
     };
   }
@@ -725,20 +842,30 @@ export const buildServiceRoster = (
     grouped.set(key, [...(grouped.get(key) ?? []), row]);
   }
 
-  const pendingByCode = new Map(pending.services.map((s) => [s.serviceCode.toUpperCase(), s]));
+  // An open row wins the code when a service holds both — that is the line the
+  // panel must show, and the one the counts are about. Otherwise first wins, so
+  // the approval set's own (lane) order decides.
+  const approvalByCode = new Map<string, PendingApprovalView>();
+  for (const service of approvals.services) {
+    const code = service.serviceCode.toUpperCase();
+    const held = approvalByCode.get(code);
+    if (!held || (held.status !== "pending" && service.status === "pending")) {
+      approvalByCode.set(code, service);
+    }
+  }
 
   // Services the SPOC set never mentioned still belong on the roster: a code
   // dropped from the service master disappears from the journey and SPOC sets
-  // but stays in the pending set, and hiding it would hide real open work.
+  // but stays in the approval set, and hiding it would hide real open work.
   const codes = [...grouped.keys()];
-  for (const code of pendingByCode.keys()) if (!grouped.has(code)) codes.push(code);
+  for (const code of approvalByCode.keys()) if (!grouped.has(code)) codes.push(code);
 
   const rows: ServiceRosterRow[] = codes.map((code) => {
     const spocSource = grouped.get(code) ?? [];
-    const approver = pendingByCode.get(code) ?? null;
+    const approver = approvalByCode.get(code) ?? null;
 
-    // The pending summary already resolved this code against both the master map
-    // and the journey rows, so prefer its answer over redoing that work.
+    // The approval summary already resolved this code against both the master
+    // map and the journey rows, so prefer its answer over redoing that work.
     const mapped = SERVICE_CODE_NAMES[code];
     const serviceName = approver?.nameResolved ? approver.serviceName : (mapped ?? code);
     const nameResolved = !!approver?.nameResolved || !!mapped;
@@ -749,7 +876,9 @@ export const buildServiceRoster = (
         : (approver?.serviceCode ?? code),
       serviceName,
       nameResolved,
-      status: approver ? "pending" : decidedStatus(serviceName, journeyServiceRows),
+      // The approval row's own Status is authoritative; the journey rows are the
+      // fallback for a service that set never listed.
+      status: approver ? approver.status : decidedStatus(serviceName, journeyServiceRows),
       pendingCount: approver?.pendingCount ?? 0,
       approver,
       spocs: collectSpocs(spocSource),
@@ -758,14 +887,20 @@ export const buildServiceRoster = (
     };
   });
 
+  // Every count is scoped to rows still awaiting a decision: the approval set
+  // reports decided services too now, and an approver named on a decided row is
+  // a matter of record, not an outstanding gap to chase.
+  const openRows = rows.filter((r) => r.status === "pending");
+
   return {
     rows,
-    pendingServices: rows.filter((r) => r.pendingCount > 0).length,
+    pendingServices: openRows.length,
     totalPending: rows.reduce((sum, r) => sum + r.pendingCount, 0),
-    unconfigured: rows.filter((r) => r.approver && !r.approver.configured).length,
+    unconfigured: openRows.filter((r) => r.approver && !r.approver.configured).length,
+    escalated: openRows.filter((r) => r.approver?.escalated).length,
     withSpoc: rows.filter((r) => r.spocs.length > 0).length,
     empty: rows.length === 0,
-    allDecided: rows.length > 0 && rows.every((r) => r.pendingCount === 0),
+    allDecided: rows.length > 0 && openRows.length === 0,
     spocSetMissing,
   };
 };
