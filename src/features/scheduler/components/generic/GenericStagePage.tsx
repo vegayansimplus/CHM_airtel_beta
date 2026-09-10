@@ -12,9 +12,9 @@ import {
 } from "@mui/material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -297,7 +297,7 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     </Stack>
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: filteredPlans,
     enableSorting: true,
@@ -319,10 +319,6 @@ export const GenericStagePage: React.FC<GenericStagePageProps> = ({
     initialState: { density: "compact" },
     state: { isLoading: isFetching },
     muiDetailPanelProps: { sx: { padding: 0 } },
-    muiTablePaperProps: {
-      elevation: 0,
-      sx: { border: `1px solid ${colors.border}`, borderRadius: colors.radiusXL, overflow: "hidden", bgcolor: colors.surface },
-    },
     muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 350px)" } },
   });
 

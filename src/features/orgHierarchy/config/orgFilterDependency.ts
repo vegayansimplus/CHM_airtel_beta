@@ -1,4 +1,7 @@
-import type { OrgFilterKey } from "../types/orgHierarchy.types";
+import type {
+  OrgFilterKey,
+  OrgFilterValues,
+} from "../types/orgHierarchy.types";
 
 /**
  * Defines parent dependency for each filter
@@ -24,4 +27,25 @@ export const ORG_FILTER_RESET_MAP: Record<
   teamFunction: ["domain", "subDomain"],
   domain: ["subDomain"],
   subDomain: [],
+};
+/**
+ * Applies one picker change plus its reset cascade, purely.
+ *
+ * Shared by both halves of useOrgHierarchyState - the local useState path and
+ * the Redux (remembered-scope) path - so a screen that remembers its filters
+ * cascades exactly like one that does not.
+ */
+export const applyOrgFilterChange = (
+  values: OrgFilterValues,
+  key: OrgFilterKey,
+  value?: number,
+): OrgFilterValues => {
+  const next: OrgFilterValues = { ...values, [key]: value };
+
+  if (value === undefined) delete next[key];
+  ORG_FILTER_RESET_MAP[key].forEach((child) => {
+    delete next[child];
+  });
+
+  return next;
 };

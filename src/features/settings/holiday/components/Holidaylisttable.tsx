@@ -28,9 +28,10 @@ import {
 import dayjs from "dayjs";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
+
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import {
   useGetHolidayDataQuery,
   useGetLocationOptionsQuery,
@@ -1412,38 +1413,12 @@ export const HolidayListTable: React.FC = () => {
     [isDark, ink, ink2, ink3, border, slate, actBtn],
   );
 
-  const table = useMaterialReactTable<Holiday>({
+  const table = useAppTable<Holiday>({
     columns,
     data: filteredData,
-    enableStickyHeader: true,
     enableSorting: false,
     enablePagination: false,
-    enableColumnActions: false,
     initialState: { density: "compact", columnPinning: { right: ["action"] } },
-    muiTablePaperProps: { elevation: 0, sx: { background: "transparent" } },
-    muiTableHeadCellProps: {
-      sx: {
-        background: isDark ? "rgba(255,255,255,0.03)" : "#f8fafc",
-        fontFamily: FONT,
-        fontSize: "10px",
-        fontWeight: 700,
-        color: ink2,
-        textTransform: "uppercase",
-        letterSpacing: "0.6px",
-        padding: "9px 14px",
-        borderBottom: `0.5px solid ${border}`,
-        borderTop: "none",
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        padding: "9px 14px",
-        borderBottom: `0.5px solid ${border}`,
-        fontFamily: FONT,
-        fontSize: "12px",
-        background: "transparent",
-      },
-    },
     muiTableBodyRowProps: ({ row }) => {
       const cfg = STATUS_CFG[getStatus(row.original.holidayDate)];
       return {

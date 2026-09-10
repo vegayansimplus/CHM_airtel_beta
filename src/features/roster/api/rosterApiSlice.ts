@@ -31,6 +31,10 @@ export const rosterApiSlice = api.injectEndpoints({
         method: "GET",
         params: { domainId, subDomainId },
       }),
+      // Same tag as the roster grid: one "RosterVIew" invalidation (a shift
+      // change, or the filter bar's refresh button) reloads grid and counts
+      // together, so the header can never disagree with the rows beneath it.
+      providesTags: ["RosterVIew"],
     }),
 
     // mutation for changing a shift using query parameters as per API

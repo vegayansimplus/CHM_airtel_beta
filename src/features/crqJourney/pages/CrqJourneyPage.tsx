@@ -11,6 +11,7 @@ import {
   ServiceRosterPanel,
   serviceRosterReserve,
 } from "../components/ServiceRosterPanel";
+import { SpocFeDetailsModal } from "../../cabManager/components/modals/SpocFeDetailsModal";
 
 export const CrqJourneyPage: React.FC = () => {
   const {
@@ -44,6 +45,11 @@ export const CrqJourneyPage: React.FC = () => {
   // has to leave free. Collapsing it hands that height back to the diagram.
   const [rosterOpen, setRosterOpen] = useState(true);
   const rosterReserve = serviceRosterReserve(serviceRoster, rosterOpen);
+
+  // Same read-only SPOC / Field Engineer dialog the CAB "My CRQs" drawer opens,
+  // reused as-is: it is keyed on the CRQ number and fetches its own row, so the
+  // journey page only has to own the open state.
+  const [spocFeOpen, setSpocFeOpen] = useState(false);
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1, pb: 1 }}>
@@ -98,6 +104,7 @@ export const CrqJourneyPage: React.FC = () => {
             progress={progress}
             onRefresh={refetch}
             isRefreshing={isRefreshing}
+            onViewSpocFe={() => setSpocFeOpen(true)}
           />
 
           {flow && (
@@ -118,6 +125,12 @@ export const CrqJourneyPage: React.FC = () => {
             scope={scope}
             open={rosterOpen}
             onToggle={() => setRosterOpen((v) => !v)}
+          />
+
+          <SpocFeDetailsModal
+            open={spocFeOpen}
+            crqNo={info.crqNo}
+            onClose={() => setSpocFeOpen(false)}
           />
         </>
       )}

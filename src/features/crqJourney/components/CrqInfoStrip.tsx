@@ -1,6 +1,7 @@
 import React from "react";
 import {
   Box,
+  Button,
   CircularProgress,
   IconButton,
   Skeleton,
@@ -16,6 +17,7 @@ import CalendarMonthRoundedIcon from "@mui/icons-material/CalendarMonthRounded";
 import TimelineRoundedIcon from "@mui/icons-material/TimelineRounded";
 import ChatBubbleOutlineRoundedIcon from "@mui/icons-material/ChatBubbleOutlineRounded";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
+import EngineeringOutlinedIcon from "@mui/icons-material/EngineeringOutlined";
 import type { CrqDetailsInfo, CrqJourneySearchRow } from "../types/crqJourney.types";
 import { formatDateTime, formatStatusLabel, statusChipColor } from "../utils/crqJourney.utils";
 
@@ -27,6 +29,8 @@ interface CrqInfoStripProps {
   progress?: { completed: number; total: number; pct: number } | null;
   onRefresh?: () => void;
   isRefreshing?: boolean;
+  /** Opens the CRQ-level SPOC / Field Engineer dialog. Omitted -> the button is not rendered. */
+  onViewSpocFe?: () => void;
 }
 
 const MetaItem: React.FC<{
@@ -95,6 +99,7 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
   progress,
   onRefresh,
   isRefreshing = false,
+  onViewSpocFe,
 }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === "dark";
@@ -227,6 +232,40 @@ export const CrqInfoStrip: React.FC<CrqInfoStripProps> = ({
                 {progress.pct}%
               </Typography>
             </Box>
+          )}
+
+          {/* CRQ-level assignment (sp_get_SPOC_FE_details) - distinct from the
+              per-service SPOC rows in the roster panel below, which come from
+              the journey proc and carry no Field Engineer. */}
+          {onViewSpocFe && (
+            <Tooltip title="View the SPOC and Field Engineer assigned to this CRQ" arrow>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={onViewSpocFe}
+                startIcon={<EngineeringOutlinedIcon sx={{ fontSize: 16 }} />}
+                sx={{
+                  height: 26,
+                  px: 1.1,
+                  fontSize: 11,
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: "999px",
+                  whiteSpace: "nowrap",
+                  color: "text.secondary",
+                  borderColor: "divider",
+                  background: theme.palette.background.paper,
+                  "& .MuiButton-startIcon": { mr: 0.5 },
+                  "&:hover": {
+                    borderColor: theme.palette.primary.main,
+                    color: theme.palette.primary.main,
+                    background: alpha(theme.palette.primary.main, isDark ? 0.12 : 0.06),
+                  },
+                }}
+              >
+                SPOC &amp; Field Engineer
+              </Button>
+            </Tooltip>
           )}
 
           {onRefresh && (

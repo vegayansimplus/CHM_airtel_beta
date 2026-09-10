@@ -9,6 +9,7 @@ import { WeeklyRosterMain } from "../weekly/WeeklyRosterMain";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
+import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import { authStorage } from "../../../app/store/auth.storage";
 import {
   RosterViewSwitch,
@@ -17,6 +18,11 @@ import {
 import { RosterDateNavigator } from "./components/RosterDateNavigator";
 
 
+// The grid itself lives in Weekly/MonthlyRosterMain. Invalidating the tag both
+// of them provide refetches whichever one is on screen, so the filter bar needs
+// no refetch handle from its children.
+const ROSTER_TAGS: ApiTag[] = ["RosterVIew"];
+
 export const RosterViewMain = () => {
   const [view, setView] = useState<RosterViewMode>("weekly");
   const [selectedDate, setSelectedDate] = useState<Dayjs>(dayjs());
@@ -24,8 +30,9 @@ export const RosterViewMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("rosterView");
   const { options } = useOrgHierarchyFilters(values);
+  const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_TAGS });
 
   const domainId = values.domain;
   const subDomainId = values.subDomain;
@@ -89,6 +96,12 @@ export const RosterViewMain = () => {
             values={values}
             options={options}
             onChange={handleChange}
+            onRefresh={refresh}
+            isRefreshing={isRefreshing}
+            refreshDisabled={!subDomainId}
+            refreshTooltip={
+              subDomainId ? "Refresh roster" : "Pick a Sub Domain first"
+            }
           />
         </Box>
       </LocalizationProvider>

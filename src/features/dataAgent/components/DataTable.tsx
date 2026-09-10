@@ -1,5 +1,6 @@
 import { useMemo } from "react";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import type { WidgetData } from "../types/dataAgent.types";
 
 export default function DataTable({ data }: { data: WidgetData }) {
@@ -8,13 +9,10 @@ export default function DataTable({ data }: { data: WidgetData }) {
     [data.columns],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: data.rows,
-    enableColumnActions: false,
     enableColumnFilters: false,
-    enableDensityToggle: false,
-    enableFullScreenToggle: false,
     enableHiding: false,
     enableTopToolbar: data.rows.length > 0,
     enableBottomToolbar: data.rows.length > 8,

@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
 import { useMemo } from "react";
+import RefreshIconButton from "../../../components/ui/RefreshIconButton";
 import { getOrgFilterVisibility } from "../config/orgFilterVisibility";
 import { ORG_FILTER_DEPENDENCY } from "../config/orgFilterDependency";
 import type {
@@ -21,6 +22,17 @@ interface Props {
   values: OrgFilterValues;
   options: Record<OrgFilterKey, OrgFilterOption[]>;
   onChange: (key: OrgFilterKey, value?: number) => void;
+  /**
+   * Renders a refresh button directly after the last picker, which re-runs the
+   * screen's own API calls for the scope currently selected. Omit it on screens
+   * that have nothing of their own to refetch. See hooks/useApiRefresh.
+   */
+  onRefresh?: () => void;
+  /** Spins the refresh icon while the refetch it started is still in flight. */
+  isRefreshing?: boolean;
+  /** Set when the current scope isn't complete enough to fetch anything yet. */
+  refreshDisabled?: boolean;
+  refreshTooltip?: string;
   children?: React.ReactNode;
 }
 
@@ -30,6 +42,10 @@ const OrgHierarchyFilters = ({
   values,
   options,
   onChange,
+  onRefresh,
+  isRefreshing = false,
+  refreshDisabled = false,
+  refreshTooltip,
   children,
 }: Props) => {
   // Driven by the user's real "Organization Hierarchy" sub-module grants, with
@@ -57,6 +73,16 @@ const OrgHierarchyFilters = ({
           />
         );
       })}
+
+      {onRefresh && (
+        <RefreshIconButton
+          onClick={onRefresh}
+          busy={isRefreshing}
+          disabled={refreshDisabled}
+          title={refreshTooltip ?? "Refresh data"}
+          sx={{ flexShrink: 0 }}
+        />
+      )}
 
       {children}
     </Box>

@@ -14,7 +14,7 @@ import {
   computeFlowProgress,
   currentStageEnteredAt,
   groupJourneyStages,
-  summarizePendingApprovals,
+  summarizeServiceApprovals,
 } from "../utils/crqJourney.utils";
 import type { CrqJourneySearchRow } from "../types/crqJourney.types";
 
@@ -29,7 +29,7 @@ export const useCrqJourney = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { id: crqNoFromRoute } = useParams<{ id: string }>();
 
-  const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState();
+  const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState("crqJourney");
   const { options } = useOrgHierarchyFilters(values);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);
@@ -102,27 +102,26 @@ export const useCrqJourney = () => {
   );
   const progress = useMemo(() => (flow ? computeFlowProgress(flow) : null), [flow]);
 
-  // Result set 2 of the same call: which CAB services are still open and who
-  // has to decide them. It identifies services by code only, so the grouped
-  // flow's service rows are handed in as well — they carry the display names
-  // for exactly the services on this CRQ. The index then lets an approvals-lane
-  // card in the canvas name its own approver without a lookup per render.
-  const pendingApprovals = useMemo(
-    () => summarizePendingApprovals(journey?.pendingApprovals, flow?.approvals ?? []),
+  // Result set 2 of the same call: every CAB service on the CRQ, its decision,
+  // and the L1/L2/L3 approval ladder behind it. It identifies services by code
+  // only, so the grouped flow's service rows are handed in as well — they carry
+  // the display names for exactly the services on this CRQ. The index then lets
+  // an approvals-lane card in the canvas name the approver who owes it a
+  // decision, without a lookup per render.
+  const serviceApprovals = useMemo(
+    () => summarizeServiceApprovals(journey?.pendingApprovals, flow?.approvals ?? []),
     [journey?.pendingApprovals, flow?.approvals]
   );
   const approverIndex = useMemo(
-    () => buildApproverIndex(pendingApprovals.services),
-    [pendingApprovals.services]
+    () => buildApproverIndex(serviceApprovals.services),
+    [serviceApprovals.services]
   );
 
   // Result set 3, folded together with the two above: one line per CAB service
-  // carrying its decision, its approver and its SPOC. Only this set lists the
-  // services that are already decided, so the roster — not the pending summary —
-  // is what the panel renders.
+  // carrying its decision, its approval ladder and its SPOC.
   const serviceRoster = useMemo(
-    () => buildServiceRoster(journey?.serviceSpocs, pendingApprovals, flow?.approvals ?? []),
-    [journey?.serviceSpocs, pendingApprovals, flow?.approvals]
+    () => buildServiceRoster(journey?.serviceSpocs, serviceApprovals, flow?.approvals ?? []),
+    [journey?.serviceSpocs, serviceApprovals, flow?.approvals]
   );
 
   // Only the details belonging to the CRQ on screen — a stale response for the

@@ -29,7 +29,8 @@ import RestartAltIcon from "@mui/icons-material/RestartAlt";
 import CloseIcon from "@mui/icons-material/Close";
 import TableChartOutlinedIcon from "@mui/icons-material/TableChartOutlined";
 import WarningAmberIcon from "@mui/icons-material/WarningAmber";
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { type MRT_ColumnDef } from "material-react-table";
+import { AppTable } from "../../../../../../components/ui/AppTable";
 import ExcelJS from "exceljs";
 import { saveAs } from "file-saver";
 
@@ -439,12 +440,11 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
               <Typography variant="subtitle2" fontWeight={700}>
                 Preview
               </Typography>
-              <MaterialReactTable
+              <AppTable
                 columns={previewColumns}
                 data={parseResult.rows}
                 enableTopToolbar={false}
                 enablePagination
-                muiTablePaperProps={{ elevation: 0, sx: { border: "1px solid", borderColor: "divider", borderRadius: 2 } }}
                 initialState={{ pagination: { pageSize: 5, pageIndex: 0 }, density: "compact" }}
               />
 
@@ -466,12 +466,11 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
                     {invalidCount} row{invalidCount > 1 ? "s" : ""} will be skipped. Fix them in the source file and
                     re-upload, or continue — valid rows will still be created.
                   </Alert>
-                  <MaterialReactTable
+                  <AppTable
                     columns={errorColumns}
                     data={parseResult.errors}
                     enableTopToolbar={false}
                     enablePagination
-                    muiTablePaperProps={{ elevation: 0, sx: { border: "1px solid", borderColor: "divider", borderRadius: 2 } }}
                     initialState={{ pagination: { pageSize: 5, pageIndex: 0 }, density: "compact" }}
                   />
                 </>
@@ -600,12 +599,11 @@ export const UploadPlanActivityDialog = ({ open, onClose, onSuccess }: Props) =>
 
               <Divider />
 
-              <MaterialReactTable
+              <AppTable
                 columns={resultColumns}
                 data={uploadSummary.results}
                 enableTopToolbar={false}
                 enablePagination
-                muiTablePaperProps={{ elevation: 0, sx: { border: "1px solid", borderColor: "divider", borderRadius: 2 } }}
                 initialState={{ pagination: { pageSize: 10, pageIndex: 0 } }}
               />
             </Stack>

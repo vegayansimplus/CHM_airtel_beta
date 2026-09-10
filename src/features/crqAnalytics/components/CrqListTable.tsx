@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box, Chip } from "@mui/material";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
+import { MaterialReactTable, type MRT_ColumnDef, type MRT_PaginationState } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import { useGetCrqAnalyticsListQuery } from "../api/crqAnalyticsApi";
 import type { CRQAnalyticsFilterParams, CRQTableRowDto } from "../types/crqAnalytics.types";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
@@ -55,7 +56,7 @@ export function CrqListTable({ filters, drill, onRowClick }: Props) {
     [],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: data?.data ?? [],
     manualPagination: true,
@@ -63,8 +64,6 @@ export function CrqListTable({ filters, drill, onRowClick }: Props) {
     onPaginationChange: setPagination,
     state: { pagination, isLoading: isFetching },
     enableColumnFilters: false,
-    enableDensityToggle: false,
-    enableFullScreenToggle: false,
     muiTableBodyRowProps: ({ row }) => ({
       onClick: () => onRowClick(row.original.crqNo),
       sx: { cursor: "pointer" },

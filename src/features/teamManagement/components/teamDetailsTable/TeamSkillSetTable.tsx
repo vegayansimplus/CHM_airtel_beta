@@ -1,12 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_PaginationState,
   type MRT_Column,
 } from "material-react-table";
-import { useTheme, alpha } from "@mui/material";
+import { useAppTable } from "../../../../components/ui/AppTable";
+import { useTheme } from "@mui/material";
 import {
   Box,
   IconButton,
@@ -112,7 +112,9 @@ const STORAGE_KEY = "team-table-column-visibility";
 
 const TeamSkillSetTable: React.FC<Props> = ({
   data,
-  totalRowCount,
+  // totalRowCount is still accepted from the parent but no longer read here:
+  // paging is client-side over the full data set, so useAppTable counts the
+  // filtered rows itself and stays correct while a filter is applied.
   pagination,
   setPagination,
   roleCode,
@@ -141,22 +143,8 @@ const TeamSkillSetTable: React.FC<Props> = ({
     setExitDialogOpen(true);
   };
 
-  // Pagination logic
-  function getPaginationOptions(
-    baseOptions: number[],
-    totalCount: number,
-  ): number[] {
-    const maxOption = Math.max(...baseOptions);
-
-    if (totalCount > maxOption) {
-      // Avoid duplicates just in case
-      if (!baseOptions.includes(totalCount)) {
-        return [...baseOptions, totalCount];
-      }
-    }
-
-    return baseOptions;
-  }
+  // The rows-per-page ladder that used to be assembled here now comes from
+  // useAppTable, which offers the same sizes plus the live row count.
 
   // _________________________________________\\\
   /* ================= COLUMN KEYS ================= */
@@ -320,7 +308,7 @@ const TeamSkillSetTable: React.FC<Props> = ({
 
   /* ================= TABLE ================= */
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data,
     // Client-side pagination/filtering/sorting: `data` holds the complete
@@ -335,43 +323,11 @@ const TeamSkillSetTable: React.FC<Props> = ({
     enableColumnFilters: true,
     enableGlobalFilter: true,
     enableSorting: true,
-    enableStickyHeader: true,
     enableColumnPinning: true,
-    // muiTableHeadCellProps: {
-    //   sx: {
-    //     backgroundColor: "#f4f6f8",
-    //     fontWeight: 700,
-    //     fontSize: "13px",
-    //   },
-    // },
+    //
 
     /* ================= HEADER ================= */
-    muiTableHeadCellProps: {
-      sx: {
-        backgroundColor:
-          theme.palette.mode === "dark"
-            ? alpha(theme.palette.primary.main, 0.15)
-            : alpha(theme.palette.primary.main, 0.08),
 
-        color: theme.palette.text.primary,
-        textAlign: "center",
-        fontWeight: 600,
-        border: `1px solid ${theme.palette.divider}`,
-      },
-    },
-
-    muiTableBodyCellProps: {
-      sx: {
-        fontSize: "12px",
-        // padding: "4px 8px",
-        padding: "0px 5px",
-        // alignContent: "center",
-        // textAlign: "center",
-        color: theme.palette.text.secondary,
-        border: `1px solid ${theme.palette.divider}`,
-        backgroundColor: theme.palette.background.paper,
-      },
-    },
 
     muiTableContainerProps: {
       sx: {
@@ -397,28 +353,6 @@ const TeamSkillSetTable: React.FC<Props> = ({
           borderRadius: "6px",
         },
       },
-    },
-    muiPaginationProps: {
-      rowsPerPageOptions: useMemo(() => {
-        const baseOptions = [5, 10, 15, 20, 25, 50];
-
-        return getPaginationOptions(baseOptions, totalRowCount).sort(
-          (a, b) => a - b,
-        );
-      }, [totalRowCount]),
-      //   rowsPerPageOptions: useMemo(() => {
-      //     const baseOptions = [5, 10, 15, 20, 25, 50];
-
-      //     // Add totalRowCount if not already included
-      //     const options =
-      //       totalRowCount > 0
-      //         ? Array.from(new Set([...baseOptions, totalRowCount])).sort(
-      //             (a, b) => a - b,
-      //           )
-      //         : baseOptions;
-
-      //     return options;
-      //   }, [totalRowCount]),
     },
 
     initialState: {

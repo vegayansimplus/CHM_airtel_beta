@@ -4,8 +4,14 @@ import { authStorage } from "../../../../app/store/auth.storage";
 import { useOrgHierarchyState } from "../../../orgHierarchy/hooks/useOrgHierarchyState";
 import { useOrgHierarchyFilters } from "../../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFiltersV2";
+import { useApiRefresh, type ApiTag } from "../../../../hooks/useApiRefresh";
 import { PlanViewTable } from "./components/PlanViewTable";
 import { PlanDetailDialog } from "./components/PlanDetailDialog";
+
+// PlanViewTable owns the plan query and the detail dialog owns the phase query;
+// both are reached by tag, so the filter bar refreshes the plan list and any
+// open phase breakdown in one click.
+const PLAN_TAGS: ApiTag[] = ["Plan", "ActivityPhase"];
 
 export const PlanViewAndSetup = () => {
   const { selectedPlan, planDialogOpen, handleClosePlanDialog } = useActivity();
@@ -13,8 +19,9 @@ export const PlanViewAndSetup = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("planViewAndSetup");
   const { options } = useOrgHierarchyFilters(values);
+  const { refresh, isRefreshing } = useApiRefresh({ tags: PLAN_TAGS });
 
   return (
     <>
@@ -24,6 +31,14 @@ export const PlanViewAndSetup = () => {
           values={values}
           options={options}
           onChange={handleChange}
+          onRefresh={refresh}
+          isRefreshing={isRefreshing}
+          refreshDisabled={values.subDomain === undefined}
+          refreshTooltip={
+            values.subDomain === undefined
+              ? "Pick a Sub Domain first"
+              : "Refresh plans"
+          }
         />
       </Box>
 

@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../../components/ui/AppTable";
 import {
   Alert,
   Box,
@@ -238,7 +238,7 @@ export const PlanViewTable: React.FC<Props> = ({
 
   // ── Table instance ─────────────────────────────────────────────────────────
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: apiRows,
     state: {
@@ -253,9 +253,7 @@ export const PlanViewTable: React.FC<Props> = ({
     manualPagination: true,
     rowCount: data?.totalElements ?? 0,
     onPaginationChange: setPagination,
-    enableStickyHeader: true,
     enableFacetedValues: true,
-    paginationDisplayMode: "pages",
 
     // ── Enable Action Column (Edit) ──────────────────────────────────────────
     enableRowActions: true,
@@ -339,29 +337,9 @@ export const PlanViewTable: React.FC<Props> = ({
       </Box>
     ),
 
-    muiTablePaperProps: {
-      elevation: 0,
-      variant: "outlined",
-      sx: { borderRadius: 2, borderColor: theme.palette.divider },
-    },
     muiTableContainerProps: {
       sx: { maxHeight: "calc(100vh - 360px)", minHeight: 240 },
     },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 0.75,
-        backgroundColor: isDark
-          ? alpha(theme.palette.primary.main, 0.12)
-          : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: "1px", fontSize: 12 } },
     muiTableBodyRowProps: {
       sx: {
         "&:hover td": {
@@ -382,20 +360,6 @@ export const PlanViewTable: React.FC<Props> = ({
         backgroundColor: theme.palette.background.paper,
         "& .MuiTextField-root": { minWidth: 200 },
       },
-    },
-    muiBottomToolbarProps: {
-      sx: {
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: isDark
-          ? "rgba(255,255,255,0.02)"
-          : theme.palette.grey[50],
-        px: 1,
-      },
-    },
-    muiPaginationProps: {
-      shape: "rounded",
-      size: "small",
-      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
     },
     muiSearchTextFieldProps: {
       size: "small",

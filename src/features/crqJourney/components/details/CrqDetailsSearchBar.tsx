@@ -5,6 +5,11 @@ import OrgHierarchyFilters from "../../../orgHierarchy/components/OrgHierarchyFi
 import type { OrgFilterKey, OrgFilterOption, OrgFilterValues } from "../../../orgHierarchy/types/orgHierarchy.types";
 import type { CrqJourneySearchRow } from "../../types/crqJourney.types";
 import { statusChipColor } from "../../utils/crqJourney.utils";
+import { useApiRefresh, type ApiTag } from "../../../../hooks/useApiRefresh";
+
+// The sub-domain CRQ list and the details card both provide the "CrqReview"
+// type, so invalidating it refetches the whole screen.
+const JOURNEY_TAGS: ApiTag[] = ["CrqReview"];
 
 interface CrqDetailsSearchBarProps {
   role: string;
@@ -29,6 +34,10 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
 }) => {
   const theme = useTheme();
   const scopeSelected = values.subDomain != null;
+  const { refresh, isRefreshing } = useApiRefresh({
+    tags: JOURNEY_TAGS,
+    isFetching: isLoadingCrqs,
+  });
 
   const emitCrq = (val: CrqJourneySearchRow | string | null) => {
     if (val == null) return onChange(null);
@@ -63,7 +72,20 @@ export const CrqDetailsSearchBar: React.FC<CrqDetailsSearchBarProps> = ({
         },
       }}
     >
-      <OrgHierarchyFilters role={role} values={values} options={options} onChange={onFilterChange} />
+      <OrgHierarchyFilters
+        role={role}
+        values={values}
+        options={options}
+        onChange={onFilterChange}
+        onRefresh={refresh}
+        isRefreshing={isRefreshing}
+        refreshDisabled={!scopeSelected && !value}
+        refreshTooltip={
+          scopeSelected || value
+            ? "Refresh CRQ list and details"
+            : "Pick a Sub Domain or a CRQ first"
+        }
+      />
 
       <Autocomplete<CrqJourneySearchRow, false, false, true>
         size="small"

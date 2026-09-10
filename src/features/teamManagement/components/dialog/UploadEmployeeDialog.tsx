@@ -31,7 +31,8 @@ import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import { useDispatch } from "react-redux";
-import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { type MRT_ColumnDef } from "material-react-table";
+import { AppTable } from "../../../../components/ui/AppTable";
 import {
   orgHierarchyApi,
   useLazyDownloadEmployeeTemplateQuery,
@@ -548,12 +549,11 @@ export const UploadEmployeeDialog = ({ open, onClose }: Props) => {
               <Divider />
 
               {/* Results table */}
-              <MaterialReactTable
+              <AppTable
                 columns={resultColumns}
                 data={resultData}
                 enableTopToolbar={false}
                 enablePagination
-                muiTablePaperProps={{ elevation: 0, sx: { border: "1px solid", borderColor: "divider", borderRadius: 2 } }}
                 initialState={{ pagination: { pageSize: 10, pageIndex: 0 } }}
               />
             </Stack>

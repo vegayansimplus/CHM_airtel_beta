@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Box } from "@mui/material";
-import { MaterialReactTable, useMaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { MaterialReactTable, type MRT_ColumnDef } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import { EmptyOrErrorState } from "./EmptyOrErrorState";
 import type { ViewAllResponse } from "../types/crqAnalytics.types";
 
@@ -21,13 +22,11 @@ export function GenericViewAllTable({ response, isLoading, isError }: Props) {
     [headers],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: response?.data ?? [],
     state: { isLoading },
     enableColumnFilters: false,
-    enableDensityToggle: false,
-    enableFullScreenToggle: false,
     renderEmptyRowsFallback: () => (
       <Box sx={{ py: 4 }}>
         <EmptyOrErrorState kind={isError ? "error" : "empty"} />

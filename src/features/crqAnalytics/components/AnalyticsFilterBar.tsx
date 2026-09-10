@@ -5,6 +5,11 @@ import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { QUICK_DATE_OPTIONS } from "../utils/dateRange";
 import { CIRCLE_OPTIONS, type UseAnalyticsFiltersReturn } from "../hooks/useAnalyticsFilters";
+import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
+
+// Every analytics endpoint provides this one tag, so a single invalidation
+// reloads whichever dashboard is mounted around this bar.
+const ANALYTICS_TAGS: ApiTag[] = ["CrqAnalytics"];
 
 type Props = Pick<
   UseAnalyticsFiltersReturn,
@@ -37,6 +42,7 @@ export function AnalyticsFilterBar({
   setCustomEnd,
 }: Props) {
   const theme = useTheme();
+  const { refresh, isRefreshing } = useApiRefresh({ tags: ANALYTICS_TAGS });
 
   return (
     <Box
@@ -55,7 +61,15 @@ export function AnalyticsFilterBar({
         boxShadow: theme.palette.mode === "dark" ? "0 8px 28px rgba(0,0,0,0.4)" : "0 8px 28px rgba(16,40,70,0.06)",
       }}
     >
-      <OrgHierarchyFilters role={roleName} values={orgValues} options={orgOptions} onChange={onOrgFilterChange} />
+      <OrgHierarchyFilters
+        role={roleName}
+        values={orgValues}
+        options={orgOptions}
+        onChange={onOrgFilterChange}
+        onRefresh={refresh}
+        isRefreshing={isRefreshing}
+        refreshTooltip="Refresh analytics"
+      />
 
       <TextField
         select

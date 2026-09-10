@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
+
   type MRT_Cell,
   type MRT_ColumnDef,
   type MRT_Row,
   type MRT_TableInstance,
 } from "material-react-table";
+import { useAppTable } from "../../../../../components/ui/AppTable";
 import {
   Box,
   Typography,
@@ -678,25 +679,14 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
 
   // ── Table ──────────────────────────────────────────────────────────────────
 
-  const table = useMaterialReactTable<TaskData>({
+  const table = useAppTable<TaskData>({
     columns,
     data: filteredData,
-    enableColumnActions: false,
     enableSorting: true,
     enablePagination: false,
     enableRowSelection: false,
-    enableStickyHeader: true,
     initialState: { density: "compact" },
     state: { isLoading: isFetching },
-    muiTablePaperProps: {
-      elevation: 0,
-      sx: {
-        border: "1px solid",
-        borderColor: "divider",
-        borderRadius: 2,
-        overflow: "hidden",
-      },
-    },
     muiTableContainerProps: {
       sx: {
         maxHeight: {
@@ -710,28 +700,10 @@ export const TaskConfig: React.FC<TaskConfigProps> = ({
       },
     },
 
-    muiTableHeadCellProps: {
-      align: "center",
-      sx: {
-        backgroundColor: "rgba(0,0,0,0.02)",
-        fontWeight: 700,
-        fontSize: "11px",
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
-        borderBottom: "2px solid",
-        borderColor: "divider",
-      },
-    },
     muiTableBodyRowProps: {
       sx: { "&:hover": { backgroundColor: "rgba(24, 95, 165, 0.03)" } },
     },
 
-    muiTableBodyCellProps: {
-      align: "center",
-      sx: {
-        textAlign: "center",
-      },
-    },
     
   });
 

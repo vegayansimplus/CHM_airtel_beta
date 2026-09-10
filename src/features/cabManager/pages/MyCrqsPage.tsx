@@ -12,9 +12,9 @@ import {
 import { alpha } from "@mui/material/styles";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import { useEffect, useMemo, useState } from "react";
 import { useTabColorTokens } from "../../../style/theme";
 import { useGetMyCrqsQuery} from "../api/cabManagerApiSlice";
@@ -155,37 +155,19 @@ export function MyCrqsPage() {
     [],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: data?.rows ?? [],
     getRowId: (row) => String(row.serviceApprovalId),
     state: { isLoading },
-    initialState: {
-      density: "compact",
-      pagination: { pageSize: 10, pageIndex: 0 },
+    appTable: {
+      emptyTitle: "No CRQs assigned to you",
+      emptyDescription: "Nothing is waiting on you right now.",
+      // Wrapped in the page's own bordered Paper below.
+      frame: false,
     },
+    initialState: { density: "compact" },
     enableTopToolbar: false,
-    enableStickyHeader: true,
-    paginationDisplayMode: "pages",
-    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
-    muiTableContainerProps: {
-      sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 },
-    },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 0.75,
-        backgroundColor: isDark
-          ? alpha(theme.palette.primary.main, 0.12)
-          : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: ({ row }) => ({
       hover: true,
       onClick: () => setSelected(row.original),
@@ -200,32 +182,6 @@ export function MyCrqsPage() {
         transition: "background-color 100ms ease",
       },
     }),
-    muiBottomToolbarProps: {
-      sx: {
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: isDark
-          ? "rgba(255,255,255,0.02)"
-          : theme.palette.grey[50],
-        px: 1,
-      },
-    },
-    muiPaginationProps: {
-      shape: "rounded",
-      size: "small",
-      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
-    },
-    renderEmptyRowsFallback: () => (
-      <Box
-        sx={{
-          py: 6,
-          textAlign: "center",
-          color: "text.secondary",
-          width: "100%",
-        }}
-      >
-        No CRQs assigned to you right now.
-      </Box>
-    ),
   });
 
   if (isError) {

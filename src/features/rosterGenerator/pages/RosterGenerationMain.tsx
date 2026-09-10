@@ -4,6 +4,7 @@ import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
+import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import { useTabColorTokens } from "../../../style/theme";
 import RosterTabStrip from "../components/rosterGeneration/RosterTabStrip";
 import GenerateRosterButton from "../components/rosterGeneration/GenerateRosterButton";
@@ -29,15 +30,20 @@ function TabContentFallback() {
   );
 }
 
+// The Golden Set and Week-7 grids each own their query; refreshing by tag hits
+// whichever tab is mounted without threading a refetch through the tab strip.
+const ROSTER_GEN_TAGS: ApiTag[] = ["GoldenSetTag", "FutureWeekTag"];
+
 export const RosterGenerationMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("rosterGeneration");
   const { options } = useOrgHierarchyFilters(values);
   const theme = useTheme();
   const tk = useTabColorTokens(theme);
   const [activeTab, setActiveTab] = useState(0);
   const { isGenerating, generate } = useGenerateRoster();
+  const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_GEN_TAGS });
 
   const hasSubDomain = Boolean(values.subDomain);
   const activeConfig = ROSTER_TABS[activeTab];
@@ -70,6 +76,12 @@ export const RosterGenerationMain = () => {
           values={values}
           options={options}
           onChange={handleChange}
+          onRefresh={refresh}
+          isRefreshing={isRefreshing}
+          refreshDisabled={!hasSubDomain}
+          refreshTooltip={
+            hasSubDomain ? "Refresh roster grid" : "Pick a Sub Domain first"
+          }
         />
       </Box>
 

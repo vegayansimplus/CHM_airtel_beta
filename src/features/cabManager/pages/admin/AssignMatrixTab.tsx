@@ -7,14 +7,12 @@ import {
   Table, TableBody, TableCell, TableHead, TableRow,
   TextField,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import AddIcon from "@mui/icons-material/Add";
 import { useMemo, useState } from "react";
 import {
@@ -34,8 +32,6 @@ import type { ServiceApprovalRule } from "../../types/types";
 import { AddServiceRuleModal } from "../../components/modals/AddServiceRuleModal";
 
 export function AdminAssignMatrixTab() {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
   const matrix      = useGetAssignMatrixQuery();
   const rules       = useGetAssignRulesQuery();
   const [addServiceOpen, setAddServiceOpen] = useState(false);
@@ -85,7 +81,7 @@ export function AdminAssignMatrixTab() {
     []
   );
 
-  const serviceRuleTable = useMaterialReactTable({
+  const serviceRuleTable = useAppTable({
     columns: serviceRuleColumns,
     data: serviceRuleRows,
     getRowId: (row) => row.id,
@@ -98,33 +94,12 @@ export function AdminAssignMatrixTab() {
     manualPagination: true,
     rowCount: serviceRuleTotal,
     onPaginationChange: setPagination,
-    paginationDisplayMode: "pages",
+    appTable: { emptyTitle: "No service approval rules configured" },
     enableTopToolbar: false,
-    enableStickyHeader: true,
     enableBottomToolbar: true,
-    enableColumnActions: false,
     enableSorting: false,
-    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
     muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 0.75,
-        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: ({ row }) => ({ sx: { opacity: row.original.active ? 1 : 0.6 } }),
-    renderEmptyRowsFallback: () => (
-      <Box sx={{ py: 6, textAlign: "center", color: "text.secondary", width: "100%" }}>
-        No service approval rules configured.
-      </Box>
-    ),
   });
 
   return (

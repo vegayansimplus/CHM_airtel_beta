@@ -8,6 +8,7 @@ import type { OrgFilterValues } from "../../orgHierarchy/types/orgHierarchy.type
 import { TeamManagementFilter } from "../components/filters/TeamManagementFilter";
 import type { MRT_PaginationState } from "material-react-table";
 import { useAppSelector } from "../../../app/hooks";
+import { useApiRefresh } from "../../../hooks/useApiRefresh";
 import { Box } from "@mui/material";
 
 // Fetched once per subDomain/status selection so search & pagination can run
@@ -31,7 +32,11 @@ export const TeamManagementMain = () => {
 
   const subDomainId = filters.subDomain;
 
-  const { data, isFetching: isFetchingEmployees } = useGetEmployeesBySubDomainQuery(
+  const {
+    data,
+    isFetching: isFetchingEmployees,
+    refetch: refetchEmployees,
+  } = useGetEmployeesBySubDomainQuery(
     {
       subDomainId: subDomainId as number,
       employeeStatus: status,
@@ -41,12 +46,27 @@ export const TeamManagementMain = () => {
     { skip: !subDomainId },
   );
 
-  const { data: overviewData, isFetching: isFetchingOverview } = useGetEmpCountBySubDomainIdQuery(
+  const {
+    data: overviewData,
+    isFetching: isFetchingOverview,
+    refetch: refetchOverview,
+  } = useGetEmpCountBySubDomainIdQuery(
     { subDomainId: subDomainId as number },
     { skip: !subDomainId },
   );
 
   const isFetchingTeam = isFetchingEmployees || isFetchingOverview;
+
+  // Both queries are owned here, so the filter bar's refresh button is handed
+  // their refetch handles rather than reaching for them through cache tags.
+  const { refresh, isRefreshing } = useApiRefresh({
+    onRefresh: () => {
+      if (!subDomainId) return;
+      void refetchEmployees();
+      void refetchOverview();
+    },
+    isFetching: isFetchingTeam,
+  });
 
   const tableData = useMemo(() => data?.content ?? [], [data]);
   const totalRowCount = useMemo(() => data?.totalElements ?? 0, [data]);
@@ -77,6 +97,8 @@ export const TeamManagementMain = () => {
         filteredRows={filteredRows}
         totalRowCount={totalRowCount}
         currentPageSize={pagination.pageSize}
+        onRefresh={refresh}
+        isRefreshing={isRefreshing}
       />
       <Box sx={{ p: 0.5 }} />
       <TeamSkillSetTable

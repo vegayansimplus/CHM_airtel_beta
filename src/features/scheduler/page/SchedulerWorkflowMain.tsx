@@ -4,6 +4,7 @@ import { authStorage } from "../../../app/store/auth.storage";
 import OrgHierarchyFilters from "../../orgHierarchy/components/OrgHierarchyFiltersV2";
 import { useOrgHierarchyFilters } from "../../orgHierarchy/hooks/useOrgHierarchyFilters";
 import { useOrgHierarchyState } from "../../orgHierarchy/hooks/useOrgHierarchyState";
+import { useApiRefresh, type ApiTag } from "../../../hooks/useApiRefresh";
 import { AppStepper } from "../../../components/ui/AppStepper/AppStepper";
 import { useStepper } from "../../../hooks/useStepper";
 import MonitorHeartOutlinedIcon from "@mui/icons-material/MonitorHeartOutlined";
@@ -61,11 +62,16 @@ const WORKFLOW_STEPS: IStep[] = [
   },
 ];
 
+// Plan & Inventory reads "CrqReview"; the other six stages read "StageWorkflow".
+// Invalidating both refetches whichever stage page is currently mounted, so one
+// button in the filter bar serves the whole workflow.
+const WORKFLOW_TAGS: ApiTag[] = ["CrqReview", "StageWorkflow"];
+
 export const PlanAndInventoryMain = () => {
   // Existing Hook Logic
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, setValues, handleChange } = useOrgHierarchyState();
+  const { values, setValues, handleChange } = useOrgHierarchyState("schedulerWorkflow");
   const { options } = useOrgHierarchyFilters(values);
   // A TEAM_MEMBER is never shown a Domain picker (ORG_FILTER_VISIBILITY), so
   // there is no domain to send for them - null, not a defaulted-to-1 guess.
@@ -77,6 +83,7 @@ export const PlanAndInventoryMain = () => {
   const tk = useTabColorTokens(theme);
   // Initialize Stepper (Setting default to 1 -> "Plan & inventory")
   const { activeStep, goToStep } = useStepper(0, WORKFLOW_STEPS.length);
+  const { refresh, isRefreshing } = useApiRefresh({ tags: WORKFLOW_TAGS });
 
   // CRQ the Global CRQ Search last routed to. Passed to whichever stage page
   // is showing so it lists only that CRQ instead of every CRQ in the plan;
@@ -137,6 +144,14 @@ export const PlanAndInventoryMain = () => {
         values={values}
         options={options}
         onChange={handleFilterChange}
+        onRefresh={refresh}
+        isRefreshing={isRefreshing}
+        refreshDisabled={!values.subDomain}
+        refreshTooltip={
+          values.subDomain
+            ? "Refresh this stage"
+            : "Pick a Sub Domain first"
+        }
       >
         <Box sx={{ ml: "auto", flexShrink: 0 }}>
           <GlobalCrqSearch onResolved={handleCrqResolved} />
