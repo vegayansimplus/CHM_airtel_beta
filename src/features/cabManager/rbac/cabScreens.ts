@@ -48,10 +48,11 @@ const SCREEN_ORDER: string[] = [
 /**
  * Screens hidden no matter what is granted.
  * "dashboard" hidden since 2026-08-24 (commit "Hide dashboard from cab
- * manager tabs") — its route stays mounted, so remove it from this set to
- * bring the tab back everywhere at once.
+ * manager tabs"); "implementation" hidden since 2026-09-10. Their routes
+ * stay mounted, so remove an id from this set to bring the tab back
+ * everywhere at once.
  */
-const HIDDEN_SCREENS = new Set<string>(["dashboard"]);
+const HIDDEN_SCREENS = new Set<string>(["dashboard", "implementation"]);
 
 export type HasSubModule = (moduleName: string, subModuleName: string) => boolean;
 

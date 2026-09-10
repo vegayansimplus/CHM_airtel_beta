@@ -95,6 +95,11 @@ export const AttributeSection: React.FC<AttributeSectionProps> = React.memo(func
 
   const allMandatoryFilled = mandatoryTotal > 0 && mandatoryFilled === mandatoryTotal;
 
+  // A stage can legitimately have no fields for one of the target systems -
+  // Network Execution collects nothing on the CAB form, for instance - and an
+  // empty accordion reading "0 fields" is just noise, so render nothing.
+  if (totalCount === 0) return null;
+
   return (
     <Accordion
       defaultExpanded

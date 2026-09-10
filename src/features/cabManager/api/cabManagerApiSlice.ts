@@ -580,7 +580,7 @@ import {
   type FetchBaseQueryMeta,
 } from "@reduxjs/toolkit/query/react";
 import {
-  buildAgenda,
+  buildAgendaBoard,
   buildAnalytics,
   buildCabPlanDates,
   buildCabQueue,
@@ -604,6 +604,8 @@ import {
   mockDelay,
 } from "../data/cabManager.mock";
 import type {
+  AddCrqToSessionPayload,
+  AddCrqToSessionResult,
   AddServiceRulePayload,
   AdminAnalytics,
   AdminUser,
@@ -621,8 +623,10 @@ import type {
   CabQueueRow,
   CabRejectReason,
   CabService,
+  CabAgendaRow,
   CabSession,
-  CabSessionDetail,
+  CabSessionCrqActionPayload,
+  CabSessionCrqActionResult,
   CircleDropdown,
   Crq,
   CrqActionResult,
@@ -636,6 +640,7 @@ import type {
   MyCrqDetail,
   MyCrqsResponse,
   NewCrqPayload,
+  CabPlanConflict,
   PlanCabPayload,
   PlanCabResult,
   ProceedRingPayload,
@@ -914,22 +919,21 @@ export const cabPortalApi = api.injectEndpoints({
           : [{ type: "CabSession" as const, id: "LIST" }],
     }),
 
-    getCabSessionDetail: builder.query<CabSessionDetail, string>({
+    // The agenda board for one session — the CRQs tabled at it and the decision
+    // standing against each. A session with nothing tabled yet answers with the
+    // procs' "no rows" sentinel, which is an empty agenda, not a failure.
+    getCabSessionAgenda: builder.query<CabAgendaRow[], string>({
       queryFn: async (id, _apiArg, _extraOptions, baseQuery) =>
-        networkOrMock(
-          { url: `/cab/sessions/${encodeURIComponent(id)}`, method: "GET" },
-          baseQuery,
-          async () => {
-            const session = MOCK_CAB_SESSIONS.find((s) => s.id === id);
-            if (session)
-              return await mockDelay({
-                session,
-                agenda: buildAgenda(session),
-              });
-            throw { status: 404, data: { message: "Session not found" } };
-          }
+        emptyListOnNoRows(
+          networkOrMock(
+            { url: `/cab/sessions/${encodeURIComponent(id)}/agenda`, method: "GET" },
+            baseQuery,
+            async () => await mockDelay(buildAgendaBoard(id))
+          )
         ),
-      providesTags: (_r, _e, id) => [{ type: "CabSession" as const, id }],
+      providesTags: (_r, _e, id) => [
+        { type: "CabSession" as const, id: `AGENDA-${id}` },
+      ],
     }),
 
     // ── IMPLEMENTATION ────────────────────────────────────────────────────
@@ -1144,6 +1148,25 @@ getImplementation: builder.query<ImplementationDetail, void>({
       providesTags: ["CabAudit"],
     }),
 
+    // Is this date + time already taken by a CAB session? Asked before the
+    // session is planned so its CRQs can be added to the one already there,
+    // on the same link, rather than a second session landing in the slot.
+    getCabPlanConflict: builder.query<CabPlanConflict, { date: string; time: string }>({
+      queryFn: async ({ date, time }, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          { url: "/cab/sessions/conflict", method: "GET", params: { date, time } },
+          baseQuery,
+          async () =>
+            await mockDelay<CabPlanConflict>({
+              conflict: false,
+              cabId: null,
+              sessionLink: null,
+              crqList: [],
+            })
+        ),
+      providesTags: [{ type: "CabSession", id: "PLAN_CONFLICT" }],
+    }),
+
     // ── Mutations ─────────────────────────────────────────────────────────
     planCab: builder.mutation<PlanCabResult, PlanCabPayload>({
       queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
@@ -1161,7 +1184,78 @@ getImplementation: builder.query<ImplementationDetail, void>({
       invalidatesTags: [
         "CabQueue",
         { type: "CabSession", id: "LIST" },
+        // The slot this just filled - a re-check must not answer from the
+        // pre-plan cache, or the modal would offer to create a second session.
+        { type: "CabSession", id: "PLAN_CONFLICT" },
         "CabDashboard",
+      ],
+    }),
+
+    // Records APPROVE / REJECT / RESCHEDULE against one CRQ on a session's
+    // agenda. Addressed by mappingId, not CRQ number — the same CRQ can be
+    // tabled again later and each sitting keeps its own decision.
+    recordCabSessionCrqDecision: builder.mutation<
+      CabSessionCrqActionResult,
+      CabSessionCrqActionPayload
+    >({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/sessions/agenda/${body.mappingId}/action`,
+            method: "POST",
+            body: { action: body.action, reason: body.reason, comment: body.comment },
+          },
+          baseQuery,
+          async () =>
+            await mockDelay<CabSessionCrqActionResult>({
+              mappingId: body.mappingId,
+              cabId: body.sessionId,
+              crqNo: `CRQ-MOCK-${body.mappingId}`,
+              previousStatus: "PENDING",
+              newStatus:
+                body.action === "APPROVE"
+                  ? "APPROVED"
+                  : body.action === "REJECT"
+                    ? "REJECTED"
+                    : "RESCHEDULED",
+            })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabSession" as const, id: `AGENDA-${b.sessionId}` },
+        { type: "CabSession" as const, id: b.sessionId },
+        // A decision moves the CRQ on, so the planning queue and the dashboard
+        // counts drawn before it are stale.
+        "CabQueue",
+        "CabDashboard",
+      ],
+    }),
+
+    // Pulls further CRQs onto an agenda that is already open. CRQs the session
+    // already carries come back under skippedCrqList — a partial add is a
+    // normal outcome, so the caller reports both halves.
+    addCrqsToCabSession: builder.mutation<AddCrqToSessionResult, AddCrqToSessionPayload>({
+      queryFn: async (body, _apiArg, _extraOptions, baseQuery) =>
+        networkOrMock(
+          {
+            url: `/cab/sessions/${encodeURIComponent(body.sessionId)}/crqs`,
+            method: "POST",
+            body: { crqIds: body.crqIds },
+          },
+          baseQuery,
+          async () =>
+            await mockDelay<AddCrqToSessionResult>({
+              cabId: body.sessionId,
+              addedCount: body.crqIds.length,
+              skippedCount: 0,
+              addedCrqList: body.crqIds,
+              skippedCrqList: [],
+            })
+        ),
+      invalidatesTags: (_r, _e, b) => [
+        { type: "CabSession" as const, id: `AGENDA-${b.sessionId}` },
+        { type: "CabSession" as const, id: b.sessionId },
+        { type: "CabSession" as const, id: "LIST" },
+        "CabQueue",
       ],
     }),
 
@@ -1407,7 +1501,7 @@ export const {
   useGetCabQueueQuery,
   useGetCabPlanDatesQuery,
   useGetCabSessionsQuery,
-  useGetCabSessionDetailQuery,
+  useGetCabSessionAgendaQuery,
   useGetImplementationQuery,
   useGetAdminAnalyticsQuery,
   useGetAssignMatrixQuery,
@@ -1425,7 +1519,10 @@ export const {
   useGetSpocFeDetailsQuery,
   useLazyDownloadServiceCsvExcelQuery,
   // mutations
+  useGetCabPlanConflictQuery,
   usePlanCabMutation,
+  useRecordCabSessionCrqDecisionMutation,
+  useAddCrqsToCabSessionMutation,
   useCreateCrqMutation,
   useProceedRingMutation,
   useBlockRingMutation,

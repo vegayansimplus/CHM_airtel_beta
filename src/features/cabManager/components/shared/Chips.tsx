@@ -63,6 +63,34 @@ export function StatusChip({ status }: { status: string }) {
   );
 }
 
+// The CAB's verdict on a CRQ tabled at a session (sp_get_crq_cab_agenda_v2's
+// cab_decision). Kept apart from STATUS_COLOR: that one tracks the CRQ's own
+// approval status, this one only what a sitting decided.
+const DECISION_COLOR: Record<string, { bg: string; fg: string; label: string }> = {
+  PENDING:     { bg: "#F4F5F7", fg: "rgba(0,0,0,0.6)", label: "Awaiting decision" },
+  APPROVED:    { bg: "#E8F5E9", fg: "#2E7D32", label: "Approved"    },
+  REJECTED:    { bg: "#FDECEA", fg: "#D32F2F", label: "Rejected"    },
+  RESCHEDULED: { bg: "#FFF4E5", fg: "#ED6C02", label: "Rescheduled" },
+};
+
+export function CabDecisionChip({ decision }: { decision: string }) {
+  const key = decision?.toUpperCase() ?? "";
+  const c = DECISION_COLOR[key] ?? { ...UNKNOWN_COLOR, label: decision || "Unknown" };
+  return (
+    <Box
+      component="span"
+      sx={{
+        display: "inline-flex", alignItems: "center", gap: 0.75,
+        px: 1.25, py: 0.25, borderRadius: 1.5,
+        bgcolor: c.bg, color: c.fg, fontWeight: 500, fontSize: 12, whiteSpace: "nowrap",
+      }}
+    >
+      <Box sx={{ width: 6, height: 6, borderRadius: "50%", bgcolor: c.fg }} />
+      {c.label}
+    </Box>
+  );
+}
+
 export function ImpactChip({ impact }: { impact: ImpactCode }) {
   const bg = impact === "SA" ? "#FDECEA" : "#E3F2FD";
   const fg = impact === "SA" ? "#C62828" : "#1565C0";

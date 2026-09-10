@@ -4,7 +4,7 @@ import type {
   AssignMatrixCell,
   AssignRule,
   AuditEntry,
-  CabAgendaItem,
+  CabAgendaRow,
   CabPlanDate,
   CabQueueRow,
   CabRejectReason,
@@ -126,8 +126,10 @@ export const MOCK_CAB_REJECT_REASONS: CabRejectReason[] = [
 
 // ── CAB sessions ────────────────────────────────────────────────────────────
 export const MOCK_CAB_SESSIONS: CabSession[] = [
-  { id: "CAB-2026-101", stage: "SCHEDULING_APPROVAL", host: "Rahul Sharma", date: "2026-06-14", time: "16:00 IST", status: "scheduled", type: "Critical", crqIds: ["CRQ-2026-0418", "CRQ-2026-0424", "CRQ-2026-0412"] },
-  { id: "CAB-2026-098", stage: "SCHEDULING_APPROVAL", host: "Anita Desai",  date: "2026-06-11", time: "15:00 IST", status: "live",      type: "Normal",   crqIds: ["CRQ-2026-0415"] },
+  // session_link is free text and often absent — one of each, so the UI's
+  // "no bridge booked yet" path is exercised alongside the joinable one.
+  { id: "CAB-2026-101", sessionLink: null, stage: "SCHEDULING_APPROVAL", host: "Rahul Sharma", date: "2026-06-14", time: "16:00 IST", status: "scheduled", type: "Critical", crqIds: ["CRQ-2026-0418", "CRQ-2026-0424", "CRQ-2026-0412"] },
+  { id: "CAB-2026-098", sessionLink: "meet.google.com/abc-defg", stage: "SCHEDULING_APPROVAL", host: "Anita Desai",  date: "2026-06-11", time: "15:00 IST", status: "live",      type: "Normal",   crqIds: ["CRQ-2026-0415"] },
 ];
 
 // ── SE rings (Field Execution) ───────────────────────────────────────────────
@@ -279,10 +281,23 @@ export const buildCabPlanDates = (): CabPlanDate[] => [
   { date: "2026-06-16", dayName: "SUN", dayNum: "16", monthName: "JUN", sessionId: "CAB-2026-102", type: "Normal",   crqIds: ["CRQ-2026-0420", "CRQ-2026-0413"] },
 ];
 
-export const buildAgenda = (_session?: CabSession): CabAgendaItem[] => [
-  { id: "CRQ-2026-0410", activity: "Packet core capacity expansion",  stage: "SCHEDULING_APPROVAL", domain: "Packet",   impact: "SA",  hostname: "mum-pkt-rt-04" },
-  { id: "CRQ-2026-0411", activity: "Embedded firmware patch rollout", stage: "SCHEDULING_APPROVAL", domain: "Embedded", impact: "NSA", hostname: "blr-emb-sw-02" },
-];
+/**
+ * Agenda board rows for a session — the sp_get_crq_cab_agenda_v2 shape.
+ * Covers the three decisions the board can show plus an untouched row, so the
+ * mock exercises every branch of the decision column.
+ */
+export const buildAgendaBoard = (sessionId: string): CabAgendaRow[] => {
+  const session = MOCK_CAB_SESSIONS.find((s) => s.id === sessionId);
+  const date = session?.date ?? "2026-06-14";
+  const chair = session?.host ?? "Rahul Sharma";
+  const base = { cabSessionDate: date, chairedBy: chair };
+  return [
+    { mappingId: 1, circle: "NCR",  crqNo: "CRQ000005097287", nodeName: "NDL-2B2-901-1AG-A-ASR1XXXR064", changeImpact: "NSA", cabDecision: "APPROVED",    ...base },
+    { mappingId: 2, circle: "UP-E", crqNo: "CRQ000005097397", nodeName: null,                            changeImpact: "SA",  cabDecision: "PENDING",     ...base },
+    { mappingId: 3, circle: null,   crqNo: "CRQ000005097484", nodeName: "BHA-MPL-LTE-PE-RTR-42-163",     changeImpact: "NSA", cabDecision: "REJECTED",    ...base },
+    { mappingId: 4, circle: "WB",   crqNo: "TESTCRQ",         nodeName: null,                            changeImpact: "NSA", cabDecision: "RESCHEDULED", ...base },
+  ];
+};
 
 export const buildImplementation = (
   crqId: string = "CRQ-2026-0418",

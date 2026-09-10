@@ -102,14 +102,7 @@ import ReplayIcon from "@mui/icons-material/Replay";
 import { useState } from "react";
 import { toast } from "react-toastify";
 import { useRescheduleCrqMutation } from "../../api/cabManagerApiSlice";
-
-/** Local (not UTC) yyyy-MM-dd for "today" - the earliest selectable date. */
-const todayIso = () => {
-  const now = new Date();
-  return new Date(now.getTime() - now.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 10);
-};
+import { todayIso } from "../shared/todayIso";
 
 type RescheduleCrqModalProps = {
   open: boolean;

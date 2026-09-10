@@ -559,9 +559,14 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
       "Implementation In Progress",
     ],
     // The three "Scheduled*" sub-statuses are pure Remedy transitions - the
-    // activity hasn't run yet, so there are no actual start/end times, no
-    // pre/post checks and no implementer to record. Only "Implementation in
-    // Progress" collects the fields below; the others save the Status alone.
+    // activity hasn't started yet, so there is no actual start time to record.
+    // Only "Implementation in Progress" collects the field below; the others
+    // save the Status alone.
+    //
+    // Everything the activity produces (actual end time, implementer details,
+    // pre/post checks, execution method, ...) is collected at Task Closure, not
+    // here: at "Implementation in Progress" the work is still running, so those
+    // answers don't exist yet.
     attributeStatuses: ["Implementation In Progress"],
     planningToolScopes: ["execution"],
     remedy: [
@@ -572,12 +577,28 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         type: "Date Time",
         mandatory: "Mandatory",
       },
+    ],
+    // No CAB fields at this stage - see the note above. An empty section is not
+    // rendered (AttributeSection) and is left out of the save payload entirely
+    // (buildAttributeSaveSections), so nothing an earlier stage saved is blanked.
+    cab: [],
+  },
+  {
+    id: "closer",
+    label: "Task Closure",
+    shortLabel: "Task Closure",
+    planningToolPhase: "Task Closure",
+    remedyStatuses: ["Completed"],
+    planningToolScopes: ["closure"],
+    remedy: [
+      REMEDY_STATUS_ATTRIBUTE,
       {
         name: "Actual End Date*+",
         field: "actualEndDate",
         type: "Date Time",
         mandatory: "Mandatory",
       },
+      { name: "Completed Date", field: "completedDate", type: "Date Time", mandatory: "Mandatory" },
     ],
     cab: [
       {
@@ -685,20 +706,6 @@ const CMS_STAGE_SCHEMAS_BASE: AttributeStageSchema[] = [
         mandatory: "Mandatory",
         values: MOP_METHOD_VALUES,
       },
-    ],
-  },
-  {
-    id: "closer",
-    label: "Task Closure",
-    shortLabel: "Task Closure",
-    planningToolPhase: "Task Closure",
-    remedyStatuses: ["Completed"],
-    planningToolScopes: ["closure"],
-    remedy: [
-      REMEDY_STATUS_ATTRIBUTE,
-      { name: "Completed Date", field: "completedDate", type: "Date Time", mandatory: "Mandatory" },
-    ],
-    cab: [
       {
         name: "Change Activity Done",
         field: "changeActivityDone",

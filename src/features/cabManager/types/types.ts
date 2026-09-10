@@ -203,6 +203,12 @@ export interface CabPlanDate {
 // ── CAB Sessions ────────────────────────────────────────────────────────────
 export interface CabSession {
   id: string;
+  /**
+   * The meeting link this session runs on. Null/absent for a session planned
+   * before the bridge was booked, and not necessarily a well-formed URL — the
+   * column is free text, so run it through `toSessionUrl` before linking to it.
+   */
+  sessionLink?: string | null;
   stage: CrqStage;
   host: string;
   date: string;
@@ -212,18 +218,63 @@ export interface CabSession {
   crqIds: string[];
 }
 
-export interface CabAgendaItem {
-  id: string;
-  activity: string;
-  stage: CrqStage;
-  domain: Domain;
-  impact: ImpactCode;
-  hostname: string;
+// ── CAB Session agenda board (sp_get_crq_cab_agenda_v2) ─────────────────────
+
+/** Decision standing against a CRQ on a session's agenda. */
+export type CabDecision = "PENDING" | "APPROVED" | "REJECTED" | "RESCHEDULED";
+
+/**
+ * One line of the agenda board.
+ *
+ * `mappingId` — not the CRQ number — is what a decision is recorded against:
+ * the same CRQ can be tabled again at a later session, and each sitting keeps
+ * its own decision. circle / nodeName / changeImpact are nullable because a CRQ
+ * can reach the CAB before its circle or node inventory is filled in.
+ */
+export interface CabAgendaRow {
+  mappingId: number;
+  circle: string | null;
+  crqNo: string;
+  nodeName: string | null;
+  changeImpact: ImpactCode | null;
+  cabDecision: CabDecision | string;
+  cabSessionDate: string;
+  chairedBy: string;
 }
 
-export interface CabSessionDetail {
-  session: CabSession;
-  agenda: CabAgendaItem[];
+/** What sp_cab_session_crq_action accepts. */
+export type CabSessionCrqAction = "APPROVE" | "REJECT" | "RESCHEDULE";
+
+export interface CabSessionCrqActionPayload {
+  /** Carried only so the agenda cache for this session can be invalidated. */
+  sessionId: string;
+  mappingId: number;
+  action: CabSessionCrqAction;
+  /** Free-text ground for the decision. Required for REJECT and RESCHEDULE. */
+  reason?: string;
+  comment?: string;
+}
+
+export interface CabSessionCrqActionResult {
+  mappingId: number;
+  cabId: string;
+  crqNo: string;
+  previousStatus: string;
+  newStatus: string;
+}
+
+export interface AddCrqToSessionPayload {
+  sessionId: string;
+  crqIds: string[];
+}
+
+/** A CRQ the session already carries comes back skipped, not as a failure. */
+export interface AddCrqToSessionResult {
+  cabId: string;
+  addedCount: number;
+  skippedCount: number;
+  addedCrqList: string[];
+  skippedCrqList: string[];
 }
 
 // ── Implementation (Field SE) ───────────────────────────────────────────────
@@ -330,7 +381,29 @@ export interface AuditEntry {
 }
 
 // ── Mutation payloads ───────────────────────────────────────────────────────
-export interface PlanCabPayload      { crqIds: string[]; sessionDateTime: string; type: CabSession["type"]; }
+/**
+ * POST /cab/sessions. `conflict` echoes what GET /cab/sessions/conflict said
+ * about this slot: true means the CRQs join the session already booked there
+ * (on its `sessionLink`) instead of opening a second one.
+ */
+export interface PlanCabPayload {
+  crqIds: string[];
+  sessionDateTime: string;
+  type: CabSession["type"];
+  sessionLink?: string;
+  conflict: boolean;
+  /** Who to notify about the session; reaches sp_plan_cab_session as p_email_list. */
+  emailList?: string[];
+}
+
+/** GET /cab/sessions/conflict - what, if anything, is already booked in a slot. */
+export interface CabPlanConflict {
+  conflict: boolean;
+  cabId: string | null;
+  sessionLink: string | null;
+  /** CRQs the existing session already carries; empty when the slot is free. */
+  crqList: string[];
+}
 export interface PlanCabResult       { status: string; message: string; }
 export interface NewCrqPayload {
   activity: string;
