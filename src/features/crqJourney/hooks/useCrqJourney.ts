@@ -29,7 +29,7 @@ export const useCrqJourney = () => {
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
   const { id: crqNoFromRoute } = useParams<{ id: string }>();
 
-  const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState();
+  const { values, handleChange: handleOrgFilterChange } = useOrgHierarchyState("crqJourney");
   const { options } = useOrgHierarchyFilters(values);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);

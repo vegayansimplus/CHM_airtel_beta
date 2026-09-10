@@ -71,7 +71,7 @@ export const PlanAndInventoryMain = () => {
   // Existing Hook Logic
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, setValues, handleChange } = useOrgHierarchyState();
+  const { values, setValues, handleChange } = useOrgHierarchyState("schedulerWorkflow");
   const { options } = useOrgHierarchyFilters(values);
   // A TEAM_MEMBER is never shown a Domain picker (ORG_FILTER_VISIBILITY), so
   // there is no domain to send for them - null, not a defaulted-to-1 guess.

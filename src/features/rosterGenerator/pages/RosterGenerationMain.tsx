@@ -37,7 +37,7 @@ const ROSTER_GEN_TAGS: ApiTag[] = ["GoldenSetTag", "FutureWeekTag"];
 export const RosterGenerationMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("rosterGeneration");
   const { options } = useOrgHierarchyFilters(values);
   const theme = useTheme();
   const tk = useTabColorTokens(theme);

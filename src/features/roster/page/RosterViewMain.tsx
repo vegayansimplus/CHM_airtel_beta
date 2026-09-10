@@ -30,7 +30,7 @@ export const RosterViewMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("rosterView");
   const { options } = useOrgHierarchyFilters(values);
   const { refresh, isRefreshing } = useApiRefresh({ tags: ROSTER_TAGS });
 

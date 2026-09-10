@@ -42,7 +42,7 @@ export const CancelledCrqMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange, resetAll } = useOrgHierarchyState();
+  const { values, handleChange, resetAll } = useOrgHierarchyState("cancelledCrq");
   const { options } = useOrgHierarchyFilters(values);
 
   const [searchInput, setSearchInput] = useState("");

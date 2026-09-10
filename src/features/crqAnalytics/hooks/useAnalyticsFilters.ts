@@ -13,7 +13,7 @@ export function useAnalyticsFilters() {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values: orgValues, handleChange: onOrgFilterChange, resetAll: resetOrgFilters } = useOrgHierarchyState();
+  const { values: orgValues, handleChange: onOrgFilterChange, resetAll: resetOrgFilters } = useOrgHierarchyState("crqAnalytics");
   const { options: orgOptions } = useOrgHierarchyFilters(orgValues);
 
   const [circle, setCircle] = useState<string>("All");

@@ -10,7 +10,7 @@ export const useCrqDetails = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("crqDetails");
   const { options } = useOrgHierarchyFilters(values);
 
   const [selectedCrq, setSelectedCrq] = useState<CrqJourneySearchRow | null>(null);

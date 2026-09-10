@@ -32,7 +32,7 @@ import type { CabQueueRow } from "../types/types";
 
 export function CabPlanningPage() {
   const roleCode = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange, resetAll } = useOrgHierarchyState();
+  const { values, handleChange, resetAll } = useOrgHierarchyState("cabPlanning");
   const { options } = useOrgHierarchyFilters(values);
 
   const shouldFetch = Boolean(values.domain && values.subDomain);

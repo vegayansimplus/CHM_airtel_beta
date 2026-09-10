@@ -218,7 +218,7 @@ export const UserLogs: React.FC = () => {
 
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("userLogs");
   const { options } = useOrgHierarchyFilters(values);
   const subDomainId = values?.subDomain;
 

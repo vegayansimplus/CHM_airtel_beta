@@ -9,7 +9,7 @@ import { useGetTaskConfigViewQuery } from "./api/taskConfigApi";
 export const TaskConfigMain = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("taskConfig");
   const { options } = useOrgHierarchyFilters(values);
   const shouldFetch = Boolean(values.domain && values.subDomain);
   const { data, isLoading, isFetching, refetch } = useGetTaskConfigViewQuery(

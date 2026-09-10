@@ -19,7 +19,7 @@ export const PlanViewAndSetup = () => {
   const loggedUser = authStorage.getUser();
   const roleName = loggedUser?.roleCode ?? "TEAM_MEMBER";
 
-  const { values, handleChange } = useOrgHierarchyState();
+  const { values, handleChange } = useOrgHierarchyState("planViewAndSetup");
   const { options } = useOrgHierarchyFilters(values);
   const { refresh, isRefreshing } = useApiRefresh({ tags: PLAN_TAGS });
 
