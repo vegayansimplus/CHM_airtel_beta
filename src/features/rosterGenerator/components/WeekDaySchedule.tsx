@@ -22,9 +22,9 @@ import {
 } from "@mui/material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import SaveRoundedIcon from "@mui/icons-material/SaveRounded";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import GroupsRoundedIcon from "@mui/icons-material/GroupsRounded";
@@ -557,45 +557,14 @@ export const WeekDaySchedule: React.FC = () => {
   );
 
   // ─── Table Config ───
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data,
-    enableColumnActions: false,
     enableColumnFilters: false,
     enablePagination: false,
     enableSorting: false,
     enableTopToolbar: false,
     enableBottomToolbar: false,
-    muiTablePaperProps: {
-      sx: {
-        background: bg.accentDim,
-        border: `1px solid ${tk.border}`,
-        borderRadius: `${tk.radiusXL}px`,
-        boxShadow: tk.isDark
-          ? "0 8px 32px rgba(0,0,0,0.45)"
-          : "0 4px 24px rgba(15,23,42,0.06)",
-        overflow: "hidden",
-      },
-    },
-    muiTableHeadCellProps: {
-      sx: {
-        background: `${tk.background} !important`,
-        color: tk.textSecondary,
-        borderBottom: `2px solid ${tk.border}`,
-        padding: "14px 16px",
-        fontSize: "11px",
-        fontWeight: 700,
-        letterSpacing: "0.5px",
-        textTransform: "uppercase",
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        padding: "8px 16px",
-        color: tk.textPrimary,
-        borderBottom: `1px solid ${tk.border}`,
-      },
-    },
     muiTableBodyRowProps: ({ row }) => ({
       className: "ntf-row",
       style: { animationDelay: `${row.index * 0.04}s` },

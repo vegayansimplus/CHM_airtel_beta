@@ -17,9 +17,9 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import { alpha } from "@mui/material/styles";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import {
@@ -86,15 +86,9 @@ export function AllCrqsPage() {
 
   const searchTerm = filters.search && filters.search !== "All Search" ? filters.search : "";
 
-  const totalRowCount = data?.length ?? 0;
-
-  const rowsPerPageOptions = useMemo(() => {
-    const baseOptions = [5, 10, 15, 20, 25, 30, 50, 100];
-    if (totalRowCount > 0 && !baseOptions.includes(totalRowCount)) {
-      return [...baseOptions, totalRowCount].sort((a, b) => a - b);
-    }
-    return baseOptions;
-  }, [totalRowCount]);
+  // The rows-per-page ladder that used to be built here — the standard
+  // sizes plus the real row count — is now what every table in the app
+  // gets from useAppTable.
 
   const hasActiveFilters = useMemo(
     () =>
@@ -191,29 +185,15 @@ export function AllCrqsPage() {
     [navigate],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: data ?? [],
     state: { isLoading: isFetching },
-    initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },
+    // Sits inside the page's own bordered Paper, so the table does not draw
+    // a second frame of its own. Height comes from the shared fit.
+    appTable: { frame: false },
+    initialState: { density: "compact" },
     enableTopToolbar: false,
-    enableStickyHeader: true,
-    paginationDisplayMode: "pages",
-    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
-    muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 420px)", minHeight: 240 } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 0.75,
-        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: ({ row }) => ({
       hover: true,
       onClick: () =>
@@ -232,19 +212,6 @@ export function AllCrqsPage() {
         transition: "background-color 100ms ease",
       },
     }),
-    muiBottomToolbarProps: {
-      sx: {
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
-        px: 1,
-      },
-    },
-    muiPaginationProps: {
-      shape: "rounded",
-      size: "small",
-      rowsPerPageOptions,
-      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
-    },
   });
 
   return (
@@ -400,8 +367,7 @@ export function AllCrqsPage() {
 // import { alpha } from "@mui/material/styles";
 // import {
 //   MaterialReactTable,
-//   useMaterialReactTable,
-//   type MRT_ColumnDef,
+//   //   type MRT_ColumnDef,
 // } from "material-react-table";
 // import { useMemo, useState } from "react";
 // import { useNavigate } from "react-router";
@@ -522,7 +488,7 @@ export function AllCrqsPage() {
 //     [navigate],
 //   );
 
-//   const table = useMaterialReactTable({
+//   const table = useAppTable({
 //     columns,
 //     data: data ?? [],
 //     state: { isLoading },

@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import type { Task } from "../../types/crqWorkflow.types";
 
 interface CrqTaskTableProps {
@@ -11,7 +11,9 @@ interface CrqTaskTableProps {
   colors: any;
 }
 
-const CrqTaskTable: React.FC<CrqTaskTableProps> = ({ tasks, colors }) => {
+// `colors` is still accepted from callers but no longer read: the table now
+// takes its surfaces, header casing and cell padding from the shared preset.
+const CrqTaskTable: React.FC<CrqTaskTableProps> = ({ tasks }) => {
   const columns = useMemo<MRT_ColumnDef<Task>[]>(
     () => [
       { accessorKey: "taskId", header: "Task ID", size: 250 },
@@ -37,41 +39,20 @@ const CrqTaskTable: React.FC<CrqTaskTableProps> = ({ tasks, colors }) => {
     [],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: tasks || [],
     enableTopToolbar: false,
     enableBottomToolbar: false,
     enablePagination: false,
     enableSorting: false,
-    enableColumnActions: false,
+
+    // This grid is attached directly beneath its own section header, so the
+    // shared frame's top edge is dropped rather than drawn twice.
     muiTablePaperProps: {
-      elevation: 0,
-      sx: {
-        border: `1px solid ${colors.border}`,
-        borderTop: "none",
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        borderRadius: colors.radius,
-      },
+      sx: { borderTop: "none", borderTopLeftRadius: 0, borderTopRightRadius: 0 },
     },
-    muiTableHeadCellProps: {
-      sx: {
-        bgcolor: colors.surface,
-        color: colors.textSecondary,
-        fontWeight: 600,
-        fontSize: "0.75rem",
-        borderBottom: `1px solid ${colors.borderHover}`,
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        fontSize: "0.8125rem",
-        color: colors.textPrimary,
-        borderBottom: `1px solid ${colors.borderHover}`,
-        py: 1.5,
-      },
-    },
+
     initialState: { density: "compact" },
   });
 

@@ -14,12 +14,12 @@ import {
 import { DeleteOutline, GroupOutlined, Close } from "@mui/icons-material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   MRT_ShowHideColumnsButton,
   type MRT_ColumnDef,
   type MRT_RowSelectionState,
   type MRT_VisibilityState,
 } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import dayjs from "dayjs";
 import RoleBadge from "./RoleBadge";
 import StatusBadge from "./StatusBadge";
@@ -261,7 +261,7 @@ export default function UserTable({
     [users, rowSelection],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: users,
     getRowId: (row) => row.id,
@@ -270,15 +270,11 @@ export default function UserTable({
     onColumnVisibilityChange: setColumnVisibility,
     enableRowSelection: true,
     enableColumnResizing: true,
-    enableColumnActions: false,
     enableColumnFilters: false,
-    enableDensityToggle: false,
-    enableFullScreenToggle: false,
     enableGlobalFilter: false,
     enableSorting: true,
     enablePagination: false,
     enableBottomToolbar: false,
-    enableStickyHeader: true,
     enableHiding: true,
     enableColumnPinning: true,
     initialState: {
@@ -311,17 +307,13 @@ export default function UserTable({
     muiTableContainerProps: {
       sx: { flex: 1, minHeight: 0, maxHeight: "none", overflow: "auto" },
     },
+    // Typography, hairlines and default padding come from the shared preset;
+    // what stays here is the part that is specific to this table — pinned
+    // columns need an opaque background and an edge shadow to sit over the
+    // rows scrolling beneath them, and this page has its own density toggle.
     muiTableHeadCellProps: ({ column }) => ({
       sx: {
-        background: isDark ? theme.palette.background.default : "#F8FAFC",
-        color: "text.secondary",
-        fontSize: 11,
-        fontWeight: 700,
-        textTransform: "uppercase",
-        letterSpacing: "0.06em",
-        borderBottom: "2px solid",
-        borderColor: "divider",
-        py: dense ? 0.75 : 1.25,
+        py: dense ? 0.5 : 0.75,
         px: { xs: 1, lg: 1.5 },
         "& .Mui-TableHeadCell-Content-Actions button": { color: theme.palette.text.secondary },
         ...(column.getIsPinned() && {
@@ -335,9 +327,7 @@ export default function UserTable({
     }),
     muiTableBodyCellProps: ({ column }) => ({
       sx: {
-        borderBottom: "1px solid",
-        borderColor: "divider",
-        py: dense ? 0.5 : 1.35,
+        py: dense ? 0.3 : 0.55,
         px: { xs: 1, lg: 1.5 },
         ...(column.getIsPinned() && {
           background: theme.palette.background.paper,

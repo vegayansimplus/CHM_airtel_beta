@@ -2,11 +2,11 @@ import { useMemo } from "react";
 import { Box, IconButton, Tooltip, Typography, useTheme } from "@mui/material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_PaginationState,
   type MRT_SortingState,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import HistoryToggleOffRoundedIcon from "@mui/icons-material/HistoryToggleOffRounded";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import { useTabColorTokens } from "../../../../style/theme";
@@ -204,7 +204,7 @@ const AuditLogTable = ({
     [tk],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: rows,
     getRowId: (row) => String(row.logId),
@@ -228,10 +228,6 @@ const AuditLogTable = ({
     enableSorting: true,
     enableSortingRemoval: false,
     enableMultiSort: false,
-    enableDensityToggle: true,
-    enableFullScreenToggle: true,
-    enableColumnActions: false,
-    enableStickyHeader: true,
 
     enableRowActions: true,
     positionActionsColumn: "last",
@@ -246,27 +242,7 @@ const AuditLogTable = ({
       </Tooltip>
     ),
 
-    muiTablePaperProps: {
-      elevation: 0,
-      sx: {
-        borderRadius: tk.radiusL,
-        border: `1px solid ${tk.border}`,
-        overflow: "hidden",
-      },
-    },
     muiTableContainerProps: { sx: { maxHeight: "62vh" } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: tk.textSecondary,
-        bgcolor: tk.surface2,
-        borderBottom: `1px solid ${tk.border}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 0.9 } },
     muiTableBodyRowProps: { sx: { cursor: "default" } },
 
     renderEmptyRowsFallback: () => (

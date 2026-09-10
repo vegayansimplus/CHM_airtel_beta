@@ -8,15 +8,13 @@ import {
   Stack,
   Tooltip,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_RowSelectionState,
 } from "material-react-table";
+import { useAppTable } from "../../../components/ui/AppTable";
 import EventNoteIcon from "@mui/icons-material/EventNote";
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import { useEffect, useMemo, useState } from "react";
@@ -32,8 +30,6 @@ import { errMsg } from "../components/shared/errMsg";
 import type { CabQueueRow } from "../types/types";
 
 export function CabPlanningPage() {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
   const roleCode = authStorage.getUser()?.roleCode ?? "TEAM_MEMBER";
   const { values, handleChange, resetAll } = useOrgHierarchyState();
   const { options } = useOrgHierarchyFilters(values);
@@ -107,50 +103,21 @@ export function CabPlanningPage() {
     []
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: rows,
     getRowId: (row) => row.crqNo,
     state: { isLoading: queue.isFetching, rowSelection },
     onRowSelectionChange: setRowSelection,
     enableRowSelection: true,
-    initialState: { density: "compact", pagination: { pageSize: 10, pageIndex: 0 } },
+    appTable: {
+      emptyTitle: "No CRQs match the current table filters",
+      // Wrapped in the section's own bordered Paper.
+      frame: false,
+    },
+    initialState: { density: "compact" },
     enableTopToolbar: false,
-    enableStickyHeader: true,
-    paginationDisplayMode: "pages",
-    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
-    muiTableContainerProps: { sx: { maxHeight: 420, minHeight: 160 } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 0.75,
-        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 1, fontSize: 12.5 } },
     muiTableBodyRowProps: { hover: true, sx: { cursor: "pointer" } },
-    muiBottomToolbarProps: {
-      sx: {
-        borderTop: `1px solid ${theme.palette.divider}`,
-        backgroundColor: isDark ? "rgba(255,255,255,0.02)" : theme.palette.grey[50],
-        px: 1,
-      },
-    },
-    muiPaginationProps: {
-      shape: "rounded",
-      size: "small",
-      sx: { "& .MuiButtonBase-root": { fontSize: 12 } },
-    },
-    renderEmptyRowsFallback: () => (
-      <Box sx={{ py: 6, textAlign: "center", color: "text.secondary", width: "100%" }}>
-        No CRQs match the current table filters.
-      </Box>
-    ),
   });
 
   return (

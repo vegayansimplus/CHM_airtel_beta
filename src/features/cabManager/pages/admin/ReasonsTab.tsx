@@ -9,9 +9,7 @@ import {
   TextField,
   Tooltip,
   Typography,
-  useTheme,
 } from "@mui/material";
-import { alpha } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -19,9 +17,9 @@ import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import { useMemo, useState } from "react";
 import { toast } from "react-toastify";
 import {
@@ -33,8 +31,6 @@ import {
 import type { CabRejectReason } from "../../types/types";
 
 export function AdminReasonsTab() {
-  const theme = useTheme();
-  const isDark = theme.palette.mode === "dark";
 
   const { data, isLoading } = useGetCabRejectReasonsQuery();
   const [addReason, { isLoading: isAdding }] = useAddCabRejectReasonMutation();
@@ -167,15 +163,18 @@ export function AdminReasonsTab() {
     [editingId, editingText, isUpdating]
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: data ?? [],
     getRowId: (row) => String(row.reasonId),
     state: { isLoading },
+    appTable: {
+      emptyTitle: "No rejection reasons configured yet",
+      emptyDescription: "Add the first one above.",
+    },
     layoutMode: "grid",
     initialState: { density: "comfortable" },
     enableTopToolbar: false,
-    enableStickyHeader: true,
     // Scroll-only, no paging: every reason renders and the container scrolls.
     // enablePagination defaults to true, so leaving it on while the bottom
     // toolbar is hidden would cap the list at 10 rows with no way to reach the
@@ -183,29 +182,9 @@ export function AdminReasonsTab() {
     // get in the way.
     enablePagination: false,
     enableBottomToolbar: false,
-    enableColumnActions: false,
     enableSorting: false,
-    muiTablePaperProps: { elevation: 0, sx: { boxShadow: "none" } },
     muiTableContainerProps: { sx: { maxHeight: "calc(100vh - 360px)", minHeight: 240 } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 10,
-        fontWeight: 700,
-        letterSpacing: "0.07em",
-        textTransform: "uppercase",
-        color: "text.secondary",
-        py: 1,
-        backgroundColor: isDark ? alpha(theme.palette.primary.main, 0.12) : theme.palette.grey[50],
-        borderBottom: `1px solid ${theme.palette.divider}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 1.25, fontSize: 13 } },
     muiTableBodyRowProps: { hover: true },
-    renderEmptyRowsFallback: () => (
-      <Box sx={{ py: 8, textAlign: "center", color: "text.secondary", width: "100%" }}>
-        No rejection reasons configured yet — add the first one above.
-      </Box>
-    ),
   });
 
   return (

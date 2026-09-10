@@ -19,10 +19,10 @@ import {
 } from "@mui/icons-material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   MRT_GlobalFilterTextField,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import { getNotifTokens } from "../style/notificationTokens";
 import { NOTIFY_ROLES } from "../constants/notifyRoles";
 import NotifSwitch from "./NotifSwitch";
@@ -245,7 +245,7 @@ const NotificationManagementTable = () => {
     ];
   }, [tk, handleToggle]);
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: rows,
     getRowId: (row) => String(row.configId),
@@ -255,21 +255,7 @@ const NotificationManagementTable = () => {
     enableColumnFilters: false,
     enablePagination: false,
     enableBottomToolbar: false,
-    enableStickyHeader: true,
 
-    muiTablePaperProps: {
-      sx: {
-        background: tk.surface,
-        border: `1px solid ${tk.border}`,
-        borderRadius: tk.radiusXL,
-        boxShadow: tk.isDark
-          ? "0 8px 32px rgba(0,0,0,0.45)"
-          : "0 4px 24px rgba(13,27,42,0.08)",
-        overflow: "hidden",
-        width: "100%",
-        maxWidth: "100%",
-      },
-    },
     muiTableContainerProps: {
       sx: {
         maxHeight: "76vh",
@@ -344,34 +330,6 @@ const NotificationManagementTable = () => {
       size: "small",
     },
 
-    muiTableHeadCellProps: {
-      sx: {
-        // Solid paper base + translucent tint keeps the sticky header opaque.
-        backgroundColor: tk.surface,
-        backgroundImage: tk.isDark
-          ? "linear-gradient(rgba(255,255,255,0.03), rgba(255,255,255,0.03))"
-          : "linear-gradient(rgba(13,27,42,0.03), rgba(13,27,42,0.03))",
-        color: tk.textSecondary,
-        borderBottom: `2px solid ${tk.border}`,
-        px: 1.1,
-        py: 1.1,
-        fontSize: 11,
-        fontWeight: 700,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-        whiteSpace: "nowrap",
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        px: 1.1,
-        py: 0.9,
-        fontSize: 12.5,
-        color: "text.primary",
-        verticalAlign: "middle",
-        borderBottom: `1px solid ${tk.border}`,
-      },
-    },
     muiTableBodyRowProps: ({ row }) => ({
       sx: {
         background:

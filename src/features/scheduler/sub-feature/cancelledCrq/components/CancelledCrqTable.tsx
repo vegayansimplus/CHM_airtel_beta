@@ -2,12 +2,11 @@ import { useMemo } from "react";
 import { Box, Chip, Tooltip, Typography, useTheme } from "@mui/material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
   type MRT_PaginationState,
 } from "material-react-table";
-import BlockRoundedIcon from "@mui/icons-material/BlockRounded";
 import { useTabColorTokens } from "../../../../../style/theme";
+import { useAppTable } from "../../../../../components/ui/AppTable";
 import type { CancelledCrq } from "../../../types/cancelledCrq.types";
 import { formatDateTime, orDash, stageLabel } from "../cancelledCrqFormat";
 import CancelledCrqDetail from "./CancelledCrqDetail";
@@ -197,10 +196,18 @@ export const CancelledCrqTable = ({
     [tk],
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: rows,
     getRowId: (row) => String(row.crqId),
+
+    appTable: {
+      emptyTitle: isError ? "Could not load cancelled CRQs" : "No cancelled CRQs",
+      emptyDescription: isError
+        ? "The registry could not be fetched. Try again in a moment."
+        : "Nothing in the selected scope has been cancelled.",
+      isError,
+    },
 
     // Server-side paging; search and org filtering are handled by the page's
     // own filter bar (they are backend parameters, not client-side column
@@ -216,10 +223,6 @@ export const CancelledCrqTable = ({
     enableRowSelection: false,
     enableRowActions: false,
     enableSorting: false,
-    enableDensityToggle: true,
-    enableFullScreenToggle: true,
-    enableColumnActions: false,
-    enableStickyHeader: true,
 
     // Default ("semantic") layout, with the column sizes below kept to a sum
     // that fits a normal desktop width. Two earlier shapes were rejected:
@@ -233,44 +236,7 @@ export const CancelledCrqTable = ({
     // reader's place in the list.
     renderDetailPanel: ({ row }) => <CancelledCrqDetail crq={row.original} />,
 
-    muiTablePaperProps: {
-      elevation: 0,
-      sx: {
-        borderRadius: tk.radiusL,
-        border: `1px solid ${tk.border}`,
-        overflow: "hidden",
-      },
-    },
-    muiTableContainerProps: { sx: { maxHeight: "65vh" } },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: 11,
-        fontWeight: 800,
-        letterSpacing: 0.5,
-        textTransform: "uppercase",
-        color: tk.textSecondary,
-        bgcolor: tk.surface2,
-        borderBottom: `1px solid ${tk.border}`,
-      },
-    },
-    muiTableBodyCellProps: { sx: { py: 0.9 } },
     muiDetailPanelProps: { sx: { p: 0, bgcolor: "transparent" } },
-
-    renderEmptyRowsFallback: () => (
-      <Box sx={{ py: 6, textAlign: "center" }}>
-        <BlockRoundedIcon sx={{ fontSize: 34, color: tk.textDim, mb: 1 }} />
-        <Typography sx={{ fontSize: 13, fontWeight: 700, color: tk.textSecondary }}>
-          {isError ? "Could not load cancelled CRQs" : "No cancelled CRQs"}
-        </Typography>
-        <Typography sx={{ fontSize: 11.5, color: tk.textDim, mt: 0.5 }}>
-          {isError
-            ? "The registry could not be fetched. Try again in a moment."
-            : "Nothing in the selected scope has been cancelled."}
-        </Typography>
-      </Box>
-    ),
-
-    initialState: { density: "compact" },
   });
 
   return <MaterialReactTable table={table} />;

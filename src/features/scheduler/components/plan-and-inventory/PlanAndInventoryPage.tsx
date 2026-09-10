@@ -16,9 +16,9 @@ import {
 } from "@mui/material";
 import {
   MaterialReactTable,
-  useMaterialReactTable,
   type MRT_ColumnDef,
 } from "material-react-table";
+import { useAppTable } from "../../../../components/ui/AppTable";
 import FullscreenIcon from "@mui/icons-material/Fullscreen";
 import FullscreenExitIcon from "@mui/icons-material/FullscreenExit";
 import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
@@ -528,7 +528,7 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     </Stack>
   );
 
-  const table = useMaterialReactTable({
+  const table = useAppTable({
     columns,
     data: filteredPlans,
     enableSorting: true,
@@ -548,37 +548,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
     initialState: { density: "compact" },
     state: { isLoading: isFetching },
     muiDetailPanelProps: { sx: { padding: 0 } },
-    muiTablePaperProps: {
-      elevation: 0,
-      sx: {
-        border: `1px solid ${colors.border}`,
-        borderRadius: colors.radiusXL,
-        overflow: "hidden",
-        bgcolor: colors.surface,
-      },
-    },
-    muiTableHeadCellProps: {
-      sx: {
-        fontSize: "11px !important",
-        fontWeight: "700 !important",
-        letterSpacing: "0.55px !important",
-        textTransform: "uppercase !important",
-        color: `${colors.textSecondary} !important`,
-        bgcolor: colors.isDark
-          ? "rgba(255,255,255,0.025)"
-          : "rgba(248,250,252,0.95)",
-        borderBottom: `1px solid ${colors.border} !important`,
-        py: "10px !important",
-      },
-    },
-    muiTableBodyCellProps: {
-      sx: {
-        fontSize: 13,
-        color: colors.textPrimary,
-        borderBottom: `1px solid ${colors.border}`,
-        py: "8px !important",
-      },
-    },
     muiTableBodyRowProps: {
       sx: {
         transition: "background 0.12s ease",
@@ -597,15 +566,6 @@ export const PlanAndInventoryPage: React.FC<PlanAndInventoryPageProps> = ({
         px: 2,
         py: 1,
         minHeight: 52,
-      },
-    },
-    muiBottomToolbarProps: {
-      sx: {
-        bgcolor: colors.isDark
-          ? "rgba(255,255,255,0.01)"
-          : "rgba(248,250,252,0.7)",
-        borderTop: `1px solid ${colors.border}`,
-        minHeight: 44,
       },
     },
     muiTableContainerProps: {
