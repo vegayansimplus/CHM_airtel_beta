@@ -92,8 +92,9 @@ export const FormPanel: React.FC<Props> = ({
   // "Attribute Update" lives here, directly above the outcome selector,
   // instead of on the cockpit's record-action row - same gate the six generic
   // stages use, so Plan & Inventory behaves identically. Picking an outcome
-  // without opening it warns but never blocks.
-  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isLocked });
+  // without opening it warns but never blocks. A Done review keeps it
+  // clickable so attributes can still be reviewed/updated afterwards.
+  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isCancelled || readOnly });
 
   const {
     control,

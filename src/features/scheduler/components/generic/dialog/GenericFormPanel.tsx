@@ -92,8 +92,9 @@ export const GenericFormPanel: React.FC<GenericFormPanelProps> = ({
   // "Attribute Update" lives here, directly above the outcome selector,
   // instead of on the cockpit's record-action row. Picking Pass/Failed/
   // Cancelled without opening it warns but never blocks - see
-  // useAttributeUpdateGate.
-  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isLocked });
+  // useAttributeUpdateGate. A Done stage keeps it clickable so attributes can
+  // still be reviewed/updated after the outcome is recorded.
+  const attributeGate = useAttributeUpdateGate({ crq, open, disabled: isCancelled || readOnly });
 
   const {
     control,

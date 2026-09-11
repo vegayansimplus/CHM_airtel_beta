@@ -16,7 +16,8 @@ interface UseAttributeUpdateGateArgs {
   /** The review dialog's own `open` flag - flipping it resets the gate, so
    * each visit to the dialog has to visit Attribute Update again. */
   open: boolean;
-  /** Cancelled / already-done / view-only - the button is inert. */
+  /** Cancelled / view-only - the button is inert. A Done stage stays
+   * clickable so attributes can still be updated after the outcome. */
   disabled?: boolean;
 }
 
