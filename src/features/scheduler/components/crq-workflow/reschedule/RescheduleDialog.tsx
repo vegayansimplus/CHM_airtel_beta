@@ -75,8 +75,13 @@ export interface RescheduleDialogProps {
  * interrupted reschedule never leaves a half-applied change behind. Once the
  * slot is confirmed there is nothing left to cancel; closing just closes.
  *
- * The workflow itself is untouched: this dialog never writes to CRQ_MASTER_TBL
- * or the stage tables directly, it only calls the procedures above.
+ * This dialog never writes to CRQ_MASTER_TBL or the stage tables directly, it
+ * only calls the procedures above - but note that the workflow is not left
+ * untouched by them. Confirm is the step that applies the stage move to the
+ * CRQ: CRQ_SP_RESCHEDULE_CONFIRM_SLOT sets current_stage/current_status and
+ * bumps reschedule_count, which CRQ_SP_RESCHEDULE_MOVE_STAGE deliberately no
+ * longer does. Abandoning before Confirm therefore leaves the master row on its
+ * original stage.
  */
 export const RescheduleDialog: React.FC<RescheduleDialogProps> = ({
   open,

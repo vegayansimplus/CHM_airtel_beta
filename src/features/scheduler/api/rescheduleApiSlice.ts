@@ -114,10 +114,17 @@ export const rescheduleApiSlice = api.injectEndpoints({
         method: "POST",
         body: { rescheduleId, slotLabel },
       }),
+      // Confirm is the call that commits the whole reschedule, so it falsifies
+      // more than this CRQ's own views. Since the 2026-09-16 proc rewrite it
+      // writes CRQ_MASTER_TBL's stage/status/reschedule_count (MOVE_STAGE no
+      // longer does), and it rebalances ROSTER_SHIFT_TBL capacity for BOTH the
+      // old and the new engineer - which is why the roster views are stale here
+      // even though the user never opened them.
       invalidatesTags: (_r, _e, arg) => [
         { type: "CrqReschedule", id: `ctx-${arg.crqId}` },
         { type: "CrqReschedule", id: `slots-${arg.rescheduleId}` },
         "CrqReview",
+        "RosterVIew",
       ],
     }),
 
