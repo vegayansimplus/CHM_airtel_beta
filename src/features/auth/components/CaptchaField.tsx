@@ -1,41 +1,67 @@
 import React, { useEffect, useRef } from "react";
-import { Box, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
+import { Box, IconButton, InputAdornment, TextField, Tooltip, Typography } from "@mui/material";
 import { Refresh, ShieldOutlined } from "@mui/icons-material";
 import type { CaptchaState } from "../hooks/useCaptcha";
+
+// Size of the code image as laid out on the page. It sits inside a pill the
+// same height as the text fields, so the two read as one row.
+const CANVAS_W = 112;
+const CANVAS_H = 30;
+
+// Mid-tone blues: legible on both the light theme's white input background
+// and the dark theme's navy one, so the canvas needs no theme awareness.
+const GLYPH_COLORS = ["#2563eb", "#378ADD", "#4f8dff", "#1d6fd1"];
 
 function renderCaptcha(canvas: HTMLCanvasElement | null, code: string) {
   if (!canvas) return;
   const ctx = canvas.getContext("2d");
   if (!ctx) return;
-  const W = canvas.width,
-    H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = "rgba(230,241,251,0.7)";
-  ctx.beginPath();
-  (ctx as any).roundRect?.(0, 0, W, H, 8);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(24,95,165,0.2)";
+
+  // Draw at device resolution so the glyphs stay crisp on high-DPI screens.
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = CANVAS_W * dpr;
+  canvas.height = CANVAS_H * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.clearRect(0, 0, CANVAS_W, CANVAS_H);
+
+  // Light noise strokes - enough to defeat trivial OCR without hurting legibility.
+  ctx.strokeStyle = "rgba(55,138,221,0.28)";
   ctx.lineWidth = 1;
   for (let i = 0; i < 3; i++) {
     ctx.beginPath();
-    ctx.moveTo(Math.random() * W, 0);
-    ctx.lineTo(Math.random() * W, H);
+    ctx.moveTo(0, Math.random() * CANVAS_H);
+    ctx.bezierCurveTo(
+      CANVAS_W / 3, Math.random() * CANVAS_H,
+      (CANVAS_W * 2) / 3, Math.random() * CANVAS_H,
+      CANVAS_W, Math.random() * CANVAS_H,
+    );
     ctx.stroke();
   }
-  const cols = ["#185FA5", "#0C447C", "#378ADD", "#185FA5", "#0C447C", "#378ADD"];
-  const cw = W / code.length;
+
+  const cw = CANVAS_W / code.length;
   code.split("").forEach((ch, i) => {
     ctx.save();
-    ctx.translate(cw * i + cw / 2, H / 2 + 1);
-    ctx.rotate((Math.random() - 0.5) * 0.28);
-    ctx.font = `bold ${16 + Math.random() * 3}px 'Courier New', monospace`;
-    ctx.fillStyle = cols[i % cols.length];
+    ctx.translate(cw * i + cw / 2, CANVAS_H / 2 + 1);
+    ctx.rotate((Math.random() - 0.5) * 0.35);
+    ctx.font = `600 ${17 + Math.random() * 2}px 'IBM Plex Mono', 'Courier New', monospace`;
+    ctx.fillStyle = GLYPH_COLORS[i % GLYPH_COLORS.length];
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillText(ch, 0, 0);
     ctx.restore();
   });
 }
+
+// Same as LoginForm's field labels, so "Security Verification" lines up with
+// "OLM ID" and "Password" above it.
+const fieldLabelSx = {
+  display: "block",
+  fontSize: "12.5px",
+  color: "var(--lp-label)",
+  letterSpacing: "0.02em",
+  fontWeight: 500,
+  fontFamily: "'IBM Plex Sans', sans-serif",
+};
 
 interface Props {
   captcha: CaptchaState;
@@ -80,72 +106,83 @@ const CaptchaField: React.FC<Props> = ({ captcha }) => {
 
   return (
     <Box sx={{ mb: 2.2 }}>
-      <Typography
-        sx={{
-          fontFamily: "'IBM Plex Mono', monospace",
-          fontSize: "10px",
-          fontWeight: 600,
-          letterSpacing: "0.07em",
-          textTransform: "uppercase",
-          color: "var(--lp-label)",
-          mb: 1,
-        }}
-      >
+      <Typography component="label" htmlFor="lp-captcha" sx={{ ...fieldLabelSx, mb: 1, ml: 0.5 }}>
         Security Verification
       </Typography>
-      <Box sx={{ display: "flex", gap: 1, alignItems: "center", mb: 1 }}>
-        <canvas
-          ref={canvasRef}
-          width={168}
-          height={36}
-          style={{
-            borderRadius: 8,
-            border: "1px solid var(--lp-shell-border-glass)",
-            display: "block",
-            background: "#F0F5FC",
+
+      {/* stretch: the image pill takes the input's exact height. */}
+      <Box sx={{ display: "flex", alignItems: "stretch", gap: 1.25 }}>
+        <TextField
+          id="lp-captcha"
+          className="lp-field"
+          size="small"
+          value={captcha.input}
+          onChange={(e) => captcha.setInput(e.target.value.toUpperCase())}
+          placeholder="Enter code"
+          autoComplete="off"
+          sx={{ flex: 1, minWidth: 0 }}
+          inputProps={{
+            maxLength: 6,
+            "aria-label": "Enter the code shown in the image",
+            spellCheck: false,
+            style: {
+              letterSpacing: "0.18em",
+              fontWeight: 600,
+              fontFamily: "'IBM Plex Mono', monospace",
+            },
+          }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <ShieldOutlined sx={{ fontSize: 17 }} />
+              </InputAdornment>
+            ),
           }}
         />
-        <IconButton
-          size="small"
-          onClick={captcha.refresh}
-          aria-label="Refresh CAPTCHA"
+
+        {/* Code image + refresh, styled as a pill matching the input beside it. */}
+        <Box
           sx={{
+            display: "flex",
+            alignItems: "center",
+            flexShrink: 0,
+            pl: 1.75,
+            pr: 0.5,
+            gap: 0.25,
+            borderRadius: "999px",
             bgcolor: "var(--lp-input-bg)",
-            border: "1px solid var(--lp-shell-border-glass)",
-            borderRadius: "8px",
-            width: 34,
-            height: 34,
-            color: "var(--lp-icon-idle)",
-            "&:hover": { color: "var(--lp-icon-active)" },
+            boxShadow: "var(--lp-input-shadow)",
+            userSelect: "none",
           }}
         >
-          <Refresh sx={{ fontSize: 15 }} />
-        </IconButton>
+          <canvas
+            ref={canvasRef}
+            role="img"
+            aria-label="CAPTCHA code"
+            style={{ width: CANVAS_W, height: CANVAS_H, display: "block" }}
+          />
+          <Tooltip title="New code" arrow>
+            <IconButton
+              size="small"
+              onClick={captcha.refresh}
+              aria-label="Refresh CAPTCHA"
+              sx={{
+                width: 34,
+                height: 34,
+                color: "var(--lp-icon-idle)",
+                transition: "color .2s, transform .35s ease",
+                "&:hover": {
+                  color: "var(--lp-icon-active)",
+                  bgcolor: "transparent",
+                  transform: "rotate(180deg)",
+                },
+              }}
+            >
+              <Refresh sx={{ fontSize: 17 }} />
+            </IconButton>
+          </Tooltip>
+        </Box>
       </Box>
-      <TextField
-        className="lp-field"
-        label="Enter CAPTCHA"
-        fullWidth
-        size="small"
-        value={captcha.input}
-        onChange={(e) => captcha.setInput(e.target.value.toUpperCase())}
-        autoComplete="off"
-        inputProps={{
-          maxLength: 6,
-          style: {
-            letterSpacing: "0.16em",
-            fontWeight: 600,
-            fontFamily: "'IBM Plex Mono', monospace",
-          },
-        }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <ShieldOutlined sx={{ fontSize: 15 }} />
-            </InputAdornment>
-          ),
-        }}
-      />
     </Box>
   );
 };

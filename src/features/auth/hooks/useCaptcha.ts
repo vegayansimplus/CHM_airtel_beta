@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 
-const CAPTCHA_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+// No 0/O, 1/I/L - they are indistinguishable in a distorted monospace image.
+const CAPTCHA_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
 export function generateCaptchaCode(length = 6): string {
   return Array.from(

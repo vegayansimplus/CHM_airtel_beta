@@ -42,7 +42,7 @@ import "@fontsource/ibm-plex-sans/600.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "@fontsource/ibm-plex-mono/500.css";
 
-const CAPTCHA_DISABLED = true;
+const CAPTCHA_DISABLED = false;
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MS = 30_000;
 
