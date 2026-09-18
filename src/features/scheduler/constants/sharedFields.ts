@@ -30,12 +30,6 @@ export const DEFAULT_STATUS_OPTIONS: StageStatusOption[] = [
   },
 ];
 
-export const MOCK_CANCELLATION_REASONS = [
-  { cancellationReason: "Weather Conditions", cancellationRollbackOwner: "John Doe" },
-  { cancellationReason: "Equipment Failure", cancellationRollbackOwner: "Jane Smith" },
-  { cancellationReason: "Resource Unavailable", cancellationRollbackOwner: "Admin Team" },
-];
-
 /**
  * Reusable "cancellation block" fields - identical across all stages today
  * (send-back team, remedy status, reason, derived rollback owner, remedy
@@ -64,11 +58,10 @@ export const CANCELLATION_FIELDS: StageFieldConfig[] = [
   {
     name: "cancellationReason",
     label: "Cancellation Reason",
+    // Loaded from sp_Get_Distinct_Cancellation_Reasons, so a reason added in
+    // the database shows up here without a frontend change.
     type: "select",
-    options: MOCK_CANCELLATION_REASONS.map((r) => ({
-      label: r.cancellationReason,
-      value: r.cancellationReason,
-    })),
+    optionsSource: "cancellationReasons",
     visibleWhen: (v) => v.status === "canceled",
     requiredWhen: (v) => v.status === "canceled",
   },
@@ -77,10 +70,8 @@ export const CANCELLATION_FIELDS: StageFieldConfig[] = [
     label: "Cancellation Rejection Owner",
     type: "readonly",
     visibleWhen: (v) => v.status === "canceled",
-    deriveValue: (v) =>
-      MOCK_CANCELLATION_REASONS.find(
-        (r) => r.cancellationReason === v.cancellationReason,
-      )?.cancellationRollbackOwner ?? "",
+    // The owner is fixed by the reason - same row of the procedure's result.
+    deriveValueWith: (v, ctx) => ctx.ownerForCancellationReason(v.cancellationReason),
   },
   {
     name: "field5",

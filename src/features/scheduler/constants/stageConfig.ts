@@ -46,12 +46,11 @@ function buildCommonDonePayload(
   extra: Record<string, any> = {},
 ): Record<string, any> {
   const isCanceled = values.status === "canceled";
-  // field4 (Cancellation Rejection Owner) is a "readonly" field - the
-  // renderer shows it as a plain TextField, not an RHF Controller, so it
-  // never lands in `values`. Re-derive it the same way the field config
-  // does instead of reading a key that's always undefined.
-  const field4Config = CANCELLATION_FIELDS.find((f) => f.name === "field4");
-  const field4Value = field4Config?.deriveValue?.(values) ?? "";
+  // field4 (Cancellation Rejection Owner) is a "readonly" field, but
+  // FieldRenderer registers its derived value with react-hook-form, so it
+  // arrives in `values` like any other. It comes from the reason list the
+  // server returns, which is why it can no longer be re-derived here.
+  const field4Value = values.field4 ?? "";
 
   return {
     // olmId = the logged-in user actioning this stage, not a field stored

@@ -25,9 +25,3 @@ export const STATUS_OPTIONS = [
     palette: "warning" as const,
   },
 ] as const;
-
-export const MOCK_CANCELLATION_REASONS = [
-  { cancellationReason: "Weather Conditions", cancellationRollbackOwner: "John Doe" },
-  { cancellationReason: "Equipment Failure", cancellationRollbackOwner: "Jane Smith" },
-  { cancellationReason: "Resource Unavailable", cancellationRollbackOwner: "Admin Team" },
-];

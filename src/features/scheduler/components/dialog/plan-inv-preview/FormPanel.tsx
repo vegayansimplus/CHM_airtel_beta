@@ -9,6 +9,7 @@ import {
   DialogContent,
   Fade,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Paper,
@@ -28,10 +29,8 @@ import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import type { ReviewFormInputs, ThemeColors } from "../../../types/crq.types";
-import {
-  MOCK_CANCELLATION_REASONS,
-  STATUS_OPTIONS,
-} from "../../../types/constants";
+import { STATUS_OPTIONS } from "../../../types/constants";
+import { useCancellationReasons } from "../../../hook/useCancellationReasons";
 import { SectionLabel, StatusCard, TeamButton } from "./PlanInvDialog.styles";
 import {
   AttributeUpdateGate,
@@ -115,12 +114,19 @@ export const FormPanel: React.FC<Props> = ({
       setValue("cygnetStatus", undefined, { shouldValidate: false });
   }, [statusValue, setValue]);
 
+  // Reason list + its reason -> owner mapping, from
+  // sp_Get_Distinct_Cancellation_Reasons. Only fetched once the reviewer
+  // picks Cancelled, since that is the only outcome that shows this block.
+  const {
+    reasons: cancellationReasons,
+    ownerFor,
+    isLoading: reasonsLoading,
+    isError: reasonsFailed,
+  } = useCancellationReasons({ skip: statusValue !== "canceled" });
+
   const rollbackOwner = useMemo(
-    () =>
-      MOCK_CANCELLATION_REASONS.find(
-        (r) => r.cancellationReason === selectedReason,
-      )?.cancellationRollbackOwner ?? "",
-    [selectedReason],
+    () => ownerFor(selectedReason),
+    [ownerFor, selectedReason],
   );
 
   const handleFormSubmit = useCallback(
@@ -595,8 +601,8 @@ export const FormPanel: React.FC<Props> = ({
                         <FormControl
                           size="small"
                           fullWidth
-                          disabled={isLocked}
-                          error={Boolean(errors.cancellationReason)}
+                          disabled={isLocked || reasonsLoading}
+                          error={Boolean(errors.cancellationReason) || reasonsFailed}
                         >
                           <InputLabel
                             id="cancel-reason-label"
@@ -610,9 +616,9 @@ export const FormPanel: React.FC<Props> = ({
                             label="Cancellation Reason *"
                             sx={{ borderRadius: 1.5, fontSize: 13 }}
                           >
-                            {MOCK_CANCELLATION_REASONS.map((item, i) => (
+                            {cancellationReasons.map((item) => (
                               <MenuItem
-                                key={i}
+                                key={item.cancellationReason}
                                 value={item.cancellationReason}
                                 sx={{ fontSize: 13 }}
                               >
@@ -620,6 +626,13 @@ export const FormPanel: React.FC<Props> = ({
                               </MenuItem>
                             ))}
                           </Select>
+                          {(reasonsLoading || reasonsFailed) && (
+                            <FormHelperText>
+                              {reasonsLoading
+                                ? "Loading…"
+                                : "Could not load the list. Close and reopen to try again."}
+                            </FormHelperText>
+                          )}
                         </FormControl>
                       )}
                     />

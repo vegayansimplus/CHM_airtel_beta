@@ -90,6 +90,22 @@ export interface StageFieldOption {
 }
 
 /**
+ * Lookups a field can be fed from the server instead of `options`, resolved
+ * by FieldRenderer. Only one today: the cancellation reason list from
+ * sp_Get_Distinct_Cancellation_Reasons.
+ */
+export type StageFieldOptionsSource = "cancellationReasons";
+
+/**
+ * Server-loaded data a field's `deriveValueWith` can read - the config stays
+ * declarative while the values themselves come from the API.
+ */
+export interface StageFieldDeriveContext {
+  /** Reason -> rollback owner, from useCancellationReasons(). */
+  ownerForCancellationReason: (reason?: string | null) => string;
+}
+
+/**
  * A single config-driven form field. The generic FormPanel renders fields
  * purely off this config - no per-stage JSX duplication.
  */
@@ -100,12 +116,21 @@ export interface StageFieldConfig {
   required?: boolean;
   placeholder?: string;
   options?: StageFieldOption[];
+  /** Fetch this select's options from the server rather than listing them
+   * here. Takes precedence over `options`. */
+  optionsSource?: StageFieldOptionsSource;
   /** Show this field only when predicate against current form values is true */
   visibleWhen?: (values: Record<string, any>) => boolean;
   /** Mark required dynamically (e.g. only when status === "canceled") */
   requiredWhen?: (values: Record<string, any>) => boolean;
   /** Derive a read-only value from other form values (e.g. rollback owner) */
   deriveValue?: (values: Record<string, any>) => string;
+  /** Same, but for values that need server-loaded data - the rollback owner
+   * of the picked cancellation reason. Takes precedence over `deriveValue`. */
+  deriveValueWith?: (
+    values: Record<string, any>,
+    ctx: StageFieldDeriveContext,
+  ) => string;
 }
 
 export interface StageStatusOption {
